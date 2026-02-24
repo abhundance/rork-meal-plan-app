@@ -1432,3 +1432,91 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
   },
 
 ];
+
+export const CHEFS: Chef[] = [
+  {
+    id: 'chef_1',
+    name: 'Maria Rossi',
+    avatar_url: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=200&h=200&fit=crop&crop=face',
+    cuisine_specialty: 'Italian',
+    recipe_count: 8,
+    bio: 'Classically trained in Bologna, Maria brings the soul of Italian cooking to every dish.',
+  },
+  {
+    id: 'chef_2',
+    name: 'James Chen',
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
+    cuisine_specialty: 'Asian',
+    recipe_count: 9,
+    bio: 'James grew up between Hong Kong and Bangkok, giving him a mastery of Asian flavours.',
+  },
+  {
+    id: 'chef_3',
+    name: 'Sofia Martinez',
+    avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face',
+    cuisine_specialty: 'Mexican',
+    recipe_count: 4,
+    bio: 'Born in Oaxaca, Sofia champions bold, authentic Mexican street food.',
+  },
+  {
+    id: 'chef_4',
+    name: "Liam O'Brien",
+    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+    cuisine_specialty: 'Mediterranean',
+    recipe_count: 10,
+    bio: 'Liam spent years cooking across the Mediterranean coast, from Lisbon to Istanbul.',
+  },
+  {
+    id: 'chef_5',
+    name: 'Priya Sharma',
+    avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face',
+    cuisine_specialty: 'Indian',
+    recipe_count: 5,
+    bio: 'Priya trained under her grandmother in Mumbai before bringing Indian home cooking to the world.',
+  },
+];
+
+export const COLLECTIONS: MealCollection[] = [
+  {
+    id: 'col_1',
+    title: '30-Minute Weeknight Dinners',
+    description: 'Fast, flavourful meals for busy evenings.',
+    cover_image_url: 'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=800&h=500&fit=crop',
+    meal_ids: ['disc_1', 'disc_2', 'disc_7', 'disc_9', 'disc_10', 'disc_28'],
+    tag: 'Quick',
+  },
+  {
+    id: 'col_2',
+    title: 'Plant-Based Favourites',
+    description: 'Vibrant vegan and vegetarian dishes everyone will love.',
+    cover_image_url: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&h=500&fit=crop',
+    meal_ids: ['disc_12', 'disc_22', 'disc_23', 'disc_25', 'disc_26', 'disc_27', 'disc_28', 'disc_29'],
+    tag: 'Vegan',
+  },
+  {
+    id: 'col_3',
+    title: 'Asian Kitchen',
+    description: 'The bold, fragrant flavours of Asia at home.',
+    cover_image_url: 'https://images.unsplash.com/photo-1553163147-622ab57be1c7?w=800&h=500&fit=crop',
+    meal_ids: ['disc_2', 'disc_7', 'disc_9', 'disc_11', 'disc_17', 'disc_22', 'disc_25'],
+    tag: 'Asian',
+  },
+  {
+    id: 'col_4',
+    title: 'High Protein',
+    description: 'Fuel your body with protein-packed meals.',
+    cover_image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&h=500&fit=crop',
+    meal_ids: ['disc_1', 'disc_2', 'disc_5', 'disc_11', 'disc_15', 'disc_20'],
+    tag: 'Protein',
+  },
+];
+
+export const CUISINE_CATEGORIES: CuisineCategory[] = [
+  { id: 'cat_all', label: 'All', value: 'all' },
+  { id: 'cat_italian', label: 'Italian', value: 'Italian' },
+  { id: 'cat_asian', label: 'Asian', value: 'Asian' },
+  { id: 'cat_indian', label: 'Indian', value: 'Indian' },
+  { id: 'cat_mexican', label: 'Mexican', value: 'Mexican' },
+  { id: 'cat_mediterranean', label: 'Mediterranean', value: 'Mediterranean' },
+  { id: 'cat_middleeastern', label: 'Middle Eastern', value: 'Middle Eastern' },
+];
