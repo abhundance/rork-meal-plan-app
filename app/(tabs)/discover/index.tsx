@@ -26,6 +26,7 @@ import {
   Sparkles,
   SlidersHorizontal,
   X,
+  Activity,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
@@ -748,6 +749,12 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
               <Text style={styles.newTagText}>New</Text>
             </View>
           )}
+          {meal.health_score != null && meal.health_score > 0 && (
+            <View style={styles.healthBadge}>
+              <Activity size={10} color="#FFFFFF" strokeWidth={2} />
+              <Text style={styles.healthBadgeText}>{meal.health_score}</Text>
+            </View>
+          )}
         </View>
         <View style={styles.mealCardBody}>
           <Text style={styles.mealCardName} numberOfLines={2}>
@@ -968,6 +975,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
+  },
+  healthBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(5, 150, 105, 0.88)',
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  healthBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   newTagText: {
     fontSize: 10,
