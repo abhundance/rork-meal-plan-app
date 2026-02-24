@@ -16,7 +16,7 @@ export default function AppHeader({ title }: AppHeaderProps) {
         <View style={styles.logoIcon}>
           <UtensilsCrossed size={18} color={Colors.primary} strokeWidth={2.5} />
         </View>
-        <Text style={styles.wordmark}>Meal Plan</Text>
+
       </View>
 
       <Text style={styles.title} numberOfLines={1}>{title}</Text>
@@ -55,12 +55,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  wordmark: {
-    fontSize: 15,
-    fontWeight: '700' as const,
-    color: Colors.primary,
-    letterSpacing: -0.3,
   },
   title: {
     fontSize: 17,
