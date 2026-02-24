@@ -302,6 +302,13 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'Liam O\'Brien',
     chef_avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-21',
+    nutrition: {
+  calories: 380,
+  protein_g: 22,
+  carbs_g: 45,
+  fat_g: 12,
+},
+health_score: 87,
   },
 
   {
@@ -338,6 +345,14 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'James Chen',
     chef_avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-14',
+    nutrition: {
+  calories: 560,
+  protein_g: 38,
+  carbs_g: 52,
+  fat_g: 18,
+},
+health_score: 74,
+    
   },
 
   {
