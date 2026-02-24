@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,31 @@ import {
   Modal,
   Dimensions,
 } from 'react-native';
+
+const { width: screenWidth } = Dimensions.get('window');
+
+type SkeletonBoxProps = {
+  width?: number | string;
+  height: number;
+  borderRadius?: number;
+  style?: object;
+};
+const SkeletonBox = ({ width = '100%', height, borderRadius = 12, style }: SkeletonBoxProps) => {
+  const anim = useRef(new Animated.Value(0.5)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 1, duration: 750, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0.4, duration: 750, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [anim]);
+  return (
+    <Animated.View
+      style={[{ width, height, borderRadius, backgroundColor: '#E5E7EB', opacity: anim }, style]}
+    />
+  );
+};
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import { Image } from 'expo-image';
@@ -72,6 +97,12 @@ export default function DiscoverScreen() {
   const { isFav, addFromDiscover } = useFavs();
   const { familySettings } = useFamilySettings();
   const { addMeal, getMealForSlot, meals } = useMealPlan();
+
+  const [initialLoading, setInitialLoading] = useState<boolean>(true);
+  useEffect(() => {
+    const t = setTimeout(() => setInitialLoading(false), 500);
+    return () => clearTimeout(t);
+  }, []);
 
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
@@ -362,6 +393,36 @@ export default function DiscoverScreen() {
         }
         testID="discover-scroll"
       >
+        {(initialLoading || refreshing) ? (
+          <ScrollView
+            scrollEnabled={false}
+            style={{ paddingHorizontal: 16, paddingTop: 16 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <SkeletonBox height={200} borderRadius={20} style={{ marginHorizontal: -16 }} />
+            <SkeletonBox width={160} height={22} borderRadius={8} style={{ marginTop: 24 }} />
+            <ScrollView
+              horizontal
+              scrollEnabled={false}
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 12, marginHorizontal: -16 }}
+              contentContainerStyle={{ paddingLeft: 16, gap: 12, flexDirection: 'row' }}
+            >
+              <SkeletonBox width={140} height={170} borderRadius={16} />
+              <SkeletonBox width={140} height={170} borderRadius={16} />
+              <SkeletonBox width={140} height={170} borderRadius={16} />
+            </ScrollView>
+            <SkeletonBox width={180} height={22} borderRadius={8} style={{ marginTop: 28 }} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
+              <SkeletonBox width={(screenWidth - 44) / 2} height={190} borderRadius={16} />
+              <SkeletonBox width={(screenWidth - 44) / 2} height={190} borderRadius={16} />
+              <SkeletonBox width={(screenWidth - 44) / 2} height={190} borderRadius={16} />
+              <SkeletonBox width={(screenWidth - 44) / 2} height={190} borderRadius={16} />
+            </View>
+            <View style={{ height: 100 }} />
+          </ScrollView>
+        ) : (
+          <>
         {COLLECTIONS.length > 0 && (
           <TouchableOpacity
             style={styles.heroBanner}
@@ -584,6 +645,8 @@ export default function DiscoverScreen() {
         </View>
 
         <View style={{ height: 100 }} />
+          </>
+        )}
       </ScrollView>
 
       <Modal
