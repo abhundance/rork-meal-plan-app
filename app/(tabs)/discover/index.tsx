@@ -77,6 +77,9 @@ export default function DiscoverScreen() {
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMeal, setSelectedMeal] = useState<DiscoverMeal | null>(null);
 
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toastAnim = useRef(new Animated.Value(0)).current;
+
   const [mealTypeFilter, setMealTypeFilter] = useState<MealTypeFilter>('all');
   const [cookTimeFilter, setCookTimeFilter] = useState<CookTimeFilter>('any');
   const [dietFilters, setDietFilters] = useState<string[]>([]);
@@ -86,6 +89,15 @@ export default function DiscoverScreen() {
   const [tempCookTime, setTempCookTime] = useState<CookTimeFilter>('any');
   const [tempDietFilters, setTempDietFilters] = useState<string[]>([]);
   const [tempCuisineFilters, setTempCuisineFilters] = useState<string[]>([]);
+
+  const showToast = useCallback((message: string) => {
+    setToastMsg(message);
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+      Animated.delay(2000),
+      Animated.timing(toastAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
+    ]).start(() => setToastMsg(null));
+  }, [toastAnim]);
 
   const sortedSlots = useMemo(
     () => [...familySettings.meal_slots].sort((a, b) => a.order - b.order),
@@ -212,10 +224,10 @@ export default function DiscoverScreen() {
       addMeal(planned);
       setSlotPickerVisible(false);
       setSelectedMeal(null);
-      const slot = familySettings.meal_slots.find((s) => s.slot_id === slotId);
-      Alert.alert('Added!', `${selectedMeal.name} added to ${slot?.name ?? 'plan'}`);
+      showToast(`${selectedMeal?.name} added to your meal plan`);
     },
-    [selectedMeal, addMeal, familySettings]
+
+    [selectedMeal, addMeal, familySettings, showToast]
   );
 
   const handleMealPress = useCallback((meal: DiscoverMeal) => {
@@ -672,6 +684,42 @@ export default function DiscoverScreen() {
           </View>
         </View>
       </Modal>
+
+      {toastMsg !== null && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            bottom: 90,
+            alignSelf: 'center',
+            opacity: toastAnim,
+            transform: [{
+              translateY: toastAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [10, 0],
+              }),
+            }],
+            backgroundColor: '#111827',
+            borderRadius: 12,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            maxWidth: 320,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.18,
+            shadowRadius: 12,
+            elevation: 8,
+          }}
+        >
+          <Check size={15} color="#FFFFFF" />
+          <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600', flexShrink: 1 }}>
+            {toastMsg}
+          </Text>
+        </Animated.View>
+      )}
 
       <SlotPickerModal
         visible={slotPickerVisible}
