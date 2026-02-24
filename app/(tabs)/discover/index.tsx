@@ -255,18 +255,18 @@ export default function DiscoverScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.headerRow}>
-        <View style={{ flex: 1 }}>
-          <AppHeader title="Discover" />
-        </View>
-        <TouchableOpacity
-          style={styles.searchBtn}
-          onPress={() => router.push('/discover-search' as Href)}
-          testID="discover-search-btn"
-        >
-          <Search size={20} color={Colors.text} strokeWidth={2} />
-        </TouchableOpacity>
-      </View>
+      <AppHeader
+        title="Discover"
+        rightElement={
+          <TouchableOpacity
+            style={styles.searchBtn}
+            onPress={() => router.push('/discover-search' as Href)}
+            testID="discover-search-btn"
+          >
+            <Search size={20} color={Colors.text} strokeWidth={2} />
+          </TouchableOpacity>
+        }
+      />
 
       <View style={styles.filterBar}>
         <ScrollView
@@ -780,10 +780,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   searchBtn: {
     width: 36,

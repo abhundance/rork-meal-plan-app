@@ -182,11 +182,7 @@ export default function FavsScreen() {
   if (meals.length === 0 && !isLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
-            <AppHeader title="Favourites" />
-          </View>
-        </View>
+        <AppHeader title="Favourites" />
         <ScrollView
           contentContainerStyle={styles.emptyScroll}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
@@ -212,18 +208,18 @@ export default function FavsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.headerRow}>
-        <View style={{ flex: 1 }}>
-          <AppHeader title="Favourites" />
-        </View>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => router.push('/add-meal' as Href)}
-          testID="add-fav-btn"
-        >
-          <Plus size={20} color={Colors.white} strokeWidth={2.5} />
-        </TouchableOpacity>
-      </View>
+      <AppHeader
+        title="Favourites"
+        rightElement={
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => router.push('/add-meal' as Href)}
+            testID="add-fav-btn"
+          >
+            <Plus size={20} color={Colors.white} strokeWidth={2.5} />
+          </TouchableOpacity>
+        }
+      />
 
       <View style={styles.searchWrap}>
         <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
@@ -505,13 +501,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerLeft: {
-    flex: 1,
   },
   addBtn: {
     width: 36,

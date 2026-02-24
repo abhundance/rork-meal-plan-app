@@ -7,9 +7,10 @@ import { Shadows } from '@/constants/theme';
 
 interface AppHeaderProps {
   title: string;
+  rightElement?: React.ReactNode;
 }
 
-export default function AppHeader({ title }: AppHeaderProps) {
+export default function AppHeader({ title, rightElement }: AppHeaderProps) {
   return (
     <View style={styles.container}>
       <View style={styles.left}>
@@ -21,13 +22,16 @@ export default function AppHeader({ title }: AppHeaderProps) {
 
       <Text style={styles.title} numberOfLines={1}>{title}</Text>
 
-      <TouchableOpacity
-        style={styles.profileButton}
-        onPress={() => router.push('/family-settings' as Href)}
-        testID="profile-button"
-      >
-        <User size={20} color={Colors.text} strokeWidth={2} />
-      </TouchableOpacity>
+      <View style={styles.right}>
+        {rightElement}
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => router.push('/family-settings' as Href)}
+          testID="profile-button"
+        >
+          <User size={20} color={Colors.text} strokeWidth={2} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -62,6 +66,13 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textAlign: 'center',
     flex: 2,
+  },
+  right: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
   },
   profileButton: {
     width: 36,
