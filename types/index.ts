@@ -124,7 +124,7 @@ export interface DiscoverMeal {
   // ── Time & servings ────────────────────────────────
   prep_time: number;              // minutes
   cook_time: number;              // minutes
-  cooking_time_band: 'Under 30' | '30-60' | '60+';
+  cooking_time_band: 'Under 30' | '30-60' | 'Over 60';
   recipe_serving_size: number;
 
   // ── Diet & allergens ───────────────────────────────
