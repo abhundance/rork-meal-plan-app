@@ -108,24 +108,69 @@ export interface FavMeal {
 }
 
 export interface DiscoverMeal {
+  // ── Core identity ──────────────────────────────────
   id: string;
   name: string;
   image_url: string;
-  cuisine: string;
-  cooking_time_band: 'Under 30' | '30-60' | 'Over 60';
-  prep_time: number;
-  cook_time: number;
-  dietary_tags: string[];
-  ingredients: Ingredient[];
-  recipe_serving_size: number;
-  method_steps: string[];
-  description?: string;
-  chef_notes?: string;
-  chef_id: string;
-  chef_name: string;
-  chef_avatar_url?: string;
+  description: string;
   created_at: string;
+
+  // ── Classification ─────────────────────────────────
+  cuisine: string;
   meal_type: 'breakfast' | 'lunch_dinner' | 'light_bites';
+  dish_types?: string[];          // Spoonacular: ['main course', 'soup', etc.]
+  occasions?: string[];           // Spoonacular: ['christmas', 'summer', etc.]
+
+  // ── Time & servings ────────────────────────────────
+  prep_time: number;              // minutes
+  cook_time: number;              // minutes
+  cooking_time_band: 'Under 30' | '30-60' | '60+';
+  recipe_serving_size: number;
+
+  // ── Diet & allergens ───────────────────────────────
+  dietary_tags: string[];         // e.g. ['Vegetarian', 'Gluten-Free']
+  is_vegan?: boolean;
+  is_vegetarian?: boolean;
+  is_gluten_free?: boolean;
+  is_dairy_free?: boolean;
+
+  // ── Nutrition (per serving at recipe_serving_size) ─
+  nutrition?: {
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+  };
+
+  // ── Taste profile ──────────────────────────────────
+  taste_profile?: {
+    sweetness: number;            // 0–100
+    saltiness: number;
+    spiciness: number;
+    savoriness: number;
+    fattiness: number;
+  };
+
+  // ── Cost ───────────────────────────────────────────
+  price_per_serving_cents?: number;   // e.g. 240 = $2.40
+  is_budget_friendly?: boolean;
+
+  // ── Popularity ─────────────────────────────────────
+  popularity_score?: number;      // Spoonacular aggregateLikes
+
+  // ── Recipe content ─────────────────────────────────
+  ingredients: Ingredient[];
+  method_steps: string[];
+
+  // ── Attribution ────────────────────────────────────
+  chef_id?: string;
+  chef_name?: string;
+  chef_avatar_url?: string;
+  source_url?: string;            // For Spoonacular-sourced recipes
+  source_name?: string;           // e.g. 'BBC Good Food'
+
+  // ── App metadata ───────────────────────────────────
+  health_score?: number;          // 0–100, Spoonacular calculated
 }
 
 export interface Chef {
