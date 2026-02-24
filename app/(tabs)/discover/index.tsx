@@ -155,6 +155,18 @@ export default function DiscoverScreen() {
     return applyFilters(recent);
   }, [applyFilters]);
 
+  const hasActiveFilters =
+    mealTypeFilter !== 'all' ||
+    cookTimeFilter !== 'any' ||
+    dietFilters.length > 0 ||
+    cuisineFilters.length > 0;
+
+  const noFilterResults =
+    hasActiveFilters &&
+    suggestedMeals.length === 0 &&
+    missingMeals.length === 0 &&
+    newThisWeek.length === 0;
+
   const openFilterSheet = useCallback(() => {
     setTempCookTime(cookTimeFilter);
     setTempDietFilters([...dietFilters]);
@@ -369,52 +381,74 @@ export default function DiscoverScreen() {
           </TouchableOpacity>
         )}
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Suggested For You</Text>
-              <Text style={styles.sectionSubtitle}>Based on your Favs</Text>
+        {noFilterResults ? (
+          <View style={styles.noResultsContainer}>
+            <Search size={64} color="#9CA3AF" strokeWidth={1.5} />
+            <Text style={styles.noResultsTitle}>No recipes match your filters</Text>
+            <Text style={styles.noResultsSubtitle}>Try adjusting or clearing your filters</Text>
+            <TouchableOpacity
+              style={styles.clearFiltersBtn}
+              onPress={() => {
+                setMealTypeFilter('all');
+                setCookTimeFilter('any');
+                setDietFilters([]);
+                setCuisineFilters([]);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.clearFiltersBtnText}>Clear filters</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View>
+                  <Text style={styles.sectionTitle}>Suggested For You</Text>
+                  <Text style={styles.sectionSubtitle}>Based on your Favs</Text>
+                </View>
+              </View>
+              {suggestedMeals.length > 0 ? (
+                <FlatList
+                  horizontal
+                  data={suggestedMeals}
+                  renderItem={({ item }) => renderDiscoverCard(item, 180)}
+                  keyExtractor={(item) => `sug_${item.id}`}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalList}
+                />
+              ) : (
+                <Text style={styles.emptyFilterText}>No meals match your filters</Text>
+              )}
             </View>
-          </View>
-          {suggestedMeals.length > 0 ? (
-            <FlatList
-              horizontal
-              data={suggestedMeals}
-              renderItem={({ item }) => renderDiscoverCard(item, 180)}
-              keyExtractor={(item) => `sug_${item.id}`}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-            />
-          ) : (
-            <Text style={styles.emptyFilterText}>No meals match your filters</Text>
-          )}
-        </View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>What's Missing This Week</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.missingBanner}
-            onPress={() => router.push('/(tabs)/(home)' as Href)}
-          >
-            <Sparkles size={20} color={Colors.primary} strokeWidth={2} />
-            <Text style={styles.missingText}>Start planning your week</Text>
-            <ChevronRight size={16} color={Colors.primary} strokeWidth={2} />
-          </TouchableOpacity>
-          {missingMeals.length > 0 ? (
-            <FlatList
-              horizontal
-              data={missingMeals}
-              renderItem={({ item }) => renderDiscoverCard(item, 180)}
-              keyExtractor={(item) => `miss_${item.id}`}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-            />
-          ) : (
-            <Text style={styles.emptyFilterText}>No meals match your filters</Text>
-          )}
-        </View>
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>What's Missing This Week</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.missingBanner}
+                onPress={() => router.push('/(tabs)/(home)' as Href)}
+              >
+                <Sparkles size={20} color={Colors.primary} strokeWidth={2} />
+                <Text style={styles.missingText}>Start planning your week</Text>
+                <ChevronRight size={16} color={Colors.primary} strokeWidth={2} />
+              </TouchableOpacity>
+              {missingMeals.length > 0 ? (
+                <FlatList
+                  horizontal
+                  data={missingMeals}
+                  renderItem={({ item }) => renderDiscoverCard(item, 180)}
+                  keyExtractor={(item) => `miss_${item.id}`}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalList}
+                />
+              ) : (
+                <Text style={styles.emptyFilterText}>No meals match your filters</Text>
+              )}
+            </View>
+          </>
+        )}
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -501,21 +535,23 @@ export default function DiscoverScreen() {
           </ScrollView>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>New This Week</Text>
-          {newThisWeek.length > 0 ? (
-            <FlatList
-              horizontal
-              data={newThisWeek}
-              renderItem={({ item }) => renderDiscoverCard(item, 180)}
-              keyExtractor={(item) => `new_${item.id}`}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-            />
-          ) : (
-            <Text style={styles.emptyFilterText}>No meals match your filters</Text>
-          )}
-        </View>
+        {!noFilterResults && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>New This Week</Text>
+            {newThisWeek.length > 0 ? (
+              <FlatList
+                horizontal
+                data={newThisWeek}
+                renderItem={({ item }) => renderDiscoverCard(item, 180)}
+                keyExtractor={(item) => `new_${item.id}`}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              />
+            ) : (
+              <Text style={styles.emptyFilterText}>No meals match your filters</Text>
+            )}
+          </View>
+        )}
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -1004,6 +1040,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600' as const,
     color: Colors.primary,
+  },
+  noResultsContainer: {
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+    alignItems: 'center' as const,
+  },
+  noResultsTitle: {
+    fontSize: 17,
+    fontWeight: '600' as const,
+    color: '#111827',
+    textAlign: 'center' as const,
+    marginTop: 16,
+  },
+  noResultsSubtitle: {
+    fontSize: 16,
+    fontWeight: '400' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    maxWidth: 240,
+    marginTop: 8,
+  },
+  clearFiltersBtn: {
+    backgroundColor: '#7C3AED',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginTop: 20,
+  },
+  clearFiltersBtnText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
   emptyFilterText: {
     fontSize: 14,
