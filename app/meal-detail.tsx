@@ -1,0 +1,779 @@
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLocalSearchParams, router, Href } from 'expo-router';
+import { Stack } from 'expo-router';
+import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
+import {
+  ArrowLeft,
+  Heart,
+  Pencil,
+  CalendarPlus,
+  Clock,
+  Users,
+  ChefHat,
+  X,
+  FileText,
+} from 'lucide-react-native';
+import Colors from '@/constants/colors';
+import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
+import ServingStepper from '@/components/ServingStepper';
+import SlotPickerModal from '@/components/SlotPickerModal';
+import { useFavs } from '@/providers/FavsProvider';
+import { useFamilySettings } from '@/providers/FamilySettingsProvider';
+import { useMealPlan } from '@/providers/MealPlanProvider';
+import { FavMeal, PlannedMeal, Ingredient } from '@/types';
+import { DISCOVER_MEALS } from '@/mocks/discover';
+
+const DESTRUCTIVE_RED = '#E05252';
+
+export default function MealDetailScreen() {
+  const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ id: string; source: string }>();
+  const { meals: favMeals, isFav, isFavByName, addFav, addFromDiscover, removeFav, incrementPlanCount } = useFavs();
+  const { familySettings } = useFamilySettings();
+  const { meals: planMeals, addMeal, removeMeal, updateMealNote, getMealForSlot } = useMealPlan();
+
+  const [servingScale, setServingScale] = useState<number>(4);
+  const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
+  const [dailyNote, setDailyNote] = useState<string>('');
+  const [initialized, setInitialized] = useState<boolean>(false);
+
+  const plannedMeal = useMemo<PlannedMeal | null>(() => {
+    if (params.source !== 'plan') return null;
+    return planMeals.find((m) => m.id === params.id) ?? null;
+  }, [params.source, params.id, planMeals]);
+
+  useEffect(() => {
+    if (params.source === 'plan' && plannedMeal && !initialized) {
+      setServingScale(plannedMeal.serving_size);
+      setDailyNote(plannedMeal.daily_note ?? '');
+      setInitialized(true);
+    }
+  }, [plannedMeal, params.source, initialized]);
+
+  const meal = useMemo<FavMeal | null>(() => {
+    if (params.source === 'favs') {
+      return favMeals.find((m) => m.id === params.id) ?? null;
+    }
+
+    if (params.source === 'plan') {
+      if (!plannedMeal) return null;
+      const favMatch = favMeals.find(
+        (f) => f.name.toLowerCase() === plannedMeal.meal_name.toLowerCase()
+      );
+      const discMatch = DISCOVER_MEALS.find(
+        (d) => d.name.toLowerCase() === plannedMeal.meal_name.toLowerCase()
+      );
+      const methodSteps = favMatch?.method_steps ?? discMatch?.method_steps ?? [];
+      return {
+        id: plannedMeal.id,
+        name: plannedMeal.meal_name,
+        image_url: plannedMeal.meal_image_url,
+        cuisine: favMatch?.cuisine ?? discMatch?.cuisine,
+        cooking_time_band: favMatch?.cooking_time_band ?? discMatch?.cooking_time_band,
+        prep_time: favMatch?.prep_time ?? discMatch?.prep_time,
+        cook_time: favMatch?.cook_time ?? discMatch?.cook_time,
+        dietary_tags: favMatch?.dietary_tags ?? discMatch?.dietary_tags ?? [],
+        custom_tags: favMatch?.custom_tags ?? [],
+        ingredients: plannedMeal.ingredients,
+        recipe_serving_size: plannedMeal.recipe_serving_size,
+        method_steps: methodSteps,
+        description: favMatch?.description ?? discMatch?.description,
+        chef_notes: favMatch?.chef_notes ?? discMatch?.chef_notes,
+        source: favMatch ? favMatch.source : (discMatch ? 'discover' as const : 'family_created' as const),
+        source_chef_id: favMatch?.source_chef_id ?? discMatch?.chef_id,
+        source_chef_name: favMatch?.source_chef_name ?? discMatch?.chef_name,
+        add_to_plan_count: favMatch?.add_to_plan_count ?? 0,
+        created_at: favMatch?.created_at ?? plannedMeal.date,
+        is_ingredient_complete: plannedMeal.ingredients.length > 0,
+        is_recipe_complete: methodSteps.length > 0,
+      } as FavMeal;
+    }
+
+    const disc = DISCOVER_MEALS.find((m) => m.id === params.id);
+    if (disc) {
+      return {
+        id: disc.id,
+        name: disc.name,
+        image_url: disc.image_url,
+        cuisine: disc.cuisine,
+        cooking_time_band: disc.cooking_time_band,
+        prep_time: disc.prep_time,
+        cook_time: disc.cook_time,
+        dietary_tags: disc.dietary_tags,
+        custom_tags: [] as string[],
+        ingredients: disc.ingredients,
+        recipe_serving_size: disc.recipe_serving_size,
+        method_steps: disc.method_steps,
+        description: disc.description,
+        chef_notes: disc.chef_notes,
+        source: 'discover' as const,
+        source_chef_id: disc.chef_id,
+        source_chef_name: disc.chef_name,
+        add_to_plan_count: 0,
+        created_at: disc.created_at,
+        is_ingredient_complete: disc.ingredients.length > 0,
+        is_recipe_complete: disc.method_steps.length > 0,
+      } as FavMeal;
+    }
+    return null;
+  }, [params.id, params.source, favMeals, plannedMeal]);
+
+  const isInFavs = useMemo(() => {
+    if (!meal) return false;
+    return isFav(meal.id) || params.source === 'favs';
+  }, [meal, isFav, params.source]);
+
+  const isPlanMealFav = useMemo(() => {
+    if (params.source !== 'plan' || !meal) return false;
+    return isFavByName(meal.name);
+  }, [params.source, meal, isFavByName]);
+
+  const sortedSlots = useMemo(
+    () => [...familySettings.meal_slots].sort((a, b) => a.order - b.order),
+    [familySettings.meal_slots]
+  );
+
+  const scaledIngredients = useMemo(() => {
+    if (!meal) return [];
+    const ratio = meal.recipe_serving_size > 0 ? servingScale / meal.recipe_serving_size : 1;
+    return meal.ingredients.map((i) => ({
+      ...i,
+      quantity: Math.round(i.quantity * ratio * 100) / 100,
+    }));
+  }, [meal, servingScale]);
+
+  const handleToggleFav = useCallback(() => {
+    if (!meal) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (isInFavs && params.source === 'favs') {
+      Alert.alert('Remove from Favs?', `Remove "${meal.name}"?`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            removeFav(meal.id);
+            router.back();
+          },
+        },
+      ]);
+    } else if (!isInFavs && params.source === 'discover') {
+      const disc = DISCOVER_MEALS.find((m) => m.id === params.id);
+      if (disc) {
+        addFromDiscover(disc);
+        Alert.alert('Saved!', `${meal.name} added to your Favs`);
+      }
+    }
+  }, [meal, isInFavs, params, removeFav, addFromDiscover]);
+
+  const handleToggleFavFromPlan = useCallback(() => {
+    if (!meal) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const currentlyFav = isFavByName(meal.name);
+    if (currentlyFav) {
+      const favEntry = favMeals.find(
+        (f) => f.name.toLowerCase() === meal.name.toLowerCase()
+      );
+      if (favEntry) {
+        Alert.alert('Remove from Favs?', `Remove "${meal.name}"?`, [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: () => removeFav(favEntry.id),
+          },
+        ]);
+      }
+    } else {
+      const newFav: FavMeal = {
+        id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        name: meal.name,
+        image_url: meal.image_url,
+        cuisine: meal.cuisine,
+        cooking_time_band: meal.cooking_time_band,
+        prep_time: meal.prep_time,
+        cook_time: meal.cook_time,
+        dietary_tags: meal.dietary_tags,
+        custom_tags: meal.custom_tags,
+        ingredients: meal.ingredients,
+        recipe_serving_size: meal.recipe_serving_size,
+        method_steps: meal.method_steps,
+        description: meal.description,
+        chef_notes: meal.chef_notes,
+        source: 'family_created' as const,
+        source_chef_id: meal.source_chef_id,
+        source_chef_name: meal.source_chef_name,
+        add_to_plan_count: 0,
+        created_at: new Date().toISOString(),
+        is_ingredient_complete: meal.ingredients.length > 0,
+        is_recipe_complete: meal.method_steps.length > 0,
+      };
+      addFav(newFav);
+      Alert.alert('Saved!', `${meal.name} added to your Favs`);
+    }
+  }, [meal, isFavByName, favMeals, removeFav, addFav]);
+
+  const handleRemoveFromPlan = useCallback(() => {
+    if (!plannedMeal) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert('Remove from Plan?', `Remove "${plannedMeal.meal_name}" from this day?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          removeMeal(plannedMeal.id);
+          router.back();
+        },
+      },
+    ]);
+  }, [plannedMeal, removeMeal]);
+
+  const handleAddToPlan = useCallback(() => {
+    setSlotPickerVisible(true);
+  }, []);
+
+  const handleSlotSelected = useCallback(
+    (date: string, slotId: string) => {
+      if (!meal) return;
+      const planned: PlannedMeal = {
+        id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        slot_id: slotId,
+        date,
+        meal_name: meal.name,
+        meal_image_url: meal.image_url,
+        serving_size: familySettings.default_serving_size,
+        ingredients: meal.ingredients,
+        recipe_serving_size: meal.recipe_serving_size,
+      };
+      addMeal(planned);
+      if (params.source === 'favs') {
+        incrementPlanCount(meal.id);
+      }
+      setSlotPickerVisible(false);
+      const slot = familySettings.meal_slots.find((s) => s.slot_id === slotId);
+      Alert.alert('Added!', `${meal.name} added to ${slot?.name ?? 'plan'}`);
+    },
+    [meal, addMeal, incrementPlanCount, familySettings, params.source]
+  );
+
+  const handleNoteSave = useCallback(() => {
+    if (plannedMeal) {
+      updateMealNote(plannedMeal.id, dailyNote);
+      console.log('[MealDetail] Saved note for:', plannedMeal.id);
+    }
+  }, [plannedMeal, dailyNote, updateMealNote]);
+
+  if (!meal) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.notFound}>
+          <Text style={styles.notFoundText}>Meal not found</Text>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.backLink}>Go back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.heroWrap}>
+          {meal.image_url ? (
+            <Image source={{ uri: meal.image_url }} style={styles.heroImage} contentFit="cover" />
+          ) : (
+            <View style={[styles.heroImage, styles.heroPlaceholder]}>
+              <ChefHat size={48} color={Colors.textSecondary} strokeWidth={1} />
+            </View>
+          )}
+          <TouchableOpacity
+            style={[styles.backBtn, { top: insets.top + 8 }]}
+            onPress={() => router.back()}
+          >
+            <ArrowLeft size={20} color={Colors.text} strokeWidth={2} />
+          </TouchableOpacity>
+          {params.source === 'favs' && (
+            <TouchableOpacity
+              style={[styles.editBtn, { top: insets.top + 8 }]}
+              onPress={() => router.push(`/add-meal?editId=${meal.id}` as Href)}
+            >
+              <Pencil size={18} color={Colors.text} strokeWidth={2} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.body}>
+          <Text style={styles.mealName}>{meal.name}</Text>
+
+          <View style={styles.tagsRow}>
+            {meal.cuisine && (
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{meal.cuisine}</Text>
+              </View>
+            )}
+            {meal.cooking_time_band && (
+              <View style={styles.tag}>
+                <Clock size={11} color={Colors.primary} strokeWidth={2} />
+                <Text style={styles.tagText}>{meal.cooking_time_band} min</Text>
+              </View>
+            )}
+            {meal.dietary_tags.map((dt) => (
+              <View key={dt} style={styles.tag}>
+                <Text style={styles.tagText}>{dt}</Text>
+              </View>
+            ))}
+            {meal.source === 'discover' && params.source !== 'plan' && (
+              <View style={[styles.tag, styles.sourceTag]}>
+                <Text style={styles.tagText}>From Discover</Text>
+              </View>
+            )}
+          </View>
+
+          {(meal.prep_time || meal.cook_time) && (
+            <View style={styles.timeRow}>
+              {meal.prep_time ? (
+                <View style={styles.timeItem}>
+                  <Text style={styles.timeLabel}>Prep</Text>
+                  <Text style={styles.timeValue}>{meal.prep_time} min</Text>
+                </View>
+              ) : null}
+              {meal.cook_time ? (
+                <View style={styles.timeItem}>
+                  <Text style={styles.timeLabel}>Cook</Text>
+                  <Text style={styles.timeValue}>{meal.cook_time} min</Text>
+                </View>
+              ) : null}
+            </View>
+          )}
+
+          {meal.source_chef_name && (
+            <TouchableOpacity
+              style={styles.chefRow}
+              onPress={() => {
+                if (meal.source_chef_id) {
+                  router.push(`/chef-profile?id=${meal.source_chef_id}` as Href);
+                }
+              }}
+            >
+              <ChefHat size={16} color={Colors.primary} strokeWidth={2} />
+              <Text style={styles.chefName}>{meal.source_chef_name}</Text>
+            </TouchableOpacity>
+          )}
+
+          <View style={styles.servingRow}>
+            <View style={styles.servingLabel}>
+              <Users size={16} color={Colors.textSecondary} strokeWidth={2} />
+              <Text style={styles.servingText}>Servings</Text>
+            </View>
+            <ServingStepper value={servingScale} onValueChange={setServingScale} compact />
+          </View>
+
+          {meal.description && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Notes</Text>
+              <Text style={styles.sectionBody}>{meal.description}</Text>
+            </View>
+          )}
+
+          {scaledIngredients.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Ingredients</Text>
+              {scaledIngredients.map((ing, idx) => (
+                <View
+                  key={ing.id}
+                  style={[
+                    styles.ingredientRow,
+                    idx < scaledIngredients.length - 1 && styles.ingredientBorder,
+                  ]}
+                >
+                  <Text style={styles.ingredientQty}>
+                    {ing.quantity} {ing.unit}
+                  </Text>
+                  <Text style={styles.ingredientName}>{ing.name}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {meal.method_steps.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Method</Text>
+              {meal.method_steps.map((step, idx) => (
+                <View key={idx} style={styles.stepRow}>
+                  <View style={styles.stepNum}>
+                    <Text style={styles.stepNumText}>{idx + 1}</Text>
+                  </View>
+                  <Text style={styles.stepText}>{step}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {meal.chef_notes && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Chef Notes</Text>
+              <Text style={styles.sectionBody}>{meal.chef_notes}</Text>
+            </View>
+          )}
+
+          {params.source === 'plan' && (
+            <View style={styles.section}>
+              <View style={styles.noteSectionHeader}>
+                <FileText size={16} color={Colors.textSecondary} strokeWidth={2} />
+                <Text style={styles.sectionTitle}>Today's Note</Text>
+              </View>
+              <TextInput
+                style={styles.notesInput}
+                value={dailyNote}
+                onChangeText={setDailyNote}
+                onBlur={handleNoteSave}
+                placeholder="Add a note for today, e.g. Add more salt or Make without chicken."
+                placeholderTextColor={Colors.textSecondary}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+          )}
+
+          <View style={{ height: 120 }} />
+        </View>
+      </ScrollView>
+
+      {params.source === 'plan' ? (
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
+          <TouchableOpacity
+            style={styles.favBtn}
+            onPress={handleToggleFavFromPlan}
+            activeOpacity={0.8}
+          >
+            <Heart
+              size={22}
+              color={Colors.primary}
+              strokeWidth={2}
+              fill={isPlanMealFav ? Colors.primary : 'transparent'}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.addToPlanBtn, styles.removePlanBtn]}
+            onPress={handleRemoveFromPlan}
+            activeOpacity={0.8}
+          >
+            <X size={18} color={DESTRUCTIVE_RED} strokeWidth={2.5} />
+            <Text style={[styles.addToPlanText, styles.removeText]}>Remove from Plan</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
+          <TouchableOpacity
+            style={[styles.addToPlanBtn]}
+            onPress={handleAddToPlan}
+            activeOpacity={0.8}
+          >
+            <CalendarPlus size={18} color={Colors.white} strokeWidth={2} />
+            <Text style={styles.addToPlanText}>Add to Plan</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.favBtn} onPress={handleToggleFav}>
+            <Heart
+              size={22}
+              color={Colors.primary}
+              strokeWidth={2}
+              fill={isInFavs ? Colors.primary : 'transparent'}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <SlotPickerModal
+        visible={slotPickerVisible}
+        onClose={() => setSlotPickerVisible(false)}
+        onSelect={handleSlotSelected}
+        mealSlots={sortedSlots}
+        getMealForSlot={getMealForSlot}
+        mealName={meal.name}
+      />
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  scroll: {
+    flex: 1,
+  },
+  heroWrap: {
+    position: 'relative' as const,
+  },
+  heroImage: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+  },
+  heroPlaceholder: {
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backBtn: {
+    position: 'absolute' as const,
+    left: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.card,
+  },
+  editBtn: {
+    position: 'absolute' as const,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.card,
+  },
+  body: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  mealName: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    marginBottom: 12,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 16,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  sourceTag: {
+    backgroundColor: Colors.primaryLight,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 16,
+  },
+  timeItem: {
+    alignItems: 'center',
+  },
+  timeLabel: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 2,
+  },
+  timeValue: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  chefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 16,
+  },
+  chefName: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+  servingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.button,
+    padding: 12,
+    marginBottom: 20,
+    ...Shadows.card,
+  },
+  servingLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  servingText: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  noteSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: Colors.text,
+  },
+  sectionBody: {
+    fontSize: 15,
+    color: Colors.text,
+    lineHeight: 23,
+  },
+  ingredientRow: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+  },
+  ingredientBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  ingredientQty: {
+    width: 80,
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+  ingredientName: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 12,
+  },
+  stepNum: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  stepNumText: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: Colors.white,
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.text,
+    lineHeight: 23,
+  },
+  notesInput: {
+    fontSize: 15,
+    color: Colors.text,
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    padding: 14,
+    minHeight: 90,
+    lineHeight: 22,
+    borderWidth: 1.5,
+    borderColor: Colors.divider,
+    ...Shadows.card,
+  },
+  bottomBar: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: Colors.background,
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
+  },
+  addToPlanBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 48,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.button,
+  },
+  removePlanBtn: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: `${DESTRUCTIVE_RED}30`,
+  },
+  addToPlanText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.white,
+  },
+  removeText: {
+    color: DESTRUCTIVE_RED,
+  },
+  favBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.button,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notFound: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  notFoundText: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  backLink: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+});

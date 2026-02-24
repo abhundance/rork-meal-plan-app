@@ -1,0 +1,231 @@
+export interface MealSlot {
+  slot_id: string;
+  name: string;
+  order: number;
+  serving_size_override?: number;
+}
+
+export interface FamilySettings {
+  family_name: string;
+  family_avatar_url?: string;
+  meal_slots: MealSlot[];
+  default_serving_size: number;
+  pantry_items: PantryItem[];
+  dietary_preferences_family: string[];
+  measurement_units: 'metric' | 'imperial';
+  language: string;
+  region: string;
+}
+
+export interface PantryItem {
+  id: string;
+  name: string;
+  category: string;
+}
+
+export interface UserSettings {
+  user_id: string;
+  display_name: string;
+  email?: string;
+  avatar_url?: string;
+  dietary_preferences_individual: string[];
+  is_admin: boolean;
+}
+
+export interface FamilyMember {
+  user_id: string;
+  display_name: string;
+  avatar_url?: string;
+  is_admin: boolean;
+  dietary_preferences: string[];
+}
+
+export interface NotificationSettings {
+  new_recipes: boolean;
+  weekly_reminder: boolean;
+  weekly_reminder_day: number;
+  weekly_reminder_time: string;
+  shopping_reminder: boolean;
+  shopping_reminder_day: number;
+  shopping_reminder_time: string;
+}
+
+export interface OnboardingData {
+  completed: boolean;
+  current_step: number;
+  family_name: string;
+  household_size: number;
+  meal_slots: MealSlot[];
+  dietary_preferences_family: string[];
+  dietary_preferences_individual: string[];
+  is_admin: boolean;
+}
+
+export interface Ingredient {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  category: string;
+}
+
+export interface PlannedMeal {
+  id: string;
+  slot_id: string;
+  date: string;
+  meal_name: string;
+  meal_image_url?: string;
+  serving_size: number;
+  ingredients: Ingredient[];
+  recipe_serving_size: number;
+  daily_note?: string;
+}
+
+export interface SampleMeal {
+  id: string;
+  name: string;
+  image_url: string;
+  ingredients: Ingredient[];
+  recipe_serving_size: number;
+  tags: string[];
+}
+
+export interface FavMeal {
+  id: string;
+  name: string;
+  image_url?: string;
+  cuisine?: string;
+  cooking_time_band?: 'Under 30' | '30-60' | 'Over 60';
+  prep_time?: number;
+  cook_time?: number;
+  dietary_tags: string[];
+  custom_tags: string[];
+  meal_type_slot_id?: string;
+  ingredients: Ingredient[];
+  recipe_serving_size: number;
+  method_steps: string[];
+  description?: string;
+  chef_notes?: string;
+  source: 'family_created' | 'discover';
+  source_chef_id?: string;
+  source_chef_name?: string;
+  add_to_plan_count: number;
+  last_planned_date?: string;
+  created_at: string;
+  is_ingredient_complete: boolean;
+  is_recipe_complete: boolean;
+}
+
+export interface DiscoverMeal {
+  id: string;
+  name: string;
+  image_url: string;
+  cuisine: string;
+  cooking_time_band: 'Under 30' | '30-60' | 'Over 60';
+  prep_time: number;
+  cook_time: number;
+  dietary_tags: string[];
+  ingredients: Ingredient[];
+  recipe_serving_size: number;
+  method_steps: string[];
+  description?: string;
+  chef_notes?: string;
+  chef_id: string;
+  chef_name: string;
+  chef_avatar_url?: string;
+  created_at: string;
+}
+
+export interface Chef {
+  id: string;
+  name: string;
+  avatar_url: string;
+  banner_url?: string;
+  cuisine_focus: string;
+  bio: string;
+  recipe_count: number;
+}
+
+export interface MealCollection {
+  id: string;
+  title: string;
+  subtitle?: string;
+  cover_image_url: string;
+  meal_count: number;
+  is_new?: boolean;
+  meal_ids: string[];
+}
+
+export interface CuisineCategory {
+  id: string;
+  name: string;
+  image_url: string;
+}
+
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  category: string;
+  checked: boolean;
+  is_pantry: boolean;
+  manually_added: boolean;
+  where_to_buy?: string;
+  meal_breakdown: MealBreakdownEntry[];
+}
+
+export interface MealBreakdownEntry {
+  meal_name: string;
+  quantity: number;
+}
+
+export const DIETARY_OPTIONS = [
+  'Vegetarian',
+  'Vegan',
+  'Gluten-Free',
+  'Dairy-Free',
+  'Nut-Free',
+  'High Protein',
+  'Low Carb',
+  'No Restrictions',
+] as const;
+
+export const PANTRY_CATEGORIES = [
+  'Oils & Vinegars',
+  'Spices & Herbs',
+  'Condiments',
+  'Grains & Pasta',
+  'Canned Goods',
+  'Baking',
+  'Dairy',
+  'Other',
+] as const;
+
+export const INGREDIENT_CATEGORIES = [
+  'Produce',
+  'Meat & Fish',
+  'Dairy',
+  'Bakery',
+  'Pantry Staples',
+  'Frozen',
+  'Household',
+  'Other',
+] as const;
+
+export const CUISINE_OPTIONS = [
+  'Italian',
+  'Mexican',
+  'Asian',
+  'Mediterranean',
+  'American',
+  'Indian',
+  'Japanese',
+  'Thai',
+  'French',
+  'Middle Eastern',
+  'Korean',
+  'Other',
+] as const;
+
+export const COOKING_TIME_BANDS = ['Under 30', '30-60', 'Over 60'] as const;
