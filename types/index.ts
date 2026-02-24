@@ -81,15 +81,6 @@ export interface PlannedMeal {
   daily_note?: string;
 }
 
-export interface SampleMeal {
-  id: string;
-  name: string;
-  image_url: string;
-  ingredients: Ingredient[];
-  recipe_serving_size: number;
-  tags: string[];
-}
-
 export interface FavMeal {
   id: string;
   name: string;
@@ -134,6 +125,7 @@ export interface DiscoverMeal {
   chef_name: string;
   chef_avatar_url?: string;
   created_at: string;
+  meal_type: 'breakfast' | 'lunch_dinner' | 'light_bites';
 }
 
 export interface Chef {

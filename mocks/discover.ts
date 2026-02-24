@@ -80,6 +80,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'Maria Rossi',
     chef_avatar_url: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-18',
+    meal_type: 'lunch_dinner',
   },
   {
     id: 'disc_2',
@@ -109,6 +110,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'James Chen',
     chef_avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-19',
+    meal_type: 'lunch_dinner',
   },
   {
     id: 'disc_3',
@@ -140,6 +142,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'Sofia Martinez',
     chef_avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-20',
+    meal_type: 'lunch_dinner',
   },
   {
     id: 'disc_4',
@@ -170,6 +173,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'Liam O\'Brien',
     chef_avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-17',
+    meal_type: 'lunch_dinner',
   },
   {
     id: 'disc_5',
@@ -202,6 +206,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'Priya Sharma',
     chef_avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-15',
+    meal_type: 'lunch_dinner',
   },
   {
     id: 'disc_6',
@@ -233,6 +238,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'Maria Rossi',
     chef_avatar_url: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-16',
+    meal_type: 'lunch_dinner',
   },
   {
     id: 'disc_7',
@@ -264,6 +270,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'James Chen',
     chef_avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-20',
+    meal_type: 'lunch_dinner',
   },
   {
     id: 'disc_8',
@@ -295,6 +302,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'Liam O\'Brien',
     chef_avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-21',
+    meal_type: 'breakfast',
   },
   {
     id: 'disc_9',
@@ -324,6 +332,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'James Chen',
     chef_avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-14',
+    meal_type: 'lunch_dinner',
   },
   {
     id: 'disc_10',
@@ -353,6 +362,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'Maria Rossi',
     chef_avatar_url: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-13',
+    meal_type: 'lunch_dinner',
   },
   {
     id: 'disc_11',
@@ -384,6 +394,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'James Chen',
     chef_avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-19',
+    meal_type: 'lunch_dinner',
   },
   {
     id: 'disc_12',
@@ -416,6 +427,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
     chef_name: 'Priya Sharma',
     chef_avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face',
     created_at: '2026-02-21',
+    meal_type: 'lunch_dinner',
   },
 ];
 
