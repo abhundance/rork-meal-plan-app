@@ -430,13 +430,6 @@ export default function MealDetailScreen() {
             </View>
           )}
 
-          {meal.chef_notes && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Chef Notes</Text>
-              <Text style={styles.sectionBody}>{meal.chef_notes}</Text>
-            </View>
-          )}
-
           {params.source === 'plan' && (
             <View style={styles.section}>
               <View style={styles.noteSectionHeader}>
