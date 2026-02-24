@@ -131,6 +131,18 @@ export default function MealDetailScreen() {
     return null;
   }, [params.id, params.source, favMeals, plannedMeal]);
 
+  const discoverData = useMemo(() => {
+    if (params.source === 'discover') {
+      return DISCOVER_MEALS.find((m) => m.id === params.id) ?? null;
+    }
+    if (params.source === 'plan' && plannedMeal) {
+      return DISCOVER_MEALS.find(
+        (d) => d.name.toLowerCase() === plannedMeal.meal_name.toLowerCase()
+      ) ?? null;
+    }
+    return null;
+  }, [params.source, params.id, plannedMeal]);
+
   const isInFavs = useMemo(() => {
     if (!meal) return false;
     return isFav(meal.id) || params.source === 'favs';
@@ -364,6 +376,31 @@ export default function MealDetailScreen() {
                   <Text style={styles.timeValue}>{meal.cook_time} min</Text>
                 </View>
               ) : null}
+            </View>
+          )}
+
+          {discoverData?.nutrition && (
+            <View style={styles.nutritionCard}>
+              <View style={styles.nutritionHeader}>
+                <Text style={styles.nutritionTitle}>Nutrition</Text>
+                <Text style={styles.nutritionSubtitle}>per serving</Text>
+              </View>
+              <View style={styles.nutritionRow}>
+                {[
+                  { label: 'Calories', value: discoverData.nutrition.calories, unit: 'kcal' },
+                  { label: 'Protein', value: discoverData.nutrition.protein_g, unit: 'g' },
+                  { label: 'Carbs', value: discoverData.nutrition.carbs_g, unit: 'g' },
+                  { label: 'Fat', value: discoverData.nutrition.fat_g, unit: 'g' },
+                ].map((stat) => (
+                  <View key={stat.label} style={styles.nutritionBox}>
+                    <View style={styles.nutritionValueRow}>
+                      <Text style={styles.nutritionValue}>{stat.value}</Text>
+                      <Text style={styles.nutritionUnit}>{stat.unit}</Text>
+                    </View>
+                    <Text style={styles.nutritionLabel}>{stat.label}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           )}
 
@@ -763,6 +800,63 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600' as const,
     color: Colors.text,
+  },
+  nutritionCard: {
+    marginBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    ...Shadows.card,
+  },
+  nutritionHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-end' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 14,
+  },
+  nutritionTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#111827',
+  },
+  nutritionSubtitle: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: '#6B7280',
+  },
+  nutritionRow: {
+    flexDirection: 'row' as const,
+    gap: 8,
+  },
+  nutritionBox: {
+    flex: 1,
+    alignItems: 'center' as const,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+  },
+  nutritionValueRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-end' as const,
+    gap: 2,
+  },
+  nutritionValue: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#111827',
+  },
+  nutritionUnit: {
+    fontSize: 11,
+    fontWeight: '400' as const,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  nutritionLabel: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    marginTop: 4,
   },
   backLink: {
     fontSize: 15,
