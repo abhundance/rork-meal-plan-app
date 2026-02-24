@@ -42,6 +42,7 @@ export default function DiscoverSearchScreen() {
   }, [query]);
 
   const hasResults = results.meals.length > 0 || results.chefs.length > 0 || results.collections.length > 0;
+  const totalResults = results.meals.length + results.chefs.length + results.collections.length;
 
   const sections = useMemo(() => {
     const s: { title: string; data: any[] }[] = [];
@@ -92,11 +93,19 @@ export default function DiscoverSearchScreen() {
           </TouchableOpacity>
         </View>
       ) : !hasResults ? (
-        <View style={styles.emptyPrompt}>
-          <Text style={styles.noResultsText}>No results for "{query}"</Text>
+        <View style={styles.noResultsContainer}>
+          <Search size={64} color="#9CA3AF" strokeWidth={1.5} />
+          <Text style={styles.noResultsPrimary}>No results for "{query}"</Text>
+          <Text style={styles.noResultsSecondary}>Check the spelling or try a different search</Text>
         </View>
       ) : (
-        <SectionList
+        <>
+          <View style={styles.resultsCountRow}>
+            <Text style={styles.resultsCountText}>
+              {totalResults} result{totalResults !== 1 ? 's' : ''} for '{query}'
+            </Text>
+          </View>
+          <SectionList
           sections={sections}
           keyExtractor={(item, idx) => item.id ?? `item_${idx}`}
           renderSectionHeader={({ section }) => (
@@ -150,6 +159,7 @@ export default function DiscoverSearchScreen() {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
+        </>
       )}
     </View>
   );
@@ -206,10 +216,36 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center' as const,
   },
-  noResultsText: {
-    fontSize: 16,
+  noResultsContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    gap: 8,
+  },
+  noResultsPrimary: {
+    fontSize: 17,
     fontWeight: '600' as const,
-    color: Colors.textSecondary,
+    color: '#111827',
+    textAlign: 'center' as const,
+    marginTop: 8,
+  },
+  noResultsSecondary: {
+    fontSize: 16,
+    fontWeight: '400' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    maxWidth: 240,
+    marginTop: 8,
+  },
+  resultsCountRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  resultsCountText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#6B7280',
   },
   findChefsLink: {
     flexDirection: 'row',
