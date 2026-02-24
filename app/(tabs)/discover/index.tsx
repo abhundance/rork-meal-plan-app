@@ -167,22 +167,24 @@ export default function DiscoverScreen() {
         }
         testID="discover-scroll"
       >
-        <TouchableOpacity
-          style={styles.heroBanner}
-          onPress={() => handleCollectionPress(COLLECTIONS[0].id)}
-          activeOpacity={0.9}
-        >
-          <ImageBackground
-            source={{ uri: COLLECTIONS[0].cover_image_url }}
-            style={styles.heroImage}
-            imageStyle={styles.heroImageStyle}
+        {COLLECTIONS.length > 0 && (
+          <TouchableOpacity
+            style={styles.heroBanner}
+            onPress={() => handleCollectionPress(COLLECTIONS[0].id)}
+            activeOpacity={0.9}
           >
-            <View style={styles.heroOverlay}>
-              <Text style={styles.heroTitle}>{COLLECTIONS[0].title}</Text>
-              <Text style={styles.heroSubtitle}>{COLLECTIONS[0].subtitle}</Text>
-            </View>
-          </ImageBackground>
-        </TouchableOpacity>
+            <ImageBackground
+              source={{ uri: COLLECTIONS[0].cover_image_url }}
+              style={styles.heroImage}
+              imageStyle={styles.heroImageStyle}
+            >
+              <View style={styles.heroOverlay}>
+                <Text style={styles.heroTitle}>{COLLECTIONS[0].title}</Text>
+                <Text style={styles.heroSubtitle}>{COLLECTIONS[0].subtitle}</Text>
+              </View>
+            </ImageBackground>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
