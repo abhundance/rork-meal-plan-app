@@ -27,6 +27,7 @@ import {
   SlidersHorizontal,
   X,
   Activity,
+  Users,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
@@ -765,7 +766,11 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
           >
             <Text style={styles.mealCardChef}>{meal.chef_name}</Text>
           </TouchableOpacity>
-          <View style={styles.mealCardTags}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.mealCardTags}
+          >
             <View style={styles.mealMiniTag}>
               <Text style={styles.mealMiniTagText}>{meal.cuisine}</Text>
             </View>
@@ -773,7 +778,11 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
               <Clock size={9} color={Colors.primary} strokeWidth={2} />
               <Text style={styles.mealMiniTagText}>{meal.cooking_time_band}</Text>
             </View>
-          </View>
+            <View style={styles.servingChip}>
+              <Users size={12} color="#6B7280" strokeWidth={2} />
+              <Text style={styles.servingChipText}>{meal.recipe_serving_size}</Text>
+            </View>
+          </ScrollView>
         </View>
       </TouchableOpacity>
       <TouchableOpacity style={styles.mealPlanBtn} onPress={onAddToPlan}>
@@ -1016,6 +1025,23 @@ const styles = StyleSheet.create({
   mealCardTags: {
     flexDirection: 'row',
     gap: 4,
+    alignItems: 'center',
+  },
+  servingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  servingChipText: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#6B7280',
   },
   mealMiniTag: {
     flexDirection: 'row',
