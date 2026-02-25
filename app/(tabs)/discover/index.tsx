@@ -167,12 +167,12 @@ export default function DiscoverScreen() {
   }, []);
 
   const suggestedMeals = useMemo(
-    () => applyFilters(DISCOVER_MEALS.slice(0, 6)),
+    () => applyFilters(DISCOVER_MEALS).slice(0, 6),
     [applyFilters]
   );
 
   const missingMeals = useMemo(
-    () => applyFilters(DISCOVER_MEALS.slice(3, 7)),
+    () => applyFilters(DISCOVER_MEALS).slice(6, 12),
     [applyFilters]
   );
 
