@@ -190,6 +190,11 @@ export default function DiscoverScreen() {
     dietFilters.length > 0 ||
     cuisineFilters.length > 0;
 
+  const totalFilteredCount = useMemo(
+    () => (hasActiveFilters ? applyFilters(DISCOVER_MEALS).length : 0),
+    [hasActiveFilters, applyFilters]
+  );
+
   const noFilterResults =
     hasActiveFilters &&
     suggestedMeals.length === 0 &&
@@ -375,6 +380,62 @@ export default function DiscoverScreen() {
         </ScrollView>
       </View>
 
+      {hasActiveFilters && (
+        <View style={styles.activeFiltersBanner}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.activeFiltersRow}
+          >
+            {mealTypeFilter !== 'all' && (
+              <TouchableOpacity
+                style={styles.activeFilterChip}
+                onPress={() => setMealTypeFilter('all')}
+              >
+                <Text style={styles.activeFilterChipText}>
+                  {MEAL_TYPE_LABELS[mealTypeFilter]}
+                </Text>
+                <X size={11} color="#7C3AED" strokeWidth={2.5} />
+              </TouchableOpacity>
+            )}
+            {cookTimeFilter !== 'any' && (
+              <TouchableOpacity
+                style={styles.activeFilterChip}
+                onPress={() => setCookTimeFilter('any')}
+              >
+                <Text style={styles.activeFilterChipText}>
+                  {COOK_TIME_LABELS[cookTimeFilter]}
+                </Text>
+                <X size={11} color="#7C3AED" strokeWidth={2.5} />
+              </TouchableOpacity>
+            )}
+            {dietFilters.map((diet) => (
+              <TouchableOpacity
+                key={diet}
+                style={styles.activeFilterChip}
+                onPress={() => setDietFilters((prev) => prev.filter((d) => d !== diet))}
+              >
+                <Text style={styles.activeFilterChipText}>{diet}</Text>
+                <X size={11} color="#7C3AED" strokeWidth={2.5} />
+              </TouchableOpacity>
+            ))}
+            {cuisineFilters.map((cuisine) => (
+              <TouchableOpacity
+                key={cuisine}
+                style={styles.activeFilterChip}
+                onPress={() => setCuisineFilters((prev) => prev.filter((c) => c !== cuisine))}
+              >
+                <Text style={styles.activeFilterChipText}>{cuisine}</Text>
+                <X size={11} color="#7C3AED" strokeWidth={2.5} />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <Text style={styles.activeFiltersCount}>
+            {totalFilteredCount} recipe{totalFilteredCount !== 1 ? 's' : ''}
+          </Text>
+        </View>
+      )}
+
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -417,7 +478,7 @@ export default function DiscoverScreen() {
           </ScrollView>
         ) : (
           <>
-        {COLLECTIONS.length > 0 && (
+        {!hasActiveFilters && COLLECTIONS.length > 0 && (
           <TouchableOpacity
             style={styles.heroBanner}
             onPress={() => handleCollectionPress(COLLECTIONS[0].id)}
@@ -505,45 +566,47 @@ export default function DiscoverScreen() {
           </>
         )}
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Collections</Text>
-            <TouchableOpacity onPress={() => router.push('/collection?id=all' as Href)}>
-              <Text style={styles.seeAll}>See All</Text>
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            horizontal
-            data={COLLECTIONS}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.collectionCard}
-                onPress={() => handleCollectionPress(item.id)}
-                activeOpacity={0.85}
-              >
-                <Image
-                  source={{ uri: item.cover_image_url }}
-                  style={styles.collectionImage}
-                  contentFit="cover"
-                />
-                <View style={styles.collectionInfo}>
-                  <Text style={styles.collectionTitle} numberOfLines={1}>
-                    {item.title}
-                  </Text>
-                  <Text style={styles.collectionCount}>{item.meal_count} meals</Text>
-                </View>
-                {item.is_new && (
-                  <View style={styles.newBadge}>
-                    <Text style={styles.newBadgeText}>New</Text>
-                  </View>
-                )}
+        {!hasActiveFilters && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Collections</Text>
+              <TouchableOpacity onPress={() => router.push('/collection?id=all' as Href)}>
+                <Text style={styles.seeAll}>See All</Text>
               </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          />
-        </View>
+            </View>
+            <FlatList
+              horizontal
+              data={COLLECTIONS}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.collectionCard}
+                  onPress={() => handleCollectionPress(item.id)}
+                  activeOpacity={0.85}
+                >
+                  <Image
+                    source={{ uri: item.cover_image_url }}
+                    style={styles.collectionImage}
+                    contentFit="cover"
+                  />
+                  <View style={styles.collectionInfo}>
+                    <Text style={styles.collectionTitle} numberOfLines={1}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.collectionCount}>{item.meal_count} meals</Text>
+                  </View>
+                  {item.is_new && (
+                    <View style={styles.newBadge}>
+                      <Text style={styles.newBadgeText}>New</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item) => item.id}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            />
+          </View>
+        )}
 
         <View style={styles.cuisineChipSection}>
           <View style={styles.cuisineChipHeader}>
@@ -1369,6 +1432,45 @@ const styles = StyleSheet.create({
   dietaryRow: {
     gap: 8,
     paddingVertical: 8,
+  },
+  activeFiltersBanner: {
+    paddingVertical: 10,
+    paddingLeft: 16,
+    paddingRight: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.background,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  activeFiltersRow: {
+    flexDirection: 'row' as const,
+    gap: 6,
+    alignItems: 'center' as const,
+    flexGrow: 1,
+  },
+  activeFilterChip: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 5,
+    backgroundColor: '#EDE9FE',
+    borderRadius: 9999,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#7C3AED',
+  },
+  activeFilterChipText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#7C3AED',
+  },
+  activeFiltersCount: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
+    flexShrink: 0,
   },
   modalOverlay: {
     flex: 1,
