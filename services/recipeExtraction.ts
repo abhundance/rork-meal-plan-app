@@ -49,7 +49,7 @@ export async function extractRecipeFromImage(base64Image: string): Promise<Extra
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [{
         role: 'user',
         content: [
@@ -88,7 +88,7 @@ export async function extractRecipeFromText(text: string): Promise<ExtractedReci
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [{
         role: 'user',
         content: `${EXTRACTION_PROMPT}\n\nRecipe content to extract:\n${text}`,
