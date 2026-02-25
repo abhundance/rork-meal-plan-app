@@ -502,7 +502,7 @@ export default function FavsScreen() {
 
       <TouchableOpacity
         style={[styles.fab, { bottom: insets.bottom + 96 }]}
-        onPress={() => router.push('/add-meal' as Href)}
+        onPress={() => router.push('/add-meal-entry' as Href)}
         activeOpacity={0.85}
         testID="fab-add-meal"
       >

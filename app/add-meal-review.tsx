@@ -10,12 +10,14 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/colors';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
+import { extractRecipeFromImage, extractRecipeFromText } from '@/services/recipeExtraction';
 import { useFavs } from '@/providers/FavsProvider';
 import { FavMeal, Ingredient } from '@/types';
 import ServingStepper from '@/components/ServingStepper';
@@ -59,88 +61,6 @@ const DIETARY_CHIPS: { label: string; value: string }[] = [
   { label: 'High Protein', value: 'High Protein' },
 ];
 
-const OPENAI_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-
-interface ExtractedRecipe {
-  name?: string;
-  description?: string;
-  cuisine?: string;
-  meal_type?: MealTypeValue;
-  cooking_time_band?: CookTimeBand;
-  dietary_tags?: string[];
-  serving_size?: number;
-  ingredients?: Ingredient[];
-  method_steps?: string[];
-}
-
-async function extractRecipe(
-  inputMode: 'camera' | 'photos' | 'text',
-  imageBase64?: string,
-  inputText?: string,
-): Promise<ExtractedRecipe> {
-  if (!OPENAI_KEY) {
-    console.log('[Review] No OpenAI key available');
-    return {};
-  }
-
-  const systemPrompt = `You are a recipe extraction assistant. Extract recipe data and return ONLY valid JSON with these exact fields:
-{
-  "name": string,
-  "description": string (1-2 sentences),
-  "cuisine": string (e.g. "Italian", "Mexican", "Asian"),
-  "meal_type": "breakfast" | "lunch_dinner" | "light_bites",
-  "cooking_time_band": "Under 30" | "30-60" | "Over 60",
-  "dietary_tags": string[] (only from: "Vegan", "Vegetarian", "Gluten-Free", "Dairy-Free", "High Protein"),
-  "serving_size": number,
-  "ingredients": [{"id": "1", "name": string, "quantity": number, "unit": string, "category": "Other"}],
-  "method_steps": string[]
-}
-Return ONLY the JSON object. No markdown, no explanation.`;
-
-  const isImage = (inputMode === 'camera' || inputMode === 'photos') && !!imageBase64;
-
-  const userContent = isImage
-    ? [
-        { type: 'text', text: 'Extract the recipe from this image.' },
-        {
-          type: 'image_url',
-          image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: 'low' },
-        },
-      ]
-    : `Extract the recipe from this text:\n\n${inputText ?? ''}`;
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${OPENAI_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userContent },
-        ],
-        max_tokens: 1800,
-        temperature: 0.2,
-      }),
-    });
-
-    const data = await response.json();
-    const content: string = data?.choices?.[0]?.message?.content ?? '';
-    console.log('[Review] Extraction response length:', content.length);
-
-    const match = content.match(/\{[\s\S]*\}/);
-    if (!match) return {};
-
-    const parsed = JSON.parse(match[0]) as ExtractedRecipe;
-    return parsed;
-  } catch (e) {
-    console.log('[Review] Extraction error:', e);
-    return {};
-  }
-}
 
 export default function AddMealReviewScreen() {
   const insets = useSafeAreaInsets();
@@ -153,6 +73,7 @@ export default function AddMealReviewScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(
     inputMode === 'camera' || inputMode === 'photos' || inputMode === 'text',
   );
+  const [retryCount, setRetryCount] = useState<number>(0);
 
   const [name, setName] = useState<string>(params.prefillName ?? '');
   const [description, setDescription] = useState<string>(params.prefillDescription ?? '');
@@ -203,16 +124,21 @@ export default function AddMealReviewScreen() {
   });
 
   useEffect(() => {
-    if (!isLoading) return;
+    if (inputMode !== 'camera' && inputMode !== 'photos' && inputMode !== 'text') return;
 
     const doExtract = async () => {
+      setIsLoading(true);
       console.log('[Review] Starting extraction, mode:', inputMode);
       try {
-        const result = await extractRecipe(
-          inputMode as 'camera' | 'photos' | 'text',
-          params.imageBase64,
-          params.inputText,
-        );
+        let result;
+        if ((inputMode === 'camera' || inputMode === 'photos') && params.imageBase64) {
+          result = await extractRecipeFromImage(params.imageBase64);
+        } else if (inputMode === 'text' && params.inputText) {
+          result = await extractRecipeFromText(params.inputText);
+        } else {
+          setIsLoading(false);
+          return;
+        }
 
         if (result.name) setName(result.name);
         if (result.description) setDescription(result.description);
@@ -220,13 +146,31 @@ export default function AddMealReviewScreen() {
         if (result.cooking_time_band) setCookTimeBand(result.cooking_time_band);
         if (result.cuisine) setCuisine(result.cuisine);
         if (result.dietary_tags?.length) setDietaryTags(result.dietary_tags);
-        if (result.serving_size && result.serving_size > 0) setServingSize(result.serving_size);
-        if (result.ingredients?.length) setIngredients(result.ingredients);
+        if (result.recipe_serving_size > 0) setServingSize(result.recipe_serving_size);
+        if (result.ingredients?.length) {
+          setIngredients(
+            result.ingredients.map((ing, idx) => ({
+              id: String(idx + 1),
+              name: ing.name,
+              quantity: ing.quantity,
+              unit: ing.unit,
+              category: 'Other',
+            })),
+          );
+        }
         if (result.method_steps?.length) setMethodSteps(result.method_steps);
 
-        console.log('[Review] Extraction complete:', result.name ?? 'no name');
+        console.log('[Review] Extraction complete:', result.name);
       } catch (e) {
         console.log('[Review] Extraction failed:', e);
+        Alert.alert(
+          "Couldn't extract recipe",
+          "We couldn't read this image. Fill in manually?",
+          [
+            { text: 'Try Again', onPress: () => setRetryCount((c) => c + 1) },
+            { text: 'Fill Manually', onPress: () => router.replace('/add-meal' as never) },
+          ],
+        );
       } finally {
         setIsLoading(false);
       }
@@ -234,7 +178,7 @@ export default function AddMealReviewScreen() {
 
     doExtract();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [retryCount]);
 
   const toggleDietary = useCallback((tag: string) => {
     setDietaryTags((prev) =>
