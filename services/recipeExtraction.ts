@@ -4,6 +4,10 @@
 const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
+if (!OPENAI_API_KEY) {
+  console.error('[recipeExtraction] EXPO_PUBLIC_OPENAI_API_KEY is undefined. Check Rork environment variables.');
+}
+
 export interface ExtractedRecipe {
   name: string;
   description: string;
@@ -60,10 +64,20 @@ export async function extractRecipeFromImage(base64Image: string): Promise<Extra
     }),
   });
 
-  if (!response.ok) throw new Error(`OpenAI error: ${response.status}`);
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error('[recipeExtraction] API error:', response.status, errorBody);
+    throw new Error(`OpenAI error: ${response.status}`);
+  }
   const data = await response.json();
   const content = data.choices[0].message.content;
-  return JSON.parse(content) as ExtractedRecipe;
+  console.log('[recipeExtraction] Raw response:', content);
+
+  let cleaned = content.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  }
+  return JSON.parse(cleaned) as ExtractedRecipe;
 }
 
 export async function extractRecipeFromText(text: string): Promise<ExtractedRecipe> {
@@ -83,8 +97,18 @@ export async function extractRecipeFromText(text: string): Promise<ExtractedReci
     }),
   });
 
-  if (!response.ok) throw new Error(`OpenAI error: ${response.status}`);
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error('[recipeExtraction] API error:', response.status, errorBody);
+    throw new Error(`OpenAI error: ${response.status}`);
+  }
   const data = await response.json();
   const content = data.choices[0].message.content;
-  return JSON.parse(content) as ExtractedRecipe;
+  console.log('[recipeExtraction] Raw response:', content);
+
+  let cleaned = content.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  }
+  return JSON.parse(cleaned) as ExtractedRecipe;
 }
