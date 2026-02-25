@@ -24,6 +24,7 @@ import {
   Heart,
   CalendarPlus,
   Check,
+  SlidersHorizontal,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
@@ -61,6 +62,7 @@ export default function FavsScreen() {
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<FavMeal | null>(null);
 
+  const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastAnim = useRef(new Animated.Value(0)).current;
 
@@ -211,11 +213,12 @@ export default function FavsScreen() {
         title="Favourites"
         rightElement={
           <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => router.push('/add-meal' as Href)}
-            testID="add-fav-btn"
+            style={styles.filterBtn}
+            onPress={() => setShowFilterSheet(true)}
+            testID="favs-filter-btn"
           >
-            <Plus size={20} color={Colors.white} strokeWidth={2.5} />
+            <SlidersHorizontal size={18} color={Colors.text} strokeWidth={2} />
+            {hasFilters && <View style={styles.filterBadge} />}
           </TouchableOpacity>
         }
       />
@@ -459,14 +462,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  addBtn: {
+  filterBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
+  },
+  filterBadge: {
+    position: 'absolute' as const,
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
   },
   searchWrap: {
     flexDirection: 'row',
