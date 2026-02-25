@@ -59,6 +59,7 @@ export default function FavsScreen() {
   const [activeMealTypeFilter, setActiveMealTypeFilter] = useState<string>('');
   const [activeCuisineFilter, setActiveCuisineFilter] = useState<string>('');
   const [activeCookTimeFilter, setActiveCookTimeFilter] = useState<string>('');
+  const [activeDietaryFilter, setActiveDietaryFilter] = useState<string>('');
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<FavMeal | null>(null);
 
@@ -66,6 +67,7 @@ export default function FavsScreen() {
   const [sheetSort, setSheetSort] = useState<string>(sortBy);
   const [sheetCuisine, setSheetCuisine] = useState<string>(activeCuisineFilter);
   const [sheetCookTime, setSheetCookTime] = useState<string>(activeCookTimeFilter);
+  const [sheetDietary, setSheetDietary] = useState<string>('');
 
   const uniqueCuisines = useMemo(() => {
     const seen = new Set<string>();
@@ -85,10 +87,11 @@ export default function FavsScreen() {
   }, [toastAnim]);
 
   const filters = useMemo(() => ({
-    ...(activeMealTypeFilter ? { mealType: activeMealTypeFilter } : {}),
-    ...(activeCuisineFilter   ? { cuisine: activeCuisineFilter }   : {}),
-    ...(activeCookTimeFilter  ? { cookingTime: activeCookTimeFilter } : {}),
-  }), [activeMealTypeFilter, activeCuisineFilter, activeCookTimeFilter]);
+    ...(activeMealTypeFilter ? { mealType: activeMealTypeFilter }      : {}),
+    ...(activeCuisineFilter   ? { cuisine: activeCuisineFilter }       : {}),
+    ...(activeCookTimeFilter  ? { cookingTime: activeCookTimeFilter }  : {}),
+    ...(activeDietaryFilter   ? { activeDietary: activeDietaryFilter } : {}),
+  }), [activeMealTypeFilter, activeCuisineFilter, activeCookTimeFilter, activeDietaryFilter]);
 
   const filteredMeals = useFilteredFavs(search, filters, sortBy);
 
@@ -122,6 +125,7 @@ export default function FavsScreen() {
     setActiveMealTypeFilter('');
     setActiveCuisineFilter('');
     setActiveCookTimeFilter('');
+    setActiveDietaryFilter('');
     setSearch('');
   }, []);
 
@@ -165,7 +169,8 @@ export default function FavsScreen() {
   }, [removeFav]);
 
   const hasFilters = !!activeMealTypeFilter || !!activeCuisineFilter ||
-                     !!activeCookTimeFilter || search.trim().length > 0;
+                     !!activeCookTimeFilter || !!activeDietaryFilter ||
+                     search.trim().length > 0;
 
   const renderGridItem = useCallback(({ item }: { item: FavMeal }) => (
     <FavMealGridCard
@@ -213,6 +218,7 @@ export default function FavsScreen() {
               setSheetSort(sortBy);
               setSheetCuisine(activeCuisineFilter);
               setSheetCookTime(activeCookTimeFilter);
+              setSheetDietary(activeDietaryFilter);
               setShowFilterSheet(true);
             }}
             testID="favs-filter-btn"
@@ -379,6 +385,25 @@ export default function FavsScreen() {
                 />
               ))}
             </ScrollView>
+
+            <Text style={[styles.sheetSectionLabel, { marginTop: 24 }]}>DIETARY</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.sheetChipRow}>
+              {[
+                { key: 'vegan',        label: 'Vegan' },
+                { key: 'vegetarian',   label: 'Vegetarian' },
+                { key: 'gluten_free',  label: 'Gluten-Free' },
+                { key: 'dairy_free',   label: 'Dairy-Free' },
+                { key: 'high_protein', label: 'High Protein' },
+              ].map((opt) => (
+                <FilterPill
+                  key={opt.key}
+                  label={opt.label}
+                  active={sheetDietary === opt.key}
+                  onPress={() => setSheetDietary(sheetDietary === opt.key ? '' : opt.key)}
+                />
+              ))}
+            </ScrollView>
           </ScrollView>
 
           <View style={styles.sheetFooter}>
@@ -388,6 +413,7 @@ export default function FavsScreen() {
                 setSheetSort('recently_added');
                 setSheetCuisine('');
                 setSheetCookTime('');
+                setSheetDietary('');
               }}
             >
               <Text style={styles.sheetClearText}>Clear All</Text>
@@ -398,6 +424,7 @@ export default function FavsScreen() {
                 setSortBy(sheetSort);
                 setActiveCuisineFilter(sheetCuisine);
                 setActiveCookTimeFilter(sheetCookTime);
+                setActiveDietaryFilter(sheetDietary);
                 setShowFilterSheet(false);
               }}
             >
