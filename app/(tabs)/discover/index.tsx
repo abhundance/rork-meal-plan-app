@@ -1018,10 +1018,6 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
           <View style={styles.mealMiniTag}>
             <Text style={styles.mealMiniTagText}>{meal.cuisine}</Text>
           </View>
-          <View style={styles.mealMiniTag}>
-            <Clock size={9} color={Colors.primary} strokeWidth={2} />
-            <Text style={styles.mealMiniTagText}>{meal.cooking_time_band}</Text>
-          </View>
           <View style={styles.servingChip}>
             <Users size={12} color="#6B7280" strokeWidth={2} />
             <Text style={styles.servingChipText}>{meal.recipe_serving_size}</Text>
