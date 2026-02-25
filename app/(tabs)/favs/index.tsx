@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,8 @@ import {
   Clock,
   Heart,
   CalendarPlus,
+  Check,
+  Users,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
@@ -62,6 +64,18 @@ export default function FavsScreen() {
   const [activeFilterValue, setActiveFilterValue] = useState<string>('');
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<FavMeal | null>(null);
+
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toastAnim = useRef(new Animated.Value(0)).current;
+
+  const showToast = useCallback((message: string) => {
+    setToastMsg(message);
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+      Animated.delay(2000),
+      Animated.timing(toastAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
+    ]).start(() => setToastMsg(null));
+  }, [toastAnim]);
 
   const filters = useMemo(() => {
     if (!activeFilter || !activeFilterValue) return {};
@@ -141,11 +155,9 @@ export default function FavsScreen() {
       incrementPlanCount(selectedMealForPlan.id);
       setSlotPickerVisible(false);
       setSelectedMealForPlan(null);
-
-      const slot = familySettings.meal_slots.find((s) => s.slot_id === slotId);
-      Alert.alert('Added!', `${selectedMealForPlan.name} added to ${slot?.name ?? 'plan'}`);
+      showToast(`${selectedMealForPlan.name} added to your meal plan`);
     },
-    [selectedMealForPlan, addMeal, incrementPlanCount, familySettings]
+    [selectedMealForPlan, addMeal, incrementPlanCount, familySettings, showToast]
   );
 
   const handleMealPress = useCallback((meal: FavMeal) => {
@@ -387,6 +399,42 @@ export default function FavsScreen() {
         getMealForSlot={getMealForSlot}
         mealName={selectedMealForPlan?.name ?? ''}
       />
+
+      {toastMsg !== null && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            bottom: 90,
+            alignSelf: 'center',
+            opacity: toastAnim,
+            transform: [{
+              translateY: toastAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [10, 0],
+              }),
+            }],
+            backgroundColor: '#111827',
+            borderRadius: 12,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            maxWidth: 320,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.18,
+            shadowRadius: 12,
+            elevation: 8,
+          }}
+        >
+          <Check size={15} color="#FFFFFF" />
+          <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600', flexShrink: 1 }}>
+            {toastMsg}
+          </Text>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -399,14 +447,19 @@ interface FavMealGridCardProps {
 
 const FavMealGridCard = React.memo(function FavMealGridCard({ meal, onPress, onAddToPlan }: FavMealGridCardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const totalTime = (meal.prep_time ?? 0) + (meal.cook_time ?? 0);
 
   return (
     <Animated.View style={[styles.gridCard, { transform: [{ scale: scaleAnim }] }]}>
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={onPress}
-        onPressIn={() => Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 4 }).start()}
-        onPressOut={() => Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()}
+        onPressIn={() =>
+          Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
+        }
+        onPressOut={() =>
+          Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
+        }
       >
         <View style={styles.gridImageWrap}>
           {meal.image_url ? (
@@ -416,30 +469,38 @@ const FavMealGridCard = React.memo(function FavMealGridCard({ meal, onPress, onA
               <Heart size={24} color={Colors.textSecondary} strokeWidth={1.5} />
             </View>
           )}
+          {totalTime > 0 && (
+            <View style={styles.cookTimeBadge}>
+              <Clock size={11} color="#FFFFFF" strokeWidth={2} />
+              <Text style={styles.cookTimeBadgeText}>{totalTime} min</Text>
+            </View>
+          )}
         </View>
         <View style={styles.gridCardBody}>
           <Text style={styles.gridMealName} numberOfLines={2}>{meal.name}</Text>
-          <View style={styles.gridTags}>
-            {meal.cuisine && (
-              <View style={styles.miniTag}>
-                <Text style={styles.miniTagText}>{meal.cuisine}</Text>
-              </View>
-            )}
-            {meal.cooking_time_band && (
-              <View style={styles.miniTag}>
-                <Clock size={10} color={Colors.primary} strokeWidth={2} />
-                <Text style={styles.miniTagText}>{meal.cooking_time_band}</Text>
-              </View>
-            )}
-          </View>
-          {meal.last_planned_date && (
-            <Text style={styles.gridMeta}>Last planned {meal.last_planned_date}</Text>
-          )}
         </View>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.gridPlanBtn} onPress={onAddToPlan}>
-        <CalendarPlus size={14} color={Colors.white} strokeWidth={2.5} />
-      </TouchableOpacity>
+      <View style={styles.cardFooter}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.cardFooterTags}
+        >
+          {meal.cuisine ? (
+            <View style={styles.mealMiniTag}>
+              <Text style={styles.mealMiniTagText}>{meal.cuisine}</Text>
+            </View>
+          ) : null}
+          <View style={styles.servingChip}>
+            <Users size={12} color="#6B7280" strokeWidth={2} />
+            <Text style={styles.servingChipText}>{meal.recipe_serving_size}</Text>
+          </View>
+        </ScrollView>
+        <TouchableOpacity style={styles.mealPlanBtn} onPress={onAddToPlan} activeOpacity={0.85}>
+          <CalendarPlus size={16} color={Colors.white} strokeWidth={2.5} />
+        </TouchableOpacity>
+      </View>
     </Animated.View>
   );
 });
@@ -461,8 +522,12 @@ const FavMealListCard = React.memo(function FavMealListCard({ meal, onPress, onA
         activeOpacity={0.85}
         onPress={onPress}
         onLongPress={onRemove}
-        onPressIn={() => Animated.spring(scaleAnim, { toValue: 0.98, useNativeDriver: true, speed: 50, bounciness: 4 }).start()}
-        onPressOut={() => Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()}
+        onPressIn={() =>
+          Animated.spring(scaleAnim, { toValue: 0.98, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
+        }
+        onPressOut={() =>
+          Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
+        }
       >
         {meal.image_url ? (
           <Image source={{ uri: meal.image_url }} style={styles.listThumb} contentFit="cover" />
@@ -474,23 +539,20 @@ const FavMealListCard = React.memo(function FavMealListCard({ meal, onPress, onA
         <View style={styles.listInfo}>
           <Text style={styles.listMealName} numberOfLines={1}>{meal.name}</Text>
           <View style={styles.listTags}>
-            {meal.cuisine && (
-              <View style={styles.miniTag}>
-                <Text style={styles.miniTagText}>{meal.cuisine}</Text>
+            {meal.cuisine ? (
+              <View style={styles.mealMiniTag}>
+                <Text style={styles.mealMiniTagText}>{meal.cuisine}</Text>
               </View>
-            )}
+            ) : null}
             {meal.dietary_tags.slice(0, 2).map((tag) => (
-              <View key={tag} style={styles.miniTag}>
-                <Text style={styles.miniTagText}>{tag}</Text>
+              <View key={tag} style={styles.mealMiniTag}>
+                <Text style={styles.mealMiniTagText}>{tag}</Text>
               </View>
             ))}
           </View>
-          {meal.last_planned_date && (
-            <Text style={styles.gridMeta}>Last planned {meal.last_planned_date}</Text>
-          )}
         </View>
-        <TouchableOpacity style={styles.listPlanBtn} onPress={onAddToPlan}>
-          <CalendarPlus size={16} color={Colors.primary} strokeWidth={2} />
+        <TouchableOpacity style={styles.mealPlanBtn} onPress={onAddToPlan} activeOpacity={0.85}>
+          <CalendarPlus size={16} color={Colors.white} strokeWidth={2.5} />
         </TouchableOpacity>
       </TouchableOpacity>
     </Animated.View>
@@ -664,40 +726,76 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 4,
   },
-  gridTags: {
+  cookTimeBadge: {
+    position: 'absolute' as const,
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 9999,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  cookTimeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+  },
+  cardFooter: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    paddingTop: 2,
+    gap: 8,
+  },
+  cardFooterTags: {
     flexDirection: 'row',
     gap: 4,
-    flexWrap: 'wrap',
+    alignItems: 'center',
   },
-  miniTag: {
+  mealMiniTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    backgroundColor: Colors.surface,
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  miniTagText: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    color: Colors.primary,
+  mealMiniTagText: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#6B7280',
   },
-  gridMeta: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 4,
+  servingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
-  gridPlanBtn: {
-    position: 'absolute' as const,
-    bottom: 10,
-    right: 10,
+  servingChipText: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#6B7280',
+  },
+  mealPlanBtn: {
     width: 28,
     height: 28,
     borderRadius: 14,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -738,15 +836,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 4,
     flexWrap: 'wrap',
-  },
-  listPlanBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
+    marginTop: 4,
   },
   emptyScroll: {
     flexGrow: 1,
