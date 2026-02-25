@@ -1,4 +1,6 @@
 import React, { useRef, useState } from 'react';
+import VoiceRecordSheet from '@/components/VoiceRecordSheet';
+import { transcribeAndExtract, ExtractedRecipe } from '@/services/recipeExtraction';
 import {
   View,
   Text,
@@ -71,6 +73,7 @@ export default function AddMealEntryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [pastedText, setPastedText] = useState<string>('');
+  const [showVoiceSheet, setShowVoiceSheet] = useState(false);
   const extractScale = useRef(new Animated.Value(1)).current;
 
   const handleExtractPressIn = () => {
@@ -94,11 +97,7 @@ export default function AddMealEntryScreen() {
       return;
     }
     if (key === 'voice') {
-      Alert.alert(
-        'Voice Coming Soon',
-        "Voice entry is on the way! We'll open the manual form for now.",
-        [{ text: 'OK', onPress: () => router.push('/add-meal' as never) }],
-      );
+      setShowVoiceSheet(true);
       return;
     }
 
@@ -154,6 +153,25 @@ export default function AddMealEntryScreen() {
       params: {
         inputMode: key,
         imageUri: asset.uri,
+      },
+    });
+  };
+
+  const handleVoiceExtracted = (result: ExtractedRecipe) => {
+    setShowVoiceSheet(false);
+    router.push({
+      pathname: '/add-meal-review' as never,
+      params: {
+        inputMode: 'voice',
+        prefillName: result.name,
+        prefillDescription: result.description,
+        prefillCuisine: result.cuisine,
+        prefillMealType: result.meal_type,
+        prefillCookingTimeBand: result.cooking_time_band,
+        prefillDietaryTags: JSON.stringify(result.dietary_tags),
+        prefillIngredients: JSON.stringify(result.ingredients),
+        prefillMethodSteps: JSON.stringify(result.method_steps),
+        prefillServingSize: String(result.recipe_serving_size),
       },
     });
   };
@@ -226,6 +244,12 @@ export default function AddMealEntryScreen() {
           </View>
         </View>
       </ScrollView>
+      <VoiceRecordSheet
+        visible={showVoiceSheet}
+        onClose={() => setShowVoiceSheet(false)}
+        onExtracted={handleVoiceExtracted}
+        onError={() => setShowVoiceSheet(false)}
+      />
     </View>
   );
 }
