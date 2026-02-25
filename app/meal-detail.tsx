@@ -404,19 +404,7 @@ export default function MealDetailScreen() {
             </View>
           )}
 
-          {meal.source_chef_name && (
-            <TouchableOpacity
-              style={styles.chefRow}
-              onPress={() => {
-                if (meal.source_chef_id) {
-                  router.push(`/chef-profile?id=${meal.source_chef_id}` as Href);
-                }
-              }}
-            >
-              <ChefHat size={16} color={Colors.primary} strokeWidth={2} />
-              <Text style={styles.chefName}>{meal.source_chef_name}</Text>
-            </TouchableOpacity>
-          )}
+
 
           <View style={styles.servingRow}>
             <View style={styles.servingLabel}>
@@ -639,17 +627,7 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.text,
   },
-  chefRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 16,
-  },
-  chefName: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-  },
+
   servingRow: {
     flexDirection: 'row',
     alignItems: 'center',

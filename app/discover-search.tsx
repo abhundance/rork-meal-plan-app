@@ -122,7 +122,7 @@ export default function DiscoverSearchScreen() {
                   <Image source={{ uri: meal.image_url }} style={styles.resultThumb} contentFit="cover" />
                   <View style={styles.resultInfo}>
                     <Text style={styles.resultName} numberOfLines={1}>{meal.name}</Text>
-                    <Text style={styles.resultMeta}>{meal.cuisine} · {meal.chef_name}</Text>
+                    <Text style={styles.resultMeta}>{meal.cuisine}</Text>
                   </View>
                 </TouchableOpacity>
               );

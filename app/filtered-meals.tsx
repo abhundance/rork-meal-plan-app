@@ -158,7 +158,6 @@ const FilteredMealCard = React.memo(function FilteredMealCard({ meal, isSaved, o
         </View>
         <View style={styles.cardBody}>
           <Text style={styles.cardName} numberOfLines={2}>{meal.name}</Text>
-          <Text style={styles.cardChef}>{meal.chef_name}</Text>
           <View style={styles.cardTags}>
             <View style={styles.miniTag}>
               <Text style={styles.miniTagText}>{meal.cuisine}</Text>
@@ -256,12 +255,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 2,
   },
-  cardChef: {
-    fontSize: 11,
-    color: Colors.primary,
-    fontWeight: '500' as const,
-    marginBottom: 4,
-  },
+
   cardTags: {
     flexDirection: 'row',
     gap: 4,

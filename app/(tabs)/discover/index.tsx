@@ -1005,11 +1005,7 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
           <Text style={styles.mealCardName} numberOfLines={2}>
             {meal.name}
           </Text>
-          <TouchableOpacity
-            onPress={() => router.push(`/chef-profile?id=${meal.chef_id}` as Href)}
-          >
-            <Text style={styles.mealCardChef}>{meal.chef_name}</Text>
-          </TouchableOpacity>
+
         </View>
       </TouchableOpacity>
       <View style={styles.cardFooter}>
@@ -1314,12 +1310,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 2,
   },
-  mealCardChef: {
-    fontSize: 12,
-    color: Colors.primary,
-    fontWeight: '500' as const,
-    marginBottom: 4,
-  },
+
   mealCardTags: {
     flexDirection: 'row',
     gap: 4,

@@ -162,7 +162,6 @@ const CollectionMealCard = React.memo(function CollectionMealCard({ meal, isSave
         </View>
         <View style={styles.cardBody}>
           <Text style={styles.cardName} numberOfLines={2}>{meal.name}</Text>
-          <Text style={styles.cardChef}>{meal.chef_name}</Text>
           <View style={styles.cardTags}>
             <View style={styles.miniTag}>
               <Clock size={9} color={Colors.primary} strokeWidth={2} />
@@ -281,12 +280,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 2,
   },
-  cardChef: {
-    fontSize: 11,
-    color: Colors.primary,
-    fontWeight: '500' as const,
-    marginBottom: 4,
-  },
+
   cardTags: {
     flexDirection: 'row',
     gap: 4,
