@@ -197,7 +197,7 @@ export default function FavsScreen() {
           />
           <TouchableOpacity
             style={styles.emptyAddBtn}
-            onPress={() => router.push('/add-meal' as Href)}
+            onPress={() => router.push('/add-meal-entry' as Href)}
           >
             <Plus size={16} color={Colors.primary} strokeWidth={2.5} />
             <Text style={styles.emptyAddText}>Add a Meal</Text>

@@ -328,7 +328,7 @@ export default function MealDetailScreen() {
           {params.source === 'favs' && (
             <TouchableOpacity
               style={[styles.editBtn, { top: insets.top + 8 }]}
-              onPress={() => router.push(`/add-meal?editId=${meal.id}` as Href)}
+              onPress={() => router.push(`/add-meal-entry?editId=${meal.id}` as Href)}
             >
               <Pencil size={18} color={Colors.text} strokeWidth={2} />
             </TouchableOpacity>
