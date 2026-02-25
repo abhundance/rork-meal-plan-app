@@ -153,7 +153,7 @@ const FilteredMealCard = React.memo(function FilteredMealCard({ meal, isSaved, o
         <View style={styles.cardImageWrap}>
           <Image source={{ uri: meal.image_url }} style={styles.cardImage} contentFit="cover" />
           <TouchableOpacity style={styles.savBtn} onPress={onSave}>
-            <Heart size={14} color={isSaved ? Colors.primary : Colors.white} fill={isSaved ? Colors.primary : 'transparent'} strokeWidth={2} />
+            <Heart size={14} color={isSaved ? '#EF4444' : Colors.white} fill={isSaved ? '#EF4444' : 'transparent'} strokeWidth={2} />
           </TouchableOpacity>
         </View>
         <View style={styles.cardBody}>

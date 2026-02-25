@@ -980,8 +980,8 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
             <Animated.View style={{ transform: [{ scale: heartScaleAnim }] }}>
               <Heart
                 size={16}
-                color={isSaved ? Colors.primary : Colors.white}
-                fill={isSaved ? Colors.primary : 'transparent'}
+                color={isSaved ? '#EF4444' : Colors.white}
+                fill={isSaved ? '#EF4444' : 'transparent'}
                 strokeWidth={2}
               />
             </Animated.View>
