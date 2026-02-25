@@ -19,8 +19,6 @@ import {
   Search,
   X,
   Plus,
-  Grid3x3,
-  List,
   ChevronDown,
   Clock,
   Heart,
@@ -56,7 +54,6 @@ export default function FavsScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<string>('recently_added');
   const [showSortDropdown, setShowSortDropdown] = useState<boolean>(false);
   const [activeFilter, setActiveFilter] = useState<string>('');
@@ -181,15 +178,6 @@ export default function FavsScreen() {
     />
   ), [handleMealPress, handleAddToPlan]);
 
-  const renderListItem = useCallback(({ item }: { item: FavMeal }) => (
-    <FavMealListCard
-      meal={item}
-      onPress={() => handleMealPress(item)}
-      onAddToPlan={() => handleAddToPlan(item)}
-      onRemove={() => handleSwipeRemove(item)}
-    />
-  ), [handleMealPress, handleAddToPlan, handleSwipeRemove]);
-
   if (meals.length === 0 && !isLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -311,19 +299,6 @@ export default function FavsScreen() {
           <Text style={styles.sortLabel}>{currentSortLabel}</Text>
           <ChevronDown size={14} color={Colors.textSecondary} strokeWidth={2} />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.viewToggle}
-          onPress={() => {
-            setViewMode(viewMode === 'grid' ? 'list' : 'grid');
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          }}
-        >
-          {viewMode === 'grid' ? (
-            <List size={18} color={Colors.text} strokeWidth={2} />
-          ) : (
-            <Grid3x3 size={18} color={Colors.text} strokeWidth={2} />
-          )}
-        </TouchableOpacity>
       </View>
 
       {showSortDropdown && (
@@ -345,8 +320,7 @@ export default function FavsScreen() {
         </View>
       )}
 
-      {viewMode === 'grid' ? (
-        <FlatList
+      <FlatList
           data={filteredMeals}
           renderItem={renderGridItem}
           keyExtractor={(item) => item.id}
@@ -366,26 +340,6 @@ export default function FavsScreen() {
           }
           testID="favs-grid"
         />
-      ) : (
-        <FlatList
-          data={filteredMeals}
-          renderItem={renderListItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
-          ListEmptyComponent={
-            <EmptyState
-              icon={<Search size={28} color={Colors.textSecondary} strokeWidth={1.5} />}
-              title="No meals match your search"
-              description="Try adjusting your filters"
-              actionLabel="Clear Filters"
-              onAction={clearFilters}
-            />
-          }
-          testID="favs-list"
-        />
-      )}
 
       <SlotPickerModal
         visible={slotPickerVisible}
@@ -500,60 +454,6 @@ const FavMealGridCard = React.memo(function FavMealGridCard({ meal, onPress, onA
   );
 });
 
-interface FavMealListCardProps {
-  meal: FavMeal;
-  onPress: () => void;
-  onAddToPlan: () => void;
-  onRemove: () => void;
-}
-
-const FavMealListCard = React.memo(function FavMealListCard({ meal, onPress, onAddToPlan, onRemove }: FavMealListCardProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  return (
-    <Animated.View style={[styles.listCard, { transform: [{ scale: scaleAnim }] }]}>
-      <TouchableOpacity
-        style={styles.listCardInner}
-        activeOpacity={0.85}
-        onPress={onPress}
-        onLongPress={onRemove}
-        onPressIn={() =>
-          Animated.spring(scaleAnim, { toValue: 0.98, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
-        }
-        onPressOut={() =>
-          Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
-        }
-      >
-        {meal.image_url ? (
-          <Image source={{ uri: meal.image_url }} style={styles.listThumb} contentFit="cover" />
-        ) : (
-          <View style={[styles.listThumb, styles.listThumbPlaceholder]}>
-            <Heart size={20} color={Colors.textSecondary} strokeWidth={1.5} />
-          </View>
-        )}
-        <View style={styles.listInfo}>
-          <Text style={styles.listMealName} numberOfLines={1}>{meal.name}</Text>
-          <View style={styles.listTags}>
-            {meal.cuisine ? (
-              <View style={styles.mealMiniTag}>
-                <Text style={styles.mealMiniTagText}>{meal.cuisine}</Text>
-              </View>
-            ) : null}
-            {meal.dietary_tags.slice(0, 2).map((tag) => (
-              <View key={tag} style={styles.mealMiniTag}>
-                <Text style={styles.mealMiniTagText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-        <TouchableOpacity style={styles.mealPlanBtn} onPress={onAddToPlan} activeOpacity={0.85}>
-          <CalendarPlus size={16} color={Colors.white} strokeWidth={2.5} />
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -644,14 +544,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
-  },
-  viewToggle: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   sortDropdown: {
     position: 'absolute' as const,
@@ -775,47 +667,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 100,
-  },
-  listCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.card,
-    marginBottom: 8,
-    overflow: 'hidden',
-    ...Shadows.card,
-  },
-  listCardInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  listThumb: {
-    width: 80,
-    height: 80,
-  },
-  listThumbPlaceholder: {
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  listInfo: {
-    flex: 1,
-    padding: 10,
-  },
-  listMealName: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  listTags: {
-    flexDirection: 'row',
-    gap: 4,
-    flexWrap: 'wrap',
-    marginTop: 4,
   },
   emptyScroll: {
     flexGrow: 1,
