@@ -94,7 +94,7 @@ export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
   const { isFav, addFromDiscover } = useFavs();
   const { familySettings } = useFamilySettings();
-  const { addMeal, getMealForSlot, meals } = useMealPlan();
+  const { addMeal, getMealForSlot } = useMealPlan();
 
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
   useEffect(() => {
@@ -291,21 +291,19 @@ export default function DiscoverScreen() {
   const renderDiscoverCard = useCallback(
     (meal: DiscoverMeal, width: number) => {
       const saved = isFav(meal.id);
-      const inPlan = meals.some((m) => m.meal_name === meal.name);
       return (
         <DiscoverMealCard
           key={meal.id}
           meal={meal}
           width={width}
           isSaved={saved}
-          isInPlan={inPlan}
           onPress={() => handleMealPress(meal)}
           onSave={() => handleSaveFav(meal)}
           onAddToPlan={() => handleAddToPlan(meal)}
         />
       );
     },
-    [isFav, meals, handleMealPress, handleSaveFav, handleAddToPlan]
+    [isFav, handleMealPress, handleSaveFav, handleAddToPlan]
   );
 
   return (
@@ -863,7 +861,6 @@ interface DiscoverMealCardProps {
   meal: DiscoverMeal;
   width: number;
   isSaved: boolean;
-  isInPlan?: boolean;
   onPress: () => void;
   onSave: () => void;
   onAddToPlan: () => void;
@@ -873,7 +870,6 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
   meal,
   width,
   isSaved,
-  isInPlan = false,
   onPress,
   onSave,
   onAddToPlan,
@@ -886,7 +882,7 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
   }, [meal.created_at]);
 
   return (
-    <Animated.View style={[styles.mealCard, { width, transform: [{ scale: scaleAnim }] }, isInPlan && styles.mealCardInPlan]}>
+    <Animated.View style={[styles.mealCard, { width, transform: [{ scale: scaleAnim }] }]}>
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={onPress}
@@ -965,14 +961,10 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
         </View>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.mealPlanBtn, isInPlan && styles.mealPlanBtnInPlan]}
+        style={styles.mealPlanBtn}
         onPress={onAddToPlan}
       >
-        {isInPlan ? (
-          <Check size={16} color={Colors.white} strokeWidth={2.5} />
-        ) : (
-          <CalendarPlus size={16} color={Colors.white} strokeWidth={2.5} />
-        )}
+        <CalendarPlus size={16} color={Colors.white} strokeWidth={2.5} />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -1320,13 +1312,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  mealPlanBtnInPlan: {
-    backgroundColor: '#16A34A',
-  },
-  mealCardInPlan: {
-    borderWidth: 1.5,
-    borderColor: '#16A34A',
   },
   collectionCard: {
     width: 220,
