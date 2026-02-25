@@ -68,7 +68,6 @@ import {
   DISCOVER_MEALS,
   COLLECTIONS,
   CUISINE_CATEGORIES,
-  CHEFS,
 } from '@/mocks/discover';
 import { DIETARY_OPTIONS } from '@/types';
 
@@ -287,10 +286,6 @@ export default function DiscoverScreen() {
 
   const handleDietaryPress = useCallback((tag: string) => {
     router.push(`/filtered-meals?dietary=${tag}` as Href);
-  }, []);
-
-  const handleChefPress = useCallback((chefId: string) => {
-    router.push(`/chef-profile?id=${chefId}` as Href);
   }, []);
 
   const renderDiscoverCard = useCallback(
@@ -613,36 +608,6 @@ export default function DiscoverScreen() {
             )}
           </View>
         )}
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Popular Chefs</Text>
-            <TouchableOpacity onPress={() => router.push('/find-chefs' as Href)}>
-              <Text style={styles.seeAll}>Find More</Text>
-            </TouchableOpacity>
-          </View>
-          {CHEFS.slice(0, 3).map((chef) => (
-            <TouchableOpacity
-              key={chef.id}
-              style={styles.chefRow}
-              onPress={() => handleChefPress(chef.id)}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={{ uri: chef.avatar_url }}
-                style={styles.chefAvatar}
-                contentFit="cover"
-              />
-              <View style={styles.chefInfo}>
-                <Text style={styles.chefName}>{chef.name}</Text>
-                <Text style={styles.chefMeta}>
-                  {chef.cuisine_focus} · {chef.recipe_count} recipes
-                </Text>
-              </View>
-              <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
-            </TouchableOpacity>
-          ))}
-        </View>
 
         <View style={{ height: 100 }} />
           </>
@@ -1328,34 +1293,6 @@ const styles = StyleSheet.create({
   dietaryRow: {
     gap: 8,
     paddingVertical: 8,
-  },
-  chefRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.card,
-    padding: 12,
-    marginBottom: 8,
-    ...Shadows.card,
-  },
-  chefAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  chefInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  chefName: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  chefMeta: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 2,
   },
   modalOverlay: {
     flex: 1,
