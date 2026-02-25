@@ -51,10 +51,10 @@ function MethodCard({
   };
 
   return (
-    <Pressable onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
+    <Pressable onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut} style={styles.methodCardOuter}>
       <Animated.View style={[styles.methodCard, { transform: [{ scale }] }]}>
         <View style={styles.methodIconCircle}>
-          <Ionicons name={icon} size={26} color={Colors.primary} />
+          <Ionicons name={icon} size={24} color={Colors.primary} />
         </View>
         <Text style={styles.methodTitle}>{title}</Text>
         <Text style={styles.methodSubtitle}>{subtitle}</Text>
@@ -281,14 +281,17 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     marginTop: Spacing.md,
   },
+  methodCardOuter: {
+    width: '48%',
+  },
   methodCard: {
-    width: '47.5%',
     backgroundColor: Colors.card,
     borderRadius: BorderRadius.card,
     ...Shadows.card,
-    padding: Spacing.xl,
-    height: 112,
-    justifyContent: 'center',
+    padding: Spacing.lg,
+    minHeight: 120,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
   },
   methodIconCircle: {
     width: 48,
