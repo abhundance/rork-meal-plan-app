@@ -67,7 +67,6 @@ import { DiscoverMeal, PlannedMeal } from '@/types';
 import {
   DISCOVER_MEALS,
   COLLECTIONS,
-  CUISINE_CATEGORIES,
 } from '@/mocks/discover';
 import { DIETARY_OPTIONS } from '@/types';
 
@@ -278,10 +277,6 @@ export default function DiscoverScreen() {
 
   const handleCollectionPress = useCallback((collectionId: string) => {
     router.push(`/collection?id=${collectionId}` as Href);
-  }, []);
-
-  const handleCuisinePress = useCallback((cuisine: string) => {
-    router.push(`/filtered-meals?cuisine=${cuisine}` as Href);
   }, []);
 
   const handleDietaryPress = useCallback((tag: string) => {
@@ -546,31 +541,35 @@ export default function DiscoverScreen() {
           />
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Browse by Cuisine</Text>
-          <FlatList
+        <View style={styles.cuisineChipSection}>
+          <View style={styles.cuisineChipHeader}>
+            <Text style={styles.cuisineChipTitle}>Browse by Cuisine</Text>
+          </View>
+          <ScrollView
             horizontal
-            data={CUISINE_CATEGORIES}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.cuisineCard}
-                onPress={() => handleCuisinePress(item.name)}
-                activeOpacity={0.85}
-              >
-                <Image
-                  source={{ uri: item.image_url }}
-                  style={styles.cuisineImage}
-                  contentFit="cover"
-                />
-                <View style={styles.cuisineOverlay}>
-                  <Text style={styles.cuisineName}>{item.name}</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          />
+            contentContainerStyle={styles.cuisineChipRow}
+          >
+            <CuisineChipButton
+              label="All"
+              selected={cuisineFilters.length === 0}
+              onPress={() => setCuisineFilters([])}
+            />
+            {uniqueCuisines.map((cuisine) => (
+              <CuisineChipButton
+                key={cuisine}
+                label={cuisine}
+                selected={cuisineFilters.includes(cuisine)}
+                onPress={() => {
+                  setCuisineFilters((prev) =>
+                    prev.includes(cuisine)
+                      ? prev.filter((c) => c !== cuisine)
+                      : [...prev, cuisine]
+                  );
+                }}
+              />
+            ))}
+          </ScrollView>
         </View>
 
         <View style={styles.section}>
@@ -799,6 +798,44 @@ export default function DiscoverScreen() {
     </View>
   );
 }
+
+interface CuisineChipButtonProps {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}
+
+const CuisineChipButton = React.memo(function CuisineChipButton({
+  label,
+  selected,
+  onPress,
+}: CuisineChipButtonProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(() => {
+    Animated.timing(scaleAnim, { toValue: 0.96, duration: 150, useNativeDriver: true }).start();
+  }, [scaleAnim]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+  }, [scaleAnim]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        style={[styles.cuisineChip, selected && styles.cuisineChipSelected]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <Text style={[styles.cuisineChipText, selected && styles.cuisineChipTextSelected]}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
 
 interface DiscoverMealCardProps {
   meal: DiscoverMeal;
@@ -1269,26 +1306,42 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: Colors.white,
   },
-  cuisineCard: {
-    width: 140,
-    height: 90,
-    borderRadius: BorderRadius.button,
-    overflow: 'hidden',
+  cuisineChipSection: {
+    marginTop: 32,
   },
-  cuisineImage: {
-    width: '100%',
-    height: '100%',
+  cuisineChipHeader: {
+    marginBottom: 12,
+    paddingHorizontal: 16,
   },
-  cuisineOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cuisineName: {
-    fontSize: 15,
+  cuisineChipTitle: {
+    fontSize: 20,
     fontWeight: '700' as const,
-    color: Colors.white,
+    color: '#111827',
+  },
+  cuisineChipRow: {
+    paddingHorizontal: 16,
+    gap: 8,
+    flexDirection: 'row',
+  },
+  cuisineChip: {
+    borderRadius: 9999,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  cuisineChipSelected: {
+    borderColor: '#7C3AED',
+    backgroundColor: '#EDE9FE',
+  },
+  cuisineChipText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#6B7280',
+  },
+  cuisineChipTextSelected: {
+    color: '#7C3AED',
   },
   dietaryRow: {
     gap: 8,
