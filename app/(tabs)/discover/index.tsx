@@ -573,9 +573,6 @@ export default function DiscoverScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Collections</Text>
-              <TouchableOpacity onPress={() => router.push('/collection?id=all' as Href)}>
-                <Text style={styles.seeAll}>See All</Text>
-              </TouchableOpacity>
             </View>
             <FlatList
               horizontal
@@ -1179,11 +1176,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
   },
-  seeAll: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-  },
+
   horizontalList: {
     paddingRight: 16,
     gap: 12,
