@@ -615,8 +615,8 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   filterRow: {
-    maxHeight: 44,
-    marginTop: 8,
+    height: 52,
+    marginTop: 10,
   },
   filterContent: {
     paddingHorizontal: 16,
@@ -628,7 +628,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 4,
+    paddingBottom: 8,
   },
   sortBtn: {
     flexDirection: 'row',
