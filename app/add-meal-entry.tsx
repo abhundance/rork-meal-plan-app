@@ -22,7 +22,7 @@ import Colors from '@/constants/colors';
 import { imageStore } from '@/services/imageStore';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 
-type MethodKey = 'camera' | 'photos' | 'voice' | 'manual';
+type MethodKey = 'camera' | 'photos' | 'paste' | 'voice' | 'manual';
 
 const METHODS: {
   key: MethodKey;
@@ -30,10 +30,11 @@ const METHODS: {
   title: string;
   subtitle: string;
 }[] = [
-  { key: 'camera',  icon: 'camera',          title: 'Camera', subtitle: 'Take a photo of a recipe' },
-  { key: 'photos',  icon: 'image',            title: 'Photos', subtitle: 'Pick from your library' },
-  { key: 'voice',   icon: 'mic',              title: 'Voice',  subtitle: 'Describe the recipe aloud' },
-  { key: 'manual',  icon: 'create-outline',   title: 'Manual', subtitle: 'Fill in every detail yourself' },
+  { key: 'camera',  icon: 'camera',                title: 'Camera',     subtitle: 'Take a photo of a recipe' },
+  { key: 'photos',  icon: 'image',                 title: 'Photos',     subtitle: 'Pick from your library' },
+  { key: 'paste',   icon: 'document-text-outline', title: 'Paste Text', subtitle: 'Paste a recipe from anywhere' },
+  { key: 'voice',   icon: 'mic',                   title: 'Voice',      subtitle: 'Describe the recipe aloud' },
+  { key: 'manual',  icon: 'create-outline',        title: 'Manual',     subtitle: 'Fill in every detail yourself' },
 ];
 
 function MethodCard({
@@ -94,6 +95,10 @@ export default function AddMealEntryScreen() {
   const handleMethod = async (key: MethodKey) => {
     if (key === 'manual') {
       router.push('/add-meal' as never);
+      return;
+    }
+    if (key === 'paste') {
+      router.push('/add-meal-paste' as never);
       return;
     }
     if (key === 'voice') {
@@ -192,7 +197,7 @@ export default function AddMealEntryScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.pasteSection}>
-          <Text style={styles.sectionLabel}>PASTE A RECIPE URL OR TEXT</Text>
+          <Text style={styles.sectionLabel}>PASTE A RECIPE URL</Text>
           <View style={styles.inputRow}>
             <View style={styles.inputWrapper}>
               <Ionicons
@@ -203,7 +208,7 @@ export default function AddMealEntryScreen() {
               />
               <TextInput
                 style={styles.textInput}
-                placeholder="URL or paste recipe text here..."
+                placeholder="https://..."
                 placeholderTextColor={Colors.textSecondary}
                 value={pastedText}
                 onChangeText={setPastedText}
