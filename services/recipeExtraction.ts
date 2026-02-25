@@ -112,3 +112,33 @@ export async function extractRecipeFromText(text: string): Promise<ExtractedReci
   }
   return JSON.parse(cleaned) as ExtractedRecipe;
 }
+
+export async function transcribeAndExtract(audioUri: string): Promise<ExtractedRecipe> {
+  const formData = new FormData();
+  formData.append('file', {
+    uri: audioUri,
+    type: 'audio/m4a',
+    name: 'recording.m4a',
+  } as any);
+  formData.append('model', 'whisper-1');
+
+  const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: formData,
+  });
+
+  if (!whisperResponse.ok) {
+    const errorBody = await whisperResponse.text();
+    console.error('[recipeExtraction] Whisper error:', whisperResponse.status, errorBody);
+    throw new Error(`Whisper error: ${whisperResponse.status}`);
+  }
+
+  const whisperData = await whisperResponse.json();
+  const transcribedText: string = whisperData.text;
+  console.log('[recipeExtraction] Transcribed:', transcribedText);
+
+  return extractRecipeFromText(transcribedText);
+}
