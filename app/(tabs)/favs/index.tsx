@@ -20,7 +20,6 @@ import {
   Search,
   X,
   Plus,
-  ChevronDown,
   Clock,
   Heart,
   CalendarPlus,
@@ -57,7 +56,6 @@ export default function FavsScreen() {
   const [search, setSearch] = useState<string>('');
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('recently_added');
-  const [showSortDropdown, setShowSortDropdown] = useState<boolean>(false);
   const [activeMealTypeFilter, setActiveMealTypeFilter] = useState<string>('');
   const [activeCuisineFilter, setActiveCuisineFilter] = useState<string>('');
   const [activeCookTimeFilter, setActiveCookTimeFilter] = useState<string>('');
@@ -168,7 +166,6 @@ export default function FavsScreen() {
 
   const hasFilters = !!activeMealTypeFilter || !!activeCuisineFilter ||
                      !!activeCookTimeFilter || search.trim().length > 0;
-  const currentSortLabel = SORT_OPTIONS.find((o) => o.key === sortBy)?.label ?? 'Sort';
 
   const renderGridItem = useCallback(({ item }: { item: FavMeal }) => (
     <FavMealGridCard
@@ -291,35 +288,6 @@ export default function FavsScreen() {
           />
         ))}
       </ScrollView>
-
-      <View style={styles.sortRow}>
-        <TouchableOpacity
-          style={styles.sortBtn}
-          onPress={() => setShowSortDropdown(!showSortDropdown)}
-        >
-          <Text style={styles.sortLabel}>{currentSortLabel}</Text>
-          <ChevronDown size={14} color={Colors.textSecondary} strokeWidth={2} />
-        </TouchableOpacity>
-      </View>
-
-      {showSortDropdown && (
-        <View style={styles.sortDropdown}>
-          {SORT_OPTIONS.map((opt) => (
-            <TouchableOpacity
-              key={opt.key}
-              style={[styles.sortOption, sortBy === opt.key && styles.sortOptionActive]}
-              onPress={() => {
-                setSortBy(opt.key);
-                setShowSortDropdown(false);
-              }}
-            >
-              <Text style={[styles.sortOptionText, sortBy === opt.key && styles.sortOptionTextActive]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
 
       <FlatList
           data={filteredMeals}
@@ -622,52 +590,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
     alignItems: 'center',
-  },
-  sortRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
-  },
-  sortBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  sortLabel: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: Colors.textSecondary,
-  },
-  sortDropdown: {
-    position: 'absolute' as const,
-    top: 220,
-    left: 16,
-    right: 120,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.button,
-    ...Shadows.card,
-    zIndex: 100,
-    elevation: 10,
-  },
-  sortOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-  },
-  sortOptionActive: {
-    backgroundColor: Colors.surface,
-  },
-  sortOptionText: {
-    fontSize: 14,
-    color: Colors.text,
-  },
-  sortOptionTextActive: {
-    color: Colors.primary,
-    fontWeight: '600' as const,
   },
   gridRow: {
     paddingHorizontal: 12,
