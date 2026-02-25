@@ -89,6 +89,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
       return false;
     }
     const updated = [meal, ...mealsRef.current];
+    mealsRef.current = updated;
     setMeals(updated);
     saveMutateRef.current(updated);
     console.log('[Favs] Added:', meal.name);
@@ -97,6 +98,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
 
   const removeFav = useCallback((mealId: string) => {
     const updated = mealsRef.current.filter((m) => m.id !== mealId);
+    mealsRef.current = updated;
     setMeals(updated);
     saveMutateRef.current(updated);
     console.log('[Favs] Removed:', mealId);
