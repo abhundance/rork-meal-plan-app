@@ -113,6 +113,9 @@ export default function AddMealReviewScreen() {
     }
     return [];
   });
+  const [isEditingIngredients, setIsEditingIngredients] = useState(false);
+  const [isEditingMethod, setIsEditingMethod] = useState(false);
+
   const [methodSteps, setMethodSteps] = useState<string[]>(() => {
     if (params.prefillMethodSteps) {
       try {
@@ -186,6 +189,42 @@ export default function AddMealReviewScreen() {
     doExtract();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryCount]);
+
+  const updateIngredient = (idx: number, field: 'name' | 'unit', value: string) => {
+    setIngredients(prev => prev.map((ing, i) =>
+      i === idx ? { ...ing, [field]: value } : ing
+    ));
+  };
+
+  const updateIngredientQuantity = (idx: number, value: string) => {
+    const num = parseFloat(value);
+    setIngredients(prev => prev.map((ing, i) =>
+      i === idx ? { ...ing, quantity: isNaN(num) ? 0 : num } : ing
+    ));
+  };
+
+  const removeIngredient = (idx: number) => {
+    setIngredients(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const addIngredient = () => {
+    setIngredients(prev => [
+      ...prev,
+      { id: String(Date.now()), name: '', quantity: 0, unit: '', category: 'Other' }
+    ]);
+  };
+
+  const updateStep = (idx: number, value: string) => {
+    setMethodSteps(prev => prev.map((s, i) => i === idx ? value : s));
+  };
+
+  const removeStep = (idx: number) => {
+    setMethodSteps(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const addStep = () => {
+    setMethodSteps(prev => [...prev, '']);
+  };
 
   const toggleDietary = useCallback((tag: string) => {
     setDietaryTags((prev) =>
@@ -399,50 +438,117 @@ export default function AddMealReviewScreen() {
             </View>
           </View>
 
-          {ingredients.length > 0 && (
+          {(ingredients.length > 0 || isEditingIngredients) && (
             <View style={styles.card}>
-              <Text style={styles.sectionLabel}>INGREDIENTS</Text>
-              {ingredients.map((ing, idx) => (
-                <View
-                  key={ing.id ?? String(idx)}
-                  style={[
-                    styles.ingredientRow,
-                    idx < ingredients.length - 1 && styles.rowDivider,
-                  ]}
-                >
-                  <Text style={styles.ingredientText}>
-                    {ing.quantity > 0 ? `${ing.quantity} ` : ''}
-                    {ing.unit ? `${ing.unit} ` : ''}
-                    {ing.name}
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionLabel}>INGREDIENTS</Text>
+                <TouchableOpacity onPress={() => setIsEditingIngredients(v => !v)}>
+                  <Text style={styles.editLinkText}>
+                    {isEditingIngredients ? 'Done' : 'Edit'}
                   </Text>
-                </View>
-              ))}
-              <TouchableOpacity style={styles.editLink}>
-                <Text style={styles.editLinkText}>Edit ingredients</Text>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
+
+              {isEditingIngredients ? (
+                <>
+                  {ingredients.map((ing, idx) => (
+                    <View key={ing.id ?? String(idx)} style={styles.editIngredientRow}>
+                      <TextInput
+                        style={[styles.editIngredientInput, styles.editIngredientQty]}
+                        value={ing.quantity > 0 ? String(ing.quantity) : ''}
+                        onChangeText={v => updateIngredientQuantity(idx, v)}
+                        placeholder="Qty"
+                        placeholderTextColor={Colors.textSecondary}
+                        keyboardType="decimal-pad"
+                      />
+                      <TextInput
+                        style={[styles.editIngredientInput, styles.editIngredientUnit]}
+                        value={ing.unit}
+                        onChangeText={v => updateIngredient(idx, 'unit', v)}
+                        placeholder="Unit"
+                        placeholderTextColor={Colors.textSecondary}
+                      />
+                      <TextInput
+                        style={[styles.editIngredientInput, styles.editIngredientName]}
+                        value={ing.name}
+                        onChangeText={v => updateIngredient(idx, 'name', v)}
+                        placeholder="Ingredient"
+                        placeholderTextColor={Colors.textSecondary}
+                      />
+                      <TouchableOpacity onPress={() => removeIngredient(idx)} hitSlop={8}>
+                        <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <TouchableOpacity style={styles.addRowBtn} onPress={addIngredient}>
+                    <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+                    <Text style={styles.addRowText}>Add ingredient</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  {ingredients.map((ing, idx) => (
+                    <View key={ing.id ?? String(idx)} style={[styles.ingredientRow, idx < ingredients.length - 1 && styles.rowDivider]}>
+                      <Text style={styles.ingredientText}>
+                        {ing.quantity > 0 ? `${ing.quantity} ` : ''}
+                        {ing.unit ? `${ing.unit} ` : ''}
+                        {ing.name}
+                      </Text>
+                    </View>
+                  ))}
+                </>
+              )}
             </View>
           )}
 
-          {methodSteps.length > 0 && (
+          {(methodSteps.length > 0 || isEditingMethod) && (
             <View style={styles.card}>
-              <Text style={styles.sectionLabel}>METHOD</Text>
-              {methodSteps.map((step, idx) => (
-                <View
-                  key={idx}
-                  style={[
-                    styles.stepRow,
-                    idx < methodSteps.length - 1 && styles.rowDivider,
-                  ]}
-                >
-                  <View style={styles.stepBadge}>
-                    <Text style={styles.stepBadgeText}>{idx + 1}</Text>
-                  </View>
-                  <Text style={styles.stepText}>{step}</Text>
-                </View>
-              ))}
-              <TouchableOpacity style={styles.editLink}>
-                <Text style={styles.editLinkText}>Edit method</Text>
-              </TouchableOpacity>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionLabel}>METHOD</Text>
+                <TouchableOpacity onPress={() => setIsEditingMethod(v => !v)}>
+                  <Text style={styles.editLinkText}>
+                    {isEditingMethod ? 'Done' : 'Edit'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {isEditingMethod ? (
+                <>
+                  {methodSteps.map((step, idx) => (
+                    <View key={idx} style={styles.editStepRow}>
+                      <View style={styles.stepBadge}>
+                        <Text style={styles.stepBadgeText}>{idx + 1}</Text>
+                      </View>
+                      <TextInput
+                        style={styles.editStepInput}
+                        value={step}
+                        onChangeText={v => updateStep(idx, v)}
+                        placeholder={`Step ${idx + 1}...`}
+                        placeholderTextColor={Colors.textSecondary}
+                        multiline
+                      />
+                      <TouchableOpacity onPress={() => removeStep(idx)} hitSlop={8}>
+                        <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <TouchableOpacity style={styles.addRowBtn} onPress={addStep}>
+                    <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+                    <Text style={styles.addRowText}>Add step</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  {methodSteps.map((step, idx) => (
+                    <View key={idx} style={[styles.stepRow, idx < methodSteps.length - 1 && styles.rowDivider]}>
+                      <View style={styles.stepBadge}>
+                        <Text style={styles.stepBadgeText}>{idx + 1}</Text>
+                      </View>
+                      <Text style={styles.stepText}>{step}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
             </View>
           )}
         </ScrollView>
@@ -563,7 +669,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textTransform: 'uppercase' as const,
     letterSpacing: 1,
-    marginBottom: Spacing.sm,
   },
   fieldInput: {
     fontSize: 17,
@@ -661,6 +766,69 @@ const styles = StyleSheet.create({
   editLink: {
     marginTop: Spacing.sm,
     paddingTop: Spacing.sm,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: Spacing.sm,
+  },
+  editIngredientRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  editIngredientInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.button,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    fontSize: 14,
+    color: Colors.text,
+  },
+  editIngredientQty: {
+    width: 48,
+    textAlign: 'center' as const,
+  },
+  editIngredientUnit: {
+    width: 56,
+  },
+  editIngredientName: {
+    flex: 1,
+  },
+  editStepRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  editStepInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.button,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    minHeight: 40,
+    textAlignVertical: 'top' as const,
+  },
+  addRowBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  addRowText: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: Colors.primary,
   },
   editLinkText: {
     fontSize: 14,
