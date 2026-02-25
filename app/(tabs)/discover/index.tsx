@@ -1013,31 +1013,35 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
           >
             <Text style={styles.mealCardChef}>{meal.chef_name}</Text>
           </TouchableOpacity>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.mealCardTags}
-          >
-            <View style={styles.mealMiniTag}>
-              <Text style={styles.mealMiniTagText}>{meal.cuisine}</Text>
-            </View>
-            <View style={styles.mealMiniTag}>
-              <Clock size={9} color={Colors.primary} strokeWidth={2} />
-              <Text style={styles.mealMiniTagText}>{meal.cooking_time_band}</Text>
-            </View>
-            <View style={styles.servingChip}>
-              <Users size={12} color="#6B7280" strokeWidth={2} />
-              <Text style={styles.servingChipText}>{meal.recipe_serving_size}</Text>
-            </View>
-          </ScrollView>
         </View>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.mealPlanBtn}
-        onPress={onAddToPlan}
-      >
-        <CalendarPlus size={16} color={Colors.white} strokeWidth={2.5} />
-      </TouchableOpacity>
+      <View style={styles.cardFooter}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.mealCardTags}
+        >
+          <View style={styles.mealMiniTag}>
+            <Text style={styles.mealMiniTagText}>{meal.cuisine}</Text>
+          </View>
+          <View style={styles.mealMiniTag}>
+            <Clock size={9} color={Colors.primary} strokeWidth={2} />
+            <Text style={styles.mealMiniTagText}>{meal.cooking_time_band}</Text>
+          </View>
+          <View style={styles.servingChip}>
+            <Users size={12} color="#6B7280" strokeWidth={2} />
+            <Text style={styles.servingChipText}>{meal.recipe_serving_size}</Text>
+          </View>
+        </ScrollView>
+        <TouchableOpacity
+          style={styles.mealPlanBtn}
+          onPress={onAddToPlan}
+          activeOpacity={0.85}
+        >
+          <CalendarPlus size={16} color={Colors.white} strokeWidth={2.5} />
+        </TouchableOpacity>
+      </View>
     </Animated.View>
   );
 });
@@ -1358,16 +1362,22 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.primary,
   },
+  cardFooter: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    paddingTop: 2,
+    gap: 8,
+  },
   mealPlanBtn: {
-    position: 'absolute' as const,
-    bottom: 10,
-    right: 10,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   collectionCard: {
     width: 220,
