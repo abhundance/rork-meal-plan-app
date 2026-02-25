@@ -295,6 +295,50 @@ export default function FavsScreen() {
         ))}
       </ScrollView>
 
+      {(activeCuisineFilter || activeCookTimeFilter || activeDietaryFilter) && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.activeFilterRow}
+          contentContainerStyle={styles.activeFilterContent}
+        >
+          {activeCuisineFilter ? (
+            <TouchableOpacity
+              style={styles.activeFilterChip}
+              onPress={() => setActiveCuisineFilter('')}
+            >
+              <Text style={styles.activeFilterChipText}>{activeCuisineFilter}</Text>
+              <X size={12} color="#7B68CC" strokeWidth={2.5} />
+            </TouchableOpacity>
+          ) : null}
+          {activeCookTimeFilter ? (
+            <TouchableOpacity
+              style={styles.activeFilterChip}
+              onPress={() => setActiveCookTimeFilter('')}
+            >
+              <Text style={styles.activeFilterChipText}>{activeCookTimeFilter} min</Text>
+              <X size={12} color="#7B68CC" strokeWidth={2.5} />
+            </TouchableOpacity>
+          ) : null}
+          {activeDietaryFilter ? (
+            <TouchableOpacity
+              style={styles.activeFilterChip}
+              onPress={() => setActiveDietaryFilter('')}
+            >
+              <Text style={styles.activeFilterChipText}>
+                {activeDietaryFilter === 'vegan'        ? 'Vegan'
+               : activeDietaryFilter === 'vegetarian'   ? 'Vegetarian'
+               : activeDietaryFilter === 'gluten_free'  ? 'Gluten-Free'
+               : activeDietaryFilter === 'dairy_free'   ? 'Dairy-Free'
+               : activeDietaryFilter === 'high_protein' ? 'High Protein'
+               : activeDietaryFilter}
+              </Text>
+              <X size={12} color="#7B68CC" strokeWidth={2.5} />
+            </TouchableOpacity>
+          ) : null}
+        </ScrollView>
+      )}
+
       <FlatList
           data={filteredMeals}
           renderItem={renderGridItem}
@@ -731,6 +775,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600' as const,
     color: Colors.primary,
+  },
+  activeFilterRow: {
+    maxHeight: 40,
+    marginTop: 4,
+  },
+  activeFilterContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+    alignItems: 'center' as const,
+  },
+  activeFilterChip: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 5,
+    backgroundColor: '#F0EEF9',
+    borderRadius: 9999,
+    borderWidth: 1.5,
+    borderColor: '#7B68CC',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  activeFilterChipText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#7B68CC',
   },
   sheetContainer: {
     flex: 1,
