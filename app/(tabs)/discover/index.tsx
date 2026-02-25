@@ -977,10 +977,18 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
               onSave();
             }}
           >
-            <Animated.View style={{ transform: [{ scale: heartScaleAnim }] }}>
+            <Animated.View style={[styles.heartStack, { transform: [{ scale: heartScaleAnim }] }]}>
+              <View style={styles.heartShadowLayer}>
+                <Heart
+                  size={20}
+                  color="rgba(0,0,0,0.28)"
+                  fill="transparent"
+                  strokeWidth={3.5}
+                />
+              </View>
               <Heart
-                size={16}
-                color={isSaved ? '#EF4444' : Colors.white}
+                size={18}
+                color={isSaved ? '#EF4444' : '#FFFFFF'}
                 fill={isSaved ? '#EF4444' : 'transparent'}
                 strokeWidth={2}
               />
@@ -1245,12 +1253,21 @@ const styles = StyleSheet.create({
     position: 'absolute' as const,
     top: 8,
     right: 8,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  heartStack: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heartShadowLayer: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
   },
   newTag: {
     position: 'absolute' as const,

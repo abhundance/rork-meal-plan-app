@@ -153,7 +153,22 @@ const FilteredMealCard = React.memo(function FilteredMealCard({ meal, isSaved, o
         <View style={styles.cardImageWrap}>
           <Image source={{ uri: meal.image_url }} style={styles.cardImage} contentFit="cover" />
           <TouchableOpacity style={styles.savBtn} onPress={onSave}>
-            <Heart size={14} color={isSaved ? '#EF4444' : Colors.white} fill={isSaved ? '#EF4444' : 'transparent'} strokeWidth={2} />
+            <View style={styles.heartStack}>
+              <View style={styles.heartShadowLayer}>
+                <Heart
+                  size={16}
+                  color="rgba(0,0,0,0.28)"
+                  fill="transparent"
+                  strokeWidth={3.5}
+                />
+              </View>
+              <Heart
+                size={14}
+                color={isSaved ? '#EF4444' : '#FFFFFF'}
+                fill={isSaved ? '#EF4444' : 'transparent'}
+                strokeWidth={2}
+              />
+            </View>
           </TouchableOpacity>
         </View>
         <View style={styles.cardBody}>
@@ -239,12 +254,21 @@ const styles = StyleSheet.create({
     position: 'absolute' as const,
     top: 8,
     right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    width: 30,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  heartStack: {
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heartShadowLayer: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
   },
   cardBody: {
     padding: 10,
