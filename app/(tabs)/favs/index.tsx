@@ -295,6 +295,28 @@ export default function FavsScreen() {
         ))}
       </ScrollView>
 
+      {uniqueCuisines.length > 1 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.cuisineFilterRow}
+          contentContainerStyle={styles.filterContent}
+        >
+          {uniqueCuisines.map((c) => (
+            <FilterPill
+              key={c}
+              label={c}
+              active={activeCuisineFilter === c}
+              onPress={() => {
+                const next = activeCuisineFilter === c ? '' : c;
+                setActiveCuisineFilter(next);
+                setSheetCuisine(next);
+              }}
+            />
+          ))}
+        </ScrollView>
+      )}
+
       {(activeCuisineFilter || activeCookTimeFilter || activeDietaryFilter) && (
         <ScrollView
           horizontal
@@ -784,6 +806,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600' as const,
     color: Colors.primary,
+  },
+  cuisineFilterRow: {
+    height: 52,
+    marginTop: 4,
   },
   activeFilterRow: {
     maxHeight: 40,
