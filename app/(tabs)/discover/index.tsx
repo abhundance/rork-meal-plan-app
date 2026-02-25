@@ -10,7 +10,6 @@ import {
   RefreshControl,
   Animated,
   ImageBackground,
-  Alert,
   Modal,
   Dimensions,
 } from 'react-native';
@@ -92,7 +91,7 @@ const DIET_OPTIONS = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free'];
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
-  const { isFav, addFromDiscover } = useFavs();
+  const { isFav, addFromDiscover, removeFav } = useFavs();
   const { familySettings } = useFamilySettings();
   const { addMeal, getMealForSlot } = useMealPlan();
 
@@ -247,10 +246,14 @@ export default function DiscoverScreen() {
   const handleSaveFav = useCallback(
     (meal: DiscoverMeal) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      addFromDiscover(meal);
-      Alert.alert('Saved!', `${meal.name} added to your Favs`);
+      if (isFav(meal.id)) {
+        removeFav(meal.id);
+      } else {
+        addFromDiscover(meal);
+        showToast(`${meal.name} added to Favs`);
+      }
     },
-    [addFromDiscover]
+    [isFav, addFromDiscover, removeFav, showToast]
   );
 
   const handleAddToPlan = useCallback((meal: DiscoverMeal) => {
@@ -932,6 +935,7 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
   onAddToPlan,
 }: DiscoverMealCardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const heartScaleAnim = useRef(new Animated.Value(1)).current;
   const isNew = useMemo(() => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -966,13 +970,24 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
             style={styles.mealImage}
             contentFit="cover"
           />
-          <TouchableOpacity style={styles.saveFavBtn} onPress={onSave}>
-            <Heart
-              size={16}
-              color={isSaved ? Colors.primary : Colors.white}
-              fill={isSaved ? Colors.primary : 'transparent'}
-              strokeWidth={2}
-            />
+          <TouchableOpacity
+            style={styles.saveFavBtn}
+            onPress={() => {
+              Animated.sequence([
+                Animated.spring(heartScaleAnim, { toValue: 1.3, useNativeDriver: true, speed: 30, bounciness: 12 }),
+                Animated.spring(heartScaleAnim, { toValue: 1.0, useNativeDriver: true, speed: 30, bounciness: 12 }),
+              ]).start();
+              onSave();
+            }}
+          >
+            <Animated.View style={{ transform: [{ scale: heartScaleAnim }] }}>
+              <Heart
+                size={16}
+                color={isSaved ? Colors.primary : Colors.white}
+                fill={isSaved ? Colors.primary : 'transparent'}
+                strokeWidth={2}
+              />
+            </Animated.View>
           </TouchableOpacity>
           {isNew && (
             <View style={styles.newTag}>
