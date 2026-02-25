@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   FlatList,
   StyleSheet,
@@ -83,9 +84,9 @@ const MEAL_TYPE_OPTIONS: MealTypeFilter[] = ['all', 'breakfast', 'lunch_dinner',
 const COOK_TIME_OPTIONS: CookTimeFilter[] = ['any', 'Under 30', '30-60', '60+'];
 const COOK_TIME_LABELS: Record<CookTimeFilter, string> = {
   any: 'Any',
-  'Under 30': 'Under 30',
-  '30-60': '30–60',
-  '60+': '60+',
+  'Under 30': 'Under 30 min',
+  '30-60': '30–60 min',
+  '60+': 'Over 60 min',
 };
 const DIET_OPTIONS = ['Vegan', 'Vegetarian', 'Gluten-Free', 'Dairy-Free'];
 
@@ -195,13 +196,18 @@ export default function DiscoverScreen() {
     missingMeals.length === 0 &&
     newThisWeek.length === 0;
 
+  useEffect(() => {
+    if (filterSheetVisible) {
+      setTempCookTime(cookTimeFilter);
+      setTempDietFilters([...dietFilters]);
+      setTempCuisineFilters([...cuisineFilters]);
+    }
+  }, [filterSheetVisible]);
+
   const openFilterSheet = useCallback(() => {
-    setTempCookTime(cookTimeFilter);
-    setTempDietFilters([...dietFilters]);
-    setTempCuisineFilters([...cuisineFilters]);
     setFilterSheetVisible(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [cookTimeFilter, dietFilters, cuisineFilters]);
+  }, []);
 
   const closeFilterSheet = useCallback(() => {
     setFilterSheetVisible(false);
@@ -348,26 +354,33 @@ export default function DiscoverScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        <TouchableOpacity
-          style={[styles.filtersBtn, activeFilterCount > 0 && styles.filtersBtnActive]}
-          onPress={openFilterSheet}
-          activeOpacity={0.8}
-          testID="filters-btn"
-        >
-          <SlidersHorizontal
-            size={13}
-            color={activeFilterCount > 0 ? Colors.white : Colors.text}
-            strokeWidth={2}
-          />
-          <Text
-            style={[
-              styles.filtersBtnText,
-              activeFilterCount > 0 && styles.filtersBtnTextActive,
-            ]}
+        <View style={styles.filtersBtnWrap}>
+          <TouchableOpacity
+            style={[styles.filtersBtn, activeFilterCount > 0 && styles.filtersBtnActive]}
+            onPress={openFilterSheet}
+            activeOpacity={0.8}
+            testID="filters-btn"
           >
-            {activeFilterCount > 0 ? `Filters (${activeFilterCount})` : 'Filters'}
-          </Text>
-        </TouchableOpacity>
+            <SlidersHorizontal
+              size={13}
+              color={activeFilterCount > 0 ? Colors.white : Colors.text}
+              strokeWidth={2}
+            />
+            <Text
+              style={[
+                styles.filtersBtnText,
+                activeFilterCount > 0 && styles.filtersBtnTextActive,
+              ]}
+            >
+              Filters
+            </Text>
+          </TouchableOpacity>
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount.toString()}</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       <ScrollView
@@ -643,86 +656,58 @@ export default function DiscoverScreen() {
               bounces={false}
             >
               <View style={styles.sheetSection}>
-                <Text style={styles.sheetSectionTitle}>Cook Time</Text>
-                <View style={styles.chipWrap}>
-                  {COOK_TIME_OPTIONS.map((opt) => (
-                    <TouchableOpacity
-                      key={opt}
-                      style={[
-                        styles.sheetChip,
-                        tempCookTime === opt && styles.sheetChipActive,
-                      ]}
-                      onPress={() => setTempCookTime(opt)}
-                      activeOpacity={0.75}
-                    >
-                      <Text
-                        style={[
-                          styles.sheetChipText,
-                          tempCookTime === opt && styles.sheetChipTextActive,
-                        ]}
-                      >
-                        {COOK_TIME_LABELS[opt]}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <Text style={styles.sheetSectionLabel}>Cook Time</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.sheetHorizontalChips}
+              >
+                {COOK_TIME_OPTIONS.map((opt) => (
+                  <FilterSheetChip
+                    key={opt}
+                    label={COOK_TIME_LABELS[opt]}
+                    selected={tempCookTime === opt}
+                    onPress={() => setTempCookTime(opt)}
+                  />
+                ))}
+              </ScrollView>
+
+              <View style={styles.sheetDivider} />
+
+              <View style={styles.sheetSection}>
+                <Text style={styles.sheetSectionLabel}>Dietary</Text>
+              </View>
+              <View style={styles.sheetDietChips}>
+                {DIET_OPTIONS.map((diet) => (
+                  <FilterSheetChip
+                    key={diet}
+                    label={diet}
+                    selected={tempDietFilters.includes(diet)}
+                    onPress={() => toggleTempDiet(diet)}
+                  />
+                ))}
               </View>
 
               <View style={styles.sheetDivider} />
 
               <View style={styles.sheetSection}>
-                <Text style={styles.sheetSectionTitle}>Diet</Text>
-                <View style={styles.chipWrap}>
-                  {DIET_OPTIONS.map((diet) => (
-                    <TouchableOpacity
-                      key={diet}
-                      style={[
-                        styles.sheetChip,
-                        tempDietFilters.includes(diet) && styles.sheetChipActive,
-                      ]}
-                      onPress={() => toggleTempDiet(diet)}
-                      activeOpacity={0.75}
-                    >
-                      <Text
-                        style={[
-                          styles.sheetChipText,
-                          tempDietFilters.includes(diet) && styles.sheetChipTextActive,
-                        ]}
-                      >
-                        {diet}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <Text style={styles.sheetSectionLabel}>Cuisine</Text>
               </View>
-
-              <View style={styles.sheetDivider} />
-
-              <View style={styles.sheetSection}>
-                <Text style={styles.sheetSectionTitle}>Cuisine</Text>
-                <View style={styles.chipWrap}>
-                  {uniqueCuisines.map((cuisine) => (
-                    <TouchableOpacity
-                      key={cuisine}
-                      style={[
-                        styles.sheetChip,
-                        tempCuisineFilters.includes(cuisine) && styles.sheetChipActive,
-                      ]}
-                      onPress={() => toggleTempCuisine(cuisine)}
-                      activeOpacity={0.75}
-                    >
-                      <Text
-                        style={[
-                          styles.sheetChipText,
-                          tempCuisineFilters.includes(cuisine) && styles.sheetChipTextActive,
-                        ]}
-                      >
-                        {cuisine}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.sheetHorizontalChips}
+              >
+                {uniqueCuisines.map((cuisine) => (
+                  <FilterSheetChip
+                    key={cuisine}
+                    label={cuisine}
+                    selected={tempCuisineFilters.includes(cuisine)}
+                    onPress={() => toggleTempCuisine(cuisine)}
+                  />
+                ))}
+              </ScrollView>
 
               <View style={{ height: 8 }} />
             </ScrollView>
@@ -797,6 +782,44 @@ export default function DiscoverScreen() {
     </View>
   );
 }
+
+interface FilterSheetChipProps {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}
+
+const FilterSheetChip = React.memo(function FilterSheetChip({
+  label,
+  selected,
+  onPress,
+}: FilterSheetChipProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(() => {
+    Animated.timing(scaleAnim, { toValue: 0.96, duration: 150, useNativeDriver: true }).start();
+  }, [scaleAnim]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+  }, [scaleAnim]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        style={[styles.sheetChip, selected && styles.sheetChipActive]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <Text style={[styles.sheetChipText, selected && styles.sheetChipTextActive]}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
 
 interface CuisineChipButtonProps {
   label: string;
@@ -1010,16 +1033,37 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    marginRight: 12,
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
     flexShrink: 0,
   },
+  filtersBtnWrap: {
+    position: 'relative' as const,
+    marginRight: 12,
+  },
   filtersBtnActive: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
+  },
+  filterBadge: {
+    position: 'absolute' as const,
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 9999,
+    backgroundColor: '#7C3AED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
   },
   filtersBtnText: {
     fontSize: 13,
@@ -1414,7 +1458,7 @@ const styles = StyleSheet.create({
   sheetSection: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 4,
+    paddingBottom: 0,
   },
   sheetSectionTitle: {
     fontSize: 15,
@@ -1442,16 +1486,37 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   sheetChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: '#EDE9FE',
+    borderColor: '#7C3AED',
   },
   sheetChipText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: '#6B7280',
   },
   sheetChipTextActive: {
-    color: Colors.white,
+    color: '#7C3AED',
+  },
+  sheetSectionLabel: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#9CA3AF',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
+  sheetHorizontalChips: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  sheetDietChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 20,
+    marginBottom: 24,
   },
   sheetFooter: {
     flexDirection: 'row',
