@@ -19,7 +19,13 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
         const stored = await AsyncStorage.getItem(FAVS_KEY);
         if (stored) {
           console.log('[Favs] Loaded from storage');
-          return JSON.parse(stored) as FavMeal[];
+          const parsed = JSON.parse(stored) as FavMeal[];
+          const seen = new Set<string>();
+          return parsed.filter((m) => {
+            if (seen.has(m.id)) return false;
+            seen.add(m.id);
+            return true;
+          });
         }
       } catch (e) {
         console.log('[Favs] Error loading:', e);
