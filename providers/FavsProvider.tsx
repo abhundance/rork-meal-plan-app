@@ -139,7 +139,12 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
       cooking_time_band: discoverMeal.cooking_time_band,
       prep_time: discoverMeal.prep_time,
       cook_time: discoverMeal.cook_time,
-      dietary_tags: discoverMeal.dietary_tags,
+      dietary_tags: [
+        ...discoverMeal.dietary_tags,
+        ...(discoverMeal.is_dairy_free &&
+            !discoverMeal.dietary_tags.includes('Dairy-Free')
+              ? ['Dairy-Free'] : []),
+      ],
       custom_tags: [],
       ingredients: discoverMeal.ingredients,
       recipe_serving_size: discoverMeal.recipe_serving_size,
@@ -147,6 +152,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
       description: discoverMeal.description,
       chef_notes: discoverMeal.chef_notes,
       source: 'discover',
+      meal_type: discoverMeal.meal_type,
       source_chef_id: discoverMeal.chef_id,
       source_chef_name: discoverMeal.chef_name,
       add_to_plan_count: 0,
@@ -217,7 +223,14 @@ export function useFilteredFavs(
     }
 
     if (filters.mealType) {
-      result = result.filter((m) => m.meal_type_slot_id === filters.mealType);
+      const slotToMealType: Record<string, string[]> = {
+        breakfast: ['breakfast'],
+        lunch:     ['lunch_dinner'],
+        dinner:    ['lunch_dinner'],
+        snack:     ['light_bites'],
+      };
+      const allowed = slotToMealType[filters.mealType] ?? [filters.mealType];
+      result = result.filter((m) => !!m.meal_type && allowed.includes(m.meal_type));
     }
     if (filters.cuisine) {
       result = result.filter((m) => m.cuisine === filters.cuisine);
@@ -227,12 +240,13 @@ export function useFilteredFavs(
     }
     if (filters.activeDietary) {
       result = result.filter((m) => {
+        const tags = m.dietary_tags ?? [];
         switch (filters.activeDietary) {
-          case 'vegan':        return m.is_vegan === true;
-          case 'vegetarian':   return m.is_vegetarian === true;
-          case 'gluten_free':  return m.is_gluten_free === true;
-          case 'dairy_free':   return m.is_dairy_free === true;
-          case 'high_protein': return (m.dietary_tags ?? []).includes('High Protein');
+          case 'vegan':        return tags.includes('Vegan');
+          case 'vegetarian':   return tags.includes('Vegetarian');
+          case 'gluten_free':  return tags.includes('Gluten-Free');
+          case 'dairy_free':   return tags.includes('Dairy-Free');
+          case 'high_protein': return tags.includes('High Protein');
           default:             return true;
         }
       });
