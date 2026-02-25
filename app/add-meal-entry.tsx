@@ -9,6 +9,8 @@ import {
   Animated,
   TouchableOpacity,
   Alert,
+  Linking,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -108,16 +110,34 @@ export default function AddMealEntryScreen() {
 
     let result: ImagePicker.ImagePickerResult;
     if (key === 'camera') {
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (perm.status !== 'granted') {
-        Alert.alert('Camera Access Needed', 'Please enable camera access in Settings to use this feature.');
+      const { status, canAskAgain } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Camera Access Required',
+          Platform.OS === 'ios'
+            ? 'Meal Plan needs camera access to photograph recipes. Tap Open Settings and enable Camera under Meal Plan.'
+            : 'Meal Plan needs camera access to photograph recipes. Tap Open Settings and enable the Camera permission.',
+          [
+            { text: 'Not Now', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ],
+        );
         return;
       }
       result = await ImagePicker.launchCameraAsync(pickerOptions);
     } else {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (perm.status !== 'granted') {
-        Alert.alert('Photo Access Needed', 'Please enable photo library access in Settings to use this feature.');
+      const { status, canAskAgain } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Photo Library Access Required',
+          Platform.OS === 'ios'
+            ? 'Meal Plan needs photo library access to import recipe photos. Tap Open Settings and enable Photos under Meal Plan.'
+            : 'Meal Plan needs photo library access to import recipe photos. Tap Open Settings and enable the Storage permission.',
+          [
+            { text: 'Not Now', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ],
+        );
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
