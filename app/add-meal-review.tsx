@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Animated,
+  Linking,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +22,7 @@ import Colors from '@/constants/colors';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 import { extractRecipeFromImage, extractRecipeFromText, detectVideoUrlType, extractRecipeFromVideoUrl } from '@/services/recipeExtraction';
 import { imageStore } from '@/services/imageStore';
+import { searchFoodImages, UnsplashImage } from '@/services/imageSearch';
 import { useFavs } from '@/providers/FavsProvider';
 import { FavMeal, Ingredient } from '@/types';
 import ServingStepper from '@/components/ServingStepper';
@@ -131,6 +135,12 @@ export default function AddMealReviewScreen() {
     return [];
   });
 
+  const [suggestedImages, setSuggestedImages] = useState<UnsplashImage[]>([]);
+  const [imageIndex, setImageIndex] = useState<number>(0);
+  const [userImageUri, setUserImageUri] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState<boolean>(false);
+  const skeletonAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     if (inputMode !== 'camera' && inputMode !== 'photos' && inputMode !== 'text' && inputMode !== 'url') return;
 
@@ -178,6 +188,12 @@ export default function AddMealReviewScreen() {
         if (result.method_steps?.length) setMethodSteps(result.method_steps);
 
         console.log('[Review] Extraction complete:', result.name);
+
+        if (result.name && result.name.length >= 3) {
+          searchFoodImages(result.name).then(results => {
+            setSuggestedImages(results);
+          });
+        }
       } catch (e) {
         console.log('[Review] Extraction failed:', e);
         Alert.alert(
@@ -198,6 +214,59 @@ export default function AddMealReviewScreen() {
     doExtract();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryCount]);
+
+  useEffect(() => {
+    if (imageLoading) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(skeletonAnim, { toValue: 1, duration: 600, useNativeDriver: false }),
+          Animated.timing(skeletonAnim, { toValue: 0, duration: 600, useNativeDriver: false }),
+        ])
+      ).start();
+    } else {
+      skeletonAnim.stopAnimation();
+    }
+  }, [imageLoading, skeletonAnim]);
+
+  const handlePickImage = async (source: 'camera' | 'library') => {
+    const permission = source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        'Permission needed',
+        source === 'camera'
+          ? 'Camera access is needed to take a photo.'
+          : 'Photo library access is needed to choose a photo.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ]
+      );
+      return;
+    }
+
+    setImageLoading(true);
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [16, 10] as [number, number],
+          quality: 0.8,
+        })
+      : await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [16, 10] as [number, number],
+          quality: 0.8,
+        });
+
+    setImageLoading(false);
+    if (!result.canceled && result.assets[0]) {
+      setUserImageUri(result.assets[0].uri);
+    }
+  };
 
   const updateIngredient = (idx: number, field: 'name' | 'unit', value: string) => {
     setIngredients(prev => prev.map((ing, i) =>
@@ -248,6 +317,7 @@ export default function AddMealReviewScreen() {
     const meal: FavMeal = {
       id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: trimmedName,
+      image_url: userImageUri ?? (suggestedImages[imageIndex]?.regularUrl ?? undefined),
       description: description.trim() || undefined,
       cuisine: cuisine.trim() || undefined,
       cooking_time_band: cookTimeBand ? cookTimeBand : undefined,
@@ -279,6 +349,9 @@ export default function AddMealReviewScreen() {
     methodSteps,
     addFav,
     router,
+    userImageUri,
+    suggestedImages,
+    imageIndex,
   ]);
 
   if (isLoading) {
@@ -292,7 +365,9 @@ export default function AddMealReviewScreen() {
   }
 
   const canSave = name.trim().length > 0;
-  const showAiChip = inputMode === 'camera' || inputMode === 'photos' || inputMode === 'text' || inputMode === 'url';
+
+  const currentSuggestion = suggestedImages[imageIndex];
+  const hasImage = userImageUri !== null || suggestedImages.length > 0;
 
   return (
     <View style={[styles.root, { backgroundColor: Colors.background }]}>
@@ -326,22 +401,91 @@ export default function AddMealReviewScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {params.imageUri ? (
-            <View style={styles.imageContainer}>
-              <Image
-                source={{ uri: params.imageUri }}
-                style={styles.heroImage}
-                resizeMode="cover"
+          {/* Image Hero Zone */}
+          <View style={styles.heroZoneWrapper}>
+            {imageLoading ? (
+              <Animated.View
+                style={[
+                  styles.heroCard,
+                  {
+                    backgroundColor: skeletonAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [Colors.border, Colors.background],
+                    }),
+                  },
+                ]}
               />
-              {showAiChip && (
-                <View style={styles.aiChip}>
-                  <Text style={styles.aiChipText}>AI Extracted</Text>
+            ) : hasImage ? (
+              <View>
+                <View style={styles.heroCard}>
+                  <Image
+                    source={{ uri: userImageUri ?? currentSuggestion?.regularUrl }}
+                    style={styles.heroImageFull}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.heroGradientOverlay} />
+                  {!userImageUri && suggestedImages.length > 0 && (
+                    <View style={styles.suggestedPill}>
+                      <Text style={styles.suggestedPillText}>Suggested</Text>
+                    </View>
+                  )}
+                  <View style={styles.heroActions}>
+                    {!userImageUri ? (
+                      <>
+                        <TouchableOpacity style={styles.heroActionBtn} onPress={() => handlePickImage('camera')}>
+                          <Ionicons name="camera-outline" size={18} color={Colors.white} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.heroActionBtn} onPress={() => handlePickImage('library')}>
+                          <Ionicons name="image-outline" size={18} color={Colors.white} />
+                        </TouchableOpacity>
+                        {suggestedImages.length > 1 && (
+                          <TouchableOpacity
+                            style={styles.heroActionBtn}
+                            onPress={() => setImageIndex((imageIndex + 1) % suggestedImages.length)}
+                          >
+                            <Ionicons name="refresh-outline" size={18} color={Colors.white} />
+                          </TouchableOpacity>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <TouchableOpacity style={styles.heroActionBtn} onPress={() => handlePickImage('camera')}>
+                          <Ionicons name="camera-outline" size={18} color={Colors.white} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.heroActionBtn} onPress={() => handlePickImage('library')}>
+                          <Ionicons name="image-outline" size={18} color={Colors.white} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.heroActionBtn} onPress={() => setUserImageUri(null)}>
+                          <Ionicons name="trash-outline" size={18} color={Colors.white} />
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
                 </View>
-              )}
-            </View>
-          ) : null}
+                {!userImageUri && currentSuggestion && (
+                  <Text style={styles.attribution}>
+                    {'Photo by '}{currentSuggestion.photographer}{' on Unsplash'}
+                  </Text>
+                )}
+              </View>
+            ) : (
+              <View style={styles.heroCardEmpty}>
+                <View style={styles.heroEmptyButtons}>
+                  <TouchableOpacity style={styles.heroEmptyBtn} onPress={() => handlePickImage('camera')}>
+                    <Ionicons name="camera-outline" size={18} color={Colors.primary} />
+                    <Text style={styles.heroEmptyBtnText}>Camera</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.heroEmptyBtn} onPress={() => handlePickImage('library')}>
+                    <Ionicons name="image-outline" size={18} color={Colors.primary} />
+                    <Text style={styles.heroEmptyBtnText}>Library</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.heroEmptyHint}>No image? That's fine — you can add one later</Text>
+              </View>
+            )}
+          </View>
 
-          <View style={[styles.card, !params.imageUri && styles.cardFirstNoImage]}>
+          <View style={styles.card}>
             <Text style={styles.sectionLabel}>BASICS</Text>
             <TextInput
               style={styles.fieldInput}
@@ -636,41 +780,118 @@ const styles = StyleSheet.create({
     color: Colors.inactive,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingHorizontal: 0,
   },
-  imageContainer: {
-    marginTop: Spacing.lg,
+  heroZoneWrapper: {
+    marginBottom: Spacing.sm,
+  },
+  heroCard: {
+    height: 220,
     borderRadius: BorderRadius.card,
+    marginHorizontal: Spacing.lg,
     overflow: 'hidden',
+    backgroundColor: Colors.border,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  heroImage: {
+  heroImageFull: {
     width: '100%',
-    height: 200,
-    borderRadius: BorderRadius.card,
+    height: 220,
   },
-  aiChip: {
+  heroGradientOverlay: {
     position: 'absolute',
-    bottom: Spacing.sm,
-    left: Spacing.sm,
-    backgroundColor: 'rgba(123, 104, 204, 0.85)',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  suggestedPill: {
+    position: 'absolute',
+    bottom: 10,
+    left: 12,
+    backgroundColor: 'rgba(123,104,204,0.85)',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: BorderRadius.full,
+    borderRadius: 9999,
   },
-  aiChipText: {
+  suggestedPillText: {
     fontSize: 12,
-    fontWeight: '600' as const,
+    fontWeight: '500' as const,
     color: Colors.white,
+  },
+  heroActions: {
+    position: 'absolute',
+    bottom: 8,
+    right: 10,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  heroActionBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attribution: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: Colors.textSecondary,
+    marginTop: 4,
+    marginHorizontal: Spacing.lg,
+    marginBottom: 4,
+  },
+  heroCardEmpty: {
+    height: 220,
+    borderRadius: BorderRadius.card,
+    marginHorizontal: Spacing.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+    backgroundColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroEmptyButtons: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  heroEmptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.card,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: BorderRadius.button,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  heroEmptyBtnText: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: Colors.text,
+  },
+  heroEmptyHint: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 12,
   },
   card: {
     backgroundColor: Colors.card,
     borderRadius: BorderRadius.card,
     padding: Spacing.lg,
     marginTop: Spacing.md,
+    marginHorizontal: Spacing.lg,
     ...Shadows.card,
-  },
-  cardFirstNoImage: {
-    marginTop: Spacing.lg,
   },
   sectionLabel: {
     fontSize: 11,
