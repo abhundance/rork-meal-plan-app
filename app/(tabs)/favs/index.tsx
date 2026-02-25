@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   gridContent: {
-    paddingTop: 4,
+    paddingTop: 12,
     paddingBottom: 100,
   },
   gridCard: {
@@ -810,6 +810,7 @@ const styles = StyleSheet.create({
   cuisineFilterRow: {
     height: 52,
     marginTop: 4,
+    marginBottom: 8,
   },
   activeFilterRow: {
     maxHeight: 40,
