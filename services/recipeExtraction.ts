@@ -1,12 +1,13 @@
 // services/recipeExtraction.ts
 // Extracts structured recipe data from images and text using OpenAI GPT-4o
 
-const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-
-if (!OPENAI_API_KEY) {
-  console.error('[recipeExtraction] EXPO_PUBLIC_OPENAI_API_KEY is undefined. Check Rork environment variables.');
+function getApiKey(): string {
+  const key = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+  if (!key) throw new Error('OpenAI API key is not configured. Add EXPO_PUBLIC_OPENAI_API_KEY in Rork environment variables.');
+  return key;
 }
+
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 export interface ExtractedRecipe {
   name: string;
@@ -46,7 +47,7 @@ export async function extractRecipeFromImage(base64Image: string): Promise<Extra
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Authorization': `Bearer ${getApiKey()}`,
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
@@ -85,7 +86,7 @@ export async function extractRecipeFromText(text: string): Promise<ExtractedReci
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Authorization': `Bearer ${getApiKey()}`,
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
@@ -125,7 +126,7 @@ export async function transcribeAndExtract(audioUri: string): Promise<ExtractedR
   const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'Authorization': `Bearer ${getApiKey()}`,
     },
     body: formData,
   });
