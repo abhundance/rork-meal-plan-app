@@ -196,6 +196,7 @@ export function useFilteredFavs(
     cuisine?: string;
     cookingTime?: string;
     dietaryTag?: string;
+    activeDietary?: string;
     source?: string;
   },
   sortBy: string
@@ -224,8 +225,17 @@ export function useFilteredFavs(
     if (filters.cookingTime) {
       result = result.filter((m) => m.cooking_time_band === filters.cookingTime);
     }
-    if (filters.dietaryTag) {
-      result = result.filter((m) => m.dietary_tags.includes(filters.dietaryTag!));
+    if (filters.activeDietary) {
+      result = result.filter((m) => {
+        switch (filters.activeDietary) {
+          case 'vegan':        return m.is_vegan === true;
+          case 'vegetarian':   return m.is_vegetarian === true;
+          case 'gluten_free':  return m.is_gluten_free === true;
+          case 'dairy_free':   return m.is_dairy_free === true;
+          case 'high_protein': return (m.dietary_tags ?? []).includes('High Protein');
+          default:             return true;
+        }
+      });
     }
     if (filters.source) {
       result = result.filter((m) => m.source === filters.source);
