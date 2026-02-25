@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import VoiceRecordSheet from '@/components/VoiceRecordSheet';
-import { transcribeAndExtract, ExtractedRecipe } from '@/services/recipeExtraction';
+import { transcribeAndExtract, ExtractedRecipe, detectVideoUrlType, extractRecipeFromVideoUrl } from '@/services/recipeExtraction';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Pressable,
   Animated,
   TouchableOpacity,
+  ActivityIndicator,
   Alert,
   Linking,
   Platform,
@@ -75,6 +76,9 @@ export default function AddMealEntryScreen() {
   const router = useRouter();
   const [pastedText, setPastedText] = useState<string>('');
   const [showVoiceSheet, setShowVoiceSheet] = useState(false);
+  const [detectedUrlType, setDetectedUrlType] = useState<'youtube' | 'tiktok' | 'other' | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const hintOpacity = useRef(new Animated.Value(0)).current;
   const extractScale = useRef(new Animated.Value(1)).current;
 
   const handleExtractPressIn = () => {
@@ -84,12 +88,41 @@ export default function AddMealEntryScreen() {
     Animated.timing(extractScale, { toValue: 1, duration: 150, useNativeDriver: true }).start();
   };
 
-  const handleExtract = () => {
-    if (!pastedText.trim()) return;
-    router.push({
-      pathname: '/add-meal-review' as never,
-      params: { inputMode: 'text', inputText: pastedText.trim() },
-    });
+  useEffect(() => {
+    if (detectedUrlType !== null) {
+      Animated.timing(hintOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    } else {
+      Animated.timing(hintOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+    }
+  }, [detectedUrlType, hintOpacity]);
+
+  const handleExtract = async () => {
+    if (!pastedText.trim() || isExtracting) return;
+    setIsExtracting(true);
+    try {
+      const result = await extractRecipeFromVideoUrl(pastedText.trim());
+      router.push({
+        pathname: '/add-meal-review' as never,
+        params: {
+          inputMode: 'url',
+          inputUrl: pastedText.trim(),
+          prefillName: result.name,
+          prefillDescription: result.description,
+          prefillCuisine: result.cuisine,
+          prefillMealType: result.meal_type,
+          prefillCookingTimeBand: result.cooking_time_band,
+          prefillDietaryTags: JSON.stringify(result.dietary_tags),
+          prefillIngredients: JSON.stringify(result.ingredients),
+          prefillMethodSteps: JSON.stringify(result.method_steps),
+          prefillServingSize: String(result.recipe_serving_size),
+        },
+      });
+    } catch (e) {
+      console.error('[AddMealEntry] URL extraction failed:', e);
+      Alert.alert('Extraction Failed', 'We could not extract a recipe from that URL. Try pasting the recipe text instead.');
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const handleMethod = async (key: MethodKey) => {
@@ -211,10 +244,19 @@ export default function AddMealEntryScreen() {
                 placeholder="https://..."
                 placeholderTextColor={Colors.textSecondary}
                 value={pastedText}
-                onChangeText={setPastedText}
+                onChangeText={(text) => {
+                  setPastedText(text);
+                  if (text.length > 10) {
+                    const type = detectVideoUrlType(text);
+                    setDetectedUrlType(type.length > 0 ? type : null);
+                  } else {
+                    setDetectedUrlType(null);
+                  }
+                }}
                 multiline={false}
                 returnKeyType="done"
                 onSubmitEditing={handleExtract}
+                editable={!isExtracting}
               />
               {pastedText.length > 0 && (
                 <Pressable
@@ -222,15 +264,34 @@ export default function AddMealEntryScreen() {
                   onPressIn={handleExtractPressIn}
                   onPressOut={handleExtractPressOut}
                   style={styles.extractBtnWrapper}
+                  disabled={isExtracting}
                 >
                   <Animated.View
                     style={[styles.extractBtn, { transform: [{ scale: extractScale }] }]}
                   >
-                    <Text style={styles.extractBtnText}>Extract →</Text>
+                    {isExtracting
+                      ? <ActivityIndicator size="small" color={Colors.white} />
+                      : <Text style={styles.extractBtnText}>Extract →</Text>
+                    }
                   </Animated.View>
                 </Pressable>
               )}
             </View>
+            {(detectedUrlType === 'youtube' || detectedUrlType === 'tiktok') && (
+              <Animated.View style={[styles.urlHintRow, { opacity: hintOpacity }]}>
+                {detectedUrlType === 'youtube' ? (
+                  <>
+                    <Ionicons name="logo-youtube" size={16} color="#FF0000" />
+                    <Text style={styles.urlHintText}>YouTube recipe detected — we'll read the description</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="logo-tiktok" size={16} color={Colors.text} />
+                    <Text style={styles.urlHintText}>TikTok link detected — we'll read the caption</Text>
+                  </>
+                )}
+              </Animated.View>
+            )}
           </View>
         </View>
 
@@ -375,5 +436,17 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: Colors.textSecondary,
     marginTop: 3,
+  },
+  urlHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: Spacing.xs,
+    marginLeft: Spacing.md,
+  },
+  urlHintText: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: Colors.textSecondary,
   },
 });

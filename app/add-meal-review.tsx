@@ -17,17 +17,18 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/colors';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
-import { extractRecipeFromImage, extractRecipeFromText } from '@/services/recipeExtraction';
+import { extractRecipeFromImage, extractRecipeFromText, detectVideoUrlType, extractRecipeFromVideoUrl } from '@/services/recipeExtraction';
 import { imageStore } from '@/services/imageStore';
 import { useFavs } from '@/providers/FavsProvider';
 import { FavMeal, Ingredient } from '@/types';
 import ServingStepper from '@/components/ServingStepper';
 
 type Params = {
-  inputMode: 'camera' | 'photos' | 'text' | 'voice' | 'manual';
+  inputMode: 'camera' | 'photos' | 'text' | 'voice' | 'manual' | 'url';
   imageBase64?: string;
   imageUri?: string;
   inputText?: string;
+  inputUrl?: string;
   prefillName?: string;
   prefillCuisine?: string;
   prefillMealType?: string;
@@ -72,7 +73,10 @@ export default function AddMealReviewScreen() {
   const inputMode = params.inputMode ?? 'manual';
 
   const [isLoading, setIsLoading] = useState<boolean>(
-    inputMode === 'camera' || inputMode === 'photos' || inputMode === 'text',
+    inputMode === 'camera' || inputMode === 'photos' || inputMode === 'text' || inputMode === 'url',
+  );
+  const [loadingLabel, setLoadingLabel] = useState<string>(
+    inputMode === 'url' ? 'Analysing video description…' : 'This takes about 5 seconds',
   );
   const [retryCount, setRetryCount] = useState<number>(0);
 
@@ -128,7 +132,7 @@ export default function AddMealReviewScreen() {
   });
 
   useEffect(() => {
-    if (inputMode !== 'camera' && inputMode !== 'photos' && inputMode !== 'text') return;
+    if (inputMode !== 'camera' && inputMode !== 'photos' && inputMode !== 'text' && inputMode !== 'url') return;
 
     const doExtract = async () => {
       setIsLoading(true);
@@ -145,6 +149,9 @@ export default function AddMealReviewScreen() {
           imageStore.clear();
         } else if (inputMode === 'text' && params.inputText) {
           result = await extractRecipeFromText(params.inputText);
+        } else if (inputMode === 'url' && params.inputUrl) {
+          setLoadingLabel('Analysing video description…');
+          result = await extractRecipeFromVideoUrl(params.inputUrl);
         } else {
           setIsLoading(false);
           return;
@@ -175,7 +182,9 @@ export default function AddMealReviewScreen() {
         console.log('[Review] Extraction failed:', e);
         Alert.alert(
           "Couldn't extract recipe",
-          "We couldn't read this image. Fill in manually?",
+          inputMode === 'url'
+            ? "We couldn't extract a recipe from that video. Fill in manually?"
+            : "We couldn't read this image. Fill in manually?",
           [
             { text: 'Try Again', onPress: () => setRetryCount((c) => c + 1) },
             { text: 'Fill Manually', onPress: () => router.replace('/add-meal' as never) },
@@ -277,13 +286,13 @@ export default function AddMealReviewScreen() {
       <View style={[styles.loadingContainer, { backgroundColor: Colors.background }]}>
         <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingTitle}>Extracting recipe...</Text>
-        <Text style={styles.loadingSubtitle}>This takes about 5 seconds</Text>
+        <Text style={styles.loadingSubtitle}>{loadingLabel}</Text>
       </View>
     );
   }
 
   const canSave = name.trim().length > 0;
-  const showAiChip = inputMode === 'camera' || inputMode === 'photos' || inputMode === 'text';
+  const showAiChip = inputMode === 'camera' || inputMode === 'photos' || inputMode === 'text' || inputMode === 'url';
 
   return (
     <View style={[styles.root, { backgroundColor: Colors.background }]}>

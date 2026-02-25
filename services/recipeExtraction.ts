@@ -114,6 +114,79 @@ export async function extractRecipeFromText(text: string): Promise<ExtractedReci
   return JSON.parse(cleaned) as ExtractedRecipe;
 }
 
+export function detectVideoUrlType(url: string): 'youtube' | 'tiktok' | 'other' {
+  const lower = url.toLowerCase();
+  if (lower.includes('youtube.com/watch') || lower.includes('youtu.be/')) return 'youtube';
+  if (lower.includes('tiktok.com/')) return 'tiktok';
+  return 'other';
+}
+
+export function extractYouTubeVideoId(url: string): string | null {
+  const patterns = [
+    /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function getYouTubeApiKey(): string {
+  const key = process.env.EXPO_PUBLIC_YOUTUBE_API_KEY;
+  if (!key) throw new Error('YouTube API key is not configured. Add EXPO_PUBLIC_YOUTUBE_API_KEY to Rork environment variables.');
+  return key;
+}
+
+export async function extractRecipeFromYouTubeUrl(url: string): Promise<ExtractedRecipe> {
+  const videoId = extractYouTubeVideoId(url);
+  if (!videoId) throw new Error('Could not parse YouTube video ID from URL.');
+
+  const apiKey = getYouTubeApiKey();
+  const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet&key=${apiKey}`;
+
+  const response = await fetch(apiUrl);
+  if (!response.ok) throw new Error(`YouTube API error: ${response.status}`);
+
+  const data = await response.json();
+  const items = data.items;
+  if (!items || items.length === 0) throw new Error('Video not found or is private.');
+
+  const snippet = items[0].snippet;
+  const title = snippet.title || '';
+  const description = snippet.description || '';
+
+  const combinedText = `Video title: ${title}\n\nVideo description:\n${description}`;
+
+  return extractRecipeFromText(combinedText);
+}
+
+export async function extractRecipeFromTikTokUrl(url: string): Promise<ExtractedRecipe> {
+  const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+
+  const response = await fetch(oembedUrl);
+  if (!response.ok) throw new Error(`TikTok oEmbed error: ${response.status}`);
+
+  const data = await response.json();
+  const title = data.title || '';
+  const author = data.author_name || '';
+
+  if (!title) throw new Error('Could not retrieve TikTok video information.');
+
+  const combinedText = `TikTok video by ${author}:\n\nCaption: ${title}`;
+
+  return extractRecipeFromText(combinedText);
+}
+
+export async function extractRecipeFromVideoUrl(url: string): Promise<ExtractedRecipe> {
+  const type = detectVideoUrlType(url);
+  if (type === 'youtube') return extractRecipeFromYouTubeUrl(url);
+  if (type === 'tiktok') return extractRecipeFromTikTokUrl(url);
+  return extractRecipeFromText(`Recipe source URL: ${url}\n\nPlease extract any recipe information you can infer from this URL.`);
+}
+
 export async function transcribeAndExtract(audioUri: string): Promise<ExtractedRecipe> {
   const formData = new FormData();
   formData.append('file', {
