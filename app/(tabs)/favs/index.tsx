@@ -330,7 +330,7 @@ export default function FavsScreen() {
               onPress={() => setActiveCuisineFilter('')}
             >
               <Text style={styles.activeFilterChipText}>{activeCuisineFilter}</Text>
-              <X size={12} color="#7B68CC" strokeWidth={2.5} />
+              <X size={12} color={Colors.primary} strokeWidth={2.5} />
             </TouchableOpacity>
           ) : null}
           {activeCookTimeFilter ? (
@@ -339,7 +339,7 @@ export default function FavsScreen() {
               onPress={() => setActiveCookTimeFilter('')}
             >
               <Text style={styles.activeFilterChipText}>{activeCookTimeFilter} min</Text>
-              <X size={12} color="#7B68CC" strokeWidth={2.5} />
+              <X size={12} color={Colors.primary} strokeWidth={2.5} />
             </TouchableOpacity>
           ) : null}
           {activeDietaryFilter ? (
@@ -355,7 +355,7 @@ export default function FavsScreen() {
                : activeDietaryFilter === 'high_protein' ? 'High Protein'
                : activeDietaryFilter}
               </Text>
-              <X size={12} color="#7B68CC" strokeWidth={2.5} />
+              <X size={12} color={Colors.primary} strokeWidth={2.5} />
             </TouchableOpacity>
           ) : null}
         </ScrollView>
@@ -506,7 +506,7 @@ export default function FavsScreen() {
         activeOpacity={0.85}
         testID="fab-add-meal"
       >
-        <Plus size={20} color="#FFFFFF" strokeWidth={2.5} />
+        <Plus size={20} color={Colors.white} strokeWidth={2.5} />
       </TouchableOpacity>
 
       {toastMsg !== null && (
@@ -825,17 +825,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 5,
-    backgroundColor: '#F0EEF9',
+    backgroundColor: Colors.primaryLight,
     borderRadius: 9999,
     borderWidth: 1.5,
-    borderColor: '#7B68CC',
+    borderColor: Colors.primary,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   activeFilterChipText: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#7B68CC',
+    color: Colors.primary,
   },
   fab: {
     position: 'absolute' as const,
@@ -854,7 +854,7 @@ const styles = StyleSheet.create({
   },
   sheetContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
   },
   sheetHeader: {
     flexDirection: 'row' as const,
@@ -863,12 +863,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0EEF9',
+    borderBottomColor: Colors.border,
   },
   sheetTitle: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: '#2C2C2C',
+    color: Colors.text,
   },
   sheetScroll: {
     flex: 1,
@@ -877,7 +877,7 @@ const styles = StyleSheet.create({
   sheetSectionLabel: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: '#8B7EA8',
+    color: Colors.textSecondary,
     letterSpacing: 0.8,
     marginTop: 20,
     marginBottom: 10,
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F0EEF9',
+    borderTopColor: Colors.border,
   },
   sheetClearBtn: {
     paddingVertical: 14,
@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
   },
   sheetApplyBtn: {
     flex: 1,
-    backgroundColor: '#7B68CC',
+    backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center' as const,
@@ -916,6 +916,6 @@ const styles = StyleSheet.create({
   sheetApplyText: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: Colors.white,
   },
 });

@@ -781,7 +781,7 @@ const styles = StyleSheet.create({
   },
   nutritionCard: {
     marginBottom: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
     borderRadius: 14,
     padding: 16,
     ...Shadows.card,

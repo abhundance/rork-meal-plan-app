@@ -712,7 +712,7 @@ export default function FamilySettingsScreen() {
         {isAdmin && (
           <>
             <SectionHeader title="Admin Settings" />
-            <Card style={{ borderWidth: 1, borderColor: '#F5E6C8' }}>
+            <Card style={{ borderWidth: 1, borderColor: Colors.offlineBanner }}>
               <SettingRow
                 icon={<Shield size={18} color={Colors.warning} />}
                 label="Transfer Admin Rights"

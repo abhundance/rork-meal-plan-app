@@ -1110,12 +1110,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    borderColor: Colors.white,
   },
   filterBadgeText: {
     fontSize: 10,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
+    color: Colors.white,
   },
 
   scroll: {
@@ -1223,7 +1223,7 @@ const styles = StyleSheet.create({
   clearFiltersBtnText: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: Colors.white,
   },
   emptyFilterText: {
     fontSize: 14,
@@ -1330,7 +1330,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
     borderRadius: 9999,
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -1420,7 +1420,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.card,
   },
   cuisineChipSelected: {
     borderColor: '#7C3AED',
