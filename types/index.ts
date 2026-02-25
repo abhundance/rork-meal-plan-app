@@ -92,6 +92,7 @@ export interface FavMeal {
   dietary_tags: string[];
   custom_tags: string[];
   meal_type_slot_id?: string;
+  meal_type?: 'breakfast' | 'lunch_dinner' | 'light_bites';
   ingredients: Ingredient[];
   recipe_serving_size: number;
   method_steps: string[];
