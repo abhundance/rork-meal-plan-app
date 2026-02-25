@@ -311,13 +311,34 @@ export default function DiscoverScreen() {
       <AppHeader
         title="Discover"
         rightElement={
-          <TouchableOpacity
-            style={styles.searchBtn}
-            onPress={() => router.push('/discover-search' as Href)}
-            testID="discover-search-btn"
-          >
-            <Search size={20} color={Colors.text} strokeWidth={2} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.searchBtn}
+              onPress={() => router.push('/discover-search' as Href)}
+              testID="discover-search-btn"
+            >
+              <Search size={20} color={Colors.text} strokeWidth={2} />
+            </TouchableOpacity>
+            <View style={{ position: 'relative' }}>
+              <TouchableOpacity
+                style={[styles.filtersHeaderBtn, activeFilterCount > 0 && styles.filtersHeaderBtnActive]}
+                onPress={openFilterSheet}
+                activeOpacity={0.8}
+                testID="filters-btn"
+              >
+                <SlidersHorizontal
+                  size={16}
+                  color={activeFilterCount > 0 ? Colors.white : Colors.text}
+                  strokeWidth={2}
+                />
+              </TouchableOpacity>
+              {activeFilterCount > 0 && (
+                <View style={styles.filterBadge}>
+                  <Text style={styles.filterBadgeText}>{activeFilterCount.toString()}</Text>
+                </View>
+              )}
+            </View>
+          </View>
         }
       />
 
@@ -352,33 +373,6 @@ export default function DiscoverScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        <View style={styles.filtersBtnWrap}>
-          <TouchableOpacity
-            style={[styles.filtersBtn, activeFilterCount > 0 && styles.filtersBtnActive]}
-            onPress={openFilterSheet}
-            activeOpacity={0.8}
-            testID="filters-btn"
-          >
-            <SlidersHorizontal
-              size={13}
-              color={activeFilterCount > 0 ? Colors.white : Colors.text}
-              strokeWidth={2}
-            />
-            <Text
-              style={[
-                styles.filtersBtnText,
-                activeFilterCount > 0 && styles.filtersBtnTextActive,
-              ]}
-            >
-              Filters
-            </Text>
-          </TouchableOpacity>
-          {activeFilterCount > 0 && (
-            <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>{activeFilterCount.toString()}</Text>
-            </View>
-          )}
-        </View>
       </View>
 
       <ScrollView
@@ -982,7 +976,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+  },
+  filtersHeaderBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filtersHeaderBtnActive: {
+    backgroundColor: Colors.primary,
   },
   filterBar: {
     flexDirection: 'row',
@@ -1019,26 +1023,7 @@ const styles = StyleSheet.create({
   mealTypeChipTextActive: {
     color: Colors.white,
   },
-  filtersBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    flexShrink: 0,
-  },
-  filtersBtnWrap: {
-    position: 'relative' as const,
-    marginRight: 12,
-  },
-  filtersBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
+
   filterBadge: {
     position: 'absolute' as const,
     top: -4,
@@ -1057,14 +1042,7 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
-  filtersBtnText: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  filtersBtnTextActive: {
-    color: Colors.white,
-  },
+
   scroll: {
     flex: 1,
   },
