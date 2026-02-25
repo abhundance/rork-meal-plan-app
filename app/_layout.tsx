@@ -37,6 +37,14 @@ function RootLayoutNav() {
         options={{ headerShown: false, presentation: "modal" }}
       />
       <Stack.Screen
+        name="add-meal-entry"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="add-meal-review"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
+      <Stack.Screen
         name="chef-profile"
         options={{ headerShown: false, presentation: "card" }}
       />
