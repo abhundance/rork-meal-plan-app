@@ -478,6 +478,15 @@ export default function FavsScreen() {
         </View>
       </Modal>
 
+      <TouchableOpacity
+        style={[styles.fab, { bottom: insets.bottom + 96 }]}
+        onPress={() => router.push('/add-meal' as Href)}
+        activeOpacity={0.85}
+        testID="fab-add-meal"
+      >
+        <Plus size={20} color="#FFFFFF" strokeWidth={2.5} />
+      </TouchableOpacity>
+
       {toastMsg !== null && (
         <Animated.View
           pointerEvents="none"
@@ -800,6 +809,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600' as const,
     color: '#7B68CC',
+  },
+  fab: {
+    position: 'absolute' as const,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 7,
   },
   sheetContainer: {
     flex: 1,
