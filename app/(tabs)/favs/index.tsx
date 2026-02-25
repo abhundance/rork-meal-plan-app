@@ -57,8 +57,9 @@ export default function FavsScreen() {
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('recently_added');
   const [showSortDropdown, setShowSortDropdown] = useState<boolean>(false);
-  const [activeFilter, setActiveFilter] = useState<string>('');
-  const [activeFilterValue, setActiveFilterValue] = useState<string>('');
+  const [activeMealTypeFilter, setActiveMealTypeFilter] = useState<string>('');
+  const [activeCuisineFilter, setActiveCuisineFilter] = useState<string>('');
+  const [activeCookTimeFilter, setActiveCookTimeFilter] = useState<string>('');
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<FavMeal | null>(null);
 
@@ -75,16 +76,11 @@ export default function FavsScreen() {
     ]).start(() => setToastMsg(null));
   }, [toastAnim]);
 
-  const filters = useMemo(() => {
-    if (!activeFilter || !activeFilterValue) return {};
-    switch (activeFilter) {
-      case 'cuisine': return { cuisine: activeFilterValue };
-      case 'cookingTime': return { cookingTime: activeFilterValue };
-      case 'dietaryTag': return { dietaryTag: activeFilterValue };
-      case 'source': return { source: activeFilterValue };
-      default: return {};
-    }
-  }, [activeFilter, activeFilterValue]);
+  const filters = useMemo(() => ({
+    ...(activeMealTypeFilter ? { mealType: activeMealTypeFilter } : {}),
+    ...(activeCuisineFilter   ? { cuisine: activeCuisineFilter }   : {}),
+    ...(activeCookTimeFilter  ? { cookingTime: activeCookTimeFilter } : {}),
+  }), [activeMealTypeFilter, activeCuisineFilter, activeCookTimeFilter]);
 
   const filteredMeals = useFilteredFavs(search, filters, sortBy);
 
@@ -114,19 +110,10 @@ export default function FavsScreen() {
     setSearchFocused(false);
   }, []);
 
-  const handleFilterPress = useCallback((filterKey: string, value: string) => {
-    if (activeFilter === filterKey && activeFilterValue === value) {
-      setActiveFilter('');
-      setActiveFilterValue('');
-    } else {
-      setActiveFilter(filterKey);
-      setActiveFilterValue(value);
-    }
-  }, [activeFilter, activeFilterValue]);
-
   const clearFilters = useCallback(() => {
-    setActiveFilter('');
-    setActiveFilterValue('');
+    setActiveMealTypeFilter('');
+    setActiveCuisineFilter('');
+    setActiveCookTimeFilter('');
     setSearch('');
   }, []);
 
@@ -169,7 +156,8 @@ export default function FavsScreen() {
     ]);
   }, [removeFav]);
 
-  const hasFilters = !!activeFilter || search.trim().length > 0;
+  const hasFilters = !!activeMealTypeFilter || !!activeCuisineFilter ||
+                     !!activeCookTimeFilter || search.trim().length > 0;
   const currentSortLabel = SORT_OPTIONS.find((o) => o.key === sortBy)?.label ?? 'Sort';
 
   const renderGridItem = useCallback(({ item }: { item: FavMeal }) => (
@@ -264,32 +252,27 @@ export default function FavsScreen() {
         </View>
       )}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
-        {hasFilters && (
-          <FilterPill label="Clear All" active={true} onPress={clearFilters} />
-        )}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterRow}
+        contentContainerStyle={styles.filterContent}
+      >
+        <FilterPill
+          label="All"
+          active={!activeMealTypeFilter}
+          onPress={() => setActiveMealTypeFilter('')}
+        />
         {sortedSlots.map((slot) => (
           <FilterPill
             key={slot.slot_id}
             label={slot.name}
-            active={activeFilter === 'mealType' && activeFilterValue === slot.slot_id}
-            onPress={() => handleFilterPress('mealType', slot.slot_id)}
-          />
-        ))}
-        {(['Italian', 'Mexican', 'Asian', 'Indian', 'Thai'] as string[]).map((c) => (
-          <FilterPill
-            key={c}
-            label={c}
-            active={activeFilter === 'cuisine' && activeFilterValue === c}
-            onPress={() => handleFilterPress('cuisine', c)}
-          />
-        ))}
-        {(['Under 30', '30-60', 'Over 60'] as string[]).map((t) => (
-          <FilterPill
-            key={t}
-            label={`${t} min`}
-            active={activeFilter === 'cookingTime' && activeFilterValue === t}
-            onPress={() => handleFilterPress('cookingTime', t)}
+            active={activeMealTypeFilter === slot.slot_id}
+            onPress={() =>
+              setActiveMealTypeFilter(
+                activeMealTypeFilter === slot.slot_id ? '' : slot.slot_id
+              )
+            }
           />
         ))}
       </ScrollView>
