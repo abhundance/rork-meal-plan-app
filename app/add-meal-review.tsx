@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/colors';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 import { extractRecipeFromImage, extractRecipeFromText } from '@/services/recipeExtraction';
+import { imageStore } from '@/services/imageStore';
 import { useFavs } from '@/providers/FavsProvider';
 import { FavMeal, Ingredient } from '@/types';
 import ServingStepper from '@/components/ServingStepper';
@@ -131,8 +132,14 @@ export default function AddMealReviewScreen() {
       console.log('[Review] Starting extraction, mode:', inputMode);
       try {
         let result;
-        if ((inputMode === 'camera' || inputMode === 'photos') && params.imageBase64) {
-          result = await extractRecipeFromImage(params.imageBase64);
+        if (inputMode === 'camera' || inputMode === 'photos') {
+          const stored = imageStore.get();
+          if (!stored?.base64) {
+            setIsLoading(false);
+            return;
+          }
+          result = await extractRecipeFromImage(stored.base64);
+          imageStore.clear();
         } else if (inputMode === 'text' && params.inputText) {
           result = await extractRecipeFromText(params.inputText);
         } else {

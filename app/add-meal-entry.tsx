@@ -8,12 +8,14 @@ import {
   Pressable,
   Animated,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/colors';
+import { imageStore } from '@/services/imageStore';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 
 type MethodKey = 'camera' | 'photos' | 'voice' | 'manual';
@@ -90,7 +92,11 @@ export default function AddMealEntryScreen() {
       return;
     }
     if (key === 'voice') {
-      router.push({ pathname: '/add-meal-review' as never, params: { inputMode: 'voice' } });
+      Alert.alert(
+        'Voice Coming Soon',
+        "Voice entry is on the way! We'll open the manual form for now.",
+        [{ text: 'OK', onPress: () => router.push('/add-meal' as never) }],
+      );
       return;
     }
 
@@ -103,22 +109,30 @@ export default function AddMealEntryScreen() {
     let result: ImagePicker.ImagePickerResult;
     if (key === 'camera') {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (perm.status !== 'granted') return;
+      if (perm.status !== 'granted') {
+        Alert.alert('Camera Access Needed', 'Please enable camera access in Settings to use this feature.');
+        return;
+      }
       result = await ImagePicker.launchCameraAsync(pickerOptions);
     } else {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (perm.status !== 'granted') return;
+      if (perm.status !== 'granted') {
+        Alert.alert('Photo Access Needed', 'Please enable photo library access in Settings to use this feature.');
+        return;
+      }
       result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
     }
 
     if (result.canceled || !result.assets?.[0]) return;
 
     const asset = result.assets[0];
+    // Store image in memory — never pass base64 through route params
+    imageStore.set(asset.base64 ?? '', asset.uri);
+
     router.push({
       pathname: '/add-meal-review' as never,
       params: {
         inputMode: key,
-        imageBase64: asset.base64 ?? '',
         imageUri: asset.uri,
       },
     });
