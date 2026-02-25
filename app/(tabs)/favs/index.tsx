@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Animated,
   Alert,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
@@ -64,6 +65,15 @@ export default function FavsScreen() {
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<FavMeal | null>(null);
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
+  const [sheetSort, setSheetSort] = useState<string>(sortBy);
+  const [sheetCuisine, setSheetCuisine] = useState<string>(activeCuisineFilter);
+  const [sheetCookTime, setSheetCookTime] = useState<string>(activeCookTimeFilter);
+
+  const uniqueCuisines = useMemo(() => {
+    const seen = new Set<string>();
+    meals.forEach((m) => { if (m.cuisine) seen.add(m.cuisine); });
+    return [...seen].sort();
+  }, [meals]);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastAnim = useRef(new Animated.Value(0)).current;
 
@@ -202,7 +212,12 @@ export default function FavsScreen() {
         rightElement={
           <TouchableOpacity
             style={styles.filterBtn}
-            onPress={() => setShowFilterSheet(true)}
+            onPress={() => {
+              setSheetSort(sortBy);
+              setSheetCuisine(activeCuisineFilter);
+              setSheetCookTime(activeCookTimeFilter);
+              setShowFilterSheet(true);
+            }}
             testID="favs-filter-btn"
           >
             <SlidersHorizontal size={18} color={Colors.text} strokeWidth={2} />
@@ -338,6 +353,91 @@ export default function FavsScreen() {
         getMealForSlot={getMealForSlot}
         mealName={selectedMealForPlan?.name ?? ''}
       />
+
+      <Modal
+        visible={showFilterSheet}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowFilterSheet(false)}
+      >
+        <View style={styles.sheetContainer}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Filters</Text>
+            <TouchableOpacity onPress={() => setShowFilterSheet(false)}>
+              <X size={22} color="#6B7280" strokeWidth={2} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
+            <Text style={styles.sheetSectionLabel}>SORT BY</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.sheetChipRow}>
+              {SORT_OPTIONS.map((opt) => (
+                <FilterPill
+                  key={opt.key}
+                  label={opt.label}
+                  active={sheetSort === opt.key}
+                  onPress={() => setSheetSort(opt.key)}
+                />
+              ))}
+            </ScrollView>
+
+            {uniqueCuisines.length > 0 && (
+              <>
+                <Text style={[styles.sheetSectionLabel, { marginTop: 24 }]}>CUISINE</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.sheetChipRow}>
+                  {uniqueCuisines.map((c) => (
+                    <FilterPill
+                      key={c}
+                      label={c}
+                      active={sheetCuisine === c}
+                      onPress={() => setSheetCuisine(sheetCuisine === c ? '' : c)}
+                    />
+                  ))}
+                </ScrollView>
+              </>
+            )}
+
+            <Text style={[styles.sheetSectionLabel, { marginTop: 24 }]}>COOK TIME</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.sheetChipRow}>
+              {(['Under 30', '30-60', 'Over 60'] as const).map((t) => (
+                <FilterPill
+                  key={t}
+                  label={`${t} min`}
+                  active={sheetCookTime === t}
+                  onPress={() => setSheetCookTime(sheetCookTime === t ? '' : t)}
+                />
+              ))}
+            </ScrollView>
+          </ScrollView>
+
+          <View style={styles.sheetFooter}>
+            <TouchableOpacity
+              style={styles.sheetClearBtn}
+              onPress={() => {
+                setSheetSort('recently_added');
+                setSheetCuisine('');
+                setSheetCookTime('');
+              }}
+            >
+              <Text style={styles.sheetClearText}>Clear All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.sheetApplyBtn}
+              onPress={() => {
+                setSortBy(sheetSort);
+                setActiveCuisineFilter(sheetCuisine);
+                setActiveCookTimeFilter(sheetCookTime);
+                setShowFilterSheet(false);
+              }}
+            >
+              <Text style={styles.sheetApplyText}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {toastMsg !== null && (
         <Animated.View
@@ -681,5 +781,71 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600' as const,
     color: Colors.primary,
+  },
+  sheetContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  sheetHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EEF9',
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#2C2C2C',
+  },
+  sheetScroll: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  sheetSectionLabel: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#8B7EA8',
+    letterSpacing: 0.8,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  sheetChipRow: {
+    flexDirection: 'row' as const,
+    gap: 8,
+    paddingBottom: 4,
+  },
+  sheetFooter: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F0EEF9',
+  },
+  sheetClearBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+  },
+  sheetClearText: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    color: '#6B7280',
+  },
+  sheetApplyBtn: {
+    flex: 1,
+    backgroundColor: '#7B68CC',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center' as const,
+    marginLeft: 12,
+  },
+  sheetApplyText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
 });
