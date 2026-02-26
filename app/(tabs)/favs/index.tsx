@@ -940,6 +940,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     gap: 8,
+    alignItems: 'center',
   },
   gridRow: {
     paddingHorizontal: Spacing.lg,
