@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import VoiceRecordSheet from '@/components/VoiceRecordSheet';
 import { transcribeAndExtract, ExtractedRecipe, detectVideoUrlType, extractRecipeFromVideoUrl } from '@/services/recipeExtraction';
 import {
@@ -23,7 +23,7 @@ import Colors from '@/constants/colors';
 import { imageStore } from '@/services/imageStore';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 
-type MethodKey = 'camera' | 'photos' | 'paste' | 'voice' | 'manual';
+type MethodKey = 'camera' | 'photos' | 'paste' | 'voice' | 'manual' | 'video';
 
 const METHODS: {
   key: MethodKey;
@@ -36,6 +36,7 @@ const METHODS: {
   { key: 'paste',   icon: 'document-text-outline', title: 'Paste Text', subtitle: 'Paste a recipe from anywhere' },
   { key: 'voice',   icon: 'mic',                   title: 'Voice',      subtitle: 'Describe the recipe aloud' },
   { key: 'manual',  icon: 'create-outline',        title: 'Manual',     subtitle: 'Fill in every detail yourself' },
+  { key: 'video',   icon: 'videocam',              title: 'Video Link', subtitle: 'Recipe must be in the video description' },
 ];
 
 function MethodCard({
@@ -74,6 +75,8 @@ function MethodCard({
 export default function AddMealEntryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
+  const urlInputRef = useRef<TextInput>(null);
   const [pastedText, setPastedText] = useState<string>('');
   const [showVoiceSheet, setShowVoiceSheet] = useState(false);
   const [detectedUrlType, setDetectedUrlType] = useState<'youtube' | 'tiktok' | 'other' | null>(null);
@@ -126,6 +129,11 @@ export default function AddMealEntryScreen() {
   };
 
   const handleMethod = async (key: MethodKey) => {
+    if (key === 'video') {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      setTimeout(() => urlInputRef.current?.focus(), 300);
+      return;
+    }
     if (key === 'manual') {
       router.push('/add-meal' as never);
       return;
@@ -225,12 +233,19 @@ export default function AddMealEntryScreen() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.pasteSection}>
           <Text style={styles.sectionLabel}>PASTE A RECIPE URL</Text>
+          <View style={styles.urlDisclaimer}>
+            <Ionicons name="information-circle" size={20} color="#D97706" />
+            <Text style={styles.urlDisclaimerText}>
+              Video links only work if the full recipe and ingredients are listed in the video description or caption.
+            </Text>
+          </View>
           <View style={styles.inputRow}>
             <View style={styles.inputWrapper}>
               <Ionicons
@@ -240,6 +255,7 @@ export default function AddMealEntryScreen() {
                 style={styles.inputIcon}
               />
               <TextInput
+                ref={urlInputRef}
                 style={styles.textInput}
                 placeholder="https://..."
                 placeholderTextColor={Colors.textSecondary}
@@ -448,5 +464,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '400',
     color: Colors.textSecondary,
+  },
+  urlDisclaimer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    padding: 12,
+    marginBottom: 12,
+  },
+  urlDisclaimerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#92400E',
+    lineHeight: 18,
   },
 });
