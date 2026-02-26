@@ -64,6 +64,8 @@ function RootLayoutNav() {
         name="filtered-meals"
         options={{ headerShown: false, presentation: "card" }}
       />
+      <Stack.Screen name="add-meal-video" options={{ headerShown: false }} />
+      <Stack.Screen name="add-meal-paste" options={{ headerShown: false }} />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

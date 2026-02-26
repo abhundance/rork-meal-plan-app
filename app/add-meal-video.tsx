@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -19,56 +19,48 @@ import { BorderRadius, Spacing } from '@/constants/theme';
 import {
   detectVideoUrlType,
   extractRecipeFromVideoUrl,
+  ExtractedRecipe,
 } from '@/services/recipeExtraction';
 
 export default function AddMealVideoScreen() {
   const insets = useSafeAreaInsets();
   const [url, setUrl] = useState<string>('');
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
-  const [detectedType, setDetectedType] = useState<'youtube' | 'tiktok' | 'other' | null>(null);
-  const inputRef = useRef<TextInput>(null);
   const extractScale = useRef(new Animated.Value(1)).current;
-  const hintOpacity = useRef(new Animated.Value(0)).current;
 
-  const hasUrl = url.trim().length > 0;
-
-  useEffect(() => {
-    if (detectedType !== null) {
-      Animated.timing(hintOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-    } else {
-      Animated.timing(hintOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
-    }
-  }, [detectedType, hintOpacity]);
-
-  const handleChangeText = (text: string) => {
-    setUrl(text);
-    if (text.length > 10) {
-      const type = detectVideoUrlType(text);
-      setDetectedType(type);
-    } else {
-      setDetectedType(null);
-    }
-  };
+  const trimmed = url.trim();
+  const hasUrl = trimmed.length > 0;
+  const detectedType = hasUrl ? detectVideoUrlType(trimmed) : null;
 
   const handleExtractPressIn = () => {
-    if (!hasUrl || isExtracting) return;
-    Animated.timing(extractScale, { toValue: 0.96, duration: 150, useNativeDriver: true }).start();
+    if (!hasUrl) return;
+    Animated.timing(extractScale, {
+      toValue: 0.96,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleExtractPressOut = () => {
-    Animated.timing(extractScale, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+    Animated.timing(extractScale, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleExtract = async () => {
     if (!hasUrl || isExtracting) return;
+    console.log('[add-meal-video] Extracting from URL:', trimmed);
     setIsExtracting(true);
     try {
-      const result = await extractRecipeFromVideoUrl(url.trim());
+      const result: ExtractedRecipe = await extractRecipeFromVideoUrl(trimmed);
+      console.log('[add-meal-video] Extraction success:', result.name);
       router.push({
         pathname: '/add-meal-review' as never,
         params: {
           inputMode: 'url',
-          inputUrl: url.trim(),
+          inputUrl: trimmed,
           prefillName: result.name,
           prefillDescription: result.description,
           prefillCuisine: result.cuisine,
@@ -80,11 +72,11 @@ export default function AddMealVideoScreen() {
           prefillServingSize: String(result.recipe_serving_size),
         },
       });
-    } catch (e) {
-      console.error('[AddMealVideo] extraction failed:', e);
+    } catch (err) {
+      console.error('[add-meal-video] Extraction failed:', err);
       Alert.alert(
         'Extraction Failed',
-        'We could not extract a recipe from that URL. Make sure the full recipe and ingredients are in the video description or caption.',
+        'We could not extract a recipe from that link. Make sure the full recipe is in the video description, then try again.',
       );
     } finally {
       setIsExtracting(false);
@@ -123,29 +115,22 @@ export default function AddMealVideoScreen() {
           </Animated.View>
         </View>
 
-        <View style={styles.body}>
+        <View style={styles.content}>
           <View style={styles.disclaimer}>
             <Ionicons name="information-circle" size={20} color="#D97706" />
             <Text style={styles.disclaimerText}>
-              Video links only work if the full recipe and ingredients are listed in the video description or caption.
+              This only works if the full recipe — including ingredients and steps — is listed in the video description or caption. If the recipe is only spoken in the video, use Voice or Paste Text instead.
             </Text>
           </View>
 
-          <View style={styles.inputWrapper}>
-            <Ionicons
-              name="link-outline"
-              size={18}
-              color={Colors.textSecondary}
-              style={styles.inputIcon}
-            />
+          <View style={styles.inputRow}>
+            <Ionicons name="link-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
             <TextInput
-              ref={inputRef}
               style={styles.textInput}
-              placeholder="https://youtube.com/... or https://tiktok.com/..."
-              placeholderTextColor={Colors.textSecondary}
               value={url}
-              onChangeText={handleChangeText}
-              autoFocus
+              onChangeText={setUrl}
+              placeholder="https://youtube.com/... or tiktok.com/..."
+              placeholderTextColor={Colors.textSecondary}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
@@ -153,41 +138,23 @@ export default function AddMealVideoScreen() {
               onSubmitEditing={handleExtract}
               editable={!isExtracting}
             />
-            {hasUrl && !isExtracting && (
-              <Pressable onPress={() => { setUrl(''); setDetectedType(null); }} hitSlop={12}>
-                <Ionicons name="close-circle" size={18} color={Colors.textSecondary} style={styles.clearIcon} />
-              </Pressable>
-            )}
           </View>
 
-          <Animated.View style={[styles.hintRow, { opacity: hintOpacity }]}>
-            {detectedType === 'youtube' && (
-              <>
-                <Ionicons name="logo-youtube" size={16} color="#FF0000" />
-                <Text style={styles.hintText}>YouTube link detected — we'll read the description</Text>
-              </>
-            )}
-            {detectedType === 'tiktok' && (
-              <>
-                <Ionicons name="logo-tiktok" size={16} color={Colors.text} />
-                <Text style={styles.hintText}>TikTok link detected — we'll read the caption</Text>
-              </>
-            )}
-          </Animated.View>
-
-          <View style={styles.supportedRow}>
-            <Text style={styles.supportedLabel}>Works best with</Text>
-            <View style={styles.supportedPills}>
-              <View style={styles.pill}>
-                <Ionicons name="logo-youtube" size={14} color="#FF0000" />
-                <Text style={styles.pillText}>YouTube</Text>
-              </View>
-              <View style={styles.pill}>
-                <Ionicons name="logo-tiktok" size={14} color={Colors.text} />
-                <Text style={styles.pillText}>TikTok</Text>
-              </View>
+          {hasUrl && detectedType !== 'other' && detectedType !== null && (
+            <View style={styles.hintRow}>
+              {detectedType === 'youtube' ? (
+                <>
+                  <Ionicons name="logo-youtube" size={16} color="#FF0000" />
+                  <Text style={styles.hintText}>YouTube link detected</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="logo-tiktok" size={16} color={Colors.text} />
+                  <Text style={styles.hintText}>TikTok link detected</Text>
+                </>
+              )}
             </View>
-          </View>
+          )}
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -227,10 +194,9 @@ const styles = StyleSheet.create({
   extractTextInactive: {
     color: Colors.inactive,
   },
-  body: {
-    flex: 1,
+  content: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingTop: Spacing.lg,
   },
   disclaimer: {
     flexDirection: 'row',
@@ -250,7 +216,7 @@ const styles = StyleSheet.create({
     color: '#92400E',
     lineHeight: 18,
   },
-  inputWrapper: {
+  inputRow: {
     height: 52,
     flexDirection: 'row',
     alignItems: 'center',
@@ -259,7 +225,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: BorderRadius.input,
     paddingLeft: Spacing.lg,
-    paddingRight: Spacing.sm,
+    paddingRight: Spacing.lg,
   },
   inputIcon: {
     marginRight: 8,
@@ -267,55 +233,19 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '400',
     color: Colors.text,
     height: '100%',
-  },
-  clearIcon: {
-    marginLeft: 6,
   },
   hintRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: Spacing.sm,
-    marginLeft: 4,
-    minHeight: 22,
+    marginTop: 8,
+    paddingHorizontal: 4,
   },
   hintText: {
     fontSize: 13,
-    fontWeight: '400',
-    color: Colors.textSecondary,
-  },
-  supportedRow: {
-    marginTop: Spacing.xl,
-  },
-  supportedLabel: {
-    fontSize: 12,
     fontWeight: '500',
     color: Colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: Spacing.sm,
-  },
-  supportedPills: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  pillText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text,
   },
 });
