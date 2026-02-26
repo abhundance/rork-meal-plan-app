@@ -933,8 +933,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   filterRow: {
-    height: 46,
-    marginBottom: 2,
+    marginTop: 8,
   },
   filterContent: {
     paddingHorizontal: 16,

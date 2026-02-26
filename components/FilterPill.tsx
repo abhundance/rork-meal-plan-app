@@ -1,7 +1,6 @@
-import React, { useRef, useCallback } from 'react';
-import { Animated, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React from 'react';
+import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Colors from '@/constants/colors';
-import { BorderRadius } from '@/constants/theme';
 
 interface FilterPillProps {
   label: string;
@@ -11,39 +10,17 @@ interface FilterPillProps {
 }
 
 export default function FilterPill({ label, active, onPress, testID }: FilterPillProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = useCallback(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.93,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 4,
-    }).start();
-  }, [scaleAnim]);
-
-  const handlePressOut = useCallback(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 4,
-    }).start();
-  }, [scaleAnim]);
-
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <TouchableOpacity
-        style={[styles.pill, active && styles.pillActive]}
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.7}
-        testID={testID}
-      >
-        <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
-      </TouchableOpacity>
-    </Animated.View>
+    <TouchableOpacity
+      style={[styles.pill, active && styles.pillActive]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      testID={testID}
+    >
+      <Text style={[styles.label, active && styles.labelActive]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
   );
 }
 
@@ -51,18 +28,18 @@ const styles = StyleSheet.create({
   pill: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: BorderRadius.pill,
-    backgroundColor: Colors.surface,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
   },
   pillActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#7C3AED',
   },
   label: {
     fontSize: 14,
-    fontWeight: '500' as const,
-    color: Colors.text,
+    fontWeight: '500',
+    color: '#111827',
   },
   labelActive: {
-    color: Colors.white,
+    color: '#FFFFFF',
   },
 });
