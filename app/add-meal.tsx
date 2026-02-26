@@ -55,8 +55,8 @@ export default function AddMealScreen() {
   const skeletonAnim = useRef(new Animated.Value(0)).current;
   const [cuisine, setCuisine] = useState<string>(editMeal?.cuisine ?? '');
   const [cookingTimeBand, setCookingTimeBand] = useState<string>(editMeal?.cooking_time_band ?? '');
-  const [prepTime, setPrepTime] = useState<string>(editMeal?.prep_time?.toString() ?? '');
-  const [cookTime, setCookTime] = useState<string>(editMeal?.cook_time?.toString() ?? '');
+  const [prepTime, setPrepTime] = useState<string>(editMeal?.prep_time != null ? String(editMeal.prep_time) : '');
+  const [cookTime, setCookTime] = useState<string>(editMeal?.cook_time != null ? String(editMeal.cook_time) : '');
   const [dietaryTags, setDietaryTags] = useState<string[]>(editMeal?.dietary_tags ?? []);
   const [customTags, setCustomTags] = useState<string[]>(editMeal?.custom_tags ?? []);
   const [newTag, setNewTag] = useState<string>('');
@@ -65,10 +65,16 @@ export default function AddMealScreen() {
   const [chefNotes, setChefNotes] = useState<string>(editMeal?.chef_notes ?? '');
   const [servingSize, setServingSize] = useState<number>(editMeal?.recipe_serving_size ?? familySettings.default_serving_size);
   const [ingredients, setIngredients] = useState<{ name: string; quantity: string; unit: string }[]>(
-    editMeal?.ingredients.map((i) => ({ name: i.name, quantity: i.quantity.toString(), unit: i.unit })) ?? [{ name: '', quantity: '', unit: '' }]
+    editMeal?.ingredients?.length
+      ? editMeal.ingredients.map((i) => ({
+          name: i.name ?? '',
+          quantity: i.quantity != null ? String(i.quantity) : '',
+          unit: i.unit ?? '',
+        }))
+      : [{ name: '', quantity: '', unit: '' }]
   );
   const [methodSteps, setMethodSteps] = useState<string[]>(
-    editMeal?.method_steps.length ? editMeal.method_steps : ['']
+    editMeal?.method_steps?.length ? editMeal.method_steps : ['']
   );
 
   useEffect(() => {
