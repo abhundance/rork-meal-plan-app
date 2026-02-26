@@ -7,6 +7,12 @@ import { DEFAULT_ONBOARDING } from '@/constants/defaults';
 
 const ONBOARDING_KEY = 'onboarding_data';
 
+// ─── DEV BYPASS ─────────────────────────────────────────────────────────────
+// Set to true to skip auth and onboarding during development.
+// Revert to false before enabling authentication for production.
+const DEV_SKIP_ONBOARDING = true;
+// ────────────────────────────────────────────────────────────────────────────
+
 export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
   const queryClient = useQueryClient();
   const [data, setData] = useState<OnboardingData>(DEFAULT_ONBOARDING);
@@ -14,6 +20,9 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
   const query = useQuery({
     queryKey: ['onboarding'],
     queryFn: async (): Promise<OnboardingData> => {
+      if (DEV_SKIP_ONBOARDING) {
+        return { ...DEFAULT_ONBOARDING, completed: true };
+      }
       try {
         const stored = await AsyncStorage.getItem(ONBOARDING_KEY);
         if (stored) {
