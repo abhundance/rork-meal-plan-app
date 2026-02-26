@@ -214,16 +214,17 @@ export default function FavsScreen() {
     if (item._isAddTile) {
       return (
         <TouchableOpacity
-          style={styles.addTile}
+          style={styles.addTileCard}
           onPress={() => router.push('/add-meal-entry' as Href)}
           activeOpacity={0.75}
           testID="add-recipe-tile"
         >
-          <View style={styles.addTileInner}>
-            <View style={styles.addTileCircle}>
-              <Plus size={28} color="#5B21B6" strokeWidth={2} />
-            </View>
-            <Text style={styles.addTileLabel}>Add Recipe</Text>
+          <View style={styles.addTileImageArea}>
+            <Ionicons name="add-circle-outline" size={28} color={Colors.textSecondary} />
+          </View>
+          <View style={styles.addTileBody}>
+            <Text style={styles.addTileName}>Add Recipe</Text>
+            <Text style={styles.addTileSubtitle}>Tap to add yours</Text>
           </View>
         </TouchableOpacity>
       );
@@ -1223,33 +1224,34 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.white,
   },
-  addTile: {
+  addTileCard: {
     flex: 1,
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.card,
     overflow: 'hidden',
     marginBottom: 12,
-    aspectRatio: undefined,
+    borderWidth: 1,
+    borderColor: Colors.border,
     ...Shadows.card,
   },
-  addTileInner: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 28,
-    gap: 10,
-  },
-  addTileCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(91,33,182,0.10)',
+  addTileImageArea: {
+    aspectRatio: 4 / 3,
+    backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addTileLabel: {
+  addTileBody: {
+    padding: 10,
+  },
+  addTileName: {
     fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#5B21B6',
+    fontWeight: '700' as const,
+    color: Colors.textSecondary,
+    marginBottom: 2,
+  },
+  addTileSubtitle: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: Colors.textSecondary,
   },
 });
