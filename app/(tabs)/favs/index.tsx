@@ -932,14 +932,13 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   filterRow: {
-    flexGrow: 0,
+    height: 46,
     marginBottom: 2,
   },
   filterContent: {
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 6,
     gap: 8,
-    alignItems: 'center',
   },
   gridRow: {
     paddingHorizontal: Spacing.lg,
@@ -1115,8 +1114,8 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   cuisineFilterRow: {
-    flexGrow: 0,
-    marginBottom: 10,
+    height: 46,
+    marginBottom: 8,
   },
   activeFilterRow: {
     maxHeight: 40,
