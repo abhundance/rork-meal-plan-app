@@ -584,7 +584,7 @@ export default function FavsScreen() {
 
       {activeSegment === 'my_recipes' && (
         <TouchableOpacity
-          style={[styles.fab, { bottom: insets.bottom + 65 }]}
+          style={[styles.fab, { bottom: insets.bottom + 16 }]}
           onPress={() => router.push('/add-meal-entry' as Href)}
           activeOpacity={0.85}
           testID="fab-add-meal"
