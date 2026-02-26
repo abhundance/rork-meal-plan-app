@@ -262,7 +262,7 @@ export default function AddMealScreen() {
     };
     addFav(newMeal);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.back();
+    router.replace('/(tabs)/favs' as never);
   }, [name, userImageUri, suggestedImages, imageIndex, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, servingSize, description, chefNotes, addFav]);
 
   return (
