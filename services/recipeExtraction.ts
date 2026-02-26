@@ -183,9 +183,13 @@ export async function extractRecipeFromTikTokUrl(url: string): Promise<Extracted
 async function extractRecipeFromWebUrl(url: string): Promise<ExtractedRecipe> {
   let response: Response;
   try {
-    response = await fetch(url, {
+    const isWeb = typeof document !== 'undefined';
+    const fetchUrl = isWeb
+      ? `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+      : url;
+
+    response = await fetch(fetchUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; MealPlanApp/1.0)',
         'Accept': 'text/html,application/xhtml+xml,*/*',
       },
     });

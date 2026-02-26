@@ -76,7 +76,7 @@ export default function AddMealVideoScreen() {
       console.error('[add-meal-video] Extraction failed:', err);
       Alert.alert(
         'Extraction Failed',
-        'We could not extract a recipe from that link. Make sure the full recipe is in the video description, then try again.',
+        'We could not extract a recipe from that link. For video links, make sure the recipe is in the description. For websites, make sure the page contains a full recipe.',
       );
     } finally {
       setIsExtracting(false);
