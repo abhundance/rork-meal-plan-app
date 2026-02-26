@@ -1,6 +1,5 @@
 import React from 'react';
-import { Text, TouchableOpacity, StyleSheet } from 'react-native';
-import Colors from '@/constants/colors';
+import { Pressable, Text, StyleSheet } from 'react-native';
 
 interface FilterPillProps {
   label: string;
@@ -11,33 +10,42 @@ interface FilterPillProps {
 
 export default function FilterPill({ label, active, onPress, testID }: FilterPillProps) {
   return (
-    <TouchableOpacity
-      style={[styles.pill, active && styles.pillActive]}
+    <Pressable
       onPress={onPress}
-      activeOpacity={0.7}
       testID={testID}
+      style={({ pressed }) => [
+        styles.pill,
+        active && styles.pillActive,
+        pressed && { opacity: 0.7 },
+      ]}
     >
-      <Text style={[styles.label, active && styles.labelActive]}>
+      <Text
+        style={[styles.label, active && styles.labelActive]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   pill: {
-    paddingHorizontal: 16,
     height: 36,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    borderRadius: 18,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
+    flexGrow: 0,
   },
   pillActive: {
     backgroundColor: '#7C3AED',
   },
   label: {
     fontSize: 14,
+    lineHeight: 14,
     fontWeight: '500',
     color: '#111827',
   },
