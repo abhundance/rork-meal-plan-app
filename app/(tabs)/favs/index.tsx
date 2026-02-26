@@ -934,6 +934,7 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     marginTop: 8,
+    minHeight: 44,
   },
   filterContent: {
     paddingHorizontal: 16,
@@ -1114,7 +1115,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   cuisineFilterRow: {
-    height: 46,
+    minHeight: 44,
     marginBottom: 8,
   },
   activeFilterRow: {
