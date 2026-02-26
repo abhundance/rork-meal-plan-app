@@ -180,11 +180,56 @@ export async function extractRecipeFromTikTokUrl(url: string): Promise<Extracted
   return extractRecipeFromText(combinedText);
 }
 
+async function extractRecipeFromWebUrl(url: string): Promise<ExtractedRecipe> {
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; MealPlanApp/1.0)',
+        'Accept': 'text/html,application/xhtml+xml,*/*',
+      },
+    });
+  } catch (e) {
+    console.error('[recipeExtraction] Fetch error:', e);
+    throw new Error('Could not fetch the webpage. Check the URL and try again.');
+  }
+
+  if (!response.ok) {
+    throw new Error(`Could not fetch the webpage (HTTP ${response.status}).`);
+  }
+
+  const html = await response.text();
+
+  const textContent = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+    .replace(/<header[\s\S]*?<\/header>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#\d+;/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 8000);
+
+  if (textContent.length < 50) {
+    throw new Error('The webpage did not contain enough text to extract a recipe.');
+  }
+
+  return extractRecipeFromText(
+    `Recipe from webpage (${url}):\n\n${textContent}`
+  );
+}
+
 export async function extractRecipeFromVideoUrl(url: string): Promise<ExtractedRecipe> {
   const type = detectVideoUrlType(url);
   if (type === 'youtube') return extractRecipeFromYouTubeUrl(url);
   if (type === 'tiktok') return extractRecipeFromTikTokUrl(url);
-  return extractRecipeFromText(`Recipe source URL: ${url}\n\nPlease extract any recipe information you can infer from this URL.`);
+  return extractRecipeFromWebUrl(url);
 }
 
 export async function transcribeAndExtract(audioUri: string): Promise<ExtractedRecipe> {

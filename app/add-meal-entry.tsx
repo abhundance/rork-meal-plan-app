@@ -117,7 +117,7 @@ export default function AddMealEntryScreen() {
       });
     } catch (err) {
       console.error('[AddMealEntry] extract error:', err);
-      Alert.alert('Extraction Failed', 'We could not extract a recipe from that link. Make sure the full recipe is in the video description, then try again.');
+      Alert.alert('Extraction Failed', 'We could not extract a recipe from that URL. Make sure the page contains a full recipe with ingredients and steps, then try again.');
     } finally {
       setIsExtracting(false);
     }
