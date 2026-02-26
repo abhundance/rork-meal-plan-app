@@ -387,53 +387,6 @@ export default function FavsScreen() {
         </View>
       )}
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterRow}
-        contentContainerStyle={styles.filterContent}
-      >
-        <FilterPill
-          label="All"
-          active={!activeMealTypeFilter}
-          onPress={() => setActiveMealTypeFilter('')}
-        />
-        {sortedSlots.map((slot) => (
-          <FilterPill
-            key={slot.slot_id}
-            label={slot.name}
-            active={activeMealTypeFilter === slot.slot_id}
-            onPress={() =>
-              setActiveMealTypeFilter(
-                activeMealTypeFilter === slot.slot_id ? '' : slot.slot_id
-              )
-            }
-          />
-        ))}
-      </ScrollView>
-
-      {uniqueCuisines.length > 1 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.cuisineFilterRow}
-          contentContainerStyle={styles.filterContent}
-        >
-          {uniqueCuisines.map((c) => (
-            <FilterPill
-              key={c}
-              label={c}
-              active={activeCuisineFilter === c}
-              onPress={() => {
-                const next = activeCuisineFilter === c ? '' : c;
-                setActiveCuisineFilter(next);
-                setSheetCuisine(next);
-              }}
-            />
-          ))}
-        </ScrollView>
-      )}
-
       {(activeCuisineFilter.length > 0 || activeCookTimeFilter.length > 0 || activeDietaryFilter.length > 0) && (
         <ScrollView
           horizontal
