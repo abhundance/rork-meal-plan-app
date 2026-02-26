@@ -1046,7 +1046,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 40,
-    paddingTop: 60,
+    paddingTop: 20,
   },
   segmentEmptyTitle: {
     fontSize: 20,
