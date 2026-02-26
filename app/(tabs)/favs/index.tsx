@@ -407,7 +407,7 @@ export default function FavsScreen() {
         </ScrollView>
       )}
 
-      {(activeCuisineFilter || activeCookTimeFilter || activeDietaryFilter) && (
+      {(activeCuisineFilter.length > 0 || activeCookTimeFilter.length > 0 || activeDietaryFilter.length > 0) && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
