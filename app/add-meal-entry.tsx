@@ -77,18 +77,28 @@ export default function AddMealEntryScreen() {
   const router = useRouter();
   const [showVoiceSheet, setShowVoiceSheet] = useState(false);
   const [pastedText, setPastedText] = useState<string>('');
-  const [detectedUrlType, setDetectedUrlType] = useState<'youtube' | 'tiktok' | 'other' | null>(null);
+  const [urlFeedback, setUrlFeedback] = useState<{ type: string; icon: string; iconColor: string; message: string } | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
-  const hintOpacity = useRef(new Animated.Value(0)).current;
   const extractScale = useRef(new Animated.Value(1)).current;
 
-  useEffect(() => {
-    Animated.timing(hintOpacity, {
-      toValue: detectedUrlType ? 1 : 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }, [detectedUrlType]);
+  const detectUrl = (text: string) => {
+    if (text.length < 10) { setUrlFeedback(null); return; }
+    const lower = text.toLowerCase();
+    if (lower.includes('youtube.com/watch') || lower.includes('youtu.be/')) {
+      setUrlFeedback({ type: 'youtube', icon: 'logo-youtube', iconColor: '#FF0000', message: 'YouTube video — we\'ll extract from the description' });
+    } else if (lower.includes('tiktok.com/')) {
+      setUrlFeedback({ type: 'tiktok', icon: 'logo-tiktok', iconColor: '#111827', message: 'TikTok video — we\'ll extract from the caption' });
+    } else if (lower.startsWith('http://') || lower.startsWith('https://')) {
+      try {
+        const hostname = new URL(text).hostname.replace('www.', '');
+        setUrlFeedback({ type: 'web', icon: 'globe-outline', iconColor: '#7C3AED', message: 'We\'ll extract the recipe from ' + hostname });
+      } catch {
+        setUrlFeedback({ type: 'web', icon: 'globe-outline', iconColor: '#7C3AED', message: 'We\'ll extract the recipe from this page' });
+      }
+    } else {
+      setUrlFeedback(null);
+    }
+  };
 
   const handleExtract = async () => {
     if (!pastedText.trim() || isExtracting) return;
@@ -117,7 +127,13 @@ export default function AddMealEntryScreen() {
       });
     } catch (err) {
       console.error('[AddMealEntry] extract error:', err);
-      Alert.alert('Extraction Failed', 'We could not extract a recipe from that URL. Make sure the page contains a full recipe with ingredients and steps, then try again.');
+      const isVideo = urlFeedback?.type === 'youtube' || urlFeedback?.type === 'tiktok';
+      Alert.alert(
+        'Extraction Failed',
+        isVideo
+          ? 'Could not extract a recipe from this video. Make sure the full recipe is in the video description or caption.'
+          : 'Could not extract a recipe from this page. Make sure it contains a full recipe with ingredients and steps, or try copying the recipe text and using Paste Text instead.'
+      );
     } finally {
       setIsExtracting(false);
     }
@@ -231,18 +247,18 @@ export default function AddMealEntryScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.pasteSection}>
-          <Text style={styles.sectionLabel}>PASTE A RECIPE URL</Text>
+          <Text style={styles.sectionLabel}>PASTE A LINK</Text>
           <View style={styles.inputRow}>
             <View style={styles.inputWrapper}>
               <Ionicons name="link-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.textInput}
-                placeholder="https://youtube.com/... or tiktok.com/..."
+                placeholder="Recipe blog, website, YouTube, TikTok..."
                 placeholderTextColor={Colors.textSecondary}
                 value={pastedText}
-                onChangeText={(t) => {
-                  setPastedText(t);
-                  setDetectedUrlType(t.trim() ? detectVideoUrlType(t.trim()) : null);
+                onChangeText={(text) => {
+                  setPastedText(text);
+                  detectUrl(text);
                 }}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -261,17 +277,11 @@ export default function AddMealEntryScreen() {
                 </Animated.View>
               )}
             </View>
-            {detectedUrlType && detectedUrlType !== 'other' && (
-              <Animated.View style={[styles.urlHintRow, { opacity: hintOpacity }]}>
-                <Ionicons
-                  name={detectedUrlType === 'youtube' ? 'logo-youtube' : 'logo-tiktok'}
-                  size={16}
-                  color={detectedUrlType === 'youtube' ? '#FF0000' : Colors.text}
-                />
-                <Text style={styles.urlHintText}>
-                  {detectedUrlType === 'youtube' ? 'YouTube link detected' : 'TikTok link detected'}
-                </Text>
-              </Animated.View>
+            {urlFeedback && (
+              <View style={styles.urlHintRow}>
+                <Ionicons name={urlFeedback.icon as any} size={16} color={urlFeedback.iconColor} />
+                <Text style={styles.urlHintText}>{urlFeedback.message}</Text>
+              </View>
             )}
           </View>
         </View>
