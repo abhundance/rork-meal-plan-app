@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import VoiceRecordSheet from '@/components/VoiceRecordSheet';
-import { transcribeAndExtract, ExtractedRecipe } from '@/services/recipeExtraction';
+import { transcribeAndExtract, ExtractedRecipe, detectVideoUrlType, extractRecipeFromVideoUrl } from '@/services/recipeExtraction';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   Alert,
   Linking,
   Platform,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -74,6 +76,52 @@ export default function AddMealEntryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [showVoiceSheet, setShowVoiceSheet] = useState(false);
+  const [pastedText, setPastedText] = useState<string>('');
+  const [detectedUrlType, setDetectedUrlType] = useState<'youtube' | 'tiktok' | 'other' | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const hintOpacity = useRef(new Animated.Value(0)).current;
+  const extractScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(hintOpacity, {
+      toValue: detectedUrlType ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [detectedUrlType]);
+
+  const handleExtract = async () => {
+    if (!pastedText.trim() || isExtracting) return;
+    setIsExtracting(true);
+    Animated.sequence([
+      Animated.timing(extractScale, { toValue: 0.95, duration: 80, useNativeDriver: true }),
+      Animated.timing(extractScale, { toValue: 1, duration: 80, useNativeDriver: true }),
+    ]).start();
+    try {
+      const result = await extractRecipeFromVideoUrl(pastedText.trim());
+      router.push({
+        pathname: '/add-meal-review' as never,
+        params: {
+          inputMode: 'url',
+          inputUrl: pastedText.trim(),
+          prefillName: result.name,
+          prefillDescription: result.description,
+          prefillCuisine: result.cuisine,
+          prefillMealType: result.meal_type,
+          prefillCookingTimeBand: result.cooking_time_band,
+          prefillDietaryTags: JSON.stringify(result.dietary_tags),
+          prefillIngredients: JSON.stringify(result.ingredients),
+          prefillMethodSteps: JSON.stringify(result.method_steps),
+          prefillServingSize: String(result.recipe_serving_size),
+        },
+      });
+    } catch (err) {
+      console.error('[AddMealEntry] extract error:', err);
+      Alert.alert('Extraction Failed', 'We could not extract a recipe from that link. Make sure the full recipe is in the video description, then try again.');
+    } finally {
+      setIsExtracting(false);
+    }
+  };
 
   const handleMethod = async (key: MethodKey) => {
     if (key === 'video') {
@@ -182,6 +230,52 @@ export default function AddMealEntryScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={styles.pasteSection}>
+          <Text style={styles.sectionLabel}>PASTE A RECIPE URL</Text>
+          <View style={styles.inputRow}>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="link-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.textInput}
+                placeholder="https://youtube.com/... or tiktok.com/..."
+                placeholderTextColor={Colors.textSecondary}
+                value={pastedText}
+                onChangeText={(t) => {
+                  setPastedText(t);
+                  setDetectedUrlType(t.trim() ? detectVideoUrlType(t.trim()) : null);
+                }}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                returnKeyType="go"
+                onSubmitEditing={handleExtract}
+              />
+              {pastedText.trim().length > 0 && (
+                <Animated.View style={[styles.extractBtnWrapper, { transform: [{ scale: extractScale }] }]}>
+                  <TouchableOpacity style={styles.extractBtn} onPress={handleExtract} disabled={isExtracting}>
+                    {isExtracting
+                      ? <ActivityIndicator size="small" color="#fff" />
+                      : <Text style={styles.extractBtnText}>Extract →</Text>
+                    }
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
+            </View>
+            {detectedUrlType && detectedUrlType !== 'other' && (
+              <Animated.View style={[styles.urlHintRow, { opacity: hintOpacity }]}>
+                <Ionicons
+                  name={detectedUrlType === 'youtube' ? 'logo-youtube' : 'logo-tiktok'}
+                  size={16}
+                  color={detectedUrlType === 'youtube' ? '#FF0000' : Colors.text}
+                />
+                <Text style={styles.urlHintText}>
+                  {detectedUrlType === 'youtube' ? 'YouTube link detected' : 'TikTok link detected'}
+                </Text>
+              </Animated.View>
+            )}
+          </View>
+        </View>
+
         <View style={styles.methodSection}>
           <Text style={styles.sectionLabel}>CHOOSE A METHOD</Text>
           <View style={styles.methodGrid}>
@@ -240,8 +334,64 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: Spacing.sm,
   },
-  methodSection: {
+  pasteSection: {
     marginTop: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+  },
+  inputRow: {
+    marginTop: Spacing.sm,
+  },
+  inputWrapper: {
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.input,
+    paddingLeft: Spacing.lg,
+    paddingRight: Spacing.sm,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.text,
+    height: '100%' as unknown as number,
+  },
+  extractBtnWrapper: {
+    marginLeft: 6,
+  },
+  extractBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    minWidth: 90,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  extractBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  urlHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  urlHintText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  methodSection: {
+    marginTop: Spacing.lg,
     paddingHorizontal: Spacing.lg,
   },
   methodGrid: {
