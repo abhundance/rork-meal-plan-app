@@ -790,8 +790,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 3,
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-    marginBottom: 12,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   segmentBtn: {
     flex: 1,
@@ -860,8 +860,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.button,
     borderWidth: 1,
     borderColor: Colors.surface,
-    marginHorizontal: 16,
-    marginTop: 8,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
     paddingHorizontal: 12,
     gap: 8,
   },
@@ -906,7 +906,7 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     height: 52,
-    marginTop: 10,
+    marginTop: Spacing.sm,
   },
   filterContent: {
     paddingHorizontal: 16,
@@ -914,11 +914,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gridRow: {
-    paddingHorizontal: 12,
-    gap: 10,
+    paddingHorizontal: Spacing.lg,
+    gap: 12,
   },
   gridContent: {
-    paddingTop: 12,
+    paddingTop: Spacing.sm,
     paddingBottom: 100,
   },
   gridCard: {
@@ -926,7 +926,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.card,
     overflow: 'hidden',
-    marginBottom: 10,
+    marginBottom: 12,
     ...Shadows.card,
   },
   gridImageWrap: {
