@@ -27,9 +27,11 @@ export default function FilterPill({ label, active, onPress, testID }: FilterPil
 const styles = StyleSheet.create({
   pill: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    height: 36,
     borderRadius: 20,
     backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   pillActive: {
     backgroundColor: '#7C3AED',
