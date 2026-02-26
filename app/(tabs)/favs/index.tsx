@@ -106,6 +106,13 @@ export default function FavsScreen() {
     return allFilteredMeals.filter(m => m.source !== 'family_created');
   }, [allFilteredMeals, activeSegment]);
 
+  const gridData = useMemo(() => {
+    if (activeSegment === 'my_recipes') {
+      return [{ id: '__add_tile__', _isAddTile: true } as any, ...filteredMeals];
+    }
+    return filteredMeals;
+  }, [activeSegment, filteredMeals]);
+
   const sortedSlots = useMemo(
     () => [...familySettings.meal_slots].sort((a, b) => a.order - b.order),
     [familySettings.meal_slots]
@@ -203,15 +210,34 @@ export default function FavsScreen() {
                      !!activeCookTimeFilter || !!activeDietaryFilter ||
                      search.trim().length > 0;
 
-  const renderMyRecipeItem = useCallback(({ item }: { item: FavMeal }) => (
-    <MyRecipeGridCard
-      meal={item}
-      onPress={() => handleMealPress(item)}
-      onAddToPlan={() => handleAddToPlan(item)}
-      onDelete={() => handleDeleteMyRecipe(item)}
-      onLongPress={() => handleDeleteMyRecipe(item)}
-    />
-  ), [handleMealPress, handleAddToPlan, handleDeleteMyRecipe]);
+  const renderMyRecipeItem = useCallback(({ item }: { item: any }) => {
+    if (item._isAddTile) {
+      return (
+        <TouchableOpacity
+          style={styles.addTile}
+          onPress={() => router.push('/add-meal-entry' as Href)}
+          activeOpacity={0.75}
+          testID="add-recipe-tile"
+        >
+          <View style={styles.addTileInner}>
+            <View style={styles.addTileCircle}>
+              <Plus size={28} color="#5B21B6" strokeWidth={2} />
+            </View>
+            <Text style={styles.addTileLabel}>Add Recipe</Text>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+    return (
+      <MyRecipeGridCard
+        meal={item}
+        onPress={() => handleMealPress(item)}
+        onAddToPlan={() => handleAddToPlan(item)}
+        onDelete={() => handleDeleteMyRecipe(item)}
+        onLongPress={() => handleDeleteMyRecipe(item)}
+      />
+    );
+  }, [handleMealPress, handleAddToPlan, handleDeleteMyRecipe]);
 
   const renderSavedItem = useCallback(({ item }: { item: FavMeal }) => (
     <SavedMealGridCard
@@ -452,7 +478,7 @@ export default function FavsScreen() {
       )}
 
       <FlatList
-        data={filteredMeals}
+        data={gridData}
         renderItem={activeSegment === 'my_recipes' ? renderMyRecipeItem : renderSavedItem}
         keyExtractor={(item) => item.id}
         numColumns={2}
@@ -1199,5 +1225,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600' as const,
     color: Colors.white,
+  },
+  addTile: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.card,
+    overflow: 'hidden',
+    marginBottom: 12,
+    aspectRatio: undefined,
+    ...Shadows.card,
+  },
+  addTileInner: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 28,
+    gap: 10,
+  },
+  addTileCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(91,33,182,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addTileLabel: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#5B21B6',
   },
 });
