@@ -790,8 +790,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 3,
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
+    marginTop: 16,
+    marginBottom: 12,
   },
   segmentBtn: {
     flex: 1,
@@ -861,7 +861,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.surface,
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
+    marginTop: 0,
+    marginBottom: 12,
     paddingHorizontal: 12,
     gap: 8,
   },
@@ -906,7 +907,8 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     height: 52,
-    marginTop: Spacing.sm,
+    marginTop: 0,
+    marginBottom: 8,
   },
   filterContent: {
     paddingHorizontal: 16,
@@ -918,7 +920,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   gridContent: {
-    paddingTop: Spacing.sm,
+    paddingTop: 0,
     paddingBottom: 100,
   },
   gridCard: {
@@ -1088,8 +1090,8 @@ const styles = StyleSheet.create({
   },
   cuisineFilterRow: {
     height: 52,
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: 0,
+    marginBottom: 12,
   },
   activeFilterRow: {
     maxHeight: 40,
