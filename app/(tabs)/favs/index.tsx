@@ -675,7 +675,7 @@ const MyRecipeGridCard = React.memo(function MyRecipeGridCard({
           )}
           <TouchableOpacity
             style={styles.cardEditBtn}
-            onPress={() => router.push(`/add-meal?editId=${meal.id}` as Href)}
+            onPress={() => router.push({ pathname: '/add-meal', params: { editId: meal.id } })}
             hitSlop={8}
           >
             <Ionicons name="create-outline" size={16} color={Colors.primary} />
