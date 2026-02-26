@@ -906,12 +906,12 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   filterRow: {
-    height: 52,
     marginTop: 0,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   filterContent: {
     paddingHorizontal: 16,
+    paddingVertical: 4,
     gap: 8,
     alignItems: 'center',
   },
@@ -1089,7 +1089,6 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   cuisineFilterRow: {
-    height: 52,
     marginTop: 0,
     marginBottom: 12,
   },
