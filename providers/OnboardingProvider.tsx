@@ -15,10 +15,15 @@ const DEV_SKIP_ONBOARDING = true;
 
 export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
   const queryClient = useQueryClient();
-  const [data, setData] = useState<OnboardingData>(DEFAULT_ONBOARDING);
+  const [data, setData] = useState<OnboardingData>(
+    DEV_SKIP_ONBOARDING ? { ...DEFAULT_ONBOARDING, completed: true } : DEFAULT_ONBOARDING
+  );
 
   const query = useQuery({
     queryKey: ['onboarding'],
+    initialData: DEV_SKIP_ONBOARDING
+      ? { ...DEFAULT_ONBOARDING, completed: true }
+      : undefined,
     queryFn: async (): Promise<OnboardingData> => {
       if (DEV_SKIP_ONBOARDING) {
         return { ...DEFAULT_ONBOARDING, completed: true };
