@@ -500,6 +500,10 @@ export default function MealPlanScreen() {
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
         onSelectMeal={handleSelectMeal}
+        onCreateNewRecipe={() => {
+          setPickerVisible(false);
+          router.push('/add-meal' as Href);
+        }}
         date={pickerDate}
         slotId={pickerSlotId}
         slotName={pickerSlotName}

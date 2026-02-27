@@ -11,7 +11,8 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { X, Search, Plus, Utensils, Heart, Star } from 'lucide-react-native';
+import { X, Search, Utensils, Heart, Star } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -25,6 +26,7 @@ interface MealPickerSheetProps {
   visible: boolean;
   onClose: () => void;
   onSelectMeal: (meal: PlannedMeal) => void;
+  onCreateNewRecipe: () => void;
   date: string;
   slotId: string;
   slotName: string;
@@ -39,14 +41,15 @@ interface PickerItem {
   recipe_serving_size: number;
   source: 'fav' | 'discover';
   badge?: string;
-  meta: string;
+  cookTimeMinutes?: number;
+  calories?: number;
 }
 
 type ListRow =
   | { _type: 'section'; title: string; count: number }
   | { _type: 'meal'; item: PickerItem }
   | { _type: 'section_empty'; message: string }
-  | { _type: 'manual' };
+  | { _type: 'actions' };
 
 function getSlotCategory(slotName: string): 'breakfast' | 'lunch_dinner' | 'light_bites' {
   const lower = slotName.toLowerCase();
@@ -89,7 +92,8 @@ function favToPickerItem(fav: FavMeal): PickerItem {
     recipe_serving_size: fav.recipe_serving_size,
     source: 'fav',
     badge: fav.cuisine,
-    meta: `${fav.ingredients.length} ingredients · Serves ${fav.recipe_serving_size}`,
+    cookTimeMinutes: fav.cook_time,
+    calories: undefined,
   };
 }
 
@@ -102,7 +106,8 @@ function discoverToPickerItem(d: DiscoverMeal): PickerItem {
     recipe_serving_size: d.recipe_serving_size,
     source: 'discover',
     badge: d.cuisine,
-    meta: `${d.cook_time} min · Serves ${d.recipe_serving_size}`,
+    cookTimeMinutes: d.cook_time,
+    calories: d.nutrition?.calories,
   };
 }
 
@@ -110,6 +115,7 @@ export default function MealPickerSheet({
   visible,
   onClose,
   onSelectMeal,
+  onCreateNewRecipe,
   date,
   slotId,
   slotName,
@@ -129,6 +135,14 @@ export default function MealPickerSheet({
       case 'light_bites': return 'Light Bites';
     }
   }, [slotCategory]);
+
+  const formattedDate = useMemo(() => {
+    return new Date(date + 'T00:00:00').toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+    });
+  }, [date]);
 
   const { filteredFavs, filteredDiscover } = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -161,7 +175,7 @@ export default function MealPickerSheet({
   const listData = useMemo((): ListRow[] => {
     const rows: ListRow[] = [];
 
-    rows.push({ _type: 'manual' });
+    rows.push({ _type: 'actions' });
 
     rows.push({ _type: 'section', title: 'Your Favourites', count: filteredFavs.length });
     if (filteredFavs.length === 0) {
@@ -227,18 +241,40 @@ export default function MealPickerSheet({
 
   const renderRow = useCallback(
     ({ item }: { item: ListRow }) => {
-      if (item._type === 'manual') {
+      if (item._type === 'actions') {
         return (
-          <TouchableOpacity
-            style={styles.manualAddBtn}
-            onPress={() => setMode('manual')}
-            testID="manual-add-btn"
-          >
-            <View style={styles.manualAddIcon}>
-              <Plus size={16} color={Colors.primary} strokeWidth={2.5} />
-            </View>
-            <Text style={styles.manualAddText}>Add a custom meal</Text>
-          </TouchableOpacity>
+          <View testID="action-buttons">
+            <TouchableOpacity
+              style={styles.createRecipeBtn}
+              onPress={onCreateNewRecipe}
+              testID="create-recipe-btn"
+              activeOpacity={0.82}
+            >
+              <View style={styles.createRecipeIconCircle}>
+                <Ionicons name="sparkles-outline" size={18} color="#fff" />
+              </View>
+              <View style={styles.actionBtnTextCol}>
+                <Text style={styles.createRecipeTitle}>Create New Recipe</Text>
+                <Text style={styles.createRecipeSubtitle}>Camera, paste, YouTube, voice & more</Text>
+              </View>
+              <Text style={styles.actionBtnArrow}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.addWithoutRecipeBtn}
+              onPress={() => setMode('manual')}
+              testID="add-without-recipe-btn"
+              activeOpacity={0.82}
+            >
+              <View style={styles.addWithoutRecipeIconBox}>
+                <Ionicons name="bookmark-outline" size={14} color="#8B7EA8" />
+              </View>
+              <View style={styles.actionBtnTextCol}>
+                <Text style={styles.addWithoutRecipeTitle}>Add Without Recipe</Text>
+                <Text style={styles.addWithoutRecipeSubtitle}>Just a name — add the recipe later</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         );
       }
 
@@ -253,9 +289,14 @@ export default function MealPickerSheet({
               )}
               <Text style={styles.sectionTitle}>{item.title}</Text>
             </View>
-            {!search.trim() && (
-              <Text style={styles.sectionPill}>{slotCategoryLabel}</Text>
-            )}
+            <View style={styles.sectionRightRow}>
+              <View style={styles.countPill}>
+                <Text style={styles.countPillText}>{item.count}</Text>
+              </View>
+              {!search.trim() && (
+                <Text style={styles.sectionPill}>{slotCategoryLabel}</Text>
+              )}
+            </View>
           </View>
         );
       }
@@ -270,11 +311,11 @@ export default function MealPickerSheet({
 
       return <PickerMealRow item={item.item} onPress={() => handleSelectItem(item.item)} />;
     },
-    [handleSelectItem, slotCategoryLabel, search]
+    [handleSelectItem, slotCategoryLabel, search, onCreateNewRecipe]
   );
 
   const keyExtractor = useCallback((item: ListRow, idx: number) => {
-    if (item._type === 'manual') return 'manual';
+    if (item._type === 'actions') return 'actions';
     if (item._type === 'section') return `section_${item.title}`;
     if (item._type === 'section_empty') return `empty_${idx}`;
     return item.item.id;
@@ -295,7 +336,7 @@ export default function MealPickerSheet({
         <View style={styles.header}>
           <View style={styles.headerTitleWrap}>
             <Text style={styles.headerTitle}>Add to {slotName}</Text>
-            <Text style={styles.headerSubtitle}>{date}</Text>
+            <Text style={styles.headerSubtitle}>{formattedDate}</Text>
           </View>
           <TouchableOpacity onPress={resetAndClose} style={styles.closeBtn}>
             <X size={20} color={Colors.text} strokeWidth={2} />
@@ -336,6 +377,7 @@ export default function MealPickerSheet({
             <View style={styles.manualIconWrap}>
               <Utensils size={32} color={Colors.primary} strokeWidth={1.5} />
             </View>
+            <Text style={styles.manualFormHeading}>Add Without Recipe</Text>
             <Text style={styles.manualLabel}>Meal name</Text>
             <TextInput
               style={styles.manualInput}
@@ -375,6 +417,10 @@ interface PickerMealRowProps {
 const PickerMealRow = React.memo(function PickerMealRow({ item, onPress }: PickerMealRowProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  const hasTime = item.cookTimeMinutes != null;
+  const hasCalories = item.calories != null;
+  const showMetaRow = hasTime || hasCalories;
+
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
       <TouchableOpacity
@@ -402,7 +448,24 @@ const PickerMealRow = React.memo(function PickerMealRow({ item, onPress }: Picke
               <Heart size={12} color={Colors.primary} strokeWidth={2.5} fill={Colors.primary} />
             )}
           </View>
-          <Text style={styles.mealItemMeta}>{item.meta}</Text>
+          {showMetaRow && (
+            <View style={styles.metaRow}>
+              {hasTime && (
+                <>
+                  <Ionicons name="time-outline" size={11} color="#8B7EA8" />
+                  <Text style={styles.metaTime}>{item.cookTimeMinutes} min</Text>
+                </>
+              )}
+              {hasTime && (
+                <Text style={styles.metaDot}>·</Text>
+              )}
+              {hasCalories ? (
+                <Text style={styles.metaCalories}>~{item.calories} cal</Text>
+              ) : (
+                <Text style={styles.metaCalUnavailable}>cal unavailable</Text>
+              )}
+            </View>
+          )}
           {item.badge && (
             <View style={[styles.badge, item.source === 'fav' && styles.badgeFav]}>
               <Text style={[styles.badgeText, item.source === 'fav' && styles.badgeTextFav]}>
@@ -483,6 +546,76 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 48,
   },
+  createRecipeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F0EEF9',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#D4CFEE',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginHorizontal: 20,
+    marginTop: 8,
+  },
+  createRecipeIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#7B68CC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnTextCol: {
+    flex: 1,
+  },
+  createRecipeTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#7B68CC',
+  },
+  createRecipeSubtitle: {
+    fontSize: 11,
+    color: '#8B7EA8',
+    marginTop: 1,
+  },
+  actionBtnArrow: {
+    fontSize: 18,
+    color: '#7B68CC',
+  },
+  addWithoutRecipeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.white,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#F0EEF9',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  addWithoutRecipeIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addWithoutRecipeTitle: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#8B7EA8',
+  },
+  addWithoutRecipeSubtitle: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 1,
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -495,6 +628,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  sectionRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  countPill: {
+    backgroundColor: '#F0EEF9',
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  countPillText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#7B68CC',
   },
   sectionTitle: {
     fontSize: 13,
@@ -521,29 +670,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     textAlign: 'center' as const,
-  },
-  manualAddBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    gap: 10,
-    marginTop: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-  },
-  manualAddIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  manualAddText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.primary,
   },
   mealItem: {
     flexDirection: 'row',
@@ -581,10 +707,28 @@ const styles = StyleSheet.create({
     color: Colors.text,
     lineHeight: 19,
   },
-  mealItemMeta: {
-    fontSize: 12,
-    color: Colors.textSecondary,
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     marginBottom: 5,
+  },
+  metaTime: {
+    fontSize: 11,
+    color: '#8B7EA8',
+  },
+  metaDot: {
+    fontSize: 10,
+    color: '#D1D5DB',
+  },
+  metaCalories: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#F97316',
+  },
+  metaCalUnavailable: {
+    fontSize: 11,
+    color: '#D1D5DB',
   },
   badge: {
     alignSelf: 'flex-start',
@@ -617,7 +761,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  manualFormHeading: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    marginBottom: 20,
   },
   manualLabel: {
     fontSize: 14,
