@@ -107,11 +107,11 @@ export default function DailyPlanView({
   const handleNextDayRef = useRef(handleNextDay);
   handleNextDayRef.current = handleNextDay;
 
-  const swipeGesture = useMemo(() => Gesture.Pan().activeOffsetX([-100, 100]).failOffsetY([-25, 25]).runOnJS(true).onEnd((e) => {
-    if (e.translationX < -100) {
+  const swipeGesture = useMemo(() => Gesture.Pan().activeOffsetX([-60, 60]).failOffsetY([-25, 25]).runOnJS(true).onEnd((e) => {
+    if (e.translationX < -60) {
       handleNextDayRef.current();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } else if (e.translationX > 100) {
+    } else if (e.translationX > 60) {
       handlePrevDayRef.current();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }

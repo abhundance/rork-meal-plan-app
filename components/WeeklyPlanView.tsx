@@ -88,10 +88,10 @@ export default function WeeklyPlanView({
       .failOffsetY([-20, 20])
       .runOnJS(true)
       .onEnd((e) => {
-        if (e.translationX < -48) {
+        if (e.translationX < -60) {
           handleWeekNextRef.current();
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        } else if (e.translationX > 48) {
+        } else if (e.translationX > 60) {
           handleWeekPrevRef.current();
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }
