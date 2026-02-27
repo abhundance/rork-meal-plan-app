@@ -13,7 +13,7 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, Href } from 'expo-router';
+import { router, Href, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
+import { consumePendingDeliveryLink } from '@/services/pendingDeliveryLink';
 import Colors from '@/constants/colors';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import AppHeader from '@/components/AppHeader';
@@ -241,6 +242,17 @@ export default function FavsScreen() {
     setShowAddMethodSheet(false);
     setAddMethodMode('choose');
   }, [quickAddName, quickAddDeliveryUrl, addFav, familySettings]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const pending = consumePendingDeliveryLink();
+      if (pending) {
+        setQuickAddDeliveryUrl(pending.url);
+        setAddMethodMode('quick_add');
+        setShowAddMethodSheet(true);
+      }
+    }, [])
+  );
 
   const openAddMethodSheet = useCallback(() => {
     setAddMethodMode('choose');
