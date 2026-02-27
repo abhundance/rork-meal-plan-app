@@ -35,7 +35,7 @@ interface WeeklyPlanViewProps {
   mealSlots: MealSlot[];
   weekOffset: number;
   onWeekChange: (offset: number) => void;
-  getMealForSlot: (date: string, slotId: string) => PlannedMeal | undefined;
+  getMealsForSlot: (date: string, slotId: string) => PlannedMeal[];
   onEmptySlotPress: (date: string, slotId: string) => void;
   onMealPress: (meal: PlannedMeal) => void;
   onRemoveMeal: (mealId: string) => void;
@@ -47,7 +47,7 @@ export default function WeeklyPlanView({
   mealSlots,
   weekOffset,
   onWeekChange,
-  getMealForSlot,
+  getMealsForSlot,
   onEmptySlotPress,
   onMealPress,
   onRemoveMeal,
@@ -60,9 +60,9 @@ export default function WeeklyPlanView({
 
   const weekIsEmpty = useMemo(() => {
     return weekDates.every((date) =>
-      mealSlots.every((slot) => !getMealForSlot(formatDateKey(date), slot.slot_id))
+      mealSlots.every((slot) => getMealsForSlot(formatDateKey(date), slot.slot_id).length === 0)
     );
-  }, [weekDates, mealSlots, getMealForSlot]);
+  }, [weekDates, mealSlots, getMealsForSlot]);
 
   useEffect(() => {
     if (weekOffset === 0) {
@@ -170,12 +170,12 @@ export default function WeeklyPlanView({
                 </View>
 
                 {mealSlots.map((slot, slotIdx) => {
-                  const meal = getMealForSlot(dateKey, slot.slot_id);
+                  const meals = getMealsForSlot(dateKey, slot.slot_id);
                   return (
                     <SlotRow
                       key={slot.slot_id}
                       slot={slot}
-                      meal={meal}
+                      meals={meals}
                       dateKey={dateKey}
                       isLast={slotIdx === mealSlots.length - 1}
                       onEmptyPress={onEmptySlotPress}
@@ -257,7 +257,7 @@ function EmptyWeekState({ weekOffset, onCopyLastWeek, onSmartPlan }: EmptyWeekSt
 
 interface SlotRowProps {
   slot: MealSlot;
-  meal: PlannedMeal | undefined;
+  meals: PlannedMeal[];
   dateKey: string;
   isLast: boolean;
   onEmptyPress: (date: string, slotId: string) => void;
@@ -267,35 +267,43 @@ interface SlotRowProps {
 
 const SlotRow = React.memo(function SlotRow({
   slot,
-  meal,
+  meals,
   dateKey,
   isLast,
   onEmptyPress,
   onMealPress,
   onRemoveMeal,
 }: SlotRowProps) {
+  const primaryMeal = meals[0];
+  const extraCount = meals.length - 1;
+
   return (
     <View style={[styles.slotRow, isLast && styles.slotRowLast]}>
       <Text style={styles.slotLabel} numberOfLines={1}>{slot.name}</Text>
 
-      {meal ? (
+      {primaryMeal ? (
         <TouchableOpacity
           style={styles.mealContent}
-          onPress={() => onMealPress(meal)}
+          onPress={() => onMealPress(primaryMeal)}
           activeOpacity={0.82}
         >
           <Text style={styles.mealName} numberOfLines={2}>
-            {meal.meal_name}
+            {primaryMeal.meal_name}
           </Text>
           <View style={styles.mealActions}>
             <TouchableOpacity
-              onPress={() => onRemoveMeal(meal.id)}
+              onPress={() => onRemoveMeal(primaryMeal.id)}
               style={styles.actionBtn}
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
               <X size={13} color={Colors.textSecondary} strokeWidth={2} />
             </TouchableOpacity>
           </View>
+          {extraCount > 0 && (
+            <View style={styles.extraBadge}>
+              <Text style={styles.extraBadgeText}>+{extraCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
@@ -445,6 +453,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600' as const,
     color: Colors.primary,
+  },
+  extraBadge: {
+    position: 'absolute' as const,
+    bottom: 4,
+    right: 4,
+    backgroundColor: '#7B68CC',
+    borderRadius: 9999,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  extraBadgeText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
 });
 

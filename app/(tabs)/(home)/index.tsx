@@ -353,7 +353,7 @@ export default function MealPlanScreen() {
               mealSlots={sortedSlots}
               weekOffset={weekOffset}
               onWeekChange={setWeekOffset}
-              getMealForSlot={getMealForSlot}
+              getMealsForSlot={getMealsForSlot}
               onEmptySlotPress={handleEmptySlotPress}
               onMealPress={handleMealPress}
               onRemoveMeal={removeMeal}
