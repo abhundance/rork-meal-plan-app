@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Animated,
   PanResponder,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
@@ -336,6 +337,13 @@ const MealItemRow = React.memo(function MealItemRow({
           <TouchableOpacity
             style={styles.itemRowInner}
             onPress={handlePress}
+            onLongPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              Alert.alert(meal.meal_name, undefined, [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Remove from plan', style: 'destructive', onPress: () => handleDelete() },
+              ]);
+            }}
             activeOpacity={0.7}
           >
             {meal.meal_image_url ? (
