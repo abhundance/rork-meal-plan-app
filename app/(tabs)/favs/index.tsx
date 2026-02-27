@@ -626,34 +626,38 @@ export default function FavsScreen() {
               <Text style={styles.addMethodHint}>
                 Recipe details can be added later from the meal screen.
               </Text>
-              <Text style={styles.addMethodDeliveryLabel}>Delivery link (optional)</Text>
-              <View style={styles.addMethodDeliveryRow}>
-                <TextInput
-                  style={styles.addMethodDeliveryInput}
-                  placeholder="Paste Uber Eats, Zomato, Grab link..."
-                  placeholderTextColor={Colors.textSecondary}
-                  value={quickAddDeliveryUrl}
-                  onChangeText={setQuickAddDeliveryUrl}
-                  autoCapitalize="none"
-                  keyboardType="url"
-                />
-                <TouchableOpacity
-                  onPress={async () => {
-                    const text = await Clipboard.getStringAsync();
-                    if (text) setQuickAddDeliveryUrl(text);
-                  }}
-                  style={styles.addMethodClipboardBtn}
-                >
-                  <Ionicons name="clipboard-outline" size={20} color={Colors.primary} />
-                </TouchableOpacity>
-              </View>
-              {quickAddDeliveryUrl.trim().length > 0 && (
-                <View style={styles.addMethodPlatformChip}>
-                  <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
-                  <Text style={styles.addMethodPlatformChipText}>
-                    {getPlatformLabel(detectPlatformFromUrl(quickAddDeliveryUrl.trim()))} detected
-                  </Text>
-                </View>
+              {quickAddSource === 'delivery' && (
+                <>
+                  <Text style={styles.addMethodDeliveryLabel}>Delivery link (optional)</Text>
+                  <View style={styles.addMethodDeliveryRow}>
+                    <TextInput
+                      style={styles.addMethodDeliveryInput}
+                      placeholder="Paste Uber Eats, Zomato, Grab link..."
+                      placeholderTextColor={Colors.textSecondary}
+                      value={quickAddDeliveryUrl}
+                      onChangeText={setQuickAddDeliveryUrl}
+                      autoCapitalize="none"
+                      keyboardType="url"
+                    />
+                    <TouchableOpacity
+                      onPress={async () => {
+                        const text = await Clipboard.getStringAsync();
+                        if (text) setQuickAddDeliveryUrl(text);
+                      }}
+                      style={styles.addMethodClipboardBtn}
+                    >
+                      <Ionicons name="clipboard-outline" size={20} color={Colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+                  {quickAddDeliveryUrl.trim().length > 0 && (
+                    <View style={styles.addMethodPlatformChip}>
+                      <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
+                      <Text style={styles.addMethodPlatformChipText}>
+                        {getPlatformLabel(detectPlatformFromUrl(quickAddDeliveryUrl.trim()))} detected
+                      </Text>
+                    </View>
+                  )}
+                </>
               )}
               <TouchableOpacity
                 style={[styles.addMethodSaveBtn, !quickAddName.trim() && { opacity: 0.4 }]}
