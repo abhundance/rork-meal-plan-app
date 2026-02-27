@@ -315,7 +315,7 @@ function EmptyWeekState({ weekOffset, onRepeatWeek, onSmartPlan }: EmptyWeekStat
 
         <View style={emptyStyles.orRow}>
           <View style={emptyStyles.orLine} />
-          <Text style={emptyStyles.orText}>or tap any slot to add manually</Text>
+          <Text style={emptyStyles.orText}>or tap a day to start adding</Text>
           <View style={emptyStyles.orLine} />
         </View>
       </View>
