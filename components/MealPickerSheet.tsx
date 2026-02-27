@@ -90,6 +90,13 @@ export default function MealPickerSheet({
       >
         <View style={styles.handle} />
         <View style={styles.header}>
+          {mode === 'manual' ? (
+            <TouchableOpacity onPress={() => setMode('choose')} style={styles.closeBtn} testID="back-to-choose-btn">
+              <Ionicons name="chevron-back" size={22} color={Colors.text} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.closeBtn} />
+          )}
           <View style={styles.headerTitleWrap}>
             <Text style={styles.headerTitle}>Add to {slotName}</Text>
             <Text style={styles.headerSubtitle}>{formattedDate}</Text>
@@ -257,6 +264,7 @@ const styles = StyleSheet.create({
   },
   headerTitleWrap: {
     flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
