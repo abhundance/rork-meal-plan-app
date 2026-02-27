@@ -177,7 +177,7 @@ export default function MealPickerSheet({
 
     rows.push({ _type: 'actions' });
 
-    rows.push({ _type: 'section', title: 'Your Favourites', count: filteredFavs.length });
+    rows.push({ _type: 'section', title: 'Add from Favourites', count: filteredFavs.length });
     if (filteredFavs.length === 0) {
       rows.push({
         _type: 'section_empty',
@@ -187,7 +187,7 @@ export default function MealPickerSheet({
       filteredFavs.forEach((item) => rows.push({ _type: 'meal', item }));
     }
 
-    rows.push({ _type: 'section', title: 'From Discover', count: filteredDiscover.length });
+    rows.push({ _type: 'section', title: 'Add from Discover', count: filteredDiscover.length });
     if (filteredDiscover.length === 0) {
       rows.push({ _type: 'section_empty', message: 'No matching meals found' });
     } else {
@@ -253,8 +253,8 @@ export default function MealPickerSheet({
               <View style={styles.actionCardIconCircle}>
                 <Ionicons name="sparkles-outline" size={18} color="#7B68CC" />
               </View>
-              <Text style={styles.actionCardTitle}>Create New Recipe</Text>
-              <Text style={styles.actionCardSubtitle}>Camera, paste, YouTube & more</Text>
+              <Text style={styles.actionCardTitle}>Add with Recipe</Text>
+              <Text style={styles.actionCardSubtitle}>URL, camera, YouTube & more</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -277,7 +277,7 @@ export default function MealPickerSheet({
         return (
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
-              {item.title === 'Your Favourites' ? (
+              {item.title === 'Add from Favourites' ? (
                 <Heart size={13} color={Colors.primary} strokeWidth={2.5} fill={Colors.primary} />
               ) : (
                 <Star size={13} color="#F59E0B" strokeWidth={2.5} fill="#F59E0B" />
