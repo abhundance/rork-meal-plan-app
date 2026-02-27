@@ -13,12 +13,14 @@ import {
 import { X, Utensils, Heart } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
 import { BorderRadius } from '@/constants/theme';
 import { PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { useFavs } from '@/providers/FavsProvider';
+import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
 import PrimaryButton from './PrimaryButton';
 
 interface MealPickerSheetProps {
@@ -42,8 +44,10 @@ export default function MealPickerSheet({
   slotName,
   defaultServing,
 }: MealPickerSheetProps) {
-  const [mode, setMode] = useState<'choose' | 'manual'>('choose');
+  const [mode, setMode] = useState<'choose' | 'manual' | 'delivery'>('choose');
   const [manualName, setManualName] = useState<string>('');
+  const [deliveryName, setDeliveryName] = useState<string>('');
+  const [deliveryUrl, setDeliveryUrl] = useState<string>('');
   const { meals: favMeals } = useFavs();
   const router = useRouter();
 
@@ -74,8 +78,29 @@ export default function MealPickerSheet({
   const resetAndClose = useCallback(() => {
     setMode('choose');
     setManualName('');
+    setDeliveryName('');
+    setDeliveryUrl('');
     onClose();
   }, [onClose]);
+
+  const handleDeliverySave = useCallback(() => {
+    if (!deliveryName.trim()) return;
+    const trimmedUrl = deliveryUrl.trim();
+    const planned: PlannedMeal = {
+      id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      slot_id: slotId,
+      date,
+      meal_name: deliveryName.trim(),
+      serving_size: defaultServing,
+      ingredients: [],
+      recipe_serving_size: defaultServing,
+      delivery_url: trimmedUrl || undefined,
+      delivery_platform: trimmedUrl ? (detectPlatformFromUrl(trimmedUrl) ?? undefined) : undefined,
+    };
+    onSelectMeal(planned);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    resetAndClose();
+  }, [deliveryName, deliveryUrl, slotId, date, defaultServing, onSelectMeal, resetAndClose]);
 
   return (
     <Modal
@@ -90,7 +115,7 @@ export default function MealPickerSheet({
       >
         <View style={styles.handle} />
         <View style={styles.header}>
-          {mode === 'manual' ? (
+          {mode === 'manual' || mode === 'delivery' ? (
             <TouchableOpacity onPress={() => setMode('choose')} style={styles.closeBtn} testID="back-to-choose-btn">
               <Ionicons name="chevron-back" size={22} color={Colors.text} />
             </TouchableOpacity>
@@ -98,7 +123,9 @@ export default function MealPickerSheet({
             <View style={styles.closeBtn} />
           )}
           <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerTitle}>{`Add to ${slotName}`}</Text>
+            <Text style={styles.headerTitle}>
+              {mode === 'delivery' ? 'Add from Delivery App' : `Add to ${slotName}`}
+            </Text>
             <Text style={styles.headerSubtitle}>{formattedDate}</Text>
           </View>
           <TouchableOpacity onPress={resetAndClose} style={styles.closeBtn}>
@@ -106,7 +133,72 @@ export default function MealPickerSheet({
           </TouchableOpacity>
         </View>
 
-        {mode === 'choose' ? (
+        {mode === 'delivery' ? (
+          <ScrollView
+            style={styles.chooseScroll}
+            contentContainerStyle={styles.deliveryScrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.deliverySectionLabel}>MEAL NAME</Text>
+            <TextInput
+              style={styles.deliveryInput}
+              placeholder="e.g. Butter Chicken from Spice Garden"
+              placeholderTextColor={Colors.textSecondary}
+              value={deliveryName}
+              onChangeText={setDeliveryName}
+              autoCapitalize="words"
+              autoFocus
+              testID="delivery-name-input"
+            />
+
+            <Text style={[styles.deliverySectionLabel, { marginTop: 20 }]}>DELIVERY LINK (OPTIONAL)</Text>
+            <View style={styles.deliveryLinkRow}>
+              <TextInput
+                style={styles.deliveryLinkInput}
+                placeholder="Paste Uber Eats, Zomato, Grab link..."
+                placeholderTextColor={Colors.textSecondary}
+                value={deliveryUrl}
+                onChangeText={setDeliveryUrl}
+                keyboardType="url"
+                autoCapitalize="none"
+                autoCorrect={false}
+                testID="delivery-url-input"
+              />
+              <TouchableOpacity
+                style={styles.deliveryClipboardBtn}
+                onPress={async () => {
+                  const text = await Clipboard.getStringAsync();
+                  if (text) setDeliveryUrl(text);
+                }}
+                testID="delivery-clipboard-btn"
+              >
+                <Ionicons name="clipboard-outline" size={20} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            {deliveryUrl.trim().length > 0 && (
+              <View style={styles.deliveryPlatformChip}>
+                <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
+                <Text style={styles.deliveryPlatformText}>
+                  {getPlatformLabel(detectPlatformFromUrl(deliveryUrl.trim()))} detected
+                </Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[
+                styles.deliverySaveBtn,
+                { opacity: deliveryName.trim().length === 0 ? 0.4 : 1 },
+              ]}
+              onPress={handleDeliverySave}
+              disabled={deliveryName.trim().length === 0}
+              testID="delivery-save-btn"
+            >
+              <Text style={styles.deliverySaveBtnText}>Save to Meal Plan</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        ) : mode === 'choose' ? (
           <ScrollView
             style={styles.chooseScroll}
             contentContainerStyle={styles.chooseScrollContent}
@@ -187,7 +279,7 @@ export default function MealPickerSheet({
               <TouchableOpacity
                 style={styles.optionRow}
                 activeOpacity={0.82}
-                onPress={onCreateNewRecipe}
+                onPress={() => setMode('delivery')}
                 testID="add-delivery-btn"
               >
                 <View style={[styles.optionIconCircle, { backgroundColor: '#DBEAFE' }]}>
@@ -429,5 +521,67 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600' as const,
     color: Colors.primary,
+  },
+  deliveryScrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 48,
+  },
+  deliverySectionLabel: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#9CA3AF',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  deliveryInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  deliveryLinkRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  deliveryLinkInput: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  deliveryClipboardBtn: {
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    width: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deliveryPlatformChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+  },
+  deliveryPlatformText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: Colors.primary,
+  },
+  deliverySaveBtn: {
+    marginTop: 24,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  deliverySaveBtnText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
 });
