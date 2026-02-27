@@ -288,11 +288,11 @@ export default function DiscoverScreen() {
   }, []);
 
   const handleCollectionPress = useCallback((collectionId: string) => {
-    router.push(`/collection?id=${collectionId}` as Href);
+    router.push(`/discover-collection?id=${collectionId}` as Href);
   }, []);
 
   const handleDietaryPress = useCallback((tag: string) => {
-    router.push(`/filtered-meals?dietary=${tag}` as Href);
+    router.push(`/discover-filter-results?dietary=${tag}` as Href);
   }, []);
 
   const renderDiscoverCard = useCallback(

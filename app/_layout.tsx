@@ -60,15 +60,15 @@ function RootLayoutNav() {
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen
-        name="collection"
+        name="discover-collection"
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen
-        name="find-chefs"
+        name="chefs-directory"
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen
-        name="filtered-meals"
+        name="discover-filter-results"
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen name="add-recipe-video" options={{ headerShown: false }} />

@@ -86,7 +86,7 @@ export default function DiscoverSearchScreen() {
           <Text style={styles.emptyText}>Search for meals, chefs, or collections</Text>
           <TouchableOpacity
             style={styles.findChefsLink}
-            onPress={() => router.push('/find-chefs' as Href)}
+            onPress={() => router.push('/chefs-directory' as Href)}
           >
             <Text style={styles.findChefsText}>Find Chefs to Follow</Text>
             <ChevronRight size={14} color={Colors.primary} strokeWidth={2} />
