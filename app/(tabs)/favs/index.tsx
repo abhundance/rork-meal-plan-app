@@ -616,7 +616,7 @@ export default function FavsScreen() {
               </View>
               <TextInput
                 style={styles.addMethodInput}
-                placeholder="e.g. Mum's spaghetti bolognese"
+                placeholder={quickAddSource === 'delivery' ? "e.g. Butter Chicken from Spice Garden" : "e.g. Mum's spaghetti bolognese"}
                 placeholderTextColor={Colors.textSecondary}
                 value={quickAddName}
                 onChangeText={setQuickAddName}
@@ -1492,6 +1492,7 @@ const styles = StyleSheet.create({
     alignItems: 'center' as const,
     marginHorizontal: 20,
     marginBottom: 24,
+    marginTop: 20,
   },
   addMethodSaveBtnText: {
     fontSize: 15,
