@@ -183,6 +183,10 @@ export default function MealPlanScreen() {
     [addFav, removeFav]
   );
 
+  const handleRemoveMealById = useCallback((mealId: string) => {
+    removeMealById(mealId);
+  }, [removeMealById]);
+
   const handleAddItemToSlot = useCallback(
     (date: string, slotId: string, slotName: string) => {
       setPickerDate(date);
@@ -371,7 +375,7 @@ export default function MealPlanScreen() {
           onEmptySlotPress={handleEmptySlotPress}
           onMealPress={handleMealPress}
           onServingChange={updateMealServing}
-          onRemoveMealById={removeMealById}
+          onRemoveMealById={handleRemoveMealById}
           onAddItemToSlot={handleAddItemToSlot}
           onToggleFav={handleToggleFav}
           isFavByName={isFavByName}
