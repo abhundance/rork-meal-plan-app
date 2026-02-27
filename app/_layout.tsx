@@ -36,7 +36,7 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
-        name="meal-detail"
+        name="recipe-detail"
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen

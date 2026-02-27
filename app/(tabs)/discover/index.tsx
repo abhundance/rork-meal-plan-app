@@ -284,7 +284,7 @@ export default function DiscoverScreen() {
   );
 
   const handleMealPress = useCallback((meal: DiscoverMeal) => {
-    router.push(`/meal-detail?id=${meal.id}&source=discover` as Href);
+    router.push(`/recipe-detail?id=${meal.id}&source=discover` as Href);
   }, []);
 
   const handleCollectionPress = useCallback((collectionId: string) => {

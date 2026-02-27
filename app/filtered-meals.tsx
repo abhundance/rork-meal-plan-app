@@ -107,7 +107,7 @@ export default function FilteredMealsScreen() {
           <FilteredMealCard
             meal={item}
             isSaved={isFav(item.id)}
-            onPress={() => router.push(`/meal-detail?id=${item.id}&source=discover` as Href)}
+            onPress={() => router.push(`/recipe-detail?id=${item.id}&source=discover` as Href)}
             onSave={() => handleSave(item)}
             onAddToPlan={() => handleAddToPlan(item)}
           />

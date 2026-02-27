@@ -117,7 +117,7 @@ export default function DiscoverSearchScreen() {
               return (
                 <TouchableOpacity
                   style={styles.resultRow}
-                  onPress={() => router.push(`/meal-detail?id=${meal.id}&source=discover` as Href)}
+                  onPress={() => router.push(`/recipe-detail?id=${meal.id}&source=discover` as Href)}
                 >
                   <Image source={{ uri: meal.image_url }} style={styles.resultThumb} contentFit="cover" />
                   <View style={styles.resultInfo}>

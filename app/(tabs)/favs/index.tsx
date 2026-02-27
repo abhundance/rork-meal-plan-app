@@ -198,7 +198,7 @@ export default function FavsScreen() {
   );
 
   const handleMealPress = useCallback((meal: FavMeal) => {
-    router.push(`/meal-detail?id=${meal.id}&source=favs` as Href);
+    router.push(`/recipe-detail?id=${meal.id}&source=favs` as Href);
   }, []);
 
   const handleDeleteMyRecipe = useCallback((meal: FavMeal) => {

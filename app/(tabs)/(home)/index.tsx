@@ -119,7 +119,7 @@ export default function MealPlanScreen() {
   const handleMealPress = useCallback(
     (meal: PlannedMeal) => {
       console.log('[MealPlan] Navigating to meal detail:', meal.meal_name);
-      router.push(`/meal-detail?id=${meal.id}&source=plan` as Href);
+      router.push(`/recipe-detail?id=${meal.id}&source=plan` as Href);
     },
     []
   );
