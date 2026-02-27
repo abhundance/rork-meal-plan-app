@@ -79,6 +79,8 @@ export interface PlannedMeal {
   ingredients: Ingredient[];
   recipe_serving_size: number;
   daily_note?: string;
+  delivery_url?: string;
+  delivery_platform?: 'uber_eats' | 'zomato' | 'grab' | 'swiggy' | 'deliveroo' | 'doordash' | 'other';
   position?: number;
 }
 
@@ -107,6 +109,8 @@ export interface FavMeal {
   created_at: string;
   is_ingredient_complete: boolean;
   is_recipe_complete: boolean;
+  delivery_url?: string;
+  delivery_platform?: 'uber_eats' | 'zomato' | 'grab' | 'swiggy' | 'deliveroo' | 'doordash' | 'other';
 }
 
 export interface DiscoverMeal {
