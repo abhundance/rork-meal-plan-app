@@ -320,6 +320,8 @@ export default function MealPlanScreen() {
       addMeals(newMeals);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       console.log('[MealPlan] Smart plan generated', newMeals.length, 'meals');
+    } else {
+      Alert.alert('Already fully planned! 🎉', 'All slots for this week already have meals. Clear some first to use Smart Fill.');
     }
   }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, addMeals, getMealsForSlot]);
 
@@ -422,6 +424,8 @@ export default function MealPlanScreen() {
       addMeals(newMeals);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       console.log('[MealPlan] Smart plan day generated', newMeals.length, 'meals');
+    } else {
+      Alert.alert('Already fully planned! 🎉', 'All slots for today already have meals. Clear some first to use Smart Fill.');
     }
   }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, addMeals, getMealsForSlot]);
 
