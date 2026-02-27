@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 
@@ -10,6 +11,7 @@ interface ServingStepperProps {
   max?: number;
   onValueChange: (value: number) => void;
   compact?: boolean;
+  onRemoveAtMin?: () => void;
 }
 
 export default function ServingStepper({
@@ -18,13 +20,17 @@ export default function ServingStepper({
   max = 20,
   onValueChange,
   compact = false,
+  onRemoveAtMin,
 }: ServingStepperProps) {
   const decrement = useCallback(() => {
-    if (value > min) {
+    if (onRemoveAtMin && value <= min) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onRemoveAtMin();
+    } else if (value > min) {
       onValueChange(value - 1);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-  }, [value, min, onValueChange]);
+  }, [value, min, onValueChange, onRemoveAtMin]);
 
   const increment = useCallback(() => {
     if (value < max) {
@@ -39,12 +45,14 @@ export default function ServingStepper({
   return (
     <View style={[styles.container, compact && styles.containerCompact]}>
       <TouchableOpacity
-        style={[styles.btn, { width: btnSize, height: btnSize, borderRadius: btnSize / 2 }, value <= min && styles.btnDisabled]}
+        style={[styles.btn, { width: btnSize, height: btnSize, borderRadius: btnSize / 2 }, value <= min && !onRemoveAtMin && styles.btnDisabled]}
         onPress={decrement}
-        disabled={value <= min}
+        disabled={value <= min && !onRemoveAtMin}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Minus size={iconSize} color={value <= min ? Colors.inactive : Colors.primary} strokeWidth={2.5} />
+        {onRemoveAtMin && value <= min
+          ? <Ionicons name="trash-outline" size={iconSize} color="#FF3B30" />
+          : <Minus size={iconSize} color={value <= min ? Colors.inactive : Colors.primary} strokeWidth={2.5} />}
       </TouchableOpacity>
       <Text style={[styles.value, compact && styles.valueCompact]}>{value}</Text>
       <TouchableOpacity

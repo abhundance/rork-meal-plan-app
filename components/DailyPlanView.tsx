@@ -356,6 +356,7 @@ const MealItemRow = React.memo(function MealItemRow({
           <ServingStepper
             value={meal.serving_size}
             onValueChange={(v) => onServingChange(meal.id, v)}
+            onRemoveAtMin={() => onRemoveMealById(meal.id)}
             compact
           />
         </Animated.View>
