@@ -47,7 +47,7 @@ const SORT_OPTIONS = [
 
 export default function FavsScreen() {
   const insets = useSafeAreaInsets();
-  const { meals, recentSearches, isLoading, removeFav, addRecentSearch, clearRecentSearches, incrementPlanCount } = useFavs();
+  const { meals, recentSearches, isLoading, removeFav, addFav, addRecentSearch, clearRecentSearches, incrementPlanCount } = useFavs();
   const { familySettings } = useFamilySettings();
   const { addMeal, getMealForSlot } = useMealPlan();
 
@@ -62,6 +62,10 @@ export default function FavsScreen() {
   const [activeDietaryFilter, setActiveDietaryFilter] = useState<string>('');
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<FavMeal | null>(null);
+
+  const [showAddMethodSheet, setShowAddMethodSheet] = useState<boolean>(false);
+  const [addMethodMode, setAddMethodMode] = useState<'choose' | 'quick_add'>('choose');
+  const [quickAddName, setQuickAddName] = useState<string>('');
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
   const [sheetSort, setSheetSort] = useState<string>(sortBy);
@@ -206,6 +210,35 @@ export default function FavsScreen() {
     ]);
   }, [removeFav]);
 
+  const handleQuickAddSave = useCallback(() => {
+    if (!quickAddName.trim()) return;
+    const newMeal: FavMeal = {
+      id: 'meal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      name: quickAddName.trim(),
+      source: 'family_created',
+      ingredients: [],
+      recipe_serving_size: familySettings.default_serving_size,
+      dietary_tags: [],
+      custom_tags: [],
+      method_steps: [],
+      add_to_plan_count: 0,
+      created_at: new Date().toISOString(),
+      is_ingredient_complete: false,
+      is_recipe_complete: false,
+    };
+    addFav(newMeal);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setQuickAddName('');
+    setShowAddMethodSheet(false);
+    setAddMethodMode('choose');
+  }, [quickAddName, addFav, familySettings]);
+
+  const openAddMethodSheet = useCallback(() => {
+    setAddMethodMode('choose');
+    setQuickAddName('');
+    setShowAddMethodSheet(true);
+  }, []);
+
   const hasFilters = !!activeMealTypeFilter || !!activeCuisineFilter ||
                      !!activeCookTimeFilter || !!activeDietaryFilter ||
                      search.trim().length > 0;
@@ -215,7 +248,7 @@ export default function FavsScreen() {
       return (
         <TouchableOpacity
           style={styles.addTileCard}
-          onPress={() => router.push('/add-meal-entry' as Href)}
+          onPress={openAddMethodSheet}
           activeOpacity={0.75}
           testID="add-recipe-tile"
         >
@@ -258,7 +291,7 @@ export default function FavsScreen() {
       </Text>
       <TouchableOpacity
         style={styles.segmentEmptyCta}
-        onPress={() => router.push('/add-meal-entry' as Href)}
+        onPress={openAddMethodSheet}
       >
         <Text style={styles.segmentEmptyCtaText}>Add a Meal</Text>
       </TouchableOpacity>
@@ -457,6 +490,88 @@ export default function FavsScreen() {
       />
 
       <Modal
+        visible={showAddMethodSheet}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => {
+          setShowAddMethodSheet(false);
+          setAddMethodMode('choose');
+          setQuickAddName('');
+        }}
+      >
+        <View style={styles.addMethodSheet}>
+          {addMethodMode === 'choose' ? (
+            <>
+              <View style={styles.addMethodHandle} />
+              <Text style={styles.addMethodTitle}>How would you like to add?</Text>
+              <View style={styles.addMethodCards}>
+                <TouchableOpacity
+                  style={styles.addMethodCard}
+                  activeOpacity={0.82}
+                  onPress={() => {
+                    setShowAddMethodSheet(false);
+                    router.push('/add-meal-entry' as Href);
+                  }}
+                >
+                  <View style={styles.addMethodIconCircle}>
+                    <Ionicons name="sparkles-outline" size={20} color={Colors.primary} />
+                  </View>
+                  <Text style={styles.addMethodCardTitle}>Add with Recipe</Text>
+                  <Text style={styles.addMethodCardSubtitle}>URL, camera, YouTube & more</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.addMethodCard}
+                  activeOpacity={0.82}
+                  onPress={() => setAddMethodMode('quick_add')}
+                >
+                  <View style={styles.addMethodIconCircle}>
+                    <Ionicons name="bookmark-outline" size={20} color={Colors.primary} />
+                  </View>
+                  <Text style={styles.addMethodCardTitle}>Add without Recipe</Text>
+                  <Text style={styles.addMethodCardSubtitle}>Just a name — add the recipe later</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                style={styles.addMethodCancel}
+                onPress={() => setShowAddMethodSheet(false)}
+              >
+                <Text style={styles.addMethodCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={styles.addMethodHandle} />
+              <View style={styles.addMethodBackRow}>
+                <TouchableOpacity onPress={() => setAddMethodMode('choose')}>
+                  <Ionicons name="chevron-back" size={20} color={Colors.primary} />
+                </TouchableOpacity>
+                <Text style={styles.addMethodBackTitle}>Add without Recipe</Text>
+              </View>
+              <TextInput
+                style={styles.addMethodInput}
+                placeholder="e.g. Mum's spaghetti bolognese"
+                placeholderTextColor={Colors.textSecondary}
+                value={quickAddName}
+                onChangeText={setQuickAddName}
+                autoCapitalize="words"
+                autoFocus
+              />
+              <Text style={styles.addMethodHint}>
+                Recipe details can be added later from the meal screen.
+              </Text>
+              <TouchableOpacity
+                style={[styles.addMethodSaveBtn, !quickAddName.trim() && { opacity: 0.4 }]}
+                onPress={handleQuickAddSave}
+                disabled={!quickAddName.trim()}
+              >
+                <Text style={styles.addMethodSaveBtnText}>Save Meal</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </Modal>
+
+      <Modal
         visible={showFilterSheet}
         animationType="slide"
         presentationStyle="pageSheet"
@@ -565,7 +680,7 @@ export default function FavsScreen() {
       {activeSegment === 'my_recipes' && (
         <TouchableOpacity
           style={[styles.fab, { bottom: insets.bottom + 16 }]}
-          onPress={() => router.push('/add-meal-entry' as Href)}
+          onPress={openAddMethodSheet}
           activeOpacity={0.85}
           testID="fab-add-meal"
         >
@@ -1176,6 +1291,120 @@ const styles = StyleSheet.create({
   sheetApplyText: {
     fontSize: 15,
     fontWeight: '600' as const,
+    color: Colors.white,
+  },
+  addMethodSheet: {
+    flex: 1,
+    backgroundColor: Colors.card,
+    paddingTop: 0,
+  },
+  addMethodHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: 'center' as const,
+    marginTop: 10,
+    marginBottom: 16,
+  },
+  addMethodTitle: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    textAlign: 'center' as const,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  addMethodCards: {
+    flexDirection: 'row' as const,
+    gap: 12,
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  addMethodCard: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  addMethodIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  addMethodCardTitle: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    textAlign: 'center' as const,
+  },
+  addMethodCardSubtitle: {
+    fontSize: 11,
+    fontWeight: '400' as const,
+    color: Colors.textSecondary,
+    textAlign: 'center' as const,
+    lineHeight: 15,
+  },
+  addMethodCancel: {
+    paddingVertical: 12,
+    alignItems: 'center' as const,
+    marginBottom: 8,
+  },
+  addMethodCancelText: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+  },
+  addMethodBackRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    gap: 8,
+  },
+  addMethodBackTitle: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    flex: 1,
+  },
+  addMethodInput: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: Colors.text,
+    marginHorizontal: 20,
+    marginBottom: 8,
+  },
+  addMethodHint: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  addMethodSaveBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center' as const,
+    marginHorizontal: 20,
+    marginBottom: 24,
+  },
+  addMethodSaveBtnText: {
+    fontSize: 15,
+    fontWeight: '700' as const,
     color: Colors.white,
   },
   addTileCard: {
