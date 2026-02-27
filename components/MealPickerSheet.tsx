@@ -42,9 +42,8 @@ export default function MealPickerSheet({
   slotName,
   defaultServing,
 }: MealPickerSheetProps) {
-  const [mode, setMode] = useState<'choose' | 'manual' | 'recipe_methods'>('choose');
+  const [mode, setMode] = useState<'choose' | 'manual'>('choose');
   const [manualName, setManualName] = useState<string>('');
-  const [recipeUrl, setRecipeUrl] = useState<string>('');
   const { meals: favMeals } = useFavs();
   const router = useRouter();
 
@@ -75,7 +74,6 @@ export default function MealPickerSheet({
   const resetAndClose = useCallback(() => {
     setMode('choose');
     setManualName('');
-    setRecipeUrl('');
     onClose();
   }, [onClose]);
 
@@ -92,7 +90,7 @@ export default function MealPickerSheet({
       >
         <View style={styles.handle} />
         <View style={styles.header}>
-          {mode === 'manual' || mode === 'recipe_methods' ? (
+          {mode === 'manual' ? (
             <TouchableOpacity onPress={() => setMode('choose')} style={styles.closeBtn} testID="back-to-choose-btn">
               <Ionicons name="chevron-back" size={22} color={Colors.text} />
             </TouchableOpacity>
@@ -100,7 +98,7 @@ export default function MealPickerSheet({
             <View style={styles.closeBtn} />
           )}
           <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerTitle}>{mode === 'recipe_methods' ? 'Add a Recipe' : `Add to ${slotName}`}</Text>
+            <Text style={styles.headerTitle}>{`Add to ${slotName}`}</Text>
             <Text style={styles.headerSubtitle}>{formattedDate}</Text>
           </View>
           <TouchableOpacity onPress={resetAndClose} style={styles.closeBtn}>
@@ -108,126 +106,7 @@ export default function MealPickerSheet({
           </TouchableOpacity>
         </View>
 
-        {mode === 'recipe_methods' ? (
-          <ScrollView
-            style={styles.chooseScroll}
-            contentContainerStyle={styles.recipesScrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <Text style={styles.sectionLabel}>PASTE A LINK</Text>
-            <View style={styles.urlInputRow}>
-              <Ionicons name="link-outline" size={18} color={Colors.textSecondary} style={{ marginRight: 8 }} />
-              <TextInput
-                style={styles.urlInput}
-                placeholder="Recipe blog, website, YouTube, TikTok..."
-                placeholderTextColor={Colors.textSecondary}
-                value={recipeUrl}
-                onChangeText={setRecipeUrl}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="url"
-              />
-              {recipeUrl.trim().length > 0 && (
-                <TouchableOpacity
-                  style={styles.extractBtn}
-                  activeOpacity={0.82}
-                  onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
-                  testID="extract-url-btn"
-                >
-                  <Text style={styles.extractBtnText}>Extract</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <Text style={[styles.sectionLabel, { marginTop: 24 }]}>CHOOSE A METHOD</Text>
-            <View style={styles.methodCardsGrid}>
-              <TouchableOpacity
-                activeOpacity={0.82}
-                onPress={() => { resetAndClose(); router.push('/add-meal-paste' as never); }}
-                testID="recipe-method-paste-btn"
-              >
-                <View style={styles.methodCard}>
-                  <View style={[styles.methodCardIcon, { backgroundColor: '#FEF9EE' }]}>
-                    <Ionicons name="document-text-outline" size={22} color="#D97706" />
-                  </View>
-                  <Text style={styles.methodCardTitle}>Paste Text</Text>
-                  <Text style={styles.methodCardSubtitle}>Paste a recipe from anywhere</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.82}
-                onPress={() => { resetAndClose(); router.push('/add-meal' as never); }}
-                testID="recipe-method-manual-btn"
-              >
-                <View style={styles.methodCard}>
-                  <View style={[styles.methodCardIcon, { backgroundColor: '#ECFDF5' }]}>
-                    <Ionicons name="create-outline" size={22} color="#059669" />
-                  </View>
-                  <Text style={styles.methodCardTitle}>Manual Entry</Text>
-                  <Text style={styles.methodCardSubtitle}>Fill in every detail yourself</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.82}
-                onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
-                testID="recipe-method-photos-btn"
-              >
-                <View style={styles.methodCard}>
-                  <View style={[styles.methodCardIcon, { backgroundColor: '#EDE9FE' }]}>
-                    <Ionicons name="image" size={22} color={Colors.primary} />
-                  </View>
-                  <Text style={styles.methodCardTitle}>Photos</Text>
-                  <Text style={styles.methodCardSubtitle}>Pick from your library</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.82}
-                onPress={() => { resetAndClose(); router.push('/add-meal-video' as never); }}
-                testID="recipe-method-video-btn"
-              >
-                <View style={styles.methodCard}>
-                  <View style={[styles.methodCardIcon, { backgroundColor: '#EFF6FF' }]}>
-                    <Ionicons name="videocam" size={22} color="#2563EB" />
-                  </View>
-                  <Text style={styles.methodCardTitle}>Video Link</Text>
-                  <Text style={styles.methodCardSubtitle}>YouTube or TikTok recipe</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.82}
-                onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
-                testID="recipe-method-voice-btn"
-              >
-                <View style={styles.methodCard}>
-                  <View style={[styles.methodCardIcon, { backgroundColor: '#FDF2F8' }]}>
-                    <Ionicons name="mic" size={22} color="#DB2777" />
-                  </View>
-                  <Text style={styles.methodCardTitle}>Voice</Text>
-                  <Text style={styles.methodCardSubtitle}>Describe aloud</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.82}
-                onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
-                testID="recipe-method-camera-btn"
-              >
-                <View style={styles.methodCard}>
-                  <View style={[styles.methodCardIcon, { backgroundColor: '#FFFBEB' }]}>
-                    <Ionicons name="camera" size={22} color="#D97706" />
-                  </View>
-                  <Text style={styles.methodCardTitle}>Camera</Text>
-                  <Text style={styles.methodCardSubtitle}>Take a photo</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        ) : mode === 'choose' ? (
+        {mode === 'choose' ? (
           <ScrollView
             style={styles.chooseScroll}
             contentContainerStyle={styles.chooseScrollContent}
@@ -290,7 +169,7 @@ export default function MealPickerSheet({
               <TouchableOpacity
                 style={styles.optionRow}
                 activeOpacity={0.82}
-                onPress={() => setMode('recipe_methods')}
+                onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
                 testID="add-with-recipe-btn"
               >
                 <View style={[styles.optionIconCircle, { backgroundColor: '#EDE9FE' }]}>
@@ -410,84 +289,6 @@ const styles = StyleSheet.create({
   },
   chooseScrollContent: {
     paddingBottom: 48,
-  },
-  recipesScrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 48,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-    color: Colors.textSecondary,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  urlInputRow: {
-    height: 52,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    backgroundColor: Colors.card,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    paddingLeft: 16,
-    paddingRight: 8,
-  },
-  urlInput: {
-    flex: 1,
-    fontSize: 15,
-    color: Colors.text,
-  },
-  extractBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginLeft: 6,
-  },
-  extractBtnText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-  },
-  methodCardsGrid: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    gap: 12,
-    marginTop: 8,
-  },
-  methodCard: {
-    width: '47%' as const,
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 2,
-    padding: 16,
-    minHeight: 110,
-    alignItems: 'flex-start' as const,
-  },
-  methodCardIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-  },
-  methodCardTitle: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.text,
-    marginTop: 8,
-  },
-  methodCardSubtitle: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 2,
   },
   browseCardsRow: {
     flexDirection: 'row',
