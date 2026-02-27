@@ -229,8 +229,13 @@ export default function MealPlanScreen() {
       if (srcIdx === -1) return null;
       return { ...m, id: Date.now().toString() + Math.random().toString(36).slice(2), date: formatDateKey(currentWeekDates[srcIdx]) };
     }).filter(Boolean);
-    addMeals(mapped as any);
-  }, [getMealsForWeek, addMeals, weekOffset]);
+    const filtered = (mapped as any[]).filter(m => getMealsForSlot(m.date, m.slot_id).length === 0);
+    if (filtered.length === 0) {
+      Alert.alert('Nothing to repeat', 'All slots this week are already planned.');
+    } else {
+      addMeals(filtered);
+    }
+  }, [getMealsForWeek, addMeals, getMealsForSlot, weekOffset]);
 
   const handleRepeatDay = useCallback((sourceDateKey: string) => {
     const sourceMeals = getMealsForDate(sourceDateKey);
