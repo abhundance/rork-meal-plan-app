@@ -11,7 +11,7 @@ const VIEW_PREF_KEY = 'meal_plan_view_pref';
 export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
   const queryClient = useQueryClient();
   const [meals, setMeals] = useState<PlannedMeal[]>([]);
-  const [viewMode, setViewModeState] = useState<'week' | 'day'>('week');
+  const [viewMode, setViewModeState] = useState<'week' | 'day'>('day');
 
   const mealsQuery = useQuery({
     queryKey: ['mealPlan'],

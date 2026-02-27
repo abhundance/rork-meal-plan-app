@@ -90,10 +90,10 @@ export default function MealPlanScreen() {
     setTimeout(() => setRefreshing(false), 800);
   }, []);
 
-  const viewIndex = viewMode === 'week' ? 0 : 1;
+  const viewIndex = viewMode === 'day' ? 0 : 1;
 
   const handleViewChange = useCallback((idx: number) => {
-    setViewMode(idx === 0 ? 'week' : 'day');
+    setViewMode(idx === 0 ? 'day' : 'week');
   }, [setViewMode]);
 
   const handleEmptySlotPress = useCallback(
@@ -330,7 +330,7 @@ export default function MealPlanScreen() {
 
       <View style={styles.controlWrap}>
         <SegmentedControl
-          segments={['Week', 'Day']}
+          segments={['Day', 'Week']}
           activeIndex={viewIndex}
           onChange={handleViewChange}
         />
