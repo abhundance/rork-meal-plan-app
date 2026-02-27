@@ -653,16 +653,18 @@ const styles = StyleSheet.create({
   },
   smartFillBtn: {
     borderRadius: 9999,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
     paddingVertical: 6,
     paddingHorizontal: 14,
   },
   smartFillLabel: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: Colors.primary,
   },
   clearDayBtn: {
+    borderRadius: 9999,
+    backgroundColor: Colors.primaryLight,
     paddingVertical: 6,
     paddingHorizontal: 10,
   },
