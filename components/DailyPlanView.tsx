@@ -8,27 +8,30 @@ import {
   Animated,
   PanResponder,
 } from 'react-native';
-import { ChevronLeft, ChevronRight, Plus, Users, Heart, X } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
-import { Shadows, BorderRadius } from '@/constants/theme';
+import { BorderRadius } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
 import { formatDateKey, getDateLabel, isToday } from '@/utils/dates';
 import ServingStepper from './ServingStepper';
 import Card from './Card';
 
-const SWIPE_THRESHOLD = 50;
+const DATE_SWIPE_THRESHOLD = 50;
+const SWIPE_DELETE_WIDTH = 72;
 
 interface DailyPlanViewProps {
   mealSlots: MealSlot[];
   currentDate: Date;
   onDateChange: (date: Date) => void;
-  getMealForSlot: (date: string, slotId: string) => PlannedMeal | undefined;
+  getMealsForSlot: (date: string, slotId: string) => PlannedMeal[];
   onEmptySlotPress: (date: string, slotId: string) => void;
   onMealPress: (meal: PlannedMeal) => void;
   onServingChange: (mealId: string, serving: number) => void;
-  onRemoveMeal: (mealId: string) => void;
+  onRemoveMealById: (mealId: string) => void;
+  onAddItemToSlot: (date: string, slotId: string, slotName: string) => void;
   onToggleFav: (meal: PlannedMeal) => void;
   isFavByName: (name: string) => boolean;
 }
@@ -37,11 +40,12 @@ export default function DailyPlanView({
   mealSlots,
   currentDate,
   onDateChange,
-  getMealForSlot,
+  getMealsForSlot,
   onEmptySlotPress,
   onMealPress,
   onServingChange,
-  onRemoveMeal,
+  onRemoveMealById,
+  onAddItemToSlot,
   onToggleFav,
   isFavByName,
 }: DailyPlanViewProps) {
@@ -74,9 +78,9 @@ export default function DailyPlanView({
       onMoveShouldSetPanResponder: (_, gs) =>
         Math.abs(gs.dx) > Math.abs(gs.dy) && Math.abs(gs.dx) > 12,
       onPanResponderRelease: (_, gs) => {
-        if (gs.dx < -SWIPE_THRESHOLD) {
+        if (gs.dx < -DATE_SWIPE_THRESHOLD) {
           handleNextRef.current();
-        } else if (gs.dx > SWIPE_THRESHOLD) {
+        } else if (gs.dx > DATE_SWIPE_THRESHOLD) {
           handlePrevRef.current();
         }
       },
@@ -113,19 +117,18 @@ export default function DailyPlanView({
         scrollEventThrottle={16}
       >
         {mealSlots.map((slot) => {
-          const meal = getMealForSlot(dateKey, slot.slot_id);
+          const slotMeals = getMealsForSlot(dateKey, slot.slot_id);
           return (
             <DailySlotCard
               key={slot.slot_id}
               slot={slot}
-              meal={meal}
+              meals={slotMeals}
               dateKey={dateKey}
               onEmptyPress={onEmptySlotPress}
               onMealPress={onMealPress}
               onServingChange={onServingChange}
-              onRemoveMeal={onRemoveMeal}
-              onToggleFav={onToggleFav}
-              isFav={meal ? isFavByName(meal.meal_name) : false}
+              onRemoveMealById={onRemoveMealById}
+              onAddItemToSlot={onAddItemToSlot}
             />
           );
         })}
@@ -137,26 +140,24 @@ export default function DailyPlanView({
 
 interface DailySlotCardProps {
   slot: MealSlot;
-  meal: PlannedMeal | undefined;
+  meals: PlannedMeal[];
   dateKey: string;
   onEmptyPress: (date: string, slotId: string) => void;
   onMealPress: (meal: PlannedMeal) => void;
   onServingChange: (mealId: string, serving: number) => void;
-  onRemoveMeal: (mealId: string) => void;
-  onToggleFav: (meal: PlannedMeal) => void;
-  isFav: boolean;
+  onRemoveMealById: (mealId: string) => void;
+  onAddItemToSlot: (date: string, slotId: string, slotName: string) => void;
 }
 
 const DailySlotCard = React.memo(function DailySlotCard({
   slot,
-  meal,
+  meals,
   dateKey,
   onEmptyPress,
   onMealPress,
   onServingChange,
-  onRemoveMeal,
-  onToggleFav,
-  isFav,
+  onRemoveMealById,
+  onAddItemToSlot,
 }: DailySlotCardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -168,7 +169,7 @@ const DailySlotCard = React.memo(function DailySlotCard({
     Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
   }, [scaleAnim]);
 
-  if (!meal) {
+  if (meals.length === 0) {
     return (
       <Animated.View style={[styles.cardWrap, { transform: [{ scale: scaleAnim }] }]}>
         <TouchableOpacity
@@ -193,59 +194,161 @@ const DailySlotCard = React.memo(function DailySlotCard({
 
   return (
     <Animated.View style={[styles.cardWrap, { transform: [{ scale: scaleAnim }] }]}>
-      <TouchableOpacity
-        onPress={() => onMealPress(meal)}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.85}
-      >
-        <Card style={styles.filledCard}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.slotName}>{slot.name}</Text>
-            <View style={styles.inlineActions}>
-              <TouchableOpacity
-                onPress={() => onToggleFav(meal)}
-                style={[styles.inlineActionBtn, isFav && styles.inlineActionBtnActive]}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Heart
-                  size={16}
-                  color={isFav ? Colors.primary : Colors.textSecondary}
-                  fill={isFav ? Colors.primary : 'none'}
-                  strokeWidth={2}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => onRemoveMeal(meal.id)}
-                style={styles.inlineActionBtn}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <X size={16} color={Colors.textSecondary} strokeWidth={2} />
-              </TouchableOpacity>
-            </View>
-          </View>
+      <View style={styles.filledCard}>
+        <Text style={styles.filledSlotLabel}>{slot.name.toUpperCase()}</Text>
+        {meals.map((meal, idx) => (
+          <MealItemRow
+            key={meal.id}
+            meal={meal}
+            isLast={idx === meals.length - 1}
+            onServingChange={onServingChange}
+            onRemoveMealById={onRemoveMealById}
+            onPress={onMealPress}
+          />
+        ))}
+        {meals.length < 4 && (
+          <TouchableOpacity
+            style={styles.addItemBtn}
+            onPress={() => onAddItemToSlot(dateKey, slot.slot_id, slot.name)}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+            <Text style={styles.addItemText}>Add item</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </Animated.View>
+  );
+});
 
-          {meal.meal_image_url ? (
-            <Image
-              source={{ uri: meal.meal_image_url }}
-              style={styles.mealImage}
-              contentFit="cover"
-            />
-          ) : null}
-          <Text style={styles.mealName}>{meal.meal_name}</Text>
-          <View style={styles.servingRow}>
-            <View style={styles.servingLabel}>
-              <Users size={14} color={Colors.textSecondary} strokeWidth={2} />
-              <Text style={styles.servingLabelText}>Servings</Text>
-            </View>
-            <ServingStepper
-              value={meal.serving_size}
-              onValueChange={(v) => onServingChange(meal.id, v)}
-              compact
-            />
-          </View>
-        </Card>
-      </TouchableOpacity>
+interface MealItemRowProps {
+  meal: PlannedMeal;
+  isLast: boolean;
+  onServingChange: (mealId: string, serving: number) => void;
+  onRemoveMealById: (mealId: string) => void;
+  onPress: (meal: PlannedMeal) => void;
+}
+
+const MealItemRow = React.memo(function MealItemRow({
+  meal,
+  isLast,
+  onServingChange,
+  onRemoveMealById,
+  onPress,
+}: MealItemRowProps) {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const rowOpacity = useRef(new Animated.Value(1)).current;
+  const isSwipeOpen = useRef(false);
+
+  const snapClose = useCallback(() => {
+    Animated.spring(translateX, {
+      toValue: 0,
+      useNativeDriver: true,
+      speed: 30,
+      bounciness: 3,
+    }).start();
+    isSwipeOpen.current = false;
+  }, [translateX]);
+
+  const snapOpen = useCallback(() => {
+    Animated.spring(translateX, {
+      toValue: -SWIPE_DELETE_WIDTH,
+      useNativeDriver: true,
+      speed: 30,
+      bounciness: 3,
+    }).start();
+    isSwipeOpen.current = true;
+  }, [translateX]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gs) =>
+        Math.abs(gs.dx) > Math.abs(gs.dy) && Math.abs(gs.dx) > 8,
+      onPanResponderGrant: () => {
+        translateX.setOffset(isSwipeOpen.current ? -SWIPE_DELETE_WIDTH : 0);
+        translateX.setValue(0);
+      },
+      onPanResponderMove: (_, gs) => {
+        const clamped = isSwipeOpen.current
+          ? Math.max(-SWIPE_DELETE_WIDTH, Math.min(SWIPE_DELETE_WIDTH, gs.dx))
+          : Math.max(-SWIPE_DELETE_WIDTH, Math.min(0, gs.dx));
+        translateX.setValue(clamped);
+      },
+      onPanResponderRelease: (_, gs) => {
+        translateX.flattenOffset();
+        if (gs.dx < -30) {
+          snapOpen();
+        } else if (gs.dx > 30) {
+          snapClose();
+        } else {
+          isSwipeOpen.current ? snapOpen() : snapClose();
+        }
+      },
+    })
+  ).current;
+
+  const handleDelete = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Animated.timing(rowOpacity, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      onRemoveMealById(meal.id);
+    });
+  }, [rowOpacity, meal.id, onRemoveMealById]);
+
+  const handlePress = useCallback(() => {
+    if (isSwipeOpen.current) {
+      snapClose();
+    } else {
+      onPress(meal);
+    }
+  }, [isSwipeOpen, snapClose, onPress, meal]);
+
+  return (
+    <Animated.View style={{ opacity: rowOpacity }}>
+      <View style={styles.rowContainer}>
+        <View style={styles.deleteAction}>
+          <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
+            <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+        <Animated.View
+          style={[styles.itemRow, { transform: [{ translateX }] }]}
+          {...panResponder.panHandlers}
+        >
+          <TouchableOpacity
+            style={styles.itemRowInner}
+            onPress={handlePress}
+            activeOpacity={0.7}
+          >
+            {meal.meal_image_url ? (
+              <Image
+                source={{ uri: meal.meal_image_url }}
+                style={styles.itemThumb}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={styles.itemThumbPlaceholder}>
+                <Ionicons name="restaurant-outline" size={20} color={Colors.primary} />
+              </View>
+            )}
+            <Text style={styles.itemName} numberOfLines={2}>
+              {meal.meal_name}
+            </Text>
+          </TouchableOpacity>
+          <ServingStepper
+            value={meal.serving_size}
+            onValueChange={(v) => onServingChange(meal.id, v)}
+            compact
+          />
+        </Animated.View>
+      </View>
+      {!isLast && <View style={styles.itemDivider} />}
     </Animated.View>
   );
 });
@@ -302,37 +405,12 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed' as const,
     backgroundColor: Colors.background,
   },
-  filledCard: {
-    backgroundColor: Colors.white,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
   slotName: {
     fontSize: 12,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     textTransform: 'uppercase' as const,
     letterSpacing: 0.5,
-  },
-  inlineActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  inlineActionBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inlineActionBtnActive: {
-    backgroundColor: Colors.primaryLight,
   },
   addRow: {
     flexDirection: 'row',
@@ -354,35 +432,93 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.primary,
   },
-  mealImage: {
+  filledCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    padding: 12,
+    overflow: 'hidden',
+  },
+  filledSlotLabel: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  rowContainer: {
+    position: 'relative' as const,
+    overflow: 'hidden' as const,
+    minHeight: 56,
+  },
+  deleteAction: {
+    position: 'absolute' as const,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: SWIPE_DELETE_WIDTH,
+    backgroundColor: '#FF3B30',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtn: {
+    flex: 1,
     width: '100%',
-    height: 160,
-    borderRadius: BorderRadius.button,
-    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  mealName: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    marginBottom: 12,
-  },
-  servingRow: {
+  itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.button,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    minHeight: 56,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 8,
+    gap: 10,
   },
-  servingLabel: {
+  itemRowInner: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  itemThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+  },
+  itemThumbPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemName: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#2C2C2C',
+    lineHeight: 20,
+  },
+  itemDivider: {
+    height: 1,
+    backgroundColor: '#F0EEF9',
+    marginVertical: 2,
+  },
+  addItemBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    paddingTop: 10,
   },
-  servingLabelText: {
+  addItemText: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: Colors.textSecondary,
+    color: Colors.primary,
   },
 });

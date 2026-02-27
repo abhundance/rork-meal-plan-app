@@ -61,8 +61,10 @@ export default function MealPlanScreen() {
     addMeal,
     addMeals,
     removeMeal,
+    removeMealById,
     updateMealServing,
     getMealForSlot,
+    getMealsForSlot,
     getMealsForWeek,
     meals,
   } = useMealPlan();
@@ -179,6 +181,17 @@ export default function MealPlanScreen() {
       }
     },
     [addFav, removeFav]
+  );
+
+  const handleAddItemToSlot = useCallback(
+    (date: string, slotId: string, slotName: string) => {
+      setPickerDate(date);
+      setPickerSlotId(slotId);
+      setPickerSlotName(slotName);
+      setPickerVisible(true);
+      console.log('[MealPlan] Adding item to slot:', date, slotId);
+    },
+    []
   );
 
   const handleSelectMeal = useCallback(
@@ -354,11 +367,12 @@ export default function MealPlanScreen() {
           mealSlots={sortedSlots}
           currentDate={currentDate}
           onDateChange={setCurrentDate}
-          getMealForSlot={getMealForSlot}
+          getMealsForSlot={getMealsForSlot}
           onEmptySlotPress={handleEmptySlotPress}
           onMealPress={handleMealPress}
           onServingChange={updateMealServing}
-          onRemoveMeal={removeMeal}
+          onRemoveMealById={removeMealById}
+          onAddItemToSlot={handleAddItemToSlot}
           onToggleFav={handleToggleFav}
           isFavByName={isFavByName}
         />
