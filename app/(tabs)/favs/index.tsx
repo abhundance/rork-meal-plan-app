@@ -27,6 +27,8 @@ import {
   Check,
   SlidersHorizontal,
 } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
+import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
 import Colors from '@/constants/colors';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import AppHeader from '@/components/AppHeader';
@@ -66,6 +68,7 @@ export default function FavsScreen() {
   const [showAddMethodSheet, setShowAddMethodSheet] = useState<boolean>(false);
   const [addMethodMode, setAddMethodMode] = useState<'choose' | 'quick_add'>('choose');
   const [quickAddName, setQuickAddName] = useState<string>('');
+  const [quickAddDeliveryUrl, setQuickAddDeliveryUrl] = useState<string>('');
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
   const [sheetSort, setSheetSort] = useState<string>(sortBy);
@@ -212,6 +215,7 @@ export default function FavsScreen() {
 
   const handleQuickAddSave = useCallback(() => {
     if (!quickAddName.trim()) return;
+    const trimmedUrl = quickAddDeliveryUrl.trim();
     const newMeal: FavMeal = {
       id: 'meal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       name: quickAddName.trim(),
@@ -225,17 +229,21 @@ export default function FavsScreen() {
       created_at: new Date().toISOString(),
       is_ingredient_complete: false,
       is_recipe_complete: false,
+      delivery_url: trimmedUrl || undefined,
+      delivery_platform: trimmedUrl ? (detectPlatformFromUrl(trimmedUrl) ?? undefined) : undefined,
     };
     addFav(newMeal);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setQuickAddName('');
+    setQuickAddDeliveryUrl('');
     setShowAddMethodSheet(false);
     setAddMethodMode('choose');
-  }, [quickAddName, addFav, familySettings]);
+  }, [quickAddName, quickAddDeliveryUrl, addFav, familySettings]);
 
   const openAddMethodSheet = useCallback(() => {
     setAddMethodMode('choose');
     setQuickAddName('');
+    setQuickAddDeliveryUrl('');
     setShowAddMethodSheet(true);
   }, []);
 
@@ -497,6 +505,7 @@ export default function FavsScreen() {
           setShowAddMethodSheet(false);
           setAddMethodMode('choose');
           setQuickAddName('');
+          setQuickAddDeliveryUrl('');
         }}
       >
         <View style={styles.addMethodOverlay}>
@@ -507,6 +516,7 @@ export default function FavsScreen() {
               setShowAddMethodSheet(false);
               setAddMethodMode('choose');
               setQuickAddName('');
+              setQuickAddDeliveryUrl('');
             }}
           />
           <View style={[styles.addMethodSheet, { paddingBottom: insets.bottom + 16 }]}>
@@ -569,6 +579,35 @@ export default function FavsScreen() {
               <Text style={styles.addMethodHint}>
                 Recipe details can be added later from the meal screen.
               </Text>
+              <Text style={styles.addMethodDeliveryLabel}>Delivery link (optional)</Text>
+              <View style={styles.addMethodDeliveryRow}>
+                <TextInput
+                  style={styles.addMethodDeliveryInput}
+                  placeholder="Paste Uber Eats, Zomato, Grab link..."
+                  placeholderTextColor={Colors.textSecondary}
+                  value={quickAddDeliveryUrl}
+                  onChangeText={setQuickAddDeliveryUrl}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                />
+                <TouchableOpacity
+                  onPress={async () => {
+                    const text = await Clipboard.getStringAsync();
+                    if (text) setQuickAddDeliveryUrl(text);
+                  }}
+                  style={styles.addMethodClipboardBtn}
+                >
+                  <Ionicons name="clipboard-outline" size={20} color={Colors.primary} />
+                </TouchableOpacity>
+              </View>
+              {quickAddDeliveryUrl.trim().length > 0 && (
+                <View style={styles.addMethodPlatformChip}>
+                  <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
+                  <Text style={styles.addMethodPlatformChipText}>
+                    {getPlatformLabel(detectPlatformFromUrl(quickAddDeliveryUrl.trim()))} detected
+                  </Text>
+                </View>
+              )}
               <TouchableOpacity
                 style={[styles.addMethodSaveBtn, !quickAddName.trim() && { opacity: 0.4 }]}
                 onPress={handleQuickAddSave}
@@ -1422,6 +1461,53 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700' as const,
     color: Colors.white,
+  },
+  addMethodDeliveryLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+    alignSelf: 'flex-start' as const,
+    marginBottom: 6,
+    marginTop: 16,
+    marginHorizontal: 20,
+  },
+  addMethodDeliveryRow: {
+    flexDirection: 'row' as const,
+    gap: 8,
+    alignItems: 'center' as const,
+    marginHorizontal: 20,
+    marginBottom: 0,
+  },
+  addMethodDeliveryInput: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Colors.text,
+  },
+  addMethodClipboardBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  addMethodPlatformChip: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    marginTop: 6,
+    marginHorizontal: 20,
+    marginBottom: 8,
+  },
+  addMethodPlatformChipText: {
+    fontSize: 12,
+    color: Colors.primary,
   },
   addTileCard: {
     flex: 1,

@@ -20,6 +20,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { X, Plus, Minus, Camera } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
+import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
 import Colors from '@/constants/colors';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -76,6 +78,7 @@ export default function AddMealScreen() {
         }))
       : [{ name: '', quantity: '', unit: '' }]
   );
+  const [deliveryUrl, setDeliveryUrl] = useState<string>(editMeal?.delivery_url ?? '');
   const [methodSteps, setMethodSteps] = useState<string[]>(
     editMeal?.method_steps?.length ? editMeal.method_steps : ['']
   );
@@ -268,6 +271,8 @@ export default function AddMealScreen() {
       created_at: new Date().toISOString(),
       is_ingredient_complete: validIngredients.length > 0,
       is_recipe_complete: validSteps.length > 0,
+      delivery_url: deliveryUrl.trim() || undefined,
+      delivery_platform: deliveryUrl.trim() ? (detectPlatformFromUrl(deliveryUrl.trim()) ?? undefined) : undefined,
     };
     addFav(newMeal);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -289,7 +294,7 @@ export default function AddMealScreen() {
     } else {
       router.replace('/(tabs)/favs' as never);
     }
-  }, [name, userImageUri, suggestedImages, imageIndex, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, servingSize, description, chefNotes, addFav]);
+  }, [name, userImageUri, suggestedImages, imageIndex, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, servingSize, description, chefNotes, deliveryUrl, addFav]);
 
   return (
     <View style={styles.container}>
@@ -567,6 +572,37 @@ export default function AddMealScreen() {
             <Plus size={14} color={Colors.primary} strokeWidth={2.5} />
             <Text style={styles.addRowText}>Add step</Text>
           </TouchableOpacity>
+
+          <Text style={styles.sectionHeader}>Ordering</Text>
+          <Text style={styles.label}>Delivery link (optional)</Text>
+          <View style={styles.deliveryRow}>
+            <TextInput
+              style={[styles.input, styles.deliveryInput]}
+              placeholder="Paste Uber Eats, Zomato, Grab link..."
+              placeholderTextColor={Colors.textSecondary}
+              value={deliveryUrl}
+              onChangeText={setDeliveryUrl}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+            <TouchableOpacity
+              style={styles.clipboardBtn}
+              onPress={async () => {
+                const text = await Clipboard.getStringAsync();
+                if (text) setDeliveryUrl(text);
+              }}
+            >
+              <Ionicons name="clipboard-outline" size={20} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+          {deliveryUrl.trim().length > 0 && (
+            <View style={styles.platformChip}>
+              <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
+              <Text style={styles.platformChipText}>
+                {getPlatformLabel(detectPlatformFromUrl(deliveryUrl.trim()))} detected
+              </Text>
+            </View>
+          )}
 
           <Text style={styles.label}>Chef notes</Text>
           <TextInput
@@ -887,5 +923,31 @@ const styles = StyleSheet.create({
   },
   imageZoneEmptyBtnText: {
     fontSize: 14, fontWeight: '500' as const, color: Colors.text,
+  },
+  deliveryRow: {
+    flexDirection: 'row' as const,
+    gap: 8,
+    alignItems: 'center' as const,
+  },
+  deliveryInput: {
+    flex: 1,
+  },
+  clipboardBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.button,
+    backgroundColor: Colors.surface,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  platformChip: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    marginTop: 6,
+  },
+  platformChipText: {
+    fontSize: 12,
+    color: Colors.primary,
   },
 });
