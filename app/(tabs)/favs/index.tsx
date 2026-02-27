@@ -11,6 +11,8 @@ import {
   Animated,
   Alert,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href, useFocusEffect } from 'expo-router';
@@ -522,7 +524,7 @@ export default function FavsScreen() {
           setQuickAddDeliveryUrl('');
         }}
       >
-        <View style={styles.addMethodOverlay}>
+        <KeyboardAvoidingView style={styles.addMethodOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <TouchableOpacity
             style={StyleSheet.absoluteFillObject}
             activeOpacity={1}
@@ -632,7 +634,7 @@ export default function FavsScreen() {
             </>
           )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal
