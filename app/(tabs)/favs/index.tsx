@@ -550,7 +550,7 @@ export default function FavsScreen() {
                   activeOpacity={0.82}
                   onPress={() => {
                     setShowAddMethodSheet(false);
-                    router.push('/add-meal-entry' as Href);
+                    router.push('/add-recipe-entry' as Href);
                   }}
                 >
                   <View style={styles.addMethodOptionIcon}>
@@ -871,7 +871,7 @@ const MyRecipeGridCard = React.memo(function MyRecipeGridCard({
           )}
           <TouchableOpacity
             style={styles.cardEditBtn}
-            onPress={() => router.push({ pathname: '/add-meal', params: { editId: meal.id } })}
+            onPress={() => router.push({ pathname: '/add-recipe-manual', params: { editId: meal.id } })}
             hitSlop={8}
           >
             <Ionicons name="create-outline" size={16} color={Colors.primary} />

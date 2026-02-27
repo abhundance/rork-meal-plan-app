@@ -51,13 +51,13 @@ export default function AddMealVideoScreen() {
 
   const handleExtract = async () => {
     if (!hasUrl || isExtracting) return;
-    console.log('[add-meal-video] Extracting from URL:', trimmed);
+    console.log('[add-recipe-video] Extracting from URL:', trimmed);
     setIsExtracting(true);
     try {
       const result: ExtractedRecipe = await extractRecipeFromVideoUrl(trimmed);
-      console.log('[add-meal-video] Extraction success:', result.name);
+      console.log('[add-recipe-video] Extraction success:', result.name);
       router.push({
-        pathname: '/add-meal-review' as never,
+        pathname: '/add-recipe-review' as never,
         params: {
           inputMode: 'url',
           inputUrl: trimmed,
@@ -73,7 +73,7 @@ export default function AddMealVideoScreen() {
         },
       });
     } catch (err) {
-      console.error('[add-meal-video] Extraction failed:', err);
+      console.error('[add-recipe-video] Extraction failed:', err);
       Alert.alert(
         'Extraction Failed',
         'We could not extract a recipe from that link. For video links, make sure the recipe is in the description. For websites, make sure the page contains a full recipe.',

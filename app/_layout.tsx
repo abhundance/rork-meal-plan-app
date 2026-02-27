@@ -40,15 +40,15 @@ function RootLayoutNav() {
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen
-        name="add-meal"
+        name="add-recipe-manual"
         options={{ headerShown: false, presentation: "modal" }}
       />
       <Stack.Screen
-        name="add-meal-entry"
+        name="add-recipe-entry"
         options={{ headerShown: false, presentation: "modal" }}
       />
       <Stack.Screen
-        name="add-meal-review"
+        name="add-recipe-review"
         options={{ headerShown: false, presentation: "modal" }}
       />
       <Stack.Screen
@@ -71,8 +71,8 @@ function RootLayoutNav() {
         name="filtered-meals"
         options={{ headerShown: false, presentation: "card" }}
       />
-      <Stack.Screen name="add-meal-video" options={{ headerShown: false }} />
-      <Stack.Screen name="add-meal-paste" options={{ headerShown: false }} />
+      <Stack.Screen name="add-recipe-video" options={{ headerShown: false }} />
+      <Stack.Screen name="add-recipe-paste" options={{ headerShown: false }} />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

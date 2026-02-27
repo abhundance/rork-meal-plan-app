@@ -209,7 +209,7 @@ export default function AddMealReviewScreen() {
             : "We couldn't read this image. Fill in manually?",
           [
             { text: 'Try Again', onPress: () => setRetryCount((c) => c + 1) },
-            { text: 'Fill Manually', onPress: () => router.replace('/add-meal' as never) },
+            { text: 'Fill Manually', onPress: () => router.replace('/add-recipe-manual' as never) },
           ],
         );
       } finally {

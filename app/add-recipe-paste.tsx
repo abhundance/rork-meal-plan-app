@@ -43,7 +43,7 @@ export default function AddMealPasteScreen() {
   const handleExtract = () => {
     if (!hasText) return;
     router.push({
-      pathname: '/add-meal-review' as never,
+      pathname: '/add-recipe-review' as never,
       params: {
         inputMode: 'text',
         inputText: text.trim(),

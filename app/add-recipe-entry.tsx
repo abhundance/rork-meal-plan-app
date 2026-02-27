@@ -110,7 +110,7 @@ export default function AddMealEntryScreen() {
     try {
       const result = await extractRecipeFromVideoUrl(pastedText.trim());
       router.push({
-        pathname: '/add-meal-review' as never,
+        pathname: '/add-recipe-review' as never,
         params: {
           inputMode: 'url',
           inputUrl: pastedText.trim(),
@@ -141,15 +141,15 @@ export default function AddMealEntryScreen() {
 
   const handleMethod = async (key: MethodKey) => {
     if (key === 'video') {
-      router.push('/add-meal-video' as never);
+      router.push('/add-recipe-video' as never);
       return;
     }
     if (key === 'manual') {
-      router.push('/add-meal' as never);
+      router.push('/add-recipe-manual' as never);
       return;
     }
     if (key === 'paste') {
-      router.push('/add-meal-paste' as never);
+      router.push('/add-recipe-paste' as never);
       return;
     }
     if (key === 'voice') {
@@ -204,7 +204,7 @@ export default function AddMealEntryScreen() {
     imageStore.set(asset.base64 ?? '', asset.uri);
 
     router.push({
-      pathname: '/add-meal-review' as never,
+      pathname: '/add-recipe-review' as never,
       params: {
         inputMode: key,
         imageUri: asset.uri,
@@ -215,7 +215,7 @@ export default function AddMealEntryScreen() {
   const handleVoiceExtracted = (result: ExtractedRecipe) => {
     setShowVoiceSheet(false);
     router.push({
-      pathname: '/add-meal-review' as never,
+      pathname: '/add-recipe-review' as never,
       params: {
         inputMode: 'voice',
         prefillName: result.name,

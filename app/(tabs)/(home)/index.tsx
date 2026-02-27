@@ -509,7 +509,7 @@ export default function MealPlanScreen() {
             slotName: pickerSlotName,
             defaultServing: familySettings.default_serving_size,
           });
-          router.push('/add-meal-entry' as Href);
+          router.push('/add-recipe-entry' as Href);
         }}
         date={pickerDate}
         slotId={pickerSlotId}
