@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: CELL_H,
     borderRadius: 10,
-    marginBottom: 2,
+    marginBottom: 4,
     paddingHorizontal: 12,
   } as const,
   gridRowToday: {
