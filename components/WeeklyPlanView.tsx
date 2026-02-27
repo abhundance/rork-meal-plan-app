@@ -125,6 +125,7 @@ export default function WeeklyPlanView({
         />
       ) : (
         <>
+          {weekOffset >= 0 && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -160,6 +161,7 @@ export default function WeeklyPlanView({
               <Text style={styles.clearText}>Clear week</Text>
             </TouchableOpacity>
           </ScrollView>
+          )}
 
           <View style={styles.gridContainer}>
           <View style={styles.gridHeader}>
@@ -246,33 +248,44 @@ interface EmptyWeekStateProps {
 }
 
 function EmptyWeekState({ weekOffset, onRepeatWeek, onSmartPlan }: EmptyWeekStateProps) {
+  if (weekOffset < 0) {
+    return (
+      <View style={emptyStyles.pastContainer}>
+        <Ionicons name="calendar-outline" size={36} color={Colors.textSecondary} />
+        <Text style={emptyStyles.pastTitle}>Nothing was planned</Text>
+        <Text style={emptyStyles.pastSubtitle}>No meals were recorded for this week</Text>
+      </View>
+    );
+  }
+
+  const title = weekOffset === 0 ? 'Plan this week' : 'Plan ahead';
+  const subtitle = weekOffset === 0 ? "What's on the menu?" : 'Get this week ready';
+
   return (
     <View style={emptyStyles.container}>
       <View style={emptyStyles.iconWrap}>
         <CalendarDays size={28} color={Colors.primary} strokeWidth={1.5} />
       </View>
-      <Text style={emptyStyles.title}>No meals planned</Text>
-      <Text style={emptyStyles.subtitle}>Fill this week in seconds</Text>
+      <Text style={emptyStyles.title}>{title}</Text>
+      <Text style={emptyStyles.subtitle}>{subtitle}</Text>
 
       <View style={emptyStyles.optionsWrap}>
-        {weekOffset > 0 && (
-          <TouchableOpacity
-            style={emptyStyles.optionCard}
-            onPress={onRepeatWeek}
-            activeOpacity={0.8}
-          >
-            <View style={[emptyStyles.optionIcon, emptyStyles.optionIconCopy]}>
-              <Copy size={20} color={Colors.primary} strokeWidth={2} />
-            </View>
-            <View style={emptyStyles.optionText}>
-              <Text style={emptyStyles.optionTitle}>Copy Last Week</Text>
-              <Text style={emptyStyles.optionDesc}>
-                Duplicate your previous week's meals into this week
-              </Text>
-            </View>
-            <ChevronRight size={18} color={Colors.textSecondary} strokeWidth={2} />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={emptyStyles.optionCard}
+          onPress={onRepeatWeek}
+          activeOpacity={0.8}
+        >
+          <View style={[emptyStyles.optionIcon, emptyStyles.optionIconCopy]}>
+            <Copy size={20} color={Colors.primary} strokeWidth={2} />
+          </View>
+          <View style={emptyStyles.optionText}>
+            <Text style={emptyStyles.optionTitle}>Repeat a week</Text>
+            <Text style={emptyStyles.optionDesc}>
+              Pick any previous week and repeat its meals
+            </Text>
+          </View>
+          <ChevronRight size={18} color={Colors.textSecondary} strokeWidth={2} />
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={emptyStyles.optionCard}
@@ -477,6 +490,25 @@ const emptyStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+  },
+  pastContainer: {
+    flex: 1,
+    alignItems: 'center',
+    paddingTop: 48,
+  },
+  pastTitle: {
+    marginTop: 12,
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  pastSubtitle: {
+    marginTop: 6,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    opacity: 0.7,
   },
   title: {
     fontSize: 20,
