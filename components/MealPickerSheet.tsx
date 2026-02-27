@@ -243,36 +243,31 @@ export default function MealPickerSheet({
     ({ item }: { item: ListRow }) => {
       if (item._type === 'actions') {
         return (
-          <View testID="action-buttons">
+          <View style={styles.actionCardsRow} testID="action-buttons">
             <TouchableOpacity
-              style={styles.createRecipeBtn}
+              style={styles.actionCard}
               onPress={onCreateNewRecipe}
               testID="create-recipe-btn"
               activeOpacity={0.82}
             >
-              <View style={styles.createRecipeIconCircle}>
-                <Ionicons name="sparkles-outline" size={18} color="#fff" />
+              <View style={styles.actionCardIconCircle}>
+                <Ionicons name="sparkles-outline" size={18} color="#7B68CC" />
               </View>
-              <View style={styles.actionBtnTextCol}>
-                <Text style={styles.createRecipeTitle}>Create New Recipe</Text>
-                <Text style={styles.createRecipeSubtitle}>Camera, paste, YouTube, voice & more</Text>
-              </View>
-              <Text style={styles.actionBtnArrow}>›</Text>
+              <Text style={styles.actionCardTitle}>Create New Recipe</Text>
+              <Text style={styles.actionCardSubtitle}>Camera, paste, YouTube & more</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.addWithoutRecipeBtn}
+              style={styles.actionCard}
               onPress={() => setMode('manual')}
               testID="add-without-recipe-btn"
               activeOpacity={0.82}
             >
-              <View style={styles.addWithoutRecipeIconBox}>
-                <Ionicons name="bookmark-outline" size={14} color="#8B7EA8" />
+              <View style={styles.actionCardIconCircle}>
+                <Ionicons name="bookmark-outline" size={18} color="#7B68CC" />
               </View>
-              <View style={styles.actionBtnTextCol}>
-                <Text style={styles.addWithoutRecipeTitle}>Add Without Recipe</Text>
-                <Text style={styles.addWithoutRecipeSubtitle}>Just a name — add the recipe later</Text>
-              </View>
+              <Text style={styles.actionCardTitle}>Add Without Recipe</Text>
+              <Text style={styles.actionCardSubtitle}>Just a name — add the recipe later</Text>
             </TouchableOpacity>
           </View>
         );
@@ -546,75 +541,44 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 48,
   },
-  createRecipeBtn: {
+  actionCardsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#F0EEF9',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#D4CFEE',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginHorizontal: 20,
-    marginTop: 8,
-  },
-  createRecipeIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#7B68CC',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionBtnTextCol: {
-    flex: 1,
-  },
-  createRecipeTitle: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: '#7B68CC',
-  },
-  createRecipeSubtitle: {
-    fontSize: 11,
-    color: '#8B7EA8',
-    marginTop: 1,
-  },
-  actionBtnArrow: {
-    fontSize: 18,
-    color: '#7B68CC',
-  },
-  addWithoutRecipeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#F0EEF9',
-    paddingVertical: 9,
-    paddingHorizontal: 14,
+    gap: 8,
     marginHorizontal: 20,
     marginTop: 8,
     marginBottom: 4,
   },
-  addWithoutRecipeIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+  actionCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionCardIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F0EEF9',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addWithoutRecipeTitle: {
+  actionCardTitle: {
     fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#8B7EA8',
+    fontWeight: '700' as const,
+    color: '#111827',
+    textAlign: 'center' as const,
   },
-  addWithoutRecipeSubtitle: {
+  actionCardSubtitle: {
     fontSize: 11,
-    color: '#9CA3AF',
-    marginTop: 1,
+    fontWeight: '400' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 15,
   },
   sectionHeader: {
     flexDirection: 'row',
