@@ -86,6 +86,18 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     const slotMeals = mealsRef.current.filter(
       (m) => m.slot_id === meal.slot_id && m.date === meal.date
     );
+    const duplicate = slotMeals.find(
+      (m) => m.meal_name.toLowerCase() === meal.meal_name.toLowerCase()
+    );
+    if (duplicate) {
+      const updated = mealsRef.current.map((m) =>
+        m.id === duplicate.id ? { ...m, serving_size: m.serving_size + 1 } : m
+      );
+      setMeals(updated);
+      saveMutateRef.current(updated);
+      console.log('[MealPlan] Duplicate detected, incremented serving for:', meal.meal_name);
+      return;
+    }
     if (slotMeals.length >= 4) {
       console.log('[MealPlan] Slot full (max 4), skipping add for:', meal.slot_id, meal.date);
       return;
