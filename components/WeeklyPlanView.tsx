@@ -1,14 +1,17 @@
-import React, { useMemo, useRef, useCallback } from 'react';
+import React, { useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
+  ScrollView,
   StyleSheet,
+  Dimensions,
   PanResponder,
 } from 'react-native';
-import { ChevronLeft, ChevronRight, Copy, Wand2, CalendarDays } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Plus, X, Copy, Wand2, CalendarDays } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
+import { Shadows } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
 import {
   getWeekDates,
@@ -19,17 +22,23 @@ import {
   getWeekLabel,
 } from '@/utils/dates';
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const H_PAD = 12;
+const CARD_GAP = 8;
+const PEEK = SCREEN_WIDTH * 0.15;
+const DAY_CARD_WIDTH = (SCREEN_WIDTH - H_PAD - CARD_GAP - PEEK) / 2;
+const SLOT_ROW_MIN_H = 82;
+const HEADER_H = 62;
 const SWIPE_THRESHOLD = 48;
-const DAY_LABEL_W = 60;
-const CELL_H = 54;
-const HEADER_CELL_H = 32;
 
 interface WeeklyPlanViewProps {
   mealSlots: MealSlot[];
   weekOffset: number;
   onWeekChange: (offset: number) => void;
   getMealsForSlot: (date: string, slotId: string) => PlannedMeal[];
-  onDayPress: (date: string) => void;
+  onEmptySlotPress: (date: string, slotId: string) => void;
+  onMealPress: (meal: PlannedMeal) => void;
+  onRemoveMeal: (mealId: string) => void;
   onCopyLastWeek: () => void;
   onSmartPlan: () => void;
 }
@@ -39,10 +48,13 @@ export default function WeeklyPlanView({
   weekOffset,
   onWeekChange,
   getMealsForSlot,
-  onDayPress,
+  onEmptySlotPress,
+  onMealPress,
+  onRemoveMeal,
   onCopyLastWeek,
   onSmartPlan,
 }: WeeklyPlanViewProps) {
+  const scrollRef = useRef<ScrollView>(null);
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const weekLabel = useMemo(() => getWeekLabel(weekDates), [weekDates]);
 
@@ -51,6 +63,22 @@ export default function WeeklyPlanView({
       mealSlots.every((slot) => getMealsForSlot(formatDateKey(date), slot.slot_id).length === 0)
     );
   }, [weekDates, mealSlots, getMealsForSlot]);
+
+  useEffect(() => {
+    if (weekOffset === 0) {
+      const todayIdx = weekDates.findIndex((d) => isToday(d));
+      if (todayIdx > 0 && scrollRef.current) {
+        const scrollX = Math.max(0, todayIdx * (DAY_CARD_WIDTH + CARD_GAP));
+        setTimeout(() => {
+          scrollRef.current?.scrollTo({ x: scrollX, animated: false });
+        }, 100);
+      }
+    } else {
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ x: 0, animated: false });
+      }, 50);
+    }
+  }, [weekOffset, weekDates]);
 
   const handleWeekPrev = useCallback(() => {
     onWeekChange(weekOffset - 1);
@@ -82,20 +110,6 @@ export default function WeeklyPlanView({
     })
   ).current;
 
-  const totalFilledCount = useMemo(() => {
-    let count = 0;
-    for (const date of weekDates) {
-      const dateKey = formatDateKey(date);
-      for (const slot of mealSlots) {
-        if (getMealsForSlot(dateKey, slot.slot_id).length > 0) count++;
-      }
-    }
-    return count;
-  }, [weekDates, mealSlots, getMealsForSlot]);
-
-  const totalSlots = weekDates.length * mealSlots.length;
-  const coveragePercent = totalSlots > 0 ? Math.round((totalFilledCount / totalSlots) * 100) : 0;
-
   return (
     <View style={styles.container}>
       <View style={styles.weekNav} {...weekNavPanResponder.panHandlers}>
@@ -123,98 +137,60 @@ export default function WeeklyPlanView({
           onSmartPlan={onSmartPlan}
         />
       ) : (
-        <View style={styles.gridWrap}>
-          <View style={styles.coverageRow}>
-            <Text style={styles.coverageLabel}>Coverage</Text>
-            <View style={styles.coverageBarTrack}>
-              <View
-                style={[
-                  styles.coverageBarFill,
-                  {
-                    width: `${coveragePercent}%` as any,
-                    backgroundColor: coveragePercent === 100 ? Colors.success : Colors.primary,
-                  },
-                ]}
-              />
-            </View>
-            <Text style={styles.coverageValue}>{coveragePercent}%</Text>
-          </View>
-
-          <View style={styles.columnHeaderRow}>
-            <View style={styles.dayLabelSpacer} />
-            {mealSlots.map((slot) => (
-              <View key={slot.slot_id} style={styles.columnHeader}>
-                <Text style={styles.columnHeaderText} numberOfLines={1}>
-                  {getSlotShortName(slot.name)}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          {weekDates.map((date) => {
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          decelerationRate="fast"
+          snapToInterval={DAY_CARD_WIDTH + CARD_GAP}
+          snapToAlignment="start"
+        >
+          {weekDates.map((date, idx) => {
             const dateKey = formatDateKey(date);
             const today = isToday(date);
-
             return (
-              <TouchableOpacity
+              <View
                 key={dateKey}
-                style={[styles.gridRow, today && styles.gridRowToday]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  onDayPress(dateKey);
-                }}
-                activeOpacity={0.7}
+                style={[
+                  styles.dayCard,
+                  today && styles.dayCardToday,
+                  idx === weekDates.length - 1 && { marginRight: H_PAD },
+                ]}
               >
-                <View style={styles.dayLabel}>
-                  <Text style={[styles.dayNameText, today && styles.dayNameToday]}>
-                    {getDayName(date).slice(0, 3)}
+                <View style={[styles.dayHeader, today && styles.dayHeaderToday]}>
+                  <Text style={[styles.dayName, today && styles.dayNameToday]}>
+                    {getDayName(date)}
                   </Text>
                   <View style={[styles.dateCircle, today && styles.dateCircleToday]}>
-                    <Text style={[styles.dateNumText, today && styles.dateNumToday]}>
+                    <Text style={[styles.dateNum, today && styles.dateNumToday]}>
                       {getDateNumber(date)}
                     </Text>
                   </View>
                 </View>
 
-                {mealSlots.map((slot) => {
+                {mealSlots.map((slot, slotIdx) => {
                   const meals = getMealsForSlot(dateKey, slot.slot_id);
-                  const count = meals.length;
                   return (
-                    <View key={slot.slot_id} style={styles.gridCell}>
-                      {count === 0 ? (
-                        <View style={styles.dotEmpty} />
-                      ) : count === 1 ? (
-                        <View style={styles.dotFilled} />
-                      ) : (
-                        <View style={styles.dotMulti}>
-                          <Text style={styles.dotMultiText}>{count}</Text>
-                        </View>
-                      )}
-                    </View>
+                    <SlotRow
+                      key={slot.slot_id}
+                      slot={slot}
+                      meals={meals}
+                      dateKey={dateKey}
+                      isLast={slotIdx === mealSlots.length - 1}
+                      onEmptyPress={onEmptySlotPress}
+                      onMealPress={onMealPress}
+                      onRemoveMeal={onRemoveMeal}
+                    />
                   );
                 })}
-
-                <View style={styles.rowChevron}>
-                  <ChevronRight size={14} color={today ? Colors.primary : Colors.textSecondary} strokeWidth={2} />
-                </View>
-              </TouchableOpacity>
+              </View>
             );
           })}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
-}
-
-function getSlotShortName(name: string): string {
-  const lower = name.toLowerCase();
-  if (lower.includes('breakfast')) return 'Bkfst';
-  if (lower.includes('lunch')) return 'Lunch';
-  if (lower.includes('dinner')) return 'Dinner';
-  if (lower.includes('snack')) return 'Snack';
-  if (lower.includes('supper')) return 'Supper';
-  if (name.length > 6) return name.slice(0, 5) + '.';
-  return name;
 }
 
 interface EmptyWeekStateProps {
@@ -271,13 +247,77 @@ function EmptyWeekState({ weekOffset, onCopyLastWeek, onSmartPlan }: EmptyWeekSt
 
         <View style={emptyStyles.orRow}>
           <View style={emptyStyles.orLine} />
-          <Text style={emptyStyles.orText}>or switch to Day view to add manually</Text>
+          <Text style={emptyStyles.orText}>or tap any slot to add manually</Text>
           <View style={emptyStyles.orLine} />
         </View>
       </View>
     </View>
   );
 }
+
+interface SlotRowProps {
+  slot: MealSlot;
+  meals: PlannedMeal[];
+  dateKey: string;
+  isLast: boolean;
+  onEmptyPress: (date: string, slotId: string) => void;
+  onMealPress: (meal: PlannedMeal) => void;
+  onRemoveMeal: (mealId: string) => void;
+}
+
+const SlotRow = React.memo(function SlotRow({
+  slot,
+  meals,
+  dateKey,
+  isLast,
+  onEmptyPress,
+  onMealPress,
+  onRemoveMeal,
+}: SlotRowProps) {
+  const primaryMeal = meals[0];
+  const extraCount = meals.length - 1;
+
+  return (
+    <View style={[styles.slotRow, isLast && styles.slotRowLast]}>
+      <Text style={styles.slotLabel} numberOfLines={1}>{slot.name}</Text>
+
+      {primaryMeal ? (
+        <TouchableOpacity
+          style={styles.mealContent}
+          onPress={() => onMealPress(primaryMeal)}
+          activeOpacity={0.82}
+        >
+          <Text style={styles.mealName} numberOfLines={2}>
+            {primaryMeal.meal_name}
+          </Text>
+          <View style={styles.mealActions}>
+            <TouchableOpacity
+              onPress={() => onRemoveMeal(primaryMeal.id)}
+              style={styles.actionBtn}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <X size={13} color={Colors.textSecondary} strokeWidth={2} />
+            </TouchableOpacity>
+          </View>
+          {extraCount > 0 && (
+            <View style={styles.extraBadge}>
+              <Text style={styles.extraBadgeText}>+{extraCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.emptyContent}
+          onPress={() => onEmptyPress(dateKey, slot.slot_id)}
+          activeOpacity={0.7}
+        >
+          <Plus size={14} color={Colors.primary} strokeWidth={2.5} />
+          <Text style={styles.addLabel}>Add</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -300,143 +340,133 @@ const styles = StyleSheet.create({
     minWidth: 140,
     textAlign: 'center' as const,
   },
-  gridWrap: {
-    paddingHorizontal: 12,
+  scrollContent: {
+    paddingLeft: H_PAD,
     paddingBottom: 20,
   },
-  coverageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 4,
-    gap: 10,
-  },
-  coverageLabel: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-    color: Colors.textSecondary,
-  },
-  coverageBarTrack: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.surface,
+  dayCard: {
+    width: DAY_CARD_WIDTH,
+    marginRight: CARD_GAP,
+    backgroundColor: Colors.white,
+    borderRadius: 16,
     overflow: 'hidden' as const,
+    ...Shadows.card,
   },
-  coverageBarFill: {
-    height: 6,
-    borderRadius: 3,
+  dayCardToday: {
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
   },
-  coverageValue: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    minWidth: 32,
-    textAlign: 'right' as const,
-  },
-  columnHeaderRow: {
-    flexDirection: 'row',
+  dayHeader: {
+    height: HEADER_H,
     alignItems: 'center',
-    marginBottom: 4,
-  },
-  dayLabelSpacer: {
-    width: DAY_LABEL_W,
-  },
-  columnHeader: {
-    flex: 1,
-    alignItems: 'center',
-    height: HEADER_CELL_H,
     justifyContent: 'center',
+    gap: 4,
+    backgroundColor: Colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
   },
-  columnHeaderText: {
+  dayHeaderToday: {
+    backgroundColor: Colors.primaryLight,
+  },
+  dayName: {
     fontSize: 10,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     textTransform: 'uppercase' as const,
-    letterSpacing: 0.5,
-  },
-  gridRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: CELL_H,
-    borderRadius: 10,
-    marginBottom: 4,
-    paddingHorizontal: 12,
-  } as const,
-  gridRowToday: {
-    backgroundColor: Colors.primaryLight,
-  },
-  dayLabel: {
-    width: DAY_LABEL_W,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingLeft: 4,
-  },
-  dayNameText: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-    color: Colors.textSecondary,
-    width: 28,
+    letterSpacing: 0.8,
   },
   dayNameToday: {
     color: Colors.primary,
     fontWeight: '700' as const,
   },
   dateCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dateCircleToday: {
     backgroundColor: Colors.primary,
   },
-  dateNumText: {
-    fontSize: 12,
+  dateNum: {
+    fontSize: 15,
     fontWeight: '700' as const,
     color: Colors.text,
   },
   dateNumToday: {
     color: Colors.white,
   },
-  gridCell: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  slotRow: {
+    minHeight: SLOT_ROW_MIN_H,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+    padding: 10,
   },
-  dotEmpty: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: Colors.divider,
-    backgroundColor: 'transparent',
+  slotRowLast: {
+    borderBottomWidth: 0,
   },
-  dotFilled: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.primary,
-  },
-  dotMulti: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dotMultiText: {
+  slotLabel: {
     fontSize: 10,
     fontWeight: '700' as const,
-    color: Colors.white,
+    color: Colors.textSecondary,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.7,
+    marginBottom: 6,
   },
-  rowChevron: {
-    width: 20,
+  mealContent: {
+    flex: 1,
+  },
+  mealName: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    lineHeight: 16,
+  },
+  mealActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 7,
+    justifyContent: 'flex-end',
+  },
+  actionBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  emptyContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 4,
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: Colors.surface,
+    borderStyle: 'dashed' as const,
+  },
+  addLabel: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+  extraBadge: {
+    position: 'absolute' as const,
+    bottom: 4,
+    right: 4,
+    backgroundColor: '#7B68CC',
+    borderRadius: 9999,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  extraBadgeText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
 });
 

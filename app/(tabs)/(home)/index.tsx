@@ -116,17 +116,6 @@ export default function MealPlanScreen() {
     []
   );
 
-  const handleDayPress = useCallback(
-    (date: string) => {
-      const [y, m, d] = date.split('-').map(Number);
-      setCurrentDate(new Date(y, m - 1, d));
-      setViewMode('day');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      console.log('[MealPlan] Day pressed, switching to day view:', date);
-    },
-    [setViewMode]
-  );
-
   const handleServingPress = useCallback(
     (meal: PlannedMeal) => {
       Alert.alert(
@@ -369,7 +358,9 @@ export default function MealPlanScreen() {
               weekOffset={weekOffset}
               onWeekChange={setWeekOffset}
               getMealsForSlot={getMealsForSlot}
-              onDayPress={handleDayPress}
+              onEmptySlotPress={handleEmptySlotPress}
+              onMealPress={handleMealPress}
+              onRemoveMeal={removeMeal}
               onCopyLastWeek={handleCopyLastWeek}
               onSmartPlan={handleSmartPlan}
             />
