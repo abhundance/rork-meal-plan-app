@@ -154,11 +154,20 @@ export default function WeeklyPlanView({
                     return (
                       <View key={slot.slot_id} style={styles.slotCell}>
                         {meals.length > 0 ? (
-                          <View style={styles.mealPill}>
-                            <Text style={styles.mealPillText} numberOfLines={1}>
-                              {meals[0].meal_name}
-                              {meals.length > 1 ? ` +${meals.length - 1}` : ''}
-                            </Text>
+                          <View style={{ width: '100%' }}>
+                            {meals.map((meal, mealIdx) => (
+                              <View
+                                key={meal.id}
+                                style={[
+                                  styles.mealPill,
+                                  mealIdx < meals.length - 1 && { marginBottom: 3 },
+                                ]}
+                              >
+                                <Text style={styles.mealPillText} numberOfLines={1}>
+                                  {meal.meal_name}
+                                </Text>
+                              </View>
+                            ))}
                           </View>
                         ) : (
                           <View style={styles.emptyDash} />
@@ -284,7 +293,8 @@ const styles = StyleSheet.create({
   },
   dayRow: {
     flexDirection: 'row',
-    height: 54,
+    minHeight: 54,
+    paddingVertical: 8,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
