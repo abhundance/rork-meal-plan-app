@@ -24,7 +24,9 @@ import { extractRecipeFromImage, extractRecipeFromText, detectVideoUrlType, extr
 import { imageStore } from '@/services/imageStore';
 import { searchFoodImages, UnsplashImage } from '@/services/imageSearch';
 import { useFavs } from '@/providers/FavsProvider';
-import { FavMeal, Ingredient } from '@/types';
+import { useMealPlan } from '@/providers/MealPlanProvider';
+import { consumePendingPlanSlot } from '@/services/pendingPlanSlot';
+import { FavMeal, Ingredient, PlannedMeal } from '@/types';
 import ServingStepper from '@/components/ServingStepper';
 
 type Params = {
@@ -73,6 +75,7 @@ export default function AddMealReviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<Params>();
   const { addFav } = useFavs();
+  const { addMeal } = useMealPlan();
 
   const inputMode = params.inputMode ?? 'manual';
 
@@ -336,7 +339,25 @@ export default function AddMealReviewScreen() {
 
     addFav(meal);
     console.log('[Review] Saved to favs:', meal.name);
-    router.replace('/(tabs)/favs' as never);
+    const pending = consumePendingPlanSlot();
+    if (pending) {
+      const plannedMeal: PlannedMeal = {
+        id: `fav_plan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        slot_id: pending.slotId,
+        date: pending.date,
+        meal_name: meal.name,
+        meal_image_url: meal.image_url,
+        serving_size: pending.defaultServing,
+        ingredients: meal.ingredients,
+        recipe_serving_size: meal.recipe_serving_size,
+        delivery_url: undefined,
+        delivery_platform: undefined,
+      };
+      addMeal(plannedMeal);
+      router.replace('/(tabs)' as never);
+    } else {
+      router.replace('/(tabs)/favs' as never);
+    }
   }, [
     name,
     description,
@@ -348,6 +369,7 @@ export default function AddMealReviewScreen() {
     servingSize,
     methodSteps,
     addFav,
+    addMeal,
     router,
     userImageUri,
     suggestedImages,
