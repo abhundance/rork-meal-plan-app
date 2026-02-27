@@ -358,9 +358,7 @@ export default function MealPlanScreen() {
               weekOffset={weekOffset}
               onWeekChange={setWeekOffset}
               getMealsForSlot={getMealsForSlot}
-              onEmptySlotPress={handleEmptySlotPress}
-              onMealPress={handleMealPress}
-              onRemoveMeal={removeMeal}
+              onDayPress={useCallback((d: Date) => { setCurrentDate(d); setViewMode('day'); }, [setViewMode])}
               onCopyLastWeek={handleCopyLastWeek}
               onSmartPlan={handleSmartPlan}
             />
