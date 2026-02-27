@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -25,7 +25,7 @@ export default function ServingStepper({
   const decrement = useCallback(() => {
     if (onRemoveAtMin && value <= min) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      onRemoveAtMin();
+      Alert.alert('Remove meal?', 'This will remove the meal from your plan.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: onRemoveAtMin }]);
     } else if (value > min) {
       onValueChange(value - 1);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
