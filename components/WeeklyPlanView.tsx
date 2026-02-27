@@ -5,10 +5,10 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  PanResponder,
   Animated,
   Pressable,
 } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft, ChevronRight, Copy, Wand2, CalendarDays } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -82,23 +82,25 @@ export default function WeeklyPlanView({
   const handleWeekNextRef = useRef(handleWeekNext);
   handleWeekNextRef.current = handleWeekNext;
 
-  const weekNavPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponderCapture: (_, gs) =>
-        Math.abs(gs.dx) > Math.abs(gs.dy) && Math.abs(gs.dx) > 12,
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dx < -SWIPE_THRESHOLD) {
+  const swipeGesture = useMemo(() =>
+    Gesture.Pan()
+      .activeOffsetX([-30, 30])
+      .failOffsetY([-20, 20])
+      .runOnJS(true)
+      .onEnd((e) => {
+        if (e.translationX < -48) {
           handleWeekNextRef.current();
-        } else if (gs.dx > SWIPE_THRESHOLD) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } else if (e.translationX > 48) {
           handleWeekPrevRef.current();
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }
-      },
-    })
-  ).current;
+      }),
+  []);
 
   return (
-    <View style={styles.container} {...weekNavPanResponder.panHandlers}>
+    <GestureDetector gesture={swipeGesture}>
+      <View style={styles.container}>
       <View style={styles.weekNav}>
         <TouchableOpacity
           onPress={handleWeekPrev}
@@ -240,7 +242,8 @@ export default function WeeklyPlanView({
         </View>
         </>
       )}
-    </View>
+      </View>
+    </GestureDetector>
   );
 }
 
