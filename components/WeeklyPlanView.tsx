@@ -226,6 +226,9 @@ export default function WeeklyPlanView({
                                 <Text style={[styles.mealPillText, { color: slotColor.text }]} numberOfLines={1}>
                                   {meal.meal_name}
                                 </Text>
+                                {!!meal.delivery_url && (
+                                  <View style={styles.deliveryDot} />
+                                )}
                               </View>
                             ))}
                           </View>
@@ -468,6 +471,17 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 5,
     width: '100%',
+    position: 'relative' as const,
+    overflow: 'visible' as const,
+  },
+  deliveryDot: {
+    position: 'absolute' as const,
+    top: -2,
+    right: -2,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
   },
   mealPillText: {
     fontSize: 9,

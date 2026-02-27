@@ -19,6 +19,7 @@ import Colors from '@/constants/colors';
 import { BorderRadius } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
 import { formatDateKey, getDayName, getWeekLabel, isBefore } from '@/utils/dates';
+import { openDeliveryLink } from '@/services/deliveryUtils';
 import ServingStepper from './ServingStepper';
 import Card from './Card';
 
@@ -436,9 +437,21 @@ const MealItemRow = React.memo(function MealItemRow({
                 <Ionicons name="restaurant-outline" size={20} color={Colors.primary} />
               </View>
             )}
-            <Text style={styles.itemName} numberOfLines={2}>
-              {meal.meal_name}
-            </Text>
+            <View style={styles.itemNameCol}>
+              <Text style={styles.itemName} numberOfLines={2}>
+                {meal.meal_name}
+              </Text>
+              {!!meal.delivery_url && (
+                <TouchableOpacity
+                  style={styles.orderPill}
+                  onPress={() => openDeliveryLink(meal.delivery_url!)}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="bicycle-outline" size={13} color={Colors.primary} />
+                  <Text style={styles.orderPillText}>Order</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </TouchableOpacity>
           <ServingStepper
             value={meal.serving_size}
@@ -653,12 +666,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  itemName: {
+  itemNameCol: {
     flex: 1,
+    flexDirection: 'column' as const,
+    gap: 4,
+  },
+  itemName: {
     fontSize: 15,
     fontWeight: '600' as const,
     color: '#2C2C2C',
     lineHeight: 20,
+  },
+  orderPill: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    alignSelf: 'flex-start' as const,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 9999,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  orderPillText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.primary,
   },
   itemDivider: {
     height: 1,

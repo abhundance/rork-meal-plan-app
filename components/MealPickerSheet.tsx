@@ -44,7 +44,7 @@ interface PickerItem {
   cookTimeMinutes?: number;
   calories?: number;
   delivery_url?: string;
-  delivery_platform?: string;
+  delivery_platform?: 'uber_eats' | 'zomato' | 'grab' | 'swiggy' | 'deliveroo' | 'doordash' | 'other';
 }
 
 type ListRow =
