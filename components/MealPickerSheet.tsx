@@ -1,23 +1,22 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
   Modal,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Animated,
+  ScrollView,
 } from 'react-native';
-import { X, Search, Utensils, Heart, Star } from 'lucide-react-native';
+import { X, Utensils, Heart } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
-import { BorderRadius, Shadows } from '@/constants/theme';
-import { PlannedMeal, FavMeal, DiscoverMeal, Ingredient } from '@/types';
+import { BorderRadius } from '@/constants/theme';
+import { PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { useFavs } from '@/providers/FavsProvider';
 import PrimaryButton from './PrimaryButton';
@@ -33,88 +32,6 @@ interface MealPickerSheetProps {
   defaultServing: number;
 }
 
-interface PickerItem {
-  id: string;
-  name: string;
-  image_url?: string;
-  ingredients: Ingredient[];
-  recipe_serving_size: number;
-  source: 'fav' | 'discover';
-  badge?: string;
-  cookTimeMinutes?: number;
-  calories?: number;
-  delivery_url?: string;
-  delivery_platform?: 'uber_eats' | 'zomato' | 'grab' | 'swiggy' | 'deliveroo' | 'doordash' | 'other';
-}
-
-type ListRow =
-  | { _type: 'section'; title: string; count: number }
-  | { _type: 'meal'; item: PickerItem }
-  | { _type: 'section_empty'; message: string }
-  | { _type: 'actions' };
-
-function getSlotCategory(slotName: string): 'breakfast' | 'lunch_dinner' | 'light_bites' {
-  const lower = slotName.toLowerCase();
-  if (lower.includes('breakfast') || lower.includes('morning') || lower.includes('brunch')) {
-    return 'breakfast';
-  }
-  if (lower.includes('lunch') || lower.includes('dinner') || lower.includes('supper') || lower.includes('evening meal')) {
-    return 'lunch_dinner';
-  }
-  return 'light_bites';
-}
-
-function getMealCategoryByName(name: string): 'breakfast' | 'lunch_dinner' | 'light_bites' {
-  const lower = name.toLowerCase();
-  if (
-    lower.includes('pancake') || lower.includes('oat') || lower.includes('shakshuka') ||
-    lower.includes('breakfast') || lower.includes('granola') || lower.includes('smoothie') ||
-    lower.includes('cereal') || lower.includes('porridge') || lower.includes('waffle') ||
-    lower.includes('toast') || lower.includes('muesli') || lower.includes('french toast') ||
-    lower.includes('eggs benedict') || lower.includes('frittata')
-  ) {
-    return 'breakfast';
-  }
-  if (
-    lower.includes('salad') || lower.includes('soup') || lower.includes('wrap') ||
-    lower.includes('sandwich') || lower.includes('snack') || lower.includes('dip') ||
-    lower.includes('bruschetta') || lower.includes('antipasto')
-  ) {
-    return 'light_bites';
-  }
-  return 'lunch_dinner';
-}
-
-function favToPickerItem(fav: FavMeal): PickerItem {
-  return {
-    id: `fav_${fav.id}`,
-    name: fav.name,
-    image_url: fav.image_url,
-    ingredients: fav.ingredients,
-    recipe_serving_size: fav.recipe_serving_size,
-    source: 'fav',
-    badge: fav.cuisine,
-    cookTimeMinutes: fav.cook_time,
-    calories: undefined,
-    delivery_url: fav.delivery_url,
-    delivery_platform: fav.delivery_platform,
-  };
-}
-
-function discoverToPickerItem(d: DiscoverMeal): PickerItem {
-  return {
-    id: `disc_${d.id}`,
-    name: d.name,
-    image_url: d.image_url,
-    ingredients: d.ingredients,
-    recipe_serving_size: d.recipe_serving_size,
-    source: 'discover',
-    badge: d.cuisine,
-    cookTimeMinutes: d.cook_time,
-    calories: d.nutrition?.calories,
-  };
-}
-
 export default function MealPickerSheet({
   visible,
   onClose,
@@ -125,20 +42,10 @@ export default function MealPickerSheet({
   slotName,
   defaultServing,
 }: MealPickerSheetProps) {
-  const [search, setSearch] = useState<string>('');
-  const [mode, setMode] = useState<'browse' | 'manual'>('browse');
+  const [mode, setMode] = useState<'choose' | 'manual'>('choose');
   const [manualName, setManualName] = useState<string>('');
   const { meals: favMeals } = useFavs();
-
-  const slotCategory = useMemo(() => getSlotCategory(slotName), [slotName]);
-
-  const slotCategoryLabel = useMemo(() => {
-    switch (slotCategory) {
-      case 'breakfast': return 'Breakfast';
-      case 'lunch_dinner': return 'Lunch & Dinner';
-      case 'light_bites': return 'Light Bites';
-    }
-  }, [slotCategory]);
+  const router = useRouter();
 
   const formattedDate = useMemo(() => {
     return new Date(date + 'T00:00:00').toLocaleDateString('en-GB', {
@@ -147,80 +54,6 @@ export default function MealPickerSheet({
       month: 'short',
     });
   }, [date]);
-
-  const { filteredFavs, filteredDiscover } = useMemo(() => {
-    const q = search.toLowerCase().trim();
-
-    const matchesSearch = (name: string) => !q || name.toLowerCase().includes(q);
-    const matchesCategory = (name: string) => getMealCategoryByName(name) === slotCategory;
-
-    const discoverExcludeNames = new Set(favMeals.map((f) => f.name.toLowerCase()));
-
-    let favs = favMeals.filter((m) => matchesSearch(m.name));
-    let discover = DISCOVER_MEALS.filter(
-      (m) => matchesSearch(m.name) && !discoverExcludeNames.has(m.name.toLowerCase())
-    );
-
-    if (!q) {
-      const catFavs = favs.filter((m) => matchesCategory(m.name));
-      const catDiscover = discover.filter((m) => matchesCategory(m.name));
-      if (catFavs.length > 0 || catDiscover.length > 0) {
-        favs = catFavs;
-        discover = catDiscover;
-      }
-    }
-
-    return {
-      filteredFavs: favs.map(favToPickerItem),
-      filteredDiscover: discover.map(discoverToPickerItem),
-    };
-  }, [search, favMeals, slotCategory]);
-
-  const listData = useMemo((): ListRow[] => {
-    const rows: ListRow[] = [];
-
-    rows.push({ _type: 'actions' });
-
-    rows.push({ _type: 'section', title: 'Add from Favourites', count: filteredFavs.length });
-    if (filteredFavs.length === 0) {
-      rows.push({
-        _type: 'section_empty',
-        message: 'Save meals from Discover to see them here',
-      });
-    } else {
-      filteredFavs.forEach((item) => rows.push({ _type: 'meal', item }));
-    }
-
-    rows.push({ _type: 'section', title: 'Add from Discover', count: filteredDiscover.length });
-    if (filteredDiscover.length === 0) {
-      rows.push({ _type: 'section_empty', message: 'No matching meals found' });
-    } else {
-      filteredDiscover.forEach((item) => rows.push({ _type: 'meal', item }));
-    }
-
-    return rows;
-  }, [filteredFavs, filteredDiscover]);
-
-  const handleSelectItem = useCallback(
-    (pickerItem: PickerItem) => {
-      const planned: PlannedMeal = {
-        id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        slot_id: slotId,
-        date,
-        meal_name: pickerItem.name,
-        meal_image_url: pickerItem.image_url,
-        serving_size: defaultServing,
-        ingredients: pickerItem.ingredients,
-        recipe_serving_size: pickerItem.recipe_serving_size,
-        delivery_url: pickerItem.delivery_url,
-        delivery_platform: pickerItem.delivery_platform,
-      };
-      onSelectMeal(planned);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      resetAndClose();
-    },
-    [slotId, date, defaultServing, onSelectMeal]
-  );
 
   const handleAddManual = useCallback(() => {
     if (!manualName.trim()) return;
@@ -239,88 +72,10 @@ export default function MealPickerSheet({
   }, [manualName, slotId, date, defaultServing, onSelectMeal]);
 
   const resetAndClose = useCallback(() => {
-    setSearch('');
-    setMode('browse');
+    setMode('choose');
     setManualName('');
     onClose();
   }, [onClose]);
-
-  const renderRow = useCallback(
-    ({ item }: { item: ListRow }) => {
-      if (item._type === 'actions') {
-        return (
-          <View style={styles.actionCardsRow} testID="action-buttons">
-            <TouchableOpacity
-              style={styles.actionCard}
-              onPress={onCreateNewRecipe}
-              testID="create-recipe-btn"
-              activeOpacity={0.82}
-            >
-              <View style={styles.actionCardIconCircle}>
-                <Ionicons name="sparkles-outline" size={18} color="#7B68CC" />
-              </View>
-              <Text style={styles.actionCardTitle}>Add with Recipe</Text>
-              <Text style={styles.actionCardSubtitle}>URL, camera, YouTube & more</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionCard}
-              onPress={() => setMode('manual')}
-              testID="add-without-recipe-btn"
-              activeOpacity={0.82}
-            >
-              <View style={styles.actionCardIconCircle}>
-                <Ionicons name="bookmark-outline" size={18} color="#7B68CC" />
-              </View>
-              <Text style={styles.actionCardTitle}>Add Without Recipe</Text>
-              <Text style={styles.actionCardSubtitle}>Just a name — add the recipe later</Text>
-            </TouchableOpacity>
-          </View>
-        );
-      }
-
-      if (item._type === 'section') {
-        return (
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              {item.title === 'Add from Favourites' ? (
-                <Heart size={13} color={Colors.primary} strokeWidth={2.5} fill={Colors.primary} />
-              ) : (
-                <Star size={13} color="#F59E0B" strokeWidth={2.5} fill="#F59E0B" />
-              )}
-              <Text style={styles.sectionTitle}>{item.title}</Text>
-            </View>
-            <View style={styles.sectionRightRow}>
-              <View style={styles.countPill}>
-                <Text style={styles.countPillText}>{item.count}</Text>
-              </View>
-              {!search.trim() && (
-                <Text style={styles.sectionPill}>{slotCategoryLabel}</Text>
-              )}
-            </View>
-          </View>
-        );
-      }
-
-      if (item._type === 'section_empty') {
-        return (
-          <View style={styles.sectionEmpty}>
-            <Text style={styles.sectionEmptyText}>{item.message}</Text>
-          </View>
-        );
-      }
-
-      return <PickerMealRow item={item.item} onPress={() => handleSelectItem(item.item)} />;
-    },
-    [handleSelectItem, slotCategoryLabel, search, onCreateNewRecipe]
-  );
-
-  const keyExtractor = useCallback((item: ListRow, idx: number) => {
-    if (item._type === 'actions') return 'actions';
-    if (item._type === 'section') return `section_${item.title}`;
-    if (item._type === 'section_empty') return `empty_${idx}`;
-    return item.item.id;
-  }, []);
 
   return (
     <Modal
@@ -344,35 +99,101 @@ export default function MealPickerSheet({
           </TouchableOpacity>
         </View>
 
-        {mode === 'browse' ? (
-          <>
-            <View style={styles.searchWrap}>
-              <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search meals..."
-                placeholderTextColor={Colors.textSecondary}
-                value={search}
-                onChangeText={setSearch}
-                autoCapitalize="none"
-                testID="meal-search-input"
-              />
-              {search.length > 0 && (
-                <TouchableOpacity onPress={() => setSearch('')}>
-                  <X size={16} color={Colors.textSecondary} strokeWidth={2} />
-                </TouchableOpacity>
-              )}
+        {mode === 'choose' ? (
+          <ScrollView
+            style={styles.chooseScroll}
+            contentContainerStyle={styles.chooseScrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.browseCardsRow}>
+              <TouchableOpacity
+                style={styles.browseCardLeft}
+                activeOpacity={0.82}
+                onPress={() => { resetAndClose(); router.push('/(tabs)/favs'); }}
+                testID="browse-favs-btn"
+              >
+                <Heart size={22} color="#7B68CC" fill="#7B68CC" strokeWidth={2} />
+                <Text style={styles.browseCardTitle}>From My Favourites</Text>
+                <Text style={styles.browseCardSubtitle}>
+                  {favMeals.length > 0 ? `${favMeals.length} saved recipes` : 'Your saved recipes'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.browseCardRight}
+                activeOpacity={0.82}
+                onPress={() => { resetAndClose(); router.push('/(tabs)/discover'); }}
+                testID="browse-discover-btn"
+              >
+                <Ionicons name="compass-outline" size={22} color="#059669" />
+                <Text style={styles.browseCardTitle}>Try Something New</Text>
+                <Text style={styles.browseCardSubtitle}>
+                  {DISCOVER_MEALS.length} curated recipes
+                </Text>
+              </TouchableOpacity>
             </View>
 
-            <FlatList
-              data={listData}
-              renderItem={renderRow}
-              keyExtractor={keyExtractor}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            />
-          </>
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or create new</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View testID="option-rows">
+              <TouchableOpacity
+                style={styles.optionRow}
+                activeOpacity={0.82}
+                onPress={() => setMode('manual')}
+                testID="add-without-recipe-btn"
+              >
+                <View style={[styles.optionIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                  <Ionicons name="pencil-outline" size={16} color="#D97706" />
+                </View>
+                <View style={styles.optionTextBlock}>
+                  <Text style={styles.optionTitle}>Add without Recipe</Text>
+                  <Text style={styles.optionSubtitle}>Just a name - add steps later</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+              </TouchableOpacity>
+
+              <View style={styles.optionSeparator} />
+
+              <TouchableOpacity
+                style={styles.optionRow}
+                activeOpacity={0.82}
+                onPress={onCreateNewRecipe}
+                testID="add-with-recipe-btn"
+              >
+                <View style={[styles.optionIconCircle, { backgroundColor: '#EDE9FE' }]}>
+                  <Ionicons name="sparkles-outline" size={16} color="#7B68CC" />
+                </View>
+                <View style={styles.optionTextBlock}>
+                  <Text style={styles.optionTitle}>Add with Recipe</Text>
+                  <Text style={styles.optionSubtitle}>URL, camera, YouTube & more</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+              </TouchableOpacity>
+
+              <View style={styles.optionSeparator} />
+
+              <TouchableOpacity
+                style={styles.optionRow}
+                activeOpacity={0.82}
+                onPress={onCreateNewRecipe}
+                testID="add-delivery-btn"
+              >
+                <View style={[styles.optionIconCircle, { backgroundColor: '#DBEAFE' }]}>
+                  <Ionicons name="bicycle-outline" size={16} color="#2563EB" />
+                </View>
+                <View style={styles.optionTextBlock}>
+                  <Text style={styles.optionTitle}>Add from Delivery App</Text>
+                  <Text style={styles.optionSubtitle}>Paste a delivery link</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         ) : (
           <View style={styles.manualForm}>
             <View style={styles.manualIconWrap}>
@@ -399,7 +220,7 @@ export default function MealPickerSheet({
                 onPress={handleAddManual}
                 disabled={!manualName.trim()}
               />
-              <TouchableOpacity onPress={() => setMode('browse')} style={styles.backLink}>
+              <TouchableOpacity onPress={() => setMode('choose')} style={styles.backLink}>
                 <Text style={styles.backLinkText}>Browse meals instead</Text>
               </TouchableOpacity>
             </View>
@@ -409,76 +230,6 @@ export default function MealPickerSheet({
     </Modal>
   );
 }
-
-interface PickerMealRowProps {
-  item: PickerItem;
-  onPress: () => void;
-}
-
-const PickerMealRow = React.memo(function PickerMealRow({ item, onPress }: PickerMealRowProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const hasTime = item.cookTimeMinutes != null;
-  const hasCalories = item.calories != null;
-  const showMetaRow = hasTime || hasCalories;
-
-  return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <TouchableOpacity
-        style={styles.mealItem}
-        onPress={onPress}
-        onPressIn={() => {
-          Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
-        }}
-        onPressOut={() => {
-          Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
-        }}
-        activeOpacity={0.85}
-      >
-        {item.image_url ? (
-          <Image source={{ uri: item.image_url }} style={styles.mealItemImage} contentFit="cover" />
-        ) : (
-          <View style={[styles.mealItemImage, styles.mealItemImagePlaceholder]}>
-            <Utensils size={22} color={Colors.textSecondary} strokeWidth={1.5} />
-          </View>
-        )}
-        <View style={styles.mealItemInfo}>
-          <View style={styles.mealItemTopRow}>
-            <Text style={styles.mealItemName} numberOfLines={2}>{item.name}</Text>
-            {item.source === 'fav' && (
-              <Heart size={12} color={Colors.primary} strokeWidth={2.5} fill={Colors.primary} />
-            )}
-          </View>
-          {showMetaRow && (
-            <View style={styles.metaRow}>
-              {hasTime && (
-                <>
-                  <Ionicons name="time-outline" size={11} color="#8B7EA8" />
-                  <Text style={styles.metaTime}>{item.cookTimeMinutes} min</Text>
-                </>
-              )}
-              {hasTime && (
-                <Text style={styles.metaDot}>·</Text>
-              )}
-              {hasCalories ? (
-                <Text style={styles.metaCalories}>~{item.calories} cal</Text>
-              ) : (
-                <Text style={styles.metaCalUnavailable}>cal unavailable</Text>
-              )}
-            </View>
-          )}
-          {item.badge && (
-            <View style={[styles.badge, item.source === 'fav' && styles.badgeFav]}>
-              <Text style={[styles.badgeText, item.source === 'fav' && styles.badgeTextFav]}>
-                {item.badge}
-              </Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
 
 const styles = StyleSheet.create({
   container: {
@@ -525,198 +276,91 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.button,
-    borderWidth: 1,
-    borderColor: Colors.surface,
-    marginHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 4,
-    paddingHorizontal: 12,
-    gap: 8,
-  },
-  searchInput: {
+  chooseScroll: {
     flex: 1,
-    fontSize: 15,
-    color: Colors.text,
-    paddingVertical: 10,
   },
-  listContent: {
+  chooseScrollContent: {
     paddingBottom: 48,
   },
-  actionCardsRow: {
+  browseCardsRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginHorizontal: 20,
-    marginTop: 8,
+    gap: 12,
+    paddingHorizontal: 16,
+    marginTop: 16,
     marginBottom: 4,
   },
-  actionCard: {
+  browseCardLeft: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    gap: 8,
+    backgroundColor: '#EDE9FE',
+    borderRadius: 14,
+    padding: 14,
   },
-  actionCardIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#F0EEF9',
-    alignItems: 'center',
-    justifyContent: 'center',
+  browseCardRight: {
+    flex: 1,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 14,
+    padding: 14,
   },
-  actionCardTitle: {
+  browseCardTitle: {
     fontSize: 13,
     fontWeight: '700' as const,
     color: '#111827',
-    textAlign: 'center' as const,
+    marginTop: 8,
   },
-  actionCardSubtitle: {
+  browseCardSubtitle: {
     fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  dividerText: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: '#9CA3AF',
+    paddingHorizontal: 12,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  optionSeparator: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginLeft: 66,
+  },
+  optionIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionTextBlock: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#111827',
+  },
+  optionSubtitle: {
+    fontSize: 12,
     fontWeight: '400' as const,
     color: '#6B7280',
-    textAlign: 'center' as const,
-    lineHeight: 15,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 8,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  sectionRightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  countPill: {
-    backgroundColor: '#F0EEF9',
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  countPillText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: '#7B68CC',
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.6,
-  },
-  sectionPill: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-    backgroundColor: Colors.primaryLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  sectionEmpty: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  sectionEmptyText: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    textAlign: 'center' as const,
-  },
-  mealItem: {
-    flexDirection: 'row',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.card,
-    marginHorizontal: 20,
-    marginBottom: 8,
-    overflow: 'hidden',
-    ...Shadows.card,
-  },
-  mealItemImage: {
-    width: 84,
-    height: 84,
-  },
-  mealItemImagePlaceholder: {
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mealItemInfo: {
-    flex: 1,
-    padding: 10,
-    justifyContent: 'center',
-  },
-  mealItemTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 6,
-    marginBottom: 3,
-  },
-  mealItemName: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.text,
-    lineHeight: 19,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 5,
-  },
-  metaTime: {
-    fontSize: 11,
-    color: '#8B7EA8',
-  },
-  metaDot: {
-    fontSize: 10,
-    color: '#D1D5DB',
-  },
-  metaCalories: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: '#F97316',
-  },
-  metaCalUnavailable: {
-    fontSize: 11,
-    color: '#D1D5DB',
-  },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.surface,
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  badgeFav: {
-    backgroundColor: Colors.primaryLight,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  badgeTextFav: {
-    color: Colors.primary,
+    marginTop: 1,
   },
   manualForm: {
     flex: 1,
