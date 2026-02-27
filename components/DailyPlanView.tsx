@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback } from 'react';
+import React, { useMemo, useRef, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Animated,
   PanResponder,
   Alert,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
@@ -127,6 +128,8 @@ export default function DailyPlanView({
         })}
       </View>
 
+      <ActionStrip onSmartPlan={onSmartPlan} onClearDay={onClearDay} />
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -154,6 +157,40 @@ export default function DailyPlanView({
     </View>
   );
 }
+
+interface ActionStripProps {
+  onSmartPlan: () => void;
+  onClearDay: () => void;
+}
+
+const ActionStrip = React.memo(function ActionStrip({ onSmartPlan, onClearDay }: ActionStripProps) {
+  const smartScale = useRef(new Animated.Value(1)).current;
+
+  const handleSmartPressIn = useCallback(() => {
+    Animated.timing(smartScale, { toValue: 0.97, duration: 120, useNativeDriver: true }).start();
+  }, [smartScale]);
+
+  const handleSmartPressOut = useCallback(() => {
+    Animated.timing(smartScale, { toValue: 1, duration: 120, useNativeDriver: true }).start();
+  }, [smartScale]);
+
+  return (
+    <View style={styles.actionStrip}>
+      <Pressable
+        onPressIn={handleSmartPressIn}
+        onPressOut={handleSmartPressOut}
+        onPress={onSmartPlan}
+      >
+        <Animated.View style={[styles.smartFillBtn, { transform: [{ scale: smartScale }] }]}>
+          <Text style={styles.smartFillLabel}>✨ Smart Fill</Text>
+        </Animated.View>
+      </Pressable>
+      <TouchableOpacity onPress={onClearDay} style={styles.clearDayBtn} activeOpacity={0.7}>
+        <Text style={styles.clearDayLabel}>Clear day</Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 interface DailySlotCardProps {
   slot: MealSlot;
@@ -600,5 +637,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500' as const,
     color: Colors.primary,
+  },
+  actionStrip: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  smartFillBtn: {
+    borderRadius: 9999,
+    backgroundColor: Colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  smartFillLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+  },
+  clearDayBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  clearDayLabel: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
   },
 });
