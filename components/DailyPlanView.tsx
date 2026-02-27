@@ -15,11 +15,10 @@ import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { BorderRadius } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
-import { formatDateKey, getDateLabel, isToday } from '@/utils/dates';
+import { formatDateKey, getDayName, getWeekLabel } from '@/utils/dates';
 import ServingStepper from './ServingStepper';
 import Card from './Card';
 
-const DATE_SWIPE_THRESHOLD = 50;
 const SWIPE_DELETE_WIDTH = 72;
 
 interface DailyPlanViewProps {
@@ -50,64 +49,77 @@ export default function DailyPlanView({
   isFavByName,
 }: DailyPlanViewProps) {
   const dateKey = useMemo(() => formatDateKey(currentDate), [currentDate]);
-  const dateLabel = useMemo(() => getDateLabel(currentDate), [currentDate]);
-  const today = useMemo(() => isToday(currentDate), [currentDate]);
 
-  const handlePrev = useCallback(() => {
+  const weekDates = useMemo(() => {
+    const day = currentDate.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const monday = new Date(currentDate);
+    monday.setDate(currentDate.getDate() + diff);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    });
+  }, [currentDate]);
+
+  const weekLabel = useMemo(() => getWeekLabel(weekDates), [weekDates]);
+
+  const handlePrevWeek = useCallback(() => {
     const prev = new Date(currentDate);
-    prev.setDate(prev.getDate() - 1);
+    prev.setDate(prev.getDate() - 7);
     onDateChange(prev);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [currentDate, onDateChange]);
 
-  const handleNext = useCallback(() => {
+  const handleNextWeek = useCallback(() => {
     const next = new Date(currentDate);
-    next.setDate(next.getDate() + 1);
+    next.setDate(next.getDate() + 7);
     onDateChange(next);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [currentDate, onDateChange]);
 
-  const handlePrevRef = useRef(handlePrev);
-  handlePrevRef.current = handlePrev;
-  const handleNextRef = useRef(handleNext);
-  handleNextRef.current = handleNext;
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gs) =>
-        Math.abs(gs.dx) > Math.abs(gs.dy) && Math.abs(gs.dx) > 12,
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dx < -DATE_SWIPE_THRESHOLD) {
-          handleNextRef.current();
-        } else if (gs.dx > DATE_SWIPE_THRESHOLD) {
-          handlePrevRef.current();
-        }
-      },
-    })
-  ).current;
+  const todayKey = useMemo(() => {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return formatDateKey(t);
+  }, []);
 
   return (
-    <View style={styles.container} {...panResponder.panHandlers}>
-      <View style={styles.dayNav}>
+    <View style={styles.container}>
+      <View style={styles.weekNavRow}>
         <TouchableOpacity
-          onPress={handlePrev}
-          style={styles.navBtn}
+          onPress={handlePrevWeek}
           hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
         >
-          <ChevronLeft size={20} color={Colors.primary} strokeWidth={2.5} />
+          <ChevronLeft size={16} color={Colors.textSecondary} strokeWidth={2} />
         </TouchableOpacity>
-        <View style={styles.dateLabelWrap}>
-          {today && <View style={styles.todayDot} />}
-          <Text style={[styles.dateLabel, today && styles.dateLabelToday]}>{dateLabel}</Text>
-        </View>
+        <Text style={styles.weekLabel}>{weekLabel}</Text>
         <TouchableOpacity
-          onPress={handleNext}
-          style={styles.navBtn}
+          onPress={handleNextWeek}
           hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
         >
-          <ChevronRight size={20} color={Colors.primary} strokeWidth={2.5} />
+          <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.datePillRow}>
+        {weekDates.map((date) => {
+          const key = formatDateKey(date);
+          const isSelected = key === dateKey;
+          const isToday = key === todayKey;
+          return (
+            <DateCircle
+              key={key}
+              date={date}
+              isSelected={isSelected}
+              isToday={isToday}
+              onPress={() => {
+                onDateChange(date);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            />
+          );
+        })}
       </View>
 
       <ScrollView
@@ -353,41 +365,96 @@ const MealItemRow = React.memo(function MealItemRow({
   );
 });
 
+interface DateCircleProps {
+  date: Date;
+  isSelected: boolean;
+  isToday: boolean;
+  onPress: () => void;
+}
+
+const DateCircle = React.memo(function DateCircle({ date, isSelected, isToday, onPress }: DateCircleProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(() => {
+    Animated.timing(scaleAnim, { toValue: 0.9, duration: 150, useNativeDriver: true }).start();
+  }, [scaleAnim]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+  }, [scaleAnim]);
+
+  const dayAbbr = getDayName(date, true).slice(0, 3).toUpperCase();
+  const dateNum = date.getDate();
+
+  const circleStyle = isSelected
+    ? { backgroundColor: Colors.primary, borderWidth: 0 }
+    : isToday
+    ? { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: Colors.primary }
+    : { backgroundColor: 'transparent', borderWidth: 0 };
+
+  const numColor = isSelected ? Colors.white : isToday ? Colors.primary : Colors.text;
+  const dayColor = isSelected || isToday ? Colors.primary : Colors.textSecondary;
+
+  return (
+    <TouchableOpacity
+      style={styles.dateCircleBtn}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={1}
+    >
+      <Animated.View style={{ alignItems: 'center', transform: [{ scale: scaleAnim }] }}>
+        <Text style={[styles.dayAbbr, { color: dayColor }]}>{dayAbbr}</Text>
+        <View style={[styles.dateCircle, circleStyle]}>
+          <Text style={[styles.dateNum, { color: numColor }]}>{dateNum}</Text>
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+});
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  dayNav: {
+  weekNavRow: {
+    height: 28,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
     gap: 12,
   },
-  navBtn: {
-    padding: 4,
+  weekLabel: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
   },
-  dateLabelWrap: {
+  datePillRow: {
+    height: 64,
+    paddingHorizontal: 8,
     flexDirection: 'row',
+  },
+  dateCircleBtn: {
+    flex: 1,
     alignItems: 'center',
-    gap: 6,
-    minWidth: 200,
     justifyContent: 'center',
   },
-  todayDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: Colors.primary,
+  dayAbbr: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    marginBottom: 4,
   },
-  dateLabel: {
-    fontSize: 16,
+  dateCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateNum: {
+    fontSize: 17,
     fontWeight: '700' as const,
-    color: Colors.text,
-    textAlign: 'center' as const,
-  },
-  dateLabelToday: {
-    color: Colors.primary,
   },
   scroll: {
     flex: 1,
