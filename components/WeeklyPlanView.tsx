@@ -21,7 +21,7 @@ import {
 
 const SWIPE_THRESHOLD = 48;
 const DAY_LABEL_W = 60;
-const CELL_H = 26;
+const CELL_H = 54;
 const HEADER_CELL_H = 32;
 
 interface WeeklyPlanViewProps {
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 2,
     paddingHorizontal: 12,
-  },
+  } as const,
   gridRowToday: {
     backgroundColor: Colors.primaryLight,
   },
