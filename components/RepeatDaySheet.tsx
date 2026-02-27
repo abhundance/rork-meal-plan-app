@@ -1,0 +1,239 @@
+import React, { useMemo, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  StyleSheet,
+  Animated,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import Colors from '@/constants/colors';
+import { formatDateKey } from '@/utils/dates';
+
+interface RepeatDaySheetProps {
+  visible: boolean;
+  currentDate: Date;
+  getMealsForDate: (dateKey: string) => any[];
+  onSelect: (sourceDateKey: string) => void;
+  onClose: () => void;
+}
+
+interface DayItem {
+  dateKey: string;
+  relativeLabel: string;
+  fullLabel: string;
+  mealCount: number;
+}
+
+function getRelativeLabel(date: Date, dayDiff: number): string {
+  if (dayDiff === 1) return 'Yesterday';
+  if (dayDiff <= 6) {
+    return 'Last ' + date.toLocaleDateString('en-US', { weekday: 'long' });
+  }
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+export default function RepeatDaySheet({
+  visible,
+  currentDate,
+  getMealsForDate,
+  onSelect,
+  onClose,
+}: RepeatDaySheetProps) {
+  const items = useMemo<DayItem[]>(() => {
+    const result: DayItem[] = [];
+    for (let i = 1; i <= 30; i++) {
+      const d = new Date(currentDate);
+      d.setDate(d.getDate() - i);
+      const dateKey = formatDateKey(d);
+      const meals = getMealsForDate(dateKey);
+      if (meals.length > 0) {
+        result.push({
+          dateKey,
+          relativeLabel: getRelativeLabel(d, i),
+          fullLabel: d.toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'short',
+            day: 'numeric',
+          }),
+          mealCount: meals.length,
+        });
+      }
+    }
+    return result;
+  }, [currentDate, getMealsForDate]);
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <View style={styles.container}>
+        <View style={styles.handle} />
+
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Repeat a previous day</Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={8}>
+            <Ionicons name="close" size={22} color={Colors.text} />
+          </TouchableOpacity>
+        </View>
+
+        {items.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="calendar-outline" size={48} color={Colors.textSecondary} />
+            <Text style={styles.emptyText}>No meals found in the last 30 days</Text>
+          </View>
+        ) : (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {items.map((item) => (
+              <DayRow
+                key={item.dateKey}
+                item={item}
+                onPress={() => {
+                  onSelect(item.dateKey);
+                  onClose();
+                }}
+              />
+            ))}
+          </ScrollView>
+        )}
+      </View>
+    </Modal>
+  );
+}
+
+interface DayRowProps {
+  item: DayItem;
+  onPress: () => void;
+}
+
+function DayRow({ item, onPress }: DayRowProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.98,
+      useNativeDriver: true,
+      speed: 30,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 30,
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <TouchableOpacity
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.85}
+        style={styles.row}
+      >
+        <View style={styles.rowLeft}>
+          <Text style={styles.relativeLabel}>{item.relativeLabel}</Text>
+          <Text style={styles.fullLabel}>{item.fullLabel}</Text>
+        </View>
+        <View style={styles.mealCountPill}>
+          <Text style={styles.mealCountText}>{item.mealCount} meals</Text>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 4,
+    paddingBottom: 32,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  rowLeft: {
+    flex: 1,
+    marginRight: 12,
+  },
+  relativeLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  fullLabel: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  mealCountPill: {
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 9999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  mealCountText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 60,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    marginTop: 12,
+  },
+});
