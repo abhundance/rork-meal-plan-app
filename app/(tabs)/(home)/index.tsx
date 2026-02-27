@@ -239,6 +239,11 @@ export default function MealPlanScreen() {
     }
   }, [weekOffset, getMealsForWeek, addMeals]);
 
+  const handleDayPress = useCallback((d: Date) => {
+    setCurrentDate(d);
+    setViewMode('day');
+  }, [setViewMode]);
+
   const handleSmartPlan = useCallback(() => {
     const weekDates = getWeekDates(weekOffset);
     const defaultServing = familySettings.default_serving_size;
@@ -358,7 +363,7 @@ export default function MealPlanScreen() {
               weekOffset={weekOffset}
               onWeekChange={setWeekOffset}
               getMealsForSlot={getMealsForSlot}
-              onDayPress={useCallback((d: Date) => { setCurrentDate(d); setViewMode('day'); }, [setViewMode])}
+              onDayPress={handleDayPress}
               onCopyLastWeek={handleCopyLastWeek}
               onSmartPlan={handleSmartPlan}
             />
