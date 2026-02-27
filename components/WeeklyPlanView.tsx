@@ -31,6 +31,7 @@ interface WeeklyPlanViewProps {
   onDayPress: (date: Date) => void;
   onCopyLastWeek: () => void;
   onSmartPlan: () => void;
+  onClearWeek: () => void;
 }
 
 export default function WeeklyPlanView({
@@ -41,6 +42,7 @@ export default function WeeklyPlanView({
   onDayPress,
   onCopyLastWeek,
   onSmartPlan,
+  onClearWeek,
 }: WeeklyPlanViewProps) {
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const weekLabel = useMemo(() => getWeekLabel(weekDates), [weekDates]);

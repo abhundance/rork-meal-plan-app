@@ -34,6 +34,8 @@ interface DailyPlanViewProps {
   onAddItemToSlot: (date: string, slotId: string, slotName: string) => void;
   onToggleFav: (meal: PlannedMeal) => void;
   isFavByName: (name: string) => boolean;
+  onSmartPlan: () => void;
+  onClearDay: () => void;
 }
 
 export default function DailyPlanView({
@@ -48,6 +50,8 @@ export default function DailyPlanView({
   onAddItemToSlot,
   onToggleFav,
   isFavByName,
+  onSmartPlan,
+  onClearDay,
 }: DailyPlanViewProps) {
   const dateKey = useMemo(() => formatDateKey(currentDate), [currentDate]);
 

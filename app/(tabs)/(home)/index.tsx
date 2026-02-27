@@ -67,6 +67,8 @@ export default function MealPlanScreen() {
     getMealsForSlot,
     getMealsForWeek,
     meals,
+    clearDay,
+    clearWeek,
   } = useMealPlan();
   const { meals: favMeals, addFav, removeFav, isFavByName } = useFavs();
 
@@ -282,6 +284,8 @@ export default function MealPlanScreen() {
     for (const date of weekDates) {
       const dateKey = formatDateKey(date);
       for (const slot of sortedSlots) {
+        const existing = getMealsForSlot(dateKey, slot.slot_id);
+        if (existing.length > 0) continue;
         const slotCat = getSlotCategory(slot.name);
         const serving = slot.serving_size_override ?? defaultServing;
 
@@ -314,7 +318,108 @@ export default function MealPlanScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       console.log('[MealPlan] Smart plan generated', newMeals.length, 'meals');
     }
-  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, addMeals]);
+  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, addMeals, getMealsForSlot]);
+
+  const handleClearWeek = useCallback(() => {
+    Alert.alert('Clear this week?', 'All meals for this week will be removed.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: () => {
+          clearWeek(weekOffset);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        },
+      },
+    ]);
+  }, [clearWeek, weekOffset]);
+
+  const handleClearDay = useCallback(() => {
+    Alert.alert('Clear this day?', 'All meals for today will be removed.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: () => {
+          clearDay(formatDateKey(currentDate));
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        },
+      },
+    ]);
+  }, [clearDay, currentDate]);
+
+  const handleSmartPlanDay = useCallback(() => {
+    const defaultServing = familySettings.default_serving_size;
+    const favNames = new Set(favMeals.map((f) => f.name.toLowerCase()));
+
+    type PoolEntry = {
+      name: string;
+      image_url?: string;
+      ingredients: PlannedMeal['ingredients'];
+      recipe_serving_size: number;
+    };
+
+    const pool: PoolEntry[] = [
+      ...favMeals.map((f) => ({
+        name: f.name,
+        image_url: f.image_url,
+        ingredients: f.ingredients,
+        recipe_serving_size: f.recipe_serving_size,
+      })),
+      ...DISCOVER_MEALS.filter((d) => !favNames.has(d.name.toLowerCase())).map((d) => ({
+        name: d.name,
+        image_url: d.image_url,
+        ingredients: d.ingredients,
+        recipe_serving_size: d.recipe_serving_size,
+      })),
+    ];
+
+    if (pool.length === 0) {
+      Alert.alert('No meals available', 'Add meals to your Favourites or explore Discover to use Smart Plan.');
+      return;
+    }
+
+    const used = new Set<string>();
+    const newMeals: PlannedMeal[] = [];
+
+    for (const date of [currentDate]) {
+      const dateKey = formatDateKey(date);
+      for (const slot of sortedSlots) {
+        const existing = getMealsForSlot(dateKey, slot.slot_id);
+        if (existing.length > 0) continue;
+        const slotCat = getSlotCategory(slot.name);
+        const serving = slot.serving_size_override ?? defaultServing;
+
+        const catMatches = pool.filter(
+          (m) => getMealCategoryByName(m.name) === slotCat && !used.has(m.name.toLowerCase())
+        );
+        const fallback = pool.filter((m) => !used.has(m.name.toLowerCase()));
+        const candidates = catMatches.length > 0 ? catMatches : fallback;
+
+        if (candidates.length === 0) continue;
+
+        const picked = candidates[Math.floor(Math.random() * candidates.length)];
+        used.add(picked.name.toLowerCase());
+
+        newMeals.push({
+          id: `meal_${Date.now()}_${newMeals.length}_${Math.random().toString(36).slice(2, 7)}`,
+          slot_id: slot.slot_id,
+          date: dateKey,
+          meal_name: picked.name,
+          meal_image_url: picked.image_url,
+          serving_size: serving,
+          ingredients: picked.ingredients,
+          recipe_serving_size: picked.recipe_serving_size,
+        });
+      }
+    }
+
+    if (newMeals.length > 0) {
+      addMeals(newMeals);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      console.log('[MealPlan] Smart plan day generated', newMeals.length, 'meals');
+    }
+  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, addMeals, getMealsForSlot]);
 
   if (isLoading) {
     return (
@@ -366,6 +471,7 @@ export default function MealPlanScreen() {
               onDayPress={handleDayPress}
               onCopyLastWeek={handleCopyLastWeek}
               onSmartPlan={handleSmartPlan}
+              onClearWeek={handleClearWeek}
             />
           )}
         </ScrollView>
@@ -382,6 +488,8 @@ export default function MealPlanScreen() {
           onAddItemToSlot={handleAddItemToSlot}
           onToggleFav={handleToggleFav}
           isFavByName={isFavByName}
+          onSmartPlan={handleSmartPlanDay}
+          onClearDay={handleClearDay}
         />
       )}
 
