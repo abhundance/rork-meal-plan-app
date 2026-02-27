@@ -9,8 +9,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
-import { X, Utensils, Heart } from 'lucide-react-native';
+import { X, Utensils, Heart, Search } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
@@ -48,6 +49,7 @@ export default function MealPickerSheet({
   const [manualName, setManualName] = useState<string>('');
   const [deliveryName, setDeliveryName] = useState<string>('');
   const [deliveryUrl, setDeliveryUrl] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const { meals: favMeals } = useFavs();
   const router = useRouter();
 
@@ -58,6 +60,17 @@ export default function MealPickerSheet({
       month: 'short',
     });
   }, [date]);
+
+  const filteredFavMeals = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return favMeals.filter(
+      (m) =>
+        m.name.toLowerCase().includes(q) ||
+        (m.cuisine && m.cuisine.toLowerCase().includes(q)) ||
+        m.ingredients.some((i) => i.name.toLowerCase().includes(q))
+    );
+  }, [searchQuery, favMeals]);
 
   const handleAddManual = useCallback(() => {
     if (!manualName.trim()) return;
@@ -80,6 +93,7 @@ export default function MealPickerSheet({
     setManualName('');
     setDeliveryName('');
     setDeliveryUrl('');
+    setSearchQuery('');
     onClose();
   }, [onClose]);
 
@@ -101,6 +115,22 @@ export default function MealPickerSheet({
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     resetAndClose();
   }, [deliveryName, deliveryUrl, slotId, date, defaultServing, onSelectMeal, resetAndClose]);
+
+  const handleSelectFavMeal = useCallback((meal: import('@/types').FavMeal) => {
+    const planned: import('@/types').PlannedMeal = {
+      id: 'meal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      slot_id: slotId,
+      date,
+      meal_name: meal.name,
+      meal_image_url: meal.image_url,
+      serving_size: defaultServing,
+      ingredients: meal.ingredients ?? [],
+      recipe_serving_size: meal.recipe_serving_size ?? defaultServing,
+    };
+    onSelectMeal(planned);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    resetAndClose();
+  }, [slotId, date, defaultServing, onSelectMeal, resetAndClose]);
 
   return (
     <Modal
@@ -199,100 +229,171 @@ export default function MealPickerSheet({
             </TouchableOpacity>
           </ScrollView>
         ) : mode === 'choose' ? (
-          <ScrollView
-            style={styles.chooseScroll}
-            contentContainerStyle={styles.chooseScrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.browseCardsRow}>
-              <TouchableOpacity
-                style={styles.browseCardLeft}
-                activeOpacity={0.82}
-                onPress={() => { resetAndClose(); router.push('/(tabs)/favs'); }}
-                testID="browse-favs-btn"
-              >
-                <Heart size={22} color="#7B68CC" fill="#7B68CC" strokeWidth={2} />
-                <Text style={styles.browseCardTitle}>From My Favourites</Text>
-                <Text style={styles.browseCardSubtitle}>
-                  {favMeals.length > 0 ? `${favMeals.length} saved recipes` : 'Your saved recipes'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.browseCardRight}
-                activeOpacity={0.82}
-                onPress={() => { resetAndClose(); router.push('/(tabs)/discover'); }}
-                testID="browse-discover-btn"
-              >
-                <Ionicons name="compass-outline" size={22} color="#059669" />
-                <Text style={styles.browseCardTitle}>Try Something New</Text>
-                <Text style={styles.browseCardSubtitle}>
-                  {DISCOVER_MEALS.length} curated recipes
-                </Text>
-              </TouchableOpacity>
+          <>
+            <View style={styles.searchBar}>
+              <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search your saved meals..."
+                placeholderTextColor={Colors.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+                autoCapitalize="none"
+                autoCorrect={false}
+                testID="meal-picker-search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <X size={16} color={Colors.textSecondary} strokeWidth={2} />
+                </TouchableOpacity>
+              )}
             </View>
 
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or create new</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            <ScrollView
+              style={styles.chooseScroll}
+              contentContainerStyle={styles.chooseScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {searchQuery.trim().length > 0 ? (
+                <>
+                  <Text style={styles.searchSectionLabel}>FROM YOUR LIBRARY</Text>
+                  {filteredFavMeals.length === 0 ? (
+                    <View style={styles.searchEmptyState}>
+                      <Search size={36} color={Colors.textSecondary} strokeWidth={1.5} />
+                      <Text style={styles.searchEmptyText}>No saved meals match "{searchQuery}"</Text>
+                    </View>
+                  ) : (
+                    filteredFavMeals.map((meal, index) => (
+                      <TouchableOpacity
+                        key={meal.id}
+                        style={[styles.searchResultRow, index < filteredFavMeals.length - 1 && styles.searchResultRowBorder]}
+                        activeOpacity={0.82}
+                        onPress={() => handleSelectFavMeal(meal)}
+                        testID={'search-result-' + meal.id}
+                      >
+                        <View style={styles.searchResultImage}>
+                          {meal.image_url ? (
+                            <Image source={{ uri: meal.image_url }} style={{ width: 40, height: 40, borderRadius: 20 }} resizeMode="cover" />
+                          ) : (
+                            <Ionicons name="restaurant-outline" size={18} color={Colors.textSecondary} />
+                          )}
+                        </View>
+                        <View style={styles.searchResultText}>
+                          <Text style={styles.searchResultName} numberOfLines={1}>{meal.name}</Text>
+                          {(meal.cuisine || meal.meal_type) && (
+                            <Text style={styles.searchResultMeta} numberOfLines={1}>
+                              {meal.cuisine || (meal.meal_type === 'breakfast' ? 'Breakfast' : meal.meal_type === 'lunch_dinner' ? 'Lunch & Dinner' : 'Light Bites')}
+                            </Text>
+                          )}
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+                      </TouchableOpacity>
+                    ))
+                  )}
 
-            <View testID="option-rows">
-              <TouchableOpacity
-                style={styles.optionRow}
-                activeOpacity={0.82}
-                onPress={() => setMode('manual')}
-                testID="add-without-recipe-btn"
-              >
-                <View style={[styles.optionIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                  <Ionicons name="pencil-outline" size={16} color="#D97706" />
-                </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Add without Recipe</Text>
-                  <Text style={styles.optionSubtitle}>Just a name - add steps later</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
-              </TouchableOpacity>
+                  <Text style={[styles.searchSectionLabel, { marginTop: 28 }]}>SEARCH ONLINE</Text>
+                  <View style={styles.searchOnlineStub}>
+                    <View style={styles.searchResultImage}>
+                      <Ionicons name="globe-outline" size={18} color="#9CA3AF" />
+                    </View>
+                    <Text style={styles.searchOnlineText}>Spoonacular recipe search coming soon</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.browseCardsRow}>
+                    <TouchableOpacity
+                      style={styles.browseCardLeft}
+                      activeOpacity={0.82}
+                      onPress={() => { resetAndClose(); router.push('/(tabs)/favs'); }}
+                      testID="browse-favs-btn"
+                    >
+                      <Heart size={22} color="#7B68CC" fill="#7B68CC" strokeWidth={2} />
+                      <Text style={styles.browseCardTitle}>From My Favourites</Text>
+                      <Text style={styles.browseCardSubtitle}>
+                        {favMeals.length > 0 ? `${favMeals.length} saved recipes` : 'Your saved recipes'}
+                      </Text>
+                    </TouchableOpacity>
 
-              <View style={styles.optionSeparator} />
+                    <TouchableOpacity
+                      style={styles.browseCardRight}
+                      activeOpacity={0.82}
+                      onPress={() => { resetAndClose(); router.push('/(tabs)/discover'); }}
+                      testID="browse-discover-btn"
+                    >
+                      <Ionicons name="compass-outline" size={22} color="#059669" />
+                      <Text style={styles.browseCardTitle}>Try Something New</Text>
+                      <Text style={styles.browseCardSubtitle}>
+                        {DISCOVER_MEALS.length} curated recipes
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
 
-              <TouchableOpacity
-                style={styles.optionRow}
-                activeOpacity={0.82}
-                onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
-                testID="add-with-recipe-btn"
-              >
-                <View style={[styles.optionIconCircle, { backgroundColor: '#EDE9FE' }]}>
-                  <Ionicons name="sparkles-outline" size={16} color="#7B68CC" />
-                </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Add with Recipe</Text>
-                  <Text style={styles.optionSubtitle}>URL, camera, YouTube & more</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
-              </TouchableOpacity>
+                  <View style={styles.dividerRow}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>or create new</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
 
-              <View style={styles.optionSeparator} />
+                  <View testID="option-rows">
+                    <TouchableOpacity
+                      style={styles.optionRow}
+                      activeOpacity={0.82}
+                      onPress={() => setMode('manual')}
+                      testID="add-without-recipe-btn"
+                    >
+                      <View style={[styles.optionIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                        <Ionicons name="pencil-outline" size={16} color="#D97706" />
+                      </View>
+                      <View style={styles.optionTextBlock}>
+                        <Text style={styles.optionTitle}>Add without Recipe</Text>
+                        <Text style={styles.optionSubtitle}>Just a name - add steps later</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+                    </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.optionRow}
-                activeOpacity={0.82}
-                onPress={() => setMode('delivery')}
-                testID="add-delivery-btn"
-              >
-                <View style={[styles.optionIconCircle, { backgroundColor: '#DBEAFE' }]}>
-                  <Ionicons name="bicycle-outline" size={16} color="#2563EB" />
-                </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Add from Delivery App</Text>
-                  <Text style={styles.optionSubtitle}>Paste a delivery link</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+                    <View style={styles.optionSeparator} />
+
+                    <TouchableOpacity
+                      style={styles.optionRow}
+                      activeOpacity={0.82}
+                      onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
+                      testID="add-with-recipe-btn"
+                    >
+                      <View style={[styles.optionIconCircle, { backgroundColor: '#EDE9FE' }]}>
+                        <Ionicons name="sparkles-outline" size={16} color="#7B68CC" />
+                      </View>
+                      <View style={styles.optionTextBlock}>
+                        <Text style={styles.optionTitle}>Add with Recipe</Text>
+                        <Text style={styles.optionSubtitle}>URL, camera, YouTube & more</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+                    </TouchableOpacity>
+
+                    <View style={styles.optionSeparator} />
+
+                    <TouchableOpacity
+                      style={styles.optionRow}
+                      activeOpacity={0.82}
+                      onPress={() => setMode('delivery')}
+                      testID="add-delivery-btn"
+                    >
+                      <View style={[styles.optionIconCircle, { backgroundColor: '#DBEAFE' }]}>
+                        <Ionicons name="bicycle-outline" size={16} color="#2563EB" />
+                      </View>
+                      <View style={styles.optionTextBlock}>
+                        <Text style={styles.optionTitle}>Add from Delivery App</Text>
+                        <Text style={styles.optionSubtitle}>Paste a delivery link</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          </>
         ) : (
           <View style={styles.manualForm}>
             <View style={styles.manualIconWrap}>
@@ -583,5 +684,88 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: '#FFFFFF',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    marginTop: 4,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.text,
+    paddingVertical: 11,
+  },
+  searchSectionLabel: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#9CA3AF',
+    letterSpacing: 0.8,
+    marginHorizontal: 20,
+    marginBottom: 10,
+  },
+  searchResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  searchResultRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  searchResultImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  searchResultText: {
+    flex: 1,
+  },
+  searchResultName: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  searchResultMeta: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  searchEmptyState: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  searchEmptyText: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  searchOnlineStub: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  searchOnlineText: {
+    fontSize: 14,
+    color: '#9CA3AF',
   },
 });
