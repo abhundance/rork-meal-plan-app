@@ -6,7 +6,10 @@ import {
   ScrollView,
   StyleSheet,
   PanResponder,
+  Animated,
+  Pressable,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft, ChevronRight, Copy, Wand2, CalendarDays } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -63,6 +66,17 @@ export default function WeeklyPlanView({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [weekOffset, onWeekChange]);
 
+  const smartFillScale = useRef(new Animated.Value(1)).current;
+  const copyScale = useRef(new Animated.Value(1)).current;
+
+  const animatePressIn = useCallback((val: Animated.Value) => {
+    Animated.timing(val, { toValue: 0.97, duration: 120, useNativeDriver: true }).start();
+  }, []);
+
+  const animatePressOut = useCallback((val: Animated.Value) => {
+    Animated.timing(val, { toValue: 1, duration: 120, useNativeDriver: true }).start();
+  }, []);
+
   const handleWeekPrevRef = useRef(handleWeekPrev);
   handleWeekPrevRef.current = handleWeekPrev;
   const handleWeekNextRef = useRef(handleWeekNext);
@@ -110,7 +124,46 @@ export default function WeeklyPlanView({
           onSmartPlan={onSmartPlan}
         />
       ) : (
-        <View style={styles.gridContainer}>
+        <>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.actionStrip}
+            contentContainerStyle={styles.actionStripContent}
+          >
+            <Pressable
+              onPressIn={() => animatePressIn(smartFillScale)}
+              onPressOut={() => animatePressOut(smartFillScale)}
+              onPress={onSmartPlan}
+            >
+              <Animated.View
+                style={[styles.smartFillBtn, { transform: [{ scale: smartFillScale }] }]}
+              >
+                <Text style={styles.smartFillText}>✨ Smart Fill</Text>
+              </Animated.View>
+            </Pressable>
+
+            {weekOffset > 0 && (
+              <Pressable
+                onPressIn={() => animatePressIn(copyScale)}
+                onPressOut={() => animatePressOut(copyScale)}
+                onPress={onCopyLastWeek}
+              >
+                <Animated.View
+                  style={[styles.copyBtn, { transform: [{ scale: copyScale }] }]}
+                >
+                  <Ionicons name="copy-outline" size={13} color={Colors.primary} />
+                  <Text style={styles.copyText}>Copy</Text>
+                </Animated.View>
+              </Pressable>
+            )}
+
+            <TouchableOpacity onPress={onClearWeek} style={styles.clearBtn}>
+              <Text style={styles.clearText}>Clear week</Text>
+            </TouchableOpacity>
+          </ScrollView>
+
+          <View style={styles.gridContainer}>
           <View style={styles.gridHeader}>
             <View style={{ width: LEFT_CELL_W }} />
             {mealSlots.map((slot) => (
@@ -182,6 +235,7 @@ export default function WeeklyPlanView({
             })}
           </ScrollView>
         </View>
+        </>
       )}
     </View>
   );
@@ -269,6 +323,51 @@ const styles = StyleSheet.create({
     color: Colors.text,
     minWidth: 140,
     textAlign: 'center' as const,
+  },
+  actionStrip: {
+    height: 40,
+    marginBottom: 4,
+  },
+  actionStripContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+    alignItems: 'center',
+  },
+  smartFillBtn: {
+    borderRadius: 9999,
+    backgroundColor: Colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  smartFillText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.white,
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 9999,
+    backgroundColor: Colors.primaryLight,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    gap: 4,
+  },
+  copyText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+  clearBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  clearText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
   },
   gridContainer: {
     flex: 1,
