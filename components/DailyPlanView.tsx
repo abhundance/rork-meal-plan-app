@@ -37,6 +37,7 @@ interface DailyPlanViewProps {
   isFavByName: (name: string) => boolean;
   onSmartPlan: () => void;
   onClearDay: () => void;
+  onRepeatDay: () => void;
 }
 
 export default function DailyPlanView({
@@ -53,6 +54,7 @@ export default function DailyPlanView({
   isFavByName,
   onSmartPlan,
   onClearDay,
+  onRepeatDay,
 }: DailyPlanViewProps) {
   const dateKey = useMemo(() => formatDateKey(currentDate), [currentDate]);
 
@@ -128,7 +130,7 @@ export default function DailyPlanView({
         })}
       </View>
 
-      <ActionStrip onSmartPlan={onSmartPlan} onClearDay={onClearDay} />
+      <ActionStrip onSmartPlan={onSmartPlan} onClearDay={onClearDay} onRepeatDay={onRepeatDay} />
 
       <ScrollView
         style={styles.scroll}
@@ -161,9 +163,10 @@ export default function DailyPlanView({
 interface ActionStripProps {
   onSmartPlan: () => void;
   onClearDay: () => void;
+  onRepeatDay: () => void;
 }
 
-const ActionStrip = React.memo(function ActionStrip({ onSmartPlan, onClearDay }: ActionStripProps) {
+const ActionStrip = React.memo(function ActionStrip({ onSmartPlan, onClearDay, onRepeatDay }: ActionStripProps) {
   const smartScale = useRef(new Animated.Value(1)).current;
 
   const handleSmartPressIn = useCallback(() => {
@@ -185,6 +188,9 @@ const ActionStrip = React.memo(function ActionStrip({ onSmartPlan, onClearDay }:
           <Text style={styles.smartFillLabel}>✨ Smart Fill</Text>
         </Animated.View>
       </Pressable>
+      <TouchableOpacity onPress={onRepeatDay} style={styles.clearDayBtn} activeOpacity={0.7}>
+        <Text style={styles.clearDayLabel}>Repeat day</Text>
+      </TouchableOpacity>
       <TouchableOpacity onPress={onClearDay} style={styles.clearDayBtn} activeOpacity={0.7}>
         <Text style={styles.clearDayLabel}>Clear day</Text>
       </TouchableOpacity>

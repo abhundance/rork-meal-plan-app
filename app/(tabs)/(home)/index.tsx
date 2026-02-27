@@ -9,6 +9,8 @@ import SegmentedControl from '@/components/SegmentedControl';
 import WeeklyPlanView from '@/components/WeeklyPlanView';
 import DailyPlanView from '@/components/DailyPlanView';
 import MealPickerSheet from '@/components/MealPickerSheet';
+import RepeatWeekSheet from '@/components/RepeatWeekSheet';
+import RepeatDaySheet from '@/components/RepeatDaySheet';
 import EmptyState from '@/components/EmptyState';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useOnboarding } from '@/providers/OnboardingProvider';
@@ -66,6 +68,7 @@ export default function MealPlanScreen() {
     getMealForSlot,
     getMealsForSlot,
     getMealsForWeek,
+    getMealsForDate,
     meals,
     clearDay,
     clearWeek,
@@ -79,6 +82,8 @@ export default function MealPlanScreen() {
   const [pickerDate, setPickerDate] = useState<string>('');
   const [pickerSlotId, setPickerSlotId] = useState<string>('');
   const [pickerSlotName, setPickerSlotName] = useState<string>('');
+  const [repeatWeekVisible, setRepeatWeekVisible] = useState<boolean>(false);
+  const [repeatDayVisible, setRepeatDayVisible] = useState<boolean>(false);
 
   useEffect(() => {
     if (!onboardingLoading && !onboardingData.completed) {
@@ -213,33 +218,30 @@ export default function MealPlanScreen() {
     [familySettings.meal_slots]
   );
 
-  const handleCopyLastWeek = useCallback(() => {
-    const lastWeekMeals = getMealsForWeek(weekOffset - 1);
-    if (lastWeekMeals.length === 0) {
-      Alert.alert('Nothing to copy', 'The previous week has no planned meals.');
-      return;
-    }
+  const handleRepeatWeek = useCallback((sourceOffset: number) => {
+    const sourceMeals = getMealsForWeek(sourceOffset);
+    if (!sourceMeals.length) return;
     const currentWeekDates = getWeekDates(weekOffset);
-    const lastWeekDates = getWeekDates(weekOffset - 1);
+    const sourceWeekDates = getWeekDates(sourceOffset);
+    const mapped = sourceMeals.map(m => {
+      const srcIdx = sourceWeekDates.findIndex(d => formatDateKey(d) === m.date);
+      if (srcIdx === -1) return null;
+      return { ...m, id: Date.now().toString() + Math.random().toString(36).slice(2), date: formatDateKey(currentWeekDates[srcIdx]) };
+    }).filter(Boolean);
+    addMeals(mapped as any);
+  }, [getMealsForWeek, addMeals, weekOffset]);
 
-    const newMeals: PlannedMeal[] = [];
-    for (const m of lastWeekMeals) {
-      const lastWeekIdx = lastWeekDates.findIndex((d) => formatDateKey(d) === m.date);
-      if (lastWeekIdx >= 0 && lastWeekIdx < currentWeekDates.length) {
-        newMeals.push({
-          ...m,
-          id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          date: formatDateKey(currentWeekDates[lastWeekIdx]),
-        });
-      }
-    }
-
-    if (newMeals.length > 0) {
-      addMeals(newMeals);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      console.log('[MealPlan] Copied', newMeals.length, 'meals from last week');
-    }
-  }, [weekOffset, getMealsForWeek, addMeals]);
+  const handleRepeatDay = useCallback((sourceDateKey: string) => {
+    const sourceMeals = getMealsForDate(sourceDateKey);
+    if (!sourceMeals.length) return;
+    const targetDateKey = formatDateKey(currentDate);
+    const mapped = sourceMeals.map(m => ({
+      ...m,
+      id: Date.now().toString() + Math.random().toString(36).slice(2),
+      date: targetDateKey,
+    }));
+    addMeals(mapped as any);
+  }, [getMealsForDate, addMeals, currentDate]);
 
   const handleDayPress = useCallback((d: Date) => {
     setCurrentDate(d);
@@ -469,7 +471,7 @@ export default function MealPlanScreen() {
               onWeekChange={setWeekOffset}
               getMealsForSlot={getMealsForSlot}
               onDayPress={handleDayPress}
-              onCopyLastWeek={handleCopyLastWeek}
+              onRepeatWeek={() => setRepeatWeekVisible(true)}
               onSmartPlan={handleSmartPlan}
               onClearWeek={handleClearWeek}
             />
@@ -490,6 +492,7 @@ export default function MealPlanScreen() {
           isFavByName={isFavByName}
           onSmartPlan={handleSmartPlanDay}
           onClearDay={handleClearDay}
+          onRepeatDay={() => setRepeatDayVisible(true)}
         />
       )}
 
@@ -501,6 +504,20 @@ export default function MealPlanScreen() {
         slotId={pickerSlotId}
         slotName={pickerSlotName}
         defaultServing={familySettings.default_serving_size}
+      />
+      <RepeatWeekSheet
+        visible={repeatWeekVisible}
+        currentWeekOffset={weekOffset}
+        getMealsForWeek={getMealsForWeek}
+        onSelect={handleRepeatWeek}
+        onClose={() => setRepeatWeekVisible(false)}
+      />
+      <RepeatDaySheet
+        visible={repeatDayVisible}
+        currentDate={currentDate}
+        getMealsForDate={getMealsForDate}
+        onSelect={handleRepeatDay}
+        onClose={() => setRepeatDayVisible(false)}
       />
     </View>
   );

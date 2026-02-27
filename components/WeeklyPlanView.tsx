@@ -32,7 +32,7 @@ interface WeeklyPlanViewProps {
   onWeekChange: (offset: number) => void;
   getMealsForSlot: (date: string, slotId: string) => PlannedMeal[];
   onDayPress: (date: Date) => void;
-  onCopyLastWeek: () => void;
+  onRepeatWeek: () => void;
   onSmartPlan: () => void;
   onClearWeek: () => void;
 }
@@ -43,7 +43,7 @@ export default function WeeklyPlanView({
   onWeekChange,
   getMealsForSlot,
   onDayPress,
-  onCopyLastWeek,
+  onRepeatWeek,
   onSmartPlan,
   onClearWeek,
 }: WeeklyPlanViewProps) {
@@ -120,7 +120,7 @@ export default function WeeklyPlanView({
       {weekIsEmpty ? (
         <EmptyWeekState
           weekOffset={weekOffset}
-          onCopyLastWeek={onCopyLastWeek}
+          onRepeatWeek={onRepeatWeek}
           onSmartPlan={onSmartPlan}
         />
       ) : (
@@ -147,7 +147,7 @@ export default function WeeklyPlanView({
               <Pressable
                 onPressIn={() => animatePressIn(copyScale)}
                 onPressOut={() => animatePressOut(copyScale)}
-                onPress={onCopyLastWeek}
+                onPress={onRepeatWeek}
               >
                 <Animated.View
                   style={[styles.copyBtn, { transform: [{ scale: copyScale }] }]}
@@ -243,11 +243,11 @@ export default function WeeklyPlanView({
 
 interface EmptyWeekStateProps {
   weekOffset: number;
-  onCopyLastWeek: () => void;
+  onRepeatWeek: () => void;
   onSmartPlan: () => void;
 }
 
-function EmptyWeekState({ weekOffset, onCopyLastWeek, onSmartPlan }: EmptyWeekStateProps) {
+function EmptyWeekState({ weekOffset, onRepeatWeek, onSmartPlan }: EmptyWeekStateProps) {
   return (
     <View style={emptyStyles.container}>
       <View style={emptyStyles.iconWrap}>
@@ -260,7 +260,7 @@ function EmptyWeekState({ weekOffset, onCopyLastWeek, onSmartPlan }: EmptyWeekSt
         {weekOffset > 0 && (
           <TouchableOpacity
             style={emptyStyles.optionCard}
-            onPress={onCopyLastWeek}
+            onPress={onRepeatWeek}
             activeOpacity={0.8}
           >
             <View style={[emptyStyles.optionIcon, emptyStyles.optionIconCopy]}>
