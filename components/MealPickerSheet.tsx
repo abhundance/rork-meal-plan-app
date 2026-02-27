@@ -298,7 +298,7 @@ export default function MealPickerSheet({
                     <View style={styles.searchResultImage}>
                       <Ionicons name="globe-outline" size={18} color="#9CA3AF" />
                     </View>
-                    <Text style={styles.searchOnlineText}>Spoonacular recipe search coming soon</Text>
+                    <Text style={styles.searchOnlineText}>Search millions of recipes online — coming soon</Text>
                   </View>
                 </>
               ) : (
