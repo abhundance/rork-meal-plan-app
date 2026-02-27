@@ -237,7 +237,7 @@ export default function AddMealEntryScreen() {
         <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={Colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add a Meal</Text>
+        <Text style={styles.headerTitle}>Add a Recipe</Text>
         <View style={styles.backBtn} />
       </View>
 
