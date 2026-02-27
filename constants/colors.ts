@@ -1,3 +1,13 @@
+export const SlotColors = [
+  { bg: '#FEF3C7', text: '#92400E', dot: '#F59E0B' },
+  { bg: '#D1FAE5', text: '#065F46', dot: '#10B981' },
+  { bg: '#EDE9FE', text: '#4C1D95', dot: '#7B68CC' },
+  { bg: '#FFEDD5', text: '#7C2D12', dot: '#F97316' },
+  { bg: '#DBEAFE', text: '#1E3A8A', dot: '#3B82F6' },
+  { bg: '#FCE7F3', text: '#831843', dot: '#EC4899' },
+  { bg: '#CCFBF1', text: '#134E4A', dot: '#14B8A6' },
+];
+
 export default {
   primary: '#7B68CC',
   primaryLight: '#F0EEF9',

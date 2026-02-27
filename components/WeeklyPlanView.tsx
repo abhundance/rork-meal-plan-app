@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft, ChevronRight, Copy, Wand2, CalendarDays } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import Colors from '@/constants/colors';
+import Colors, { SlotColors } from '@/constants/colors';
 import { MealSlot, PlannedMeal } from '@/types';
 import {
   getWeekDates,
@@ -166,8 +166,9 @@ export default function WeeklyPlanView({
           <View style={styles.gridContainer}>
           <View style={styles.gridHeader}>
             <View style={{ width: LEFT_CELL_W }} />
-            {mealSlots.map((slot) => (
+            {mealSlots.map((slot, slotIdx) => (
               <View key={slot.slot_id} style={styles.slotHeaderCell}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: SlotColors[slotIdx % SlotColors.length].dot, alignSelf: 'center', marginBottom: 2 }} />
                 <Text style={styles.slotHeaderText} numberOfLines={1}>
                   {slot.name.toUpperCase()}
                 </Text>
@@ -204,7 +205,8 @@ export default function WeeklyPlanView({
                     </View>
                   </View>
 
-                  {mealSlots.map((slot) => {
+                  {mealSlots.map((slot, slotIdx) => {
+                    const slotColor = SlotColors[slotIdx % SlotColors.length];
                     const meals = getMealsForSlot(dateKey, slot.slot_id);
                     return (
                       <View key={slot.slot_id} style={styles.slotCell}>
@@ -215,10 +217,11 @@ export default function WeeklyPlanView({
                                 key={meal.id}
                                 style={[
                                   styles.mealPill,
+                                  { backgroundColor: slotColor.bg },
                                   mealIdx < meals.length - 1 && { marginBottom: 3 },
                                 ]}
                               >
-                                <Text style={styles.mealPillText} numberOfLines={1}>
+                                <Text style={[styles.mealPillText, { color: slotColor.text }]} numberOfLines={1}>
                                   {meal.meal_name}
                                 </Text>
                               </View>
