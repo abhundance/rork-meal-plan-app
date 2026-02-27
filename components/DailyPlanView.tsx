@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useCallback, useState } from 'react';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import {
   View,
   Text,
@@ -105,22 +106,15 @@ export default function DailyPlanView({
   const handleNextDayRef = useRef(handleNextDay);
   handleNextDayRef.current = handleNextDay;
 
-  const dayNavPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponderCapture: (_, gs) =>
-        Math.abs(gs.dx) > Math.abs(gs.dy) && Math.abs(gs.dx) > 100,
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dx < -100) {
-          handleNextDayRef.current();
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        } else if (gs.dx > 100) {
-          handlePrevDayRef.current();
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }
-      },
-    })
-  ).current;
+  const swipeGesture = useMemo(() => Gesture.Pan().activeOffsetX([-100, 100]).failOffsetY([-25, 25]).runOnJS(true).onEnd((e) => {
+    if (e.translationX < -100) {
+      handleNextDayRef.current();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else if (e.translationX > 100) {
+      handlePrevDayRef.current();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }), []);
 
   const todayKey = useMemo(() => {
     const t = new Date();
@@ -129,7 +123,8 @@ export default function DailyPlanView({
   }, []);
 
   return (
-    <View style={styles.container} {...dayNavPanResponder.panHandlers}>
+    <GestureDetector gesture={swipeGesture}>
+    <View style={styles.container}>
       <View style={styles.weekNavRow}>
         <TouchableOpacity
           onPress={handlePrevWeek}
@@ -193,6 +188,7 @@ export default function DailyPlanView({
         <View style={{ height: 20 }} />
       </ScrollView>
     </View>
+    </GestureDetector>
   );
 }
 
