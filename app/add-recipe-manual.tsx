@@ -597,14 +597,22 @@ export default function AddMealScreen() {
               <Ionicons name="clipboard-outline" size={20} color={Colors.primary} />
             </TouchableOpacity>
           </View>
-          {deliveryUrl.trim().length > 0 && (
-            <View style={styles.platformChip}>
-              <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
-              <Text style={styles.platformChipText}>
-                {getPlatformLabel(detectPlatformFromUrl(deliveryUrl.trim()))} detected
-              </Text>
-            </View>
-          )}
+          {deliveryUrl.trim().length > 0 && (() => {
+            const platform = detectPlatformFromUrl(deliveryUrl.trim());
+            return platform !== null ? (
+              <View style={styles.platformChip}>
+                <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
+                <Text style={styles.platformChipText}>
+                  {getPlatformLabel(platform)} detected
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.platformChip}>
+                <Ionicons name="link-outline" size={14} color="#6B7280" />
+                <Text style={[styles.platformChipText, { color: '#6B7280' }]}>Link saved</Text>
+              </View>
+            );
+          })()}
 
           <Text style={styles.label}>Chef notes</Text>
           <TextInput
