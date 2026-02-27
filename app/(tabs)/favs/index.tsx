@@ -492,14 +492,24 @@ export default function FavsScreen() {
       <Modal
         visible={showAddMethodSheet}
         animationType="slide"
-        presentationStyle="pageSheet"
+        transparent={true}
         onRequestClose={() => {
           setShowAddMethodSheet(false);
           setAddMethodMode('choose');
           setQuickAddName('');
         }}
       >
-        <View style={styles.addMethodSheet}>
+        <View style={styles.addMethodOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => {
+              setShowAddMethodSheet(false);
+              setAddMethodMode('choose');
+              setQuickAddName('');
+            }}
+          />
+          <View style={[styles.addMethodSheet, { paddingBottom: insets.bottom + 16 }]}>
           {addMethodMode === 'choose' ? (
             <>
               <View style={styles.addMethodHandle} />
@@ -568,6 +578,7 @@ export default function FavsScreen() {
               </TouchableOpacity>
             </>
           )}
+          </View>
         </View>
       </Modal>
 
@@ -1293,10 +1304,15 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.white,
   },
-  addMethodSheet: {
+  addMethodOverlay: {
     flex: 1,
-    backgroundColor: Colors.card,
-    paddingTop: 0,
+    justifyContent: 'flex-end' as const,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  addMethodSheet: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   addMethodHandle: {
     width: 36,
