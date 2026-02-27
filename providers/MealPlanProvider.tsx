@@ -164,6 +164,22 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     []
   );
 
+  const clearDay = useCallback((dateKey: string) => {
+    const updated = mealsRef.current.filter((m) => m.date !== dateKey);
+    setMeals(updated);
+    saveMutateRef.current(updated);
+    console.log('[MealPlan] Cleared day: ' + dateKey);
+  }, []);
+
+  const clearWeek = useCallback((weekOffset: number) => {
+    const dates = getWeekDates(weekOffset);
+    const dateKeys = new Set<string>(dates.map(formatDateKey));
+    const updated = mealsRef.current.filter((m) => !dateKeys.has(m.date));
+    setMeals(updated);
+    saveMutateRef.current(updated);
+    console.log('[MealPlan] Cleared week offset: ' + weekOffset);
+  }, []);
+
   const getMealsForWeek = useCallback(
     (weekOffset: number): PlannedMeal[] => {
       const dates = getWeekDates(weekOffset);
@@ -241,5 +257,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     getMealsForDate,
     getMealsForWeek,
     getIngredientsForWeek,
+    clearDay,
+    clearWeek,
   };
 });
