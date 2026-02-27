@@ -79,6 +79,7 @@ export interface PlannedMeal {
   ingredients: Ingredient[];
   recipe_serving_size: number;
   daily_note?: string;
+  position?: number;
 }
 
 export interface FavMeal {

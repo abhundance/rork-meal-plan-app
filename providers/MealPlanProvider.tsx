@@ -83,13 +83,18 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
   }, []);
 
   const addMeal = useCallback((meal: PlannedMeal) => {
-    const existing = mealsRef.current.filter(
-      (m) => !(m.slot_id === meal.slot_id && m.date === meal.date)
+    const slotMeals = mealsRef.current.filter(
+      (m) => m.slot_id === meal.slot_id && m.date === meal.date
     );
-    const updated = [...existing, meal];
+    if (slotMeals.length >= 4) {
+      console.log('[MealPlan] Slot full (max 4), skipping add for:', meal.slot_id, meal.date);
+      return;
+    }
+    const mealWithPosition = { ...meal, position: slotMeals.length };
+    const updated = [...mealsRef.current, mealWithPosition];
     setMeals(updated);
     saveMutateRef.current(updated);
-    console.log('[MealPlan] Added meal:', meal.meal_name, 'to', meal.date, meal.slot_id);
+    console.log('[MealPlan] Added meal:', meal.meal_name, 'to', meal.date, meal.slot_id, 'position:', slotMeals.length);
   }, []);
 
   const removeMeal = useCallback((mealId: string) => {
@@ -123,6 +128,22 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     },
     []
   );
+
+  const getMealsForSlot = useCallback(
+    (date: string, slotId: string): PlannedMeal[] => {
+      return mealsRef.current
+        .filter((m) => m.date === date && m.slot_id === slotId)
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    },
+    []
+  );
+
+  const removeMealById = useCallback((mealId: string) => {
+    const updated = mealsRef.current.filter((m) => m.id !== mealId);
+    setMeals(updated);
+    saveMutateRef.current(updated);
+    console.log('[MealPlan] Removed meal by id:', mealId);
+  }, []);
 
   const getMealsForDate = useCallback(
     (date: string): PlannedMeal[] => {
@@ -200,9 +221,11 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     addMeal,
     addMeals,
     removeMeal,
+    removeMealById,
     updateMealServing,
     updateMealNote,
     getMealForSlot,
+    getMealsForSlot,
     getMealsForDate,
     getMealsForWeek,
     getIngredientsForWeek,
