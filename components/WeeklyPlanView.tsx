@@ -98,8 +98,8 @@ export default function WeeklyPlanView({
   ).current;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.weekNav} {...weekNavPanResponder.panHandlers}>
+    <View style={styles.container} {...weekNavPanResponder.panHandlers}>
+      <View style={styles.weekNav}>
         <TouchableOpacity
           onPress={handleWeekPrev}
           style={styles.navBtn}
