@@ -88,6 +88,40 @@ export default function DailyPlanView({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [currentDate, onDateChange]);
 
+  const handlePrevDay = useCallback(() => {
+    const prev = new Date(currentDate);
+    prev.setDate(prev.getDate() - 1);
+    onDateChange(prev);
+  }, [currentDate, onDateChange]);
+
+  const handleNextDay = useCallback(() => {
+    const next = new Date(currentDate);
+    next.setDate(next.getDate() + 1);
+    onDateChange(next);
+  }, [currentDate, onDateChange]);
+
+  const handlePrevDayRef = useRef(handlePrevDay);
+  handlePrevDayRef.current = handlePrevDay;
+  const handleNextDayRef = useRef(handleNextDay);
+  handleNextDayRef.current = handleNextDay;
+
+  const dayNavPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponderCapture: (_, gs) =>
+        Math.abs(gs.dx) > Math.abs(gs.dy) && Math.abs(gs.dx) > 100,
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dx < -100) {
+          handleNextDayRef.current();
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } else if (gs.dx > 100) {
+          handlePrevDayRef.current();
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      },
+    })
+  ).current;
+
   const todayKey = useMemo(() => {
     const t = new Date();
     t.setHours(0, 0, 0, 0);
@@ -95,7 +129,7 @@ export default function DailyPlanView({
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...dayNavPanResponder.panHandlers}>
       <View style={styles.weekNavRow}>
         <TouchableOpacity
           onPress={handlePrevWeek}
