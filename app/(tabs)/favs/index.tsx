@@ -72,6 +72,7 @@ export default function FavsScreen() {
   const [addMethodMode, setAddMethodMode] = useState<'choose' | 'quick_add'>('choose');
   const [quickAddName, setQuickAddName] = useState<string>('');
   const [quickAddDeliveryUrl, setQuickAddDeliveryUrl] = useState<string>('');
+  const [quickAddSource, setQuickAddSource] = useState<'manual' | 'delivery'>('manual');
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
   const [sheetSort, setSheetSort] = useState<string>(sortBy);
@@ -260,6 +261,7 @@ export default function FavsScreen() {
     setAddMethodMode('choose');
     setQuickAddName('');
     setQuickAddDeliveryUrl('');
+    setQuickAddSource('manual');
     setShowAddMethodSheet(true);
   }, []);
 
@@ -522,6 +524,7 @@ export default function FavsScreen() {
           setAddMethodMode('choose');
           setQuickAddName('');
           setQuickAddDeliveryUrl('');
+          setQuickAddSource('manual');
         }}
       >
         <KeyboardAvoidingView style={styles.addMethodOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -533,6 +536,7 @@ export default function FavsScreen() {
               setAddMethodMode('choose');
               setQuickAddName('');
               setQuickAddDeliveryUrl('');
+              setQuickAddSource('manual');
             }}
           />
           <View style={[styles.addMethodSheet, { paddingBottom: insets.bottom + 16 }]}>
@@ -540,31 +544,58 @@ export default function FavsScreen() {
             <>
               <View style={styles.addMethodHandle} />
               <Text style={styles.addMethodTitle}>How would you like to add?</Text>
-              <View style={styles.addMethodCards}>
+              <View style={{ paddingHorizontal: 20, gap: 10, marginBottom: 24 }}>
                 <TouchableOpacity
-                  style={styles.addMethodCard}
+                  style={styles.addMethodOptionRow}
                   activeOpacity={0.82}
                   onPress={() => {
                     setShowAddMethodSheet(false);
                     router.push('/add-meal-entry' as Href);
                   }}
                 >
-                  <View style={styles.addMethodIconCircle}>
-                    <Ionicons name="sparkles-outline" size={20} color={Colors.primary} />
+                  <View style={styles.addMethodOptionIcon}>
+                    <Ionicons name="document-text-outline" size={22} color={Colors.primary} />
                   </View>
-                  <Text style={styles.addMethodCardTitle}>Add with Recipe</Text>
-                  <Text style={styles.addMethodCardSubtitle}>URL, camera, YouTube & more</Text>
+                  <View style={styles.addMethodOptionTextBlock}>
+                    <Text style={{ fontSize: 15, fontWeight: '700' as const, color: Colors.text }}>Add with Recipe</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary, marginTop: 2 }}>URL, camera, YouTube & more</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.addMethodCard}
+                  style={styles.addMethodOptionRow}
                   activeOpacity={0.82}
-                  onPress={() => setAddMethodMode('quick_add')}
+                  onPress={() => { setQuickAddSource('manual'); setAddMethodMode('quick_add'); }}
                 >
-                  <View style={styles.addMethodIconCircle}>
-                    <Ionicons name="bookmark-outline" size={20} color={Colors.primary} />
+                  <View style={styles.addMethodOptionIcon}>
+                    <Ionicons name="pencil-outline" size={22} color={Colors.primary} />
                   </View>
-                  <Text style={styles.addMethodCardTitle}>Add without Recipe</Text>
-                  <Text style={styles.addMethodCardSubtitle}>Just a name — add the recipe later</Text>
+                  <View style={styles.addMethodOptionTextBlock}>
+                    <Text style={{ fontSize: 15, fontWeight: '700' as const, color: Colors.text }}>Add without Recipe</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary, marginTop: 2 }}>Just a name — add the recipe later</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.addMethodOptionRow}
+                  activeOpacity={0.82}
+                  onPress={async () => {
+                    const text = (await Clipboard.getStringAsync())?.trim() ?? '';
+                    if (text && detectPlatformFromUrl(text)) {
+                      setQuickAddDeliveryUrl(text);
+                    }
+                    setQuickAddSource('delivery');
+                    setAddMethodMode('quick_add');
+                  }}
+                >
+                  <View style={styles.addMethodOptionIcon}>
+                    <Ionicons name="bicycle-outline" size={22} color={Colors.primary} />
+                  </View>
+                  <View style={styles.addMethodOptionTextBlock}>
+                    <Text style={{ fontSize: 15, fontWeight: '700' as const, color: Colors.text }}>Add from Delivery App</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary, marginTop: 2 }}>Save a link from Uber Eats, Grab & more</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <TouchableOpacity
@@ -578,10 +609,10 @@ export default function FavsScreen() {
             <>
               <View style={styles.addMethodHandle} />
               <View style={styles.addMethodBackRow}>
-                <TouchableOpacity onPress={() => setAddMethodMode('choose')}>
+                <TouchableOpacity onPress={() => { setAddMethodMode('choose'); setQuickAddSource('manual'); }}>
                   <Ionicons name="chevron-back" size={20} color={Colors.primary} />
                 </TouchableOpacity>
-                <Text style={styles.addMethodBackTitle}>Add without Recipe</Text>
+                <Text style={styles.addMethodBackTitle}>{quickAddSource === 'delivery' ? 'Add from Delivery App' : 'Add without Recipe'}</Text>
               </View>
               <TextInput
                 style={styles.addMethodInput}
@@ -1386,43 +1417,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 20,
   },
-  addMethodCards: {
-    flexDirection: 'row' as const,
-    gap: 12,
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  addMethodCard: {
-    flex: 1,
-    backgroundColor: Colors.white,
+  addMethodOptionRow: {
+    backgroundColor: Colors.card,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 8,
+    gap: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  addMethodIconCircle: {
-    width: 40,
-    height: 40,
+  addMethodOptionIcon: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
     backgroundColor: Colors.primaryLight,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
-  addMethodCardTitle: {
-    fontSize: 13,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    textAlign: 'center' as const,
-  },
-  addMethodCardSubtitle: {
-    fontSize: 11,
-    fontWeight: '400' as const,
-    color: Colors.textSecondary,
-    textAlign: 'center' as const,
-    lineHeight: 15,
+  addMethodOptionTextBlock: {
+    flex: 1,
   },
   addMethodCancel: {
     paddingVertical: 12,
