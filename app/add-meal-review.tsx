@@ -25,7 +25,7 @@ import { imageStore } from '@/services/imageStore';
 import { searchFoodImages, UnsplashImage } from '@/services/imageSearch';
 import { useFavs } from '@/providers/FavsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
-import { consumePendingPlanSlot } from '@/services/pendingPlanSlot';
+import { consumePendingPlanSlot, hasPendingPlanSlot, peekPendingPlanSlot } from '@/services/pendingPlanSlot';
 import { FavMeal, Ingredient, PlannedMeal } from '@/types';
 import ServingStepper from '@/components/ServingStepper';
 
@@ -76,6 +76,9 @@ export default function AddMealReviewScreen() {
   const params = useLocalSearchParams<Params>();
   const { addFav } = useFavs();
   const { addMeal } = useMealPlan();
+
+  const [isAddingToPlan] = useState<boolean>(() => hasPendingPlanSlot());
+  const [pendingSlotName] = useState<string>(() => { const s = peekPendingPlanSlot(); return s ? s.slotName : ''; });
 
   const inputMode = params.inputMode ?? 'manual';
 
@@ -402,14 +405,19 @@ export default function AddMealReviewScreen() {
           <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={styles.headerSide}>
             <Ionicons name="chevron-back" size={24} color={Colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Review Recipe</Text>
+          <View style={styles.headerTitleBlock}>
+            <Text style={styles.headerTitle}>Review Recipe</Text>
+            {isAddingToPlan && (
+              <Text style={styles.headerSubtitle}>Adding to {pendingSlotName}</Text>
+            )}
+          </View>
           <TouchableOpacity
             onPress={handleSave}
             disabled={!canSave}
             style={[styles.headerSide, styles.headerSideRight]}
           >
             <Text style={[styles.headerSaveText, !canSave && styles.headerSaveTextDisabled]}>
-              Save
+              {isAddingToPlan ? 'Add' : 'Save'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -737,7 +745,7 @@ export default function AddMealReviewScreen() {
           activeOpacity={0.85}
           testID="btn-save-to-favs"
         >
-          <Text style={styles.saveFullBtnText}>Save to Favourites</Text>
+          <Text style={styles.saveFullBtnText}>{isAddingToPlan ? 'Add to Meal Plan' : 'Save to Favourites'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -786,12 +794,23 @@ const styles = StyleSheet.create({
   headerSideRight: {
     alignItems: 'flex-end',
   },
+  headerTitleBlock: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
     color: Colors.text,
     textAlign: 'center',
-    flex: 1,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: '#7C3AED',
+    textAlign: 'center',
+    marginTop: 2,
   },
   headerSaveText: {
     fontSize: 16,

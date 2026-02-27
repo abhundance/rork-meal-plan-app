@@ -18,3 +18,11 @@ export function consumePendingPlanSlot(): PendingPlanSlot {
   console.log('[PendingPlanSlot] Consumed:', slot);
   return slot;
 }
+
+export function hasPendingPlanSlot(): boolean {
+  return pendingPlanSlot !== null;
+}
+
+export function peekPendingPlanSlot(): { slotId: string; date: string; slotName: string; defaultServing: number } | null {
+  return pendingPlanSlot;
+}
