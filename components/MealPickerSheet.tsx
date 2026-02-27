@@ -43,6 +43,8 @@ interface PickerItem {
   badge?: string;
   cookTimeMinutes?: number;
   calories?: number;
+  delivery_url?: string;
+  delivery_platform?: string;
 }
 
 type ListRow =
@@ -94,6 +96,8 @@ function favToPickerItem(fav: FavMeal): PickerItem {
     badge: fav.cuisine,
     cookTimeMinutes: fav.cook_time,
     calories: undefined,
+    delivery_url: fav.delivery_url,
+    delivery_platform: fav.delivery_platform,
   };
 }
 
@@ -208,6 +212,8 @@ export default function MealPickerSheet({
         serving_size: defaultServing,
         ingredients: pickerItem.ingredients,
         recipe_serving_size: pickerItem.recipe_serving_size,
+        delivery_url: pickerItem.delivery_url,
+        delivery_platform: pickerItem.delivery_platform,
       };
       onSelectMeal(planned);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
