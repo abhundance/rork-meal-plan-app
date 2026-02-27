@@ -44,6 +44,7 @@ export default function MealPickerSheet({
 }: MealPickerSheetProps) {
   const [mode, setMode] = useState<'choose' | 'manual' | 'recipe_methods'>('choose');
   const [manualName, setManualName] = useState<string>('');
+  const [recipeUrl, setRecipeUrl] = useState<string>('');
   const { meals: favMeals } = useFavs();
   const router = useRouter();
 
@@ -74,6 +75,7 @@ export default function MealPickerSheet({
   const resetAndClose = useCallback(() => {
     setMode('choose');
     setManualName('');
+    setRecipeUrl('');
     onClose();
   }, [onClose]);
 
@@ -98,7 +100,7 @@ export default function MealPickerSheet({
             <View style={styles.closeBtn} />
           )}
           <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerTitle}>Add to {slotName}</Text>
+            <Text style={styles.headerTitle}>{mode === 'recipe_methods' ? 'Add a Recipe' : `Add to ${slotName}`}</Text>
             <Text style={styles.headerSubtitle}>{formattedDate}</Text>
           </View>
           <TouchableOpacity onPress={resetAndClose} style={styles.closeBtn}>
@@ -109,115 +111,119 @@ export default function MealPickerSheet({
         {mode === 'recipe_methods' ? (
           <ScrollView
             style={styles.chooseScroll}
-            contentContainerStyle={styles.chooseScrollContent}
+            contentContainerStyle={styles.recipesScrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <View testID="recipe-method-rows">
+            <Text style={styles.sectionLabel}>PASTE A LINK</Text>
+            <View style={styles.urlInputRow}>
+              <Ionicons name="link-outline" size={18} color={Colors.textSecondary} style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.urlInput}
+                placeholder="Recipe blog, website, YouTube, TikTok..."
+                placeholderTextColor={Colors.textSecondary}
+                value={recipeUrl}
+                onChangeText={setRecipeUrl}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+              {recipeUrl.trim().length > 0 && (
+                <TouchableOpacity
+                  style={styles.extractBtn}
+                  activeOpacity={0.82}
+                  onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
+                  testID="extract-url-btn"
+                >
+                  <Text style={styles.extractBtnText}>Extract</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <Text style={[styles.sectionLabel, { marginTop: 24 }]}>CHOOSE A METHOD</Text>
+            <View style={styles.methodCardsGrid}>
               <TouchableOpacity
-                style={styles.optionRow}
                 activeOpacity={0.82}
                 onPress={() => { resetAndClose(); router.push('/add-meal-paste' as never); }}
                 testID="recipe-method-paste-btn"
               >
-                <View style={[styles.optionIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                  <Ionicons name="document-text-outline" size={16} color="#D97706" />
+                <View style={styles.methodCard}>
+                  <View style={[styles.methodCardIcon, { backgroundColor: '#FEF9EE' }]}>
+                    <Ionicons name="document-text-outline" size={22} color="#D97706" />
+                  </View>
+                  <Text style={styles.methodCardTitle}>Paste Text</Text>
+                  <Text style={styles.methodCardSubtitle}>Paste a recipe from anywhere</Text>
                 </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Paste Text</Text>
-                  <Text style={styles.optionSubtitle}>Paste a recipe from anywhere</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
               </TouchableOpacity>
 
-              <View style={styles.optionSeparator} />
-
               <TouchableOpacity
-                style={styles.optionRow}
                 activeOpacity={0.82}
                 onPress={() => { resetAndClose(); router.push('/add-meal' as never); }}
                 testID="recipe-method-manual-btn"
               >
-                <View style={[styles.optionIconCircle, { backgroundColor: '#D1FAE5' }]}>
-                  <Ionicons name="create-outline" size={16} color="#059669" />
+                <View style={styles.methodCard}>
+                  <View style={[styles.methodCardIcon, { backgroundColor: '#ECFDF5' }]}>
+                    <Ionicons name="create-outline" size={22} color="#059669" />
+                  </View>
+                  <Text style={styles.methodCardTitle}>Manual Entry</Text>
+                  <Text style={styles.methodCardSubtitle}>Fill in every detail yourself</Text>
                 </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Manual Entry</Text>
-                  <Text style={styles.optionSubtitle}>Fill in every detail yourself</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
               </TouchableOpacity>
 
-              <View style={styles.optionSeparator} />
-
               <TouchableOpacity
-                style={styles.optionRow}
                 activeOpacity={0.82}
                 onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
                 testID="recipe-method-photos-btn"
               >
-                <View style={[styles.optionIconCircle, { backgroundColor: '#EDE9FE' }]}>
-                  <Ionicons name="image" size={16} color="#7B68CC" />
+                <View style={styles.methodCard}>
+                  <View style={[styles.methodCardIcon, { backgroundColor: '#EDE9FE' }]}>
+                    <Ionicons name="image" size={22} color={Colors.primary} />
+                  </View>
+                  <Text style={styles.methodCardTitle}>Photos</Text>
+                  <Text style={styles.methodCardSubtitle}>Pick from your library</Text>
                 </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Photos</Text>
-                  <Text style={styles.optionSubtitle}>Pick from your library</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
               </TouchableOpacity>
 
-              <View style={styles.optionSeparator} />
-
               <TouchableOpacity
-                style={styles.optionRow}
                 activeOpacity={0.82}
                 onPress={() => { resetAndClose(); router.push('/add-meal-video' as never); }}
                 testID="recipe-method-video-btn"
               >
-                <View style={[styles.optionIconCircle, { backgroundColor: '#DBEAFE' }]}>
-                  <Ionicons name="videocam" size={16} color="#2563EB" />
+                <View style={styles.methodCard}>
+                  <View style={[styles.methodCardIcon, { backgroundColor: '#EFF6FF' }]}>
+                    <Ionicons name="videocam" size={22} color="#2563EB" />
+                  </View>
+                  <Text style={styles.methodCardTitle}>Video Link</Text>
+                  <Text style={styles.methodCardSubtitle}>YouTube or TikTok recipe</Text>
                 </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Video Link</Text>
-                  <Text style={styles.optionSubtitle}>YouTube or TikTok recipe</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
               </TouchableOpacity>
 
-              <View style={styles.optionSeparator} />
-
               <TouchableOpacity
-                style={styles.optionRow}
                 activeOpacity={0.82}
                 onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
                 testID="recipe-method-voice-btn"
               >
-                <View style={[styles.optionIconCircle, { backgroundColor: '#FCE7F3' }]}>
-                  <Ionicons name="mic" size={16} color="#DB2777" />
+                <View style={styles.methodCard}>
+                  <View style={[styles.methodCardIcon, { backgroundColor: '#FDF2F8' }]}>
+                    <Ionicons name="mic" size={22} color="#DB2777" />
+                  </View>
+                  <Text style={styles.methodCardTitle}>Voice</Text>
+                  <Text style={styles.methodCardSubtitle}>Describe aloud</Text>
                 </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Voice</Text>
-                  <Text style={styles.optionSubtitle}>Describe the recipe aloud</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
               </TouchableOpacity>
 
-              <View style={styles.optionSeparator} />
-
               <TouchableOpacity
-                style={styles.optionRow}
                 activeOpacity={0.82}
                 onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
                 testID="recipe-method-camera-btn"
               >
-                <View style={[styles.optionIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                  <Ionicons name="camera" size={16} color="#D97706" />
+                <View style={styles.methodCard}>
+                  <View style={[styles.methodCardIcon, { backgroundColor: '#FFFBEB' }]}>
+                    <Ionicons name="camera" size={22} color="#D97706" />
+                  </View>
+                  <Text style={styles.methodCardTitle}>Camera</Text>
+                  <Text style={styles.methodCardSubtitle}>Take a photo</Text>
                 </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Camera</Text>
-                  <Text style={styles.optionSubtitle}>Take a photo of a recipe</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -404,6 +410,84 @@ const styles = StyleSheet.create({
   },
   chooseScrollContent: {
     paddingBottom: 48,
+  },
+  recipesScrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 48,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  urlInputRow: {
+    height: 52,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: Colors.card,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingLeft: 16,
+    paddingRight: 8,
+  },
+  urlInput: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  extractBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginLeft: 6,
+  },
+  extractBtnText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+  },
+  methodCardsGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 12,
+    marginTop: 8,
+  },
+  methodCard: {
+    width: '47%' as const,
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 2,
+    padding: 16,
+    minHeight: 110,
+    alignItems: 'flex-start' as const,
+  },
+  methodCardIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  methodCardTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    marginTop: 8,
+  },
+  methodCardSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   browseCardsRow: {
     flexDirection: 'row',
