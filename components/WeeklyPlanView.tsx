@@ -143,20 +143,18 @@ export default function WeeklyPlanView({
               </Animated.View>
             </Pressable>
 
-            {weekOffset > 0 && (
-              <Pressable
-                onPressIn={() => animatePressIn(copyScale)}
-                onPressOut={() => animatePressOut(copyScale)}
-                onPress={onRepeatWeek}
+            <Pressable
+              onPressIn={() => animatePressIn(copyScale)}
+              onPressOut={() => animatePressOut(copyScale)}
+              onPress={onRepeatWeek}
+            >
+              <Animated.View
+                style={[styles.copyBtn, { transform: [{ scale: copyScale }] }]}
               >
-                <Animated.View
-                  style={[styles.copyBtn, { transform: [{ scale: copyScale }] }]}
-                >
-                  <Ionicons name="time-outline" size={13} color={Colors.primary} />
-                  <Text style={styles.copyText}>Repeat</Text>
-                </Animated.View>
-              </Pressable>
-            )}
+                <Ionicons name="time-outline" size={13} color={Colors.primary} />
+                <Text style={styles.copyText}>Repeat</Text>
+              </Animated.View>
+            </Pressable>
 
             <TouchableOpacity onPress={onClearWeek} style={styles.clearBtn}>
               <Text style={styles.clearText}>Clear week</Text>
