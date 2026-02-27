@@ -1,13 +1,20 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import * as Clipboard from "expo-clipboard";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { FamilySettingsProvider } from "@/providers/FamilySettingsProvider";
 import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import { MealPlanProvider } from "@/providers/MealPlanProvider";
 import { ShoppingProvider } from "@/providers/ShoppingProvider";
 import { FavsProvider } from "@/providers/FavsProvider";
+import { AppState, Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import Colors from "@/constants/colors";
+import { detectPlatformFromUrl, getPlatformLabel } from "@/services/deliveryUtils";
+import { setPendingDeliveryLink } from "@/services/pendingDeliveryLink";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -71,6 +78,163 @@ function RootLayoutNav() {
   );
 }
 
+function DeliveryBannerLayout() {
+  const insets = useSafeAreaInsets();
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [bannerPlatform, setBannerPlatform] = useState<string | null>(null);
+  const lastShownUrl = useRef<string | null>(null);
+  const dismissTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const translateY = useRef(new Animated.Value(-120)).current;
+
+  const dismissBanner = useCallback(() => {
+    Animated.timing(translateY, {
+      toValue: -120,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setBannerUrl(null);
+    });
+  }, [translateY]);
+
+  const showBanner = useCallback((url: string, platform: string | null) => {
+    setBannerUrl(url);
+    setBannerPlatform(platform);
+    Animated.spring(translateY, {
+      toValue: 0,
+      friction: 8,
+      bounciness: 4,
+      useNativeDriver: true,
+    }).start();
+    if (dismissTimeout.current) {
+      clearTimeout(dismissTimeout.current);
+    }
+    dismissTimeout.current = setTimeout(() => {
+      dismissBanner();
+    }, 7000);
+  }, [translateY, dismissBanner]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextAppState) => {
+      if (nextAppState === 'active') {
+        try {
+          const text = await Clipboard.getStringAsync();
+          const trimmed = text.trim();
+          if (trimmed.startsWith('http')) {
+            const platform = detectPlatformFromUrl(trimmed);
+            if (platform !== null && trimmed !== lastShownUrl.current) {
+              lastShownUrl.current = trimmed;
+              showBanner(trimmed, platform);
+            }
+          }
+        } catch (e) {
+          console.log('[DeliveryBanner] Clipboard read error:', e);
+        }
+      }
+    });
+    return () => {
+      subscription.remove();
+      if (dismissTimeout.current) {
+        clearTimeout(dismissTimeout.current);
+      }
+    };
+  }, [showBanner]);
+
+  const platformLabel = getPlatformLabel(bannerPlatform as Parameters<typeof getPlatformLabel>[0]);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <RootLayoutNav />
+      <Animated.View
+        style={[
+          styles.bannerContainer,
+          {
+            top: insets.top + 12,
+            transform: [{ translateY }],
+          },
+        ]}
+      >
+        {bannerUrl !== null && (
+          <View style={styles.bannerCard}>
+            <Ionicons name="bicycle-outline" size={18} color={Colors.primary} />
+            <View style={styles.bannerTextContainer}>
+              <Text style={styles.bannerTitle}>{platformLabel} link detected</Text>
+              <Text style={styles.bannerSubtitle}>Tap Add Meal to save it to your favourites</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => {
+                if (bannerUrl) {
+                  setPendingDeliveryLink(bannerUrl, bannerPlatform);
+                  router.push('/(tabs)/favs');
+                  dismissBanner();
+                }
+              }}
+            >
+              <Text style={styles.addButtonText}>Add Meal</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={dismissBanner} style={styles.closeButton}>
+              <Ionicons name="close-outline" size={16} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        )}
+      </Animated.View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  bannerContainer: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 9999,
+  },
+  bannerCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  bannerTextContainer: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  bannerSubtitle: {
+    fontSize: 11,
+    fontWeight: '400',
+    color: Colors.textSecondary,
+    lineHeight: 15,
+  },
+  addButton: {
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  addButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  closeButton: {
+    paddingLeft: 4,
+  },
+});
+
 export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
@@ -84,7 +248,7 @@ export default function RootLayout() {
             <MealPlanProvider>
               <ShoppingProvider>
                 <FavsProvider>
-                  <RootLayoutNav />
+                  <DeliveryBannerLayout />
                 </FavsProvider>
               </ShoppingProvider>
             </MealPlanProvider>
