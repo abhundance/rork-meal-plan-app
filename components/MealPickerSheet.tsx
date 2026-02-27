@@ -359,7 +359,7 @@ export default function MealPickerSheet({
                     <TouchableOpacity
                       style={styles.optionRow}
                       activeOpacity={0.82}
-                      onPress={() => { resetAndClose(); router.push('/add-meal-entry' as never); }}
+                      onPress={() => { resetAndClose(); onCreateNewRecipe(); }}
                       testID="add-with-recipe-btn"
                     >
                       <View style={[styles.optionIconCircle, { backgroundColor: '#EDE9FE' }]}>
