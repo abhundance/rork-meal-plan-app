@@ -85,7 +85,7 @@ export default function WeeklyPlanView({
   const weekNavPanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gs) =>
+      onMoveShouldSetPanResponderCapture: (_, gs) =>
         Math.abs(gs.dx) > Math.abs(gs.dy) && Math.abs(gs.dx) > 12,
       onPanResponderRelease: (_, gs) => {
         if (gs.dx < -SWIPE_THRESHOLD) {
