@@ -19,7 +19,7 @@ import { useMealPlan } from '@/providers/MealPlanProvider';
 import { useFavs } from '@/providers/FavsProvider';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { FavMeal, PlannedMeal } from '@/types';
-import { getWeekDates, formatDateKey } from '@/utils/dates';
+import { getWeekDates, formatDateKey, getDayName, isToday } from '@/utils/dates';
 import { setPendingPlanSlot } from '@/services/pendingPlanSlot';
 import { CalendarDays } from 'lucide-react-native';
 
@@ -338,7 +338,8 @@ export default function MealPlanScreen() {
   }, [clearWeek, weekOffset]);
 
   const handleClearDay = useCallback(() => {
-    Alert.alert('Clear this day?', 'All meals for today will be removed.', [
+    const dayLabel = isToday(currentDate) ? 'today' : getDayName(currentDate, false);
+    Alert.alert('Clear this day?', `All meals for ${dayLabel} will be removed.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Clear',
