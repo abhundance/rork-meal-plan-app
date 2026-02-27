@@ -27,13 +27,16 @@ import FilterPill from '@/components/FilterPill';
 import ServingStepper from '@/components/ServingStepper';
 import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
-import { FavMeal, Ingredient, CUISINE_OPTIONS, DIETARY_OPTIONS, COOKING_TIME_BANDS } from '@/types';
+import { useMealPlan } from '@/providers/MealPlanProvider';
+import { consumePendingPlanSlot } from '@/services/pendingPlanSlot';
+import { FavMeal, Ingredient, PlannedMeal, CUISINE_OPTIONS, DIETARY_OPTIONS, COOKING_TIME_BANDS } from '@/types';
 
 export default function AddMealScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ editId?: string }>();
   const { meals, addFav, updateFav, isFavByName } = useFavs();
   const { familySettings } = useFamilySettings();
+  const { addMeal } = useMealPlan();
 
   const editMeal = useMemo(() => {
     if (params.editId) {
@@ -268,7 +271,24 @@ export default function AddMealScreen() {
     };
     addFav(newMeal);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.replace('/(tabs)/favs' as never);
+    const pending = consumePendingPlanSlot();
+    if (pending) {
+      const plannedMeal: PlannedMeal = {
+        id: `fav_plan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        slot_id: pending.slotId,
+        date: pending.date,
+        meal_name: newMeal.name,
+        meal_image_url: newMeal.image_url,
+        serving_size: pending.defaultServing,
+        ingredients: newMeal.ingredients,
+        recipe_serving_size: newMeal.recipe_serving_size,
+      };
+      addMeal(plannedMeal);
+      console.log('[AddMeal] Auto-added to plan slot:', pending.slotId, pending.date);
+      router.replace('/(tabs)' as never);
+    } else {
+      router.replace('/(tabs)/favs' as never);
+    }
   }, [name, userImageUri, suggestedImages, imageIndex, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, servingSize, description, chefNotes, addFav]);
 
   return (

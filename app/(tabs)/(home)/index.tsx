@@ -20,6 +20,7 @@ import { useFavs } from '@/providers/FavsProvider';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { FavMeal, PlannedMeal } from '@/types';
 import { getWeekDates, formatDateKey } from '@/utils/dates';
+import { setPendingPlanSlot } from '@/services/pendingPlanSlot';
 import { CalendarDays } from 'lucide-react-native';
 
 function getSlotCategory(slotName: string): 'breakfast' | 'lunch_dinner' | 'light_bites' {
@@ -502,7 +503,13 @@ export default function MealPlanScreen() {
         onSelectMeal={handleSelectMeal}
         onCreateNewRecipe={() => {
           setPickerVisible(false);
-          router.push('/add-meal' as Href);
+          setPendingPlanSlot({
+            slotId: pickerSlotId,
+            date: pickerDate,
+            slotName: pickerSlotName,
+            defaultServing: familySettings.default_serving_size,
+          });
+          router.push('/add-meal-entry' as Href);
         }}
         date={pickerDate}
         slotId={pickerSlotId}
