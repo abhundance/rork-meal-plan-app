@@ -17,7 +17,7 @@ import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { BorderRadius } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
-import { formatDateKey, getDayName, getWeekLabel } from '@/utils/dates';
+import { formatDateKey, getDayName, getWeekLabel, isBefore } from '@/utils/dates';
 import ServingStepper from './ServingStepper';
 import Card from './Card';
 
@@ -57,6 +57,8 @@ export default function DailyPlanView({
   onRepeatDay,
 }: DailyPlanViewProps) {
   const dateKey = useMemo(() => formatDateKey(currentDate), [currentDate]);
+
+  const isPastDay = useMemo(() => isBefore(currentDate, new Date()), [currentDate]);
 
   const weekDates = useMemo(() => {
     const day = currentDate.getDay();
@@ -130,7 +132,7 @@ export default function DailyPlanView({
         })}
       </View>
 
-      <ActionStrip onSmartPlan={onSmartPlan} onClearDay={onClearDay} onRepeatDay={onRepeatDay} />
+      {!isPastDay && <ActionStrip onSmartPlan={onSmartPlan} onClearDay={onClearDay} onRepeatDay={onRepeatDay} />}
 
       <ScrollView
         style={styles.scroll}
