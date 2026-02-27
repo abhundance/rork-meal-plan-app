@@ -152,8 +152,8 @@ export default function WeeklyPlanView({
                 <Animated.View
                   style={[styles.copyBtn, { transform: [{ scale: copyScale }] }]}
                 >
-                  <Ionicons name="copy-outline" size={13} color={Colors.primary} />
-                  <Text style={styles.copyText}>Copy</Text>
+                  <Ionicons name="time-outline" size={13} color={Colors.primary} />
+                  <Text style={styles.copyText}>Repeat</Text>
                 </Animated.View>
               </Pressable>
             )}
@@ -335,25 +335,23 @@ const styles = StyleSheet.create({
   },
   smartFillBtn: {
     borderRadius: 9999,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
     paddingVertical: 6,
     paddingHorizontal: 14,
   },
   smartFillText: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: Colors.white,
+    color: Colors.primary,
   },
   copyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
     borderRadius: 9999,
     backgroundColor: Colors.primaryLight,
-    borderWidth: 1,
-    borderColor: Colors.primary,
     paddingVertical: 6,
     paddingHorizontal: 14,
-    gap: 4,
   },
   copyText: {
     fontSize: 13,
@@ -361,6 +359,8 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   clearBtn: {
+    borderRadius: 9999,
+    backgroundColor: Colors.primaryLight,
     paddingVertical: 6,
     paddingHorizontal: 10,
   },
