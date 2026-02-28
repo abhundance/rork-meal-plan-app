@@ -197,6 +197,7 @@ export default function MealPlanScreen() {
     const favNames = new Set(favMeals.map((f) => f.name.toLowerCase()));
 
     type PoolEntry = {
+      id?: string;
       name: string;
       image_url?: string;
       ingredients: PlannedMeal['ingredients'];
@@ -205,6 +206,7 @@ export default function MealPlanScreen() {
 
     const pool: PoolEntry[] = [
       ...favMeals.map((f) => ({
+        id: f.id,
         name: f.name,
         image_url: f.image_url,
         ingredients: f.ingredients,
@@ -254,6 +256,7 @@ export default function MealPlanScreen() {
           serving_size: serving,
           ingredients: picked.ingredients,
           recipe_serving_size: picked.recipe_serving_size,
+          ...(picked.id ? { meal_id: picked.id } : {}),
         });
       }
     }
@@ -301,6 +304,7 @@ export default function MealPlanScreen() {
     const favNames = new Set(favMeals.map((f) => f.name.toLowerCase()));
 
     type PoolEntry = {
+      id?: string;
       name: string;
       image_url?: string;
       ingredients: PlannedMeal['ingredients'];
@@ -309,6 +313,7 @@ export default function MealPlanScreen() {
 
     const pool: PoolEntry[] = [
       ...favMeals.map((f) => ({
+        id: f.id,
         name: f.name,
         image_url: f.image_url,
         ingredients: f.ingredients,
@@ -358,6 +363,7 @@ export default function MealPlanScreen() {
           serving_size: serving,
           ingredients: picked.ingredients,
           recipe_serving_size: picked.recipe_serving_size,
+          ...(picked.id ? { meal_id: picked.id } : {}),
         });
       }
     }
