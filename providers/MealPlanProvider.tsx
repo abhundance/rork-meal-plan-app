@@ -98,8 +98,8 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
       console.log('[MealPlan] Duplicate detected, incremented serving for:', meal.meal_name);
       return;
     }
-    if (slotMeals.length >= 4) {
-      console.log('[MealPlan] Slot full (max 4), skipping add for:', meal.slot_id, meal.date);
+    if (slotMeals.length >= 10) {
+      console.log('[MealPlan] Slot full (max 10), skipping add for:', meal.slot_id, meal.date);
       return;
     }
     const mealWithPosition = { ...meal, position: slotMeals.length };

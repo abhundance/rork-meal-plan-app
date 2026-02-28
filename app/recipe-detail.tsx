@@ -43,7 +43,7 @@ export default function MealDetailScreen() {
   const params = useLocalSearchParams<{ id: string; source: string }>();
   const { meals: favMeals, isFav, isFavByName, addFav, addFromDiscover, removeFav, incrementPlanCount } = useFavs();
   const { familySettings } = useFamilySettings();
-  const { meals: planMeals, addMeal, removeMeal, updateMealNote, getMealForSlot, linkMealToPlan } = useMealPlan();
+  const { meals: planMeals, addMeal, removeMeal, updateMealNote, getMealsForSlot, linkMealToPlan } = useMealPlan();
 
   const [servingScale, setServingScale] = useState<number>(4);
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
@@ -579,7 +579,7 @@ export default function MealDetailScreen() {
         onClose={() => setSlotPickerVisible(false)}
         onSelect={handleSlotSelected}
         mealSlots={sortedSlots}
-        getMealForSlot={getMealForSlot}
+        getMealsForSlot={getMealsForSlot}
         mealName={meal.name}
       />
     </KeyboardAvoidingView>

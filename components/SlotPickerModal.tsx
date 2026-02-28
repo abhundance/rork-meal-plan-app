@@ -7,10 +7,10 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import { X, Check } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
-import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
 import { getWeekDates, formatDateKey, getDayName, getDateNumber } from '@/utils/dates';
 
@@ -19,7 +19,7 @@ interface SlotPickerModalProps {
   onClose: () => void;
   onSelect: (date: string, slotId: string) => void;
   mealSlots: MealSlot[];
-  getMealForSlot: (date: string, slotId: string) => PlannedMeal | undefined;
+  getMealsForSlot: (date: string, slotId: string) => PlannedMeal[];
   mealName: string;
 }
 
@@ -28,7 +28,7 @@ export default function SlotPickerModal({
   onClose,
   onSelect,
   mealSlots,
-  getMealForSlot,
+  getMealsForSlot,
   mealName,
 }: SlotPickerModalProps) {
   const [weekOffset] = useState<number>(0);
@@ -37,12 +37,10 @@ export default function SlotPickerModal({
 
   const handleSlotPress = useCallback(
     (date: string, slotId: string) => {
-      const existing = getMealForSlot(date, slotId);
-      if (existing) return;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSelect(date, slotId);
     },
-    [getMealForSlot, onSelect]
+    [onSelect]
   );
 
   const sortedSlots = useMemo(
@@ -87,19 +85,42 @@ export default function SlotPickerModal({
                     <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>{dateNum}</Text>
                   </View>
                   {sortedSlots.map((slot) => {
-                    const existing = getMealForSlot(dateKey, slot.slot_id);
-                    const isFilled = !!existing;
+                    const slotMeals = getMealsForSlot(dateKey, slot.slot_id);
+                    const count = slotMeals.length;
+                    const isFull = count >= 10;
+                    const isOccupied = count > 0 && !isFull;
+
+                    const dotCount = Math.min(count, 5);
+                    const hasExtra = count > 5;
 
                     return (
                       <TouchableOpacity
                         key={slot.slot_id}
-                        style={[styles.slotCell, isFilled ? styles.slotFilled : styles.slotEmpty]}
+                        style={[
+                          styles.slotCell,
+                          isFull && styles.slotFull,
+                          isOccupied && styles.slotOccupied,
+                          !isOccupied && !isFull && styles.slotEmpty,
+                          isFull && { opacity: 0.45 },
+                        ]}
                         onPress={() => handleSlotPress(dateKey, slot.slot_id)}
-                        disabled={isFilled}
+                        disabled={isFull}
                         activeOpacity={0.7}
                       >
-                        {isFilled ? (
-                          <Check size={14} color={Colors.textSecondary} strokeWidth={2} />
+                        {isFull ? (
+                          <Text style={styles.slotFullText}>FULL</Text>
+                        ) : isOccupied ? (
+                          <>
+                            <Text style={styles.slotOccupiedPlus}>+</Text>
+                            <View style={styles.dotsRow}>
+                              {Array.from({ length: dotCount }).map((_, i) => (
+                                <View key={i} style={styles.dot} />
+                              ))}
+                              {hasExtra && (
+                                <Text style={styles.extraPlus}>+</Text>
+                              )}
+                            </View>
+                          </>
                         ) : (
                           <Text style={styles.slotEmptyText}>+</Text>
                         )}
@@ -210,24 +231,60 @@ const styles = StyleSheet.create({
   },
   slotCell: {
     flex: 1,
-    height: 40,
+    width: 44,
+    height: 44,
     marginHorizontal: 3,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   slotEmpty: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: Colors.primary,
-    borderStyle: 'dashed' as const,
+    borderColor: '#E5E7EB',
   },
-  slotFilled: {
-    backgroundColor: Colors.surface,
+  slotOccupied: {
+    backgroundColor: '#EDE9FE',
+    borderWidth: 1.5,
+    borderColor: 'rgba(124, 58, 237, 0.3)',
+  },
+  slotFull: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
   },
   slotEmptyText: {
     fontSize: 18,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: '#D1D5DB',
+  },
+  slotOccupiedPlus: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#7C3AED',
+    lineHeight: 16,
+  },
+  slotFullText: {
+    fontSize: 8,
+    fontWeight: '700' as const,
+    color: '#9CA3AF',
+    letterSpacing: 0.5,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginTop: 2,
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(124, 58, 237, 0.7)',
+  },
+  extraPlus: {
+    fontSize: 7,
+    fontWeight: '700' as const,
+    color: 'rgba(124, 58, 237, 0.7)',
   },
 });

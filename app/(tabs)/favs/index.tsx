@@ -54,7 +54,7 @@ export default function FavsScreen() {
   const insets = useSafeAreaInsets();
   const { meals, recentSearches, isLoading, removeFav, addFav, addRecentSearch, clearRecentSearches, incrementPlanCount } = useFavs();
   const { familySettings } = useFamilySettings();
-  const { addMeal, getMealForSlot } = useMealPlan();
+  const { addMeal, getMealsForSlot } = useMealPlan();
 
   const [activeSegment, setActiveSegment] = useState<'my_recipes' | 'saved'>('my_recipes');
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -512,7 +512,7 @@ export default function FavsScreen() {
         }}
         onSelect={handleSlotSelected}
         mealSlots={sortedSlots}
-        getMealForSlot={getMealForSlot}
+        getMealsForSlot={getMealsForSlot}
         mealName={selectedMealForPlan?.name ?? ''}
       />
 

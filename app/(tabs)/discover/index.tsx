@@ -92,7 +92,7 @@ export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
   const { isFav, addFromDiscover, removeFav } = useFavs();
   const { familySettings } = useFamilySettings();
-  const { addMeal, getMealForSlot } = useMealPlan();
+  const { addMeal, getMealsForSlot } = useMealPlan();
 
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
   useEffect(() => {
@@ -830,7 +830,7 @@ export default function DiscoverScreen() {
         }}
         onSelect={handleSlotSelected}
         mealSlots={sortedSlots}
-        getMealForSlot={getMealForSlot}
+        getMealsForSlot={getMealsForSlot}
         mealName={selectedMeal?.name ?? ''}
       />
     </View>

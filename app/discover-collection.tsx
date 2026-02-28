@@ -27,7 +27,7 @@ export default function CollectionScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const { isFav, addFromDiscover } = useFavs();
   const { familySettings } = useFamilySettings();
-  const { addMeal, getMealForSlot } = useMealPlan();
+  const { addMeal, getMealsForSlot } = useMealPlan();
 
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMeal, setSelectedMeal] = useState<DiscoverMeal | null>(null);
@@ -128,7 +128,7 @@ export default function CollectionScreen() {
         onClose={() => { setSlotPickerVisible(false); setSelectedMeal(null); }}
         onSelect={handleSlotSelected}
         mealSlots={sortedSlots}
-        getMealForSlot={getMealForSlot}
+        getMealsForSlot={getMealsForSlot}
         mealName={selectedMeal?.name ?? ''}
       />
     </View>

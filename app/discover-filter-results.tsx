@@ -27,7 +27,7 @@ export default function FilteredMealsScreen() {
   const params = useLocalSearchParams<{ cuisine?: string; dietary?: string }>();
   const { isFav, addFromDiscover } = useFavs();
   const { familySettings } = useFamilySettings();
-  const { addMeal, getMealForSlot } = useMealPlan();
+  const { addMeal, getMealsForSlot } = useMealPlan();
 
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMeal, setSelectedMeal] = useState<DiscoverMeal | null>(null);
@@ -124,7 +124,7 @@ export default function FilteredMealsScreen() {
         onClose={() => { setSlotPickerVisible(false); setSelectedMeal(null); }}
         onSelect={handleSlotSelected}
         mealSlots={sortedSlots}
-        getMealForSlot={getMealForSlot}
+        getMealsForSlot={getMealsForSlot}
         mealName={selectedMeal?.name ?? ''}
       />
     </View>
