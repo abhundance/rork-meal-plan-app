@@ -132,7 +132,7 @@ export default function DiscoverScreen() {
     setActionSheetVisible(true);
   }, []);
 
-  const isDimmed = useCallback((meal: DiscoverMeal): boolean => {
+  const isExcluded = useCallback((meal: DiscoverMeal): boolean => {
     if (activeDietPrefs.length === 0) return false;
     if (activeDietPrefs.includes('vegan') && !meal.is_vegan) return true;
     if (activeDietPrefs.includes('vegetarian') && !meal.is_vegetarian) return true;
@@ -152,35 +152,34 @@ export default function DiscoverScreen() {
     {
       emoji: '⚡',
       label: 'Under 20 min',
-      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.cooking_time_band === 'Under 30')),
+      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.cooking_time_band === 'Under 30')).filter(m => !isExcluded(m)),
     },
     {
       emoji: '🌅',
       label: 'Breakfast',
-      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.meal_type === 'breakfast')),
+      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.meal_type === 'breakfast')).filter(m => !isExcluded(m)),
     },
     {
       emoji: '🌏',
       label: 'Asian flavours',
-      meals: filteredMeals(DISCOVER_MEALS.filter(m => ['Japanese', 'Thai', 'Korean'].includes(m.cuisine))),
+      meals: filteredMeals(DISCOVER_MEALS.filter(m => ['Japanese', 'Thai', 'Korean'].includes(m.cuisine))).filter(m => !isExcluded(m)),
     },
     {
       emoji: '🌶',
       label: 'Indian kitchen',
-      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.cuisine === 'Indian')),
+      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.cuisine === 'Indian')).filter(m => !isExcluded(m)),
     },
     {
       emoji: '🥗',
       label: 'Light bites',
-      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.meal_type === 'light_bites')),
+      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.meal_type === 'light_bites')).filter(m => !isExcluded(m)),
     },
-  ], [filteredMeals]);
+  ], [filteredMeals, isExcluded]);
 
-  const allFiltered = useMemo(() => filteredMeals(DISCOVER_MEALS), [filteredMeals]);
+  const allFiltered = useMemo(() => filteredMeals(DISCOVER_MEALS).filter(m => !isExcluded(m)), [filteredMeals, isExcluded]);
 
   const MicroCarouselCard = useCallback(({ meal, onPress }: { meal: DiscoverMeal; onPress: () => void }) => {
     const cuisineColor = CUISINE_COLORS[meal.cuisine] || '#7B68CC';
-    const dimmed = isDimmed(meal);
     const timeLabel = meal.cook_time ? meal.cook_time + 'm' : meal.prep_time ? meal.prep_time + 'm' : '?';
     return (
       <TouchableOpacity
@@ -190,7 +189,6 @@ export default function DiscoverScreen() {
           borderRadius: 12,
           backgroundColor: Colors.card,
           marginRight: 8,
-          opacity: dimmed ? 0.3 : 1,
           elevation: 2,
           shadowColor: '#000',
           shadowOpacity: 0.08,
@@ -214,7 +212,7 @@ export default function DiscoverScreen() {
         </View>
       </TouchableOpacity>
     );
-  }, [isDimmed]);
+  }, []);
 
   const MealActionSheet = useCallback(({ visible, meal, onClose }: { visible: boolean; meal: DiscoverMeal | null; onClose: () => void }) => {
     if (!meal) return null;
@@ -383,7 +381,6 @@ export default function DiscoverScreen() {
                         borderRadius: 12,
                         backgroundColor: Colors.card,
                         marginBottom: 8,
-                        opacity: isDimmed(item) ? 0.3 : 1,
                         elevation: 2,
                         shadowColor: '#000',
                         shadowOpacity: 0.08,
@@ -438,7 +435,6 @@ export default function DiscoverScreen() {
                         borderRadius: 12,
                         backgroundColor: Colors.card,
                         marginBottom: 8,
-                        opacity: isDimmed(item) ? 0.3 : 1,
                         elevation: 2,
                         shadowColor: '#000',
                         shadowOpacity: 0.08,
