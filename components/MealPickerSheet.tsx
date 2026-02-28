@@ -75,6 +75,9 @@ export default function MealPickerSheet({
 
   const handleAddManual = useCallback(() => {
     if (!manualName.trim()) return;
+    const newMealId = saveToMyMeals
+      ? `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+      : undefined;
     const planned: PlannedMeal = {
       id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       slot_id: slotId,
@@ -83,11 +86,12 @@ export default function MealPickerSheet({
       serving_size: defaultServing,
       ingredients: [],
       recipe_serving_size: defaultServing,
+      ...(newMealId ? { meal_id: newMealId } : {}),
     };
     onSelectMeal(planned);
-    if (saveToMyMeals) {
+    if (saveToMyMeals && newMealId) {
       const favMeal: Meal = {
-        id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: newMealId,
         name: manualName.trim(),
         source: 'family_created',
         ingredients: [],
