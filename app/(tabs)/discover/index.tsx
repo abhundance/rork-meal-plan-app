@@ -341,74 +341,133 @@ export default function DiscoverScreen() {
           </ScrollView>
         </View>
 
-        {rows.map(row => {
-          if (row.meals.length === 0) return null;
-          return (
-            <View key={row.label} style={{ paddingHorizontal: 16, marginBottom: 24 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: Colors.text, marginBottom: 10 }}>
-                {row.emoji} {row.label}
+        {searchQuery === '' ? (
+          <>
+            {rows.map(row => {
+              if (row.meals.length === 0) return null;
+              return (
+                <View key={row.label} style={{ paddingHorizontal: 16, marginBottom: 24 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: Colors.text, marginBottom: 10 }}>
+                    {row.emoji} {row.label}
+                  </Text>
+                  <FlatList
+                    horizontal
+                    data={row.meals}
+                    keyExtractor={item => item.id}
+                    renderItem={({ item }) => (
+                      <MicroCarouselCard meal={item} onPress={() => handleCardPress(item)} />
+                    )}
+                    showsHorizontalScrollIndicator={false}
+                  />
+                </View>
+              );
+            })}
+
+            <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 24 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.textSecondary, letterSpacing: 0.5, marginBottom: 12 }}>
+                ALL RECIPES
               </Text>
               <FlatList
-                horizontal
-                data={row.meals}
-                keyExtractor={item => item.id}
-                renderItem={({ item }) => (
-                  <MicroCarouselCard meal={item} onPress={() => handleCardPress(item)} />
-                )}
-                showsHorizontalScrollIndicator={false}
+                data={allFiltered}
+                numColumns={3}
+                columnWrapperStyle={{ gap: 8 }}
+                keyExtractor={item => 'grid-' + item.id}
+                renderItem={({ item }) => {
+                  const cuisineColor = CUISINE_COLORS[item.cuisine] || '#7B68CC';
+                  const timeLabel = item.cook_time ? item.cook_time + 'm' : item.prep_time ? item.prep_time + 'm' : '?';
+                  return (
+                    <TouchableOpacity
+                      onPress={() => handleCardPress(item)}
+                      style={{
+                        width: (screenWidth - 48) / 3,
+                        borderRadius: 12,
+                        backgroundColor: Colors.card,
+                        marginBottom: 8,
+                        opacity: isDimmed(item) ? 0.3 : 1,
+                        elevation: 2,
+                        shadowColor: '#000',
+                        shadowOpacity: 0.08,
+                        shadowRadius: 4,
+                        shadowOffset: { width: 0, height: 2 },
+                      }}
+                    >
+                      <View style={{ height: 3, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: cuisineColor }} />
+                      <View style={{ padding: 7, paddingTop: 8 }}>
+                        <View style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', marginBottom: 6 }}>
+                          {item.image_url ? (
+                            <Image source={{ uri: item.image_url }} style={{ width: 40, height: 40 }} resizeMode="cover" />
+                          ) : (
+                            <MealImagePlaceholder size="thumbnail" mealType={item.meal_type} cuisine={item.cuisine} name={item.name} />
+                          )}
+                        </View>
+                        <Text style={{ fontSize: 10.5, fontWeight: '600', color: Colors.text, lineHeight: 14 }} numberOfLines={2}>
+                          {item.name}
+                        </Text>
+                        <Text style={{ fontSize: 9.5, color: Colors.textSecondary, marginTop: 3 }}>{timeLabel}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+                scrollEnabled={false}
               />
             </View>
-          );
-        })}
-
-        <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 24 }}>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.textSecondary, letterSpacing: 0.5, marginBottom: 12 }}>
-            ALL RECIPES
-          </Text>
-          <FlatList
-            data={allFiltered}
-            numColumns={3}
-            columnWrapperStyle={{ gap: 8 }}
-            keyExtractor={item => 'grid-' + item.id}
-            renderItem={({ item }) => {
-              const cuisineColor = CUISINE_COLORS[item.cuisine] || '#7B68CC';
-              const timeLabel = item.cook_time ? item.cook_time + 'm' : item.prep_time ? item.prep_time + 'm' : '?';
-              return (
-                <TouchableOpacity
-                  onPress={() => handleCardPress(item)}
-                  style={{
-                    width: (screenWidth - 48) / 3,
-                    borderRadius: 12,
-                    backgroundColor: Colors.card,
-                    marginBottom: 8,
-                    opacity: isDimmed(item) ? 0.3 : 1,
-                    elevation: 2,
-                    shadowColor: '#000',
-                    shadowOpacity: 0.08,
-                    shadowRadius: 4,
-                    shadowOffset: { width: 0, height: 2 },
-                  }}
-                >
-                  <View style={{ height: 3, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: cuisineColor }} />
-                  <View style={{ padding: 7, paddingTop: 8 }}>
-                    <View style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', marginBottom: 6 }}>
-                      {item.image_url ? (
-                        <Image source={{ uri: item.image_url }} style={{ width: 40, height: 40 }} resizeMode="cover" />
-                      ) : (
-                        <MealImagePlaceholder size="thumbnail" mealType={item.meal_type} cuisine={item.cuisine} name={item.name} />
-                      )}
-                    </View>
-                    <Text style={{ fontSize: 10.5, fontWeight: '600', color: Colors.text, lineHeight: 14 }} numberOfLines={2}>
-                      {item.name}
-                    </Text>
-                    <Text style={{ fontSize: 9.5, color: Colors.textSecondary, marginTop: 3 }}>{timeLabel}</Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            }}
-            scrollEnabled={false}
-          />
-        </View>
+          </>
+        ) : (
+          <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 24 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.textSecondary, letterSpacing: 0.5, marginBottom: 12 }}>
+              RESULTS FOR "{searchQuery}"
+            </Text>
+            {allFiltered.length === 0 ? (
+              <Text style={{ fontSize: 15, color: Colors.textSecondary, textAlign: 'center', marginTop: 40 }}>
+                No recipes found
+              </Text>
+            ) : (
+              <FlatList
+                data={allFiltered}
+                numColumns={3}
+                columnWrapperStyle={{ gap: 8 }}
+                keyExtractor={item => 'search-' + item.id}
+                renderItem={({ item }) => {
+                  const cuisineColor = CUISINE_COLORS[item.cuisine] || '#7B68CC';
+                  const timeLabel = item.cook_time ? item.cook_time + 'm' : item.prep_time ? item.prep_time + 'm' : '?';
+                  return (
+                    <TouchableOpacity
+                      onPress={() => handleCardPress(item)}
+                      style={{
+                        width: (screenWidth - 48) / 3,
+                        borderRadius: 12,
+                        backgroundColor: Colors.card,
+                        marginBottom: 8,
+                        opacity: isDimmed(item) ? 0.3 : 1,
+                        elevation: 2,
+                        shadowColor: '#000',
+                        shadowOpacity: 0.08,
+                        shadowRadius: 4,
+                        shadowOffset: { width: 0, height: 2 },
+                      }}
+                    >
+                      <View style={{ height: 3, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: cuisineColor }} />
+                      <View style={{ padding: 7, paddingTop: 8 }}>
+                        <View style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', marginBottom: 6 }}>
+                          {item.image_url ? (
+                            <Image source={{ uri: item.image_url }} style={{ width: 40, height: 40 }} resizeMode="cover" />
+                          ) : (
+                            <MealImagePlaceholder size="thumbnail" mealType={item.meal_type} cuisine={item.cuisine} name={item.name} />
+                          )}
+                        </View>
+                        <Text style={{ fontSize: 10.5, fontWeight: '600', color: Colors.text, lineHeight: 14 }} numberOfLines={2}>
+                          {item.name}
+                        </Text>
+                        <Text style={{ fontSize: 9.5, color: Colors.textSecondary, marginTop: 3 }}>{timeLabel}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+                scrollEnabled={false}
+              />
+            )}
+          </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
