@@ -145,6 +145,7 @@ export default function MealPickerSheet({
       serving_size: defaultServing,
       ingredients: meal.ingredients ?? [],
       recipe_serving_size: meal.recipe_serving_size ?? defaultServing,
+      meal_id: meal.id,
     };
     onSelectMeal(planned);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

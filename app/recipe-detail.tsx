@@ -270,6 +270,7 @@ export default function MealDetailScreen() {
         serving_size: familySettings.default_serving_size,
         ingredients: meal.ingredients,
         recipe_serving_size: meal.recipe_serving_size,
+        ...(params.source === 'favs' ? { meal_id: meal.id } : {}),
       };
       addMeal(planned);
       if (params.source === 'favs') {

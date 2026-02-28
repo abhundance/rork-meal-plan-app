@@ -187,6 +187,7 @@ export default function FavsScreen() {
         recipe_serving_size: selectedMealForPlan.recipe_serving_size,
         delivery_url: selectedMealForPlan.delivery_url,
         delivery_platform: selectedMealForPlan.delivery_platform,
+        meal_id: selectedMealForPlan.id,
       };
       addMeal(planned);
       incrementPlanCount(selectedMealForPlan.id);
