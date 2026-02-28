@@ -381,7 +381,7 @@ export default function FavsScreen() {
           activeOpacity={0.8}
         >
           <Text style={[styles.segmentBtnText, activeSegment === 'my_recipes' && styles.segmentBtnTextActive]}>
-            My Recipes
+            My Meals
           </Text>
           <View style={[styles.segmentBadge, activeSegment === 'my_recipes' && styles.segmentBadgeActive]}>
             <Text style={[styles.segmentBadgeText, activeSegment === 'my_recipes' && styles.segmentBadgeTextActive]}>
