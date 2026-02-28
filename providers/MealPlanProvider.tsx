@@ -134,7 +134,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     console.log('[MealPlan] Linked meal_id for: ' + plannedMealId);
   }, []);
 
-  const updatePlannedMealDelivery = useCallback((plannedMealId: string, updates: { meal_name?: string; delivery_url?: string; delivery_platform?: PlannedMeal['delivery_platform'] }) => {
+  const updatePlannedMealDelivery = useCallback((plannedMealId: string, updates: { meal_name?: string; delivery_url?: string; delivery_platform?: PlannedMeal['delivery_platform']; is_delivery?: boolean }) => {
     const updated = mealsRef.current.map((m) =>
       m.id === plannedMealId ? { ...m, ...updates } : m
     );

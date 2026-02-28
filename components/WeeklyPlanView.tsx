@@ -228,7 +228,7 @@ export default function WeeklyPlanView({
                                 <Text style={[styles.mealPillText, { color: slotColor.text }]} numberOfLines={1}>
                                   {meal.meal_id ? (favMeals.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}
                                 </Text>
-                                {!!meal.delivery_url && (
+                                {(!!meal.is_delivery || !!meal.delivery_url) && (
                                   <View style={styles.deliveryDot}>
                                     <Ionicons name="bicycle" size={10} color="#7C3AED" />
                                   </View>

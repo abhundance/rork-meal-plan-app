@@ -155,6 +155,7 @@ export default function MealPickerSheet({
       serving_size: defaultServing,
       ingredients: [],
       recipe_serving_size: defaultServing,
+      is_delivery: true,
       delivery_url: trimmedUrl || undefined,
       delivery_platform: trimmedUrl ? (detectPlatformFromUrl(trimmedUrl) ?? undefined) : undefined,
     };

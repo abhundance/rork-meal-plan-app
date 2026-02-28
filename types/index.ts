@@ -79,6 +79,7 @@ export interface PlannedMeal {
   ingredients: Ingredient[];
   recipe_serving_size: number;
   daily_note?: string;
+  is_delivery?: boolean;
   delivery_url?: string;
   delivery_platform?: 'uber_eats' | 'zomato' | 'grab' | 'swiggy' | 'deliveroo' | 'doordash' | 'other';
   position?: number;
