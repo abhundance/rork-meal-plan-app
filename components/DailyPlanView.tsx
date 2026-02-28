@@ -295,7 +295,7 @@ const DailySlotCard = React.memo(function DailySlotCard({
             onPress={onMealPress}
           />
         ))}
-        {meals.length < 4 && (
+        {meals.length < 10 && (
           <TouchableOpacity
             style={styles.addItemBtn}
             onPress={() => onAddItemToSlot(dateKey, slot.slot_id, slot.name)}
