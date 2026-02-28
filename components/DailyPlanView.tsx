@@ -9,6 +9,7 @@ import {
   Animated,
   Alert,
   Pressable,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
@@ -351,7 +352,11 @@ const MealItemRow = React.memo(function MealItemRow({
           }}
           activeOpacity={0.7}
         >
-          <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.meal_name} />
+          {meal.meal_image_url ? (
+            <Image source={{ uri: meal.meal_image_url }} style={{ width: 42, height: 42, borderRadius: 10 }} resizeMode="cover" />
+          ) : (
+            <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.meal_name} />
+          )}
           <View style={styles.itemNameCol}>
             <Text style={styles.itemName} numberOfLines={2}>
               {meal.meal_id ? (favMeals.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}
