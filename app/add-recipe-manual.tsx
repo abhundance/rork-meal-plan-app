@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  Image,
-  Animated,
   Linking,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { searchFoodImages, UnsplashImage } from '@/services/imageSearch';
+import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { X, Plus, Minus, Camera } from 'lucide-react-native';
+import { X, Plus, Minus } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
@@ -50,14 +47,6 @@ export default function AddMealScreen() {
   const isEditing = !!editMeal;
 
   const [name, setName] = useState<string>(editMeal?.name ?? '');
-  const [suggestedImages, setSuggestedImages] = useState<UnsplashImage[]>([]);
-  const [imageIndex, setImageIndex] = useState(0);
-  const [userImageUri, setUserImageUri] = useState<string | null>(
-    editMeal?.image_url ?? null
-  );
-  const [imageLoading, setImageLoading] = useState(false);
-  const [hasFetchedSuggestion, setHasFetchedSuggestion] = useState(false);
-  const skeletonAnim = useRef(new Animated.Value(0)).current;
   const [cuisine, setCuisine] = useState<string>(editMeal?.cuisine ?? '');
   const [cookingTimeBand, setCookingTimeBand] = useState<string>(editMeal?.cooking_time_band ?? '');
   const [prepTime, setPrepTime] = useState<string>(editMeal?.prep_time != null ? String(editMeal.prep_time) : '');
@@ -81,62 +70,6 @@ export default function AddMealScreen() {
   const [methodSteps, setMethodSteps] = useState<string[]>(
     editMeal?.method_steps?.length ? editMeal.method_steps : ['']
   );
-
-  useEffect(() => {
-    if (imageLoading) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(skeletonAnim, { toValue: 1, duration: 600, useNativeDriver: false }),
-          Animated.timing(skeletonAnim, { toValue: 0, duration: 600, useNativeDriver: false }),
-        ])
-      ).start();
-    } else {
-      skeletonAnim.stopAnimation();
-    }
-  }, [imageLoading, skeletonAnim]);
-
-  const handleMealNameBlur = async () => {
-    if (hasFetchedSuggestion || userImageUri) return;
-    if (!name || name.trim().length < 3) return;
-    setHasFetchedSuggestion(true);
-    setImageLoading(true);
-    const results = await searchFoodImages(name.trim());
-    setImageLoading(false);
-    if (results.length > 0) setSuggestedImages(results);
-  };
-
-  const handlePickImage = async (source: 'camera' | 'library') => {
-    const permission = source === 'camera'
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        'Permission needed',
-        source === 'camera'
-          ? 'Camera access is needed to take a photo.'
-          : 'Photo library access is needed to choose a photo.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Settings', onPress: () => Linking.openSettings() },
-        ]
-      );
-      return;
-    }
-    setImageLoading(true);
-    const result = source === 'camera'
-      ? await ImagePicker.launchCameraAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true, aspect: [16, 10] as [number, number], quality: 0.8,
-        })
-      : await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true, aspect: [16, 10] as [number, number], quality: 0.8,
-        });
-    setImageLoading(false);
-    if (!result.canceled && result.assets[0]) {
-      setUserImageUri(result.assets[0].uri);
-    }
-  };
 
   const sortedSlots = useMemo(
     () => [...familySettings.meal_slots].sort((a, b) => a.order - b.order),
@@ -209,7 +142,7 @@ export default function AddMealScreen() {
     if (isEditing && editMeal) {
       updateFav(editMeal.id, {
         name: name.trim(),
-        image_url: userImageUri ?? (suggestedImages[imageIndex]?.regularUrl ?? undefined),
+        image_url: undefined,
         cuisine: cuisine || undefined,
         cooking_time_band: cookingTimeBand as Meal['cooking_time_band'] || undefined,
         prep_time: prepTime ? parseInt(prepTime) : undefined,
@@ -245,13 +178,13 @@ export default function AddMealScreen() {
     }
 
     saveMeal(validIngredients, validSteps);
-  }, [name, userImageUri, suggestedImages, imageIndex, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, description, servingSize, ingredients, methodSteps, isEditing, editMeal, updateFav, isFavByName]);
+  }, [name, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, description, servingSize, ingredients, methodSteps, isEditing, editMeal, updateFav, isFavByName]);
 
   const saveMeal = useCallback((validIngredients: Ingredient[], validSteps: string[]) => {
     const newMeal: Meal = {
       id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: name.trim(),
-      image_url: userImageUri ?? (suggestedImages[imageIndex]?.regularUrl ?? undefined),
+      image_url: undefined,
       cuisine: cuisine || undefined,
       cooking_time_band: cookingTimeBand as Meal['cooking_time_band'] || undefined,
       prep_time: prepTime ? parseInt(prepTime) : undefined,
@@ -294,7 +227,7 @@ export default function AddMealScreen() {
     } else {
       router.replace('/(tabs)/favs' as never);
     }
-  }, [name, userImageUri, suggestedImages, imageIndex, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, servingSize, description, deliveryUrl, addFav]);
+  }, [name, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, servingSize, description, deliveryUrl, addFav]);
 
   return (
     <View style={styles.container}>
@@ -316,84 +249,11 @@ export default function AddMealScreen() {
             placeholderTextColor={Colors.textSecondary}
             value={name}
             onChangeText={setName}
-            onBlur={handleMealNameBlur}
             autoCapitalize="words"
             testID="meal-name-input"
           />
 
-          <Text style={styles.label}>Photo</Text>
-          <View style={styles.imageZoneWrapper}>
-            {imageLoading ? (
-              <Animated.View style={[
-                styles.imageZoneCard,
-                { backgroundColor: skeletonAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [Colors.border, Colors.background],
-                  })
-                }
-              ]} />
-            ) : (userImageUri || suggestedImages.length > 0) ? (
-              <View>
-                <View style={styles.imageZoneCard}>
-                  <Image
-                    source={{ uri: userImageUri ?? suggestedImages[imageIndex]?.regularUrl }}
-                    style={styles.imageZoneFull}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.imageZoneGradient} />
-                  {!userImageUri && suggestedImages.length > 0 && (
-                    <View style={styles.imageZonePill}>
-                      <Text style={styles.imageZonePillText}>Suggested</Text>
-                    </View>
-                  )}
-                  <View style={styles.imageZoneActions}>
-                    <TouchableOpacity style={styles.imageZoneBtn} onPress={() => handlePickImage('camera')}>
-                      <Ionicons name="camera-outline" size={18} color={Colors.white} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.imageZoneBtn} onPress={() => handlePickImage('library')}>
-                      <Ionicons name="image-outline" size={18} color={Colors.white} />
-                    </TouchableOpacity>
-                    {!userImageUri && suggestedImages.length > 1 && (
-                      <TouchableOpacity
-                        style={styles.imageZoneBtn}
-                        onPress={() => setImageIndex((imageIndex + 1) % suggestedImages.length)}
-                      >
-                        <Ionicons name="refresh-outline" size={18} color={Colors.white} />
-                      </TouchableOpacity>
-                    )}
-                    {userImageUri && (
-                      <TouchableOpacity style={styles.imageZoneBtn} onPress={() => setUserImageUri(null)}>
-                        <Ionicons name="trash-outline" size={18} color={Colors.white} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-                {!userImageUri && suggestedImages[imageIndex] && (
-                  <Text style={styles.imageZoneAttribution}>
-                    {'Photo by '}{suggestedImages[imageIndex].photographer}{' on Unsplash'}
-                  </Text>
-                )}
-              </View>
-            ) : (
-              <View style={styles.imageZoneEmpty}>
-                <Ionicons name="image-outline" size={40} color={Colors.textSecondary} />
-                <Text style={styles.imageZoneEmptyTitle}>Add a photo</Text>
-                <Text style={styles.imageZoneEmptyHint}>
-                  Take one or choose from your library
-                </Text>
-                <View style={styles.imageZoneEmptyBtns}>
-                  <TouchableOpacity style={styles.imageZoneEmptyBtn} onPress={() => handlePickImage('camera')}>
-                    <Ionicons name="camera-outline" size={18} color={Colors.primary} />
-                    <Text style={styles.imageZoneEmptyBtnText}>Camera</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.imageZoneEmptyBtn} onPress={() => handlePickImage('library')}>
-                    <Ionicons name="image-outline" size={18} color={Colors.primary} />
-                    <Text style={styles.imageZoneEmptyBtnText}>Library</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          </View>
+          <MealImagePlaceholder size="hero" mealType={mealTypeSlotId} cuisine={cuisine} />
 
           <Text style={styles.label}>Meal type</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
@@ -846,80 +706,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.divider,
     backgroundColor: Colors.background,
-  },
-  imageZoneWrapper: {
-    marginBottom: 4,
-  },
-  imageZoneCard: {
-    height: 200,
-    borderRadius: BorderRadius.card,
-    overflow: 'hidden',
-    backgroundColor: Colors.border,
-  },
-  imageZoneFull: {
-    width: '100%',
-    height: 200,
-  },
-  imageZoneGradient: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    height: 80,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  imageZonePill: {
-    position: 'absolute',
-    bottom: 10, left: 12,
-    backgroundColor: 'rgba(123,104,204,0.85)',
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 9999,
-  },
-  imageZonePillText: {
-    fontSize: 12, fontWeight: '500' as const, color: Colors.white,
-  },
-  imageZoneActions: {
-    position: 'absolute',
-    bottom: 8, right: 10,
-    flexDirection: 'row', gap: 8,
-  },
-  imageZoneBtn: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  imageZoneAttribution: {
-    fontSize: 12, fontWeight: '400' as const, color: Colors.textSecondary,
-    marginTop: 4, marginBottom: 4,
-  },
-  imageZoneEmpty: {
-    height: 200,
-    borderRadius: BorderRadius.card,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderStyle: 'dashed',
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  imageZoneEmptyTitle: {
-    fontSize: 16, fontWeight: '600' as const, color: Colors.text, marginTop: 8,
-  },
-  imageZoneEmptyHint: {
-    fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary,
-    marginTop: 4, textAlign: 'center',
-  },
-  imageZoneEmptyBtns: {
-    flexDirection: 'row', gap: 12, marginTop: 14,
-  },
-  imageZoneEmptyBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: Colors.card,
-    paddingVertical: 10, paddingHorizontal: 16,
-    borderRadius: BorderRadius.button,
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  imageZoneEmptyBtnText: {
-    fontSize: 14, fontWeight: '500' as const, color: Colors.text,
   },
   deliveryRow: {
     flexDirection: 'row' as const,
