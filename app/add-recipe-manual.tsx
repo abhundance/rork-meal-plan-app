@@ -253,7 +253,7 @@ export default function AddMealScreen() {
             testID="meal-name-input"
           />
 
-          <MealImagePlaceholder size="hero" mealType={mealTypeSlotId} cuisine={cuisine} />
+          <MealImagePlaceholder size="hero" mealType={mealTypeSlotId} cuisine={cuisine} name={name} />
 
           <Text style={styles.label}>Meal type</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>

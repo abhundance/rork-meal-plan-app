@@ -351,7 +351,7 @@ const MealItemRow = React.memo(function MealItemRow({
           }}
           activeOpacity={0.7}
         >
-          <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} />
+          <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
           <View style={styles.itemNameCol}>
             <Text style={styles.itemName} numberOfLines={2}>
               {meal.meal_id ? (favMeals.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}

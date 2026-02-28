@@ -962,7 +962,7 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
         }
       >
         <View style={styles.mealImageWrap}>
-          <MealImagePlaceholder size="card" mealType={meal.meal_type} cuisine={meal.cuisine} />
+          <MealImagePlaceholder size="card" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
           <TouchableOpacity
             style={styles.saveFavBtn}
             onPress={() => {

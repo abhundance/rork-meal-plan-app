@@ -857,7 +857,7 @@ const MyRecipeGridCard = React.memo(function MyRecipeGridCard({
         }
       >
         <View style={styles.gridImageWrap}>
-          <MealImagePlaceholder size="card" mealType={meal.meal_type} cuisine={meal.cuisine} />
+          <MealImagePlaceholder size="card" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
           {totalTime > 0 && (
             <View style={styles.cookTimeBadge}>
               <Clock size={11} color="#FFFFFF" strokeWidth={2} />
@@ -924,7 +924,7 @@ const SavedMealGridCard = React.memo(function SavedMealGridCard({
         }
       >
         <View style={styles.gridImageWrap}>
-          <MealImagePlaceholder size="card" mealType={meal.meal_type} cuisine={meal.cuisine} />
+          <MealImagePlaceholder size="card" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
           {totalTime > 0 && (
             <View style={styles.cookTimeBadge}>
               <Clock size={11} color="#FFFFFF" strokeWidth={2} />

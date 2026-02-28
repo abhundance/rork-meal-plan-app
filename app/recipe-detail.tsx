@@ -315,7 +315,7 @@ export default function MealDetailScreen() {
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.heroWrap}>
-          <MealImagePlaceholder size="hero" mealType={meal.meal_type} cuisine={meal.cuisine} />
+          <MealImagePlaceholder size="hero" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
           <TouchableOpacity
             style={[styles.backBtn, { top: insets.top + 8 }]}
             onPress={() => router.back()}

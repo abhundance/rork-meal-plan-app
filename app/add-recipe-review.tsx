@@ -363,7 +363,7 @@ export default function AddMealReviewScreen() {
         >
           {/* Image Hero Zone */}
           <View style={styles.heroZoneWrapper}>
-            <MealImagePlaceholder size="hero" mealType={mealType || undefined} cuisine={cuisine || undefined} />
+            <MealImagePlaceholder size="hero" mealType={mealType || undefined} cuisine={cuisine || undefined} name={name} />
           </View>
 
           <View style={styles.card}>
