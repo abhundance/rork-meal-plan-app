@@ -289,6 +289,7 @@ export default function AddMealScreen() {
         recipe_serving_size: newMeal.recipe_serving_size,
         delivery_url: newMeal.delivery_url,
         delivery_platform: newMeal.delivery_platform,
+        meal_id: newMeal.id,
       };
       addMeal(plannedMeal);
       console.log('[AddMeal] Auto-added to plan slot:', pending.slotId, pending.date);

@@ -355,6 +355,7 @@ export default function AddMealReviewScreen() {
         recipe_serving_size: meal.recipe_serving_size,
         delivery_url: undefined,
         delivery_platform: undefined,
+        meal_id: meal.id,
       };
       addMeal(plannedMeal);
       router.replace('/(tabs)' as never);
