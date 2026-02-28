@@ -31,6 +31,7 @@ import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import ServingStepper from '@/components/ServingStepper';
 import SlotPickerModal from '@/components/SlotPickerModal';
 import { useFavs } from '@/providers/FavsProvider';
+import MealPickerSheet from '@/components/MealPickerSheet';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { Meal, PlannedMeal, Ingredient } from '@/types';
@@ -43,12 +44,13 @@ export default function MealDetailScreen() {
   const params = useLocalSearchParams<{ id: string; source: string }>();
   const { meals: favMeals, isFav, isFavByName, addFav, addFromDiscover, removeFav, incrementPlanCount } = useFavs();
   const { familySettings } = useFamilySettings();
-  const { meals: planMeals, addMeal, removeMeal, updateMealNote, getMealForSlot } = useMealPlan();
+  const { meals: planMeals, addMeal, removeMeal, updateMealNote, getMealForSlot, linkMealToPlan } = useMealPlan();
 
   const [servingScale, setServingScale] = useState<number>(4);
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [dailyNote, setDailyNote] = useState<string>('');
   const [initialized, setInitialized] = useState<boolean>(false);
+  const [deliveryEditVisible, setDeliveryEditVisible] = useState<boolean>(false);
 
   const plannedMeal = useMemo<PlannedMeal | null>(() => {
     if (params.source !== 'plan') return null;
@@ -336,13 +338,53 @@ export default function MealDetailScreen() {
           >
             <ArrowLeft size={20} color={Colors.text} strokeWidth={2} />
           </TouchableOpacity>
-          {(params.source === 'favs' || (params.source === 'plan' && planMealFoundViaId)) && (
+          {params.source === 'favs' && (
             <TouchableOpacity
               style={[styles.editBtn, { top: insets.top + 8 }]}
-              onPress={() => router.push({ pathname: '/add-recipe-manual', params: { editId: params.source === 'favs' ? meal.id : (plannedMeal?.meal_id ?? meal.id) } })}
+              onPress={() => router.push({ pathname: '/add-recipe-manual', params: { editId: meal.id } })}
             >
               <Pencil size={18} color={Colors.text} strokeWidth={2} />
             </TouchableOpacity>
+          )}
+          {params.source === 'plan' && (
+            plannedMeal?.delivery_url ? (
+              <TouchableOpacity
+                style={{ position: 'absolute', top: insets.top + 8, right: 56, backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
+                onPress={() => setDeliveryEditVisible(true)}
+              >
+                <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>Edit Delivery</Text>
+              </TouchableOpacity>
+            ) : planMealFoundViaId ? (
+              <TouchableOpacity
+                style={[styles.editBtn, { top: insets.top + 8 }]}
+                onPress={() => router.push({ pathname: '/add-recipe-manual', params: { editId: plannedMeal!.meal_id } })}
+              >
+                <Pencil size={18} color={Colors.text} strokeWidth={2} />
+              </TouchableOpacity>
+            ) : discoverData !== null ? (
+              <TouchableOpacity
+                style={{ position: 'absolute', top: insets.top + 8, right: 8, backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
+                onPress={() => {
+                  const newMeal = addFromDiscover(discoverData);
+                  linkMealToPlan(plannedMeal!.id, newMeal.id);
+                  router.push({ pathname: '/add-recipe-manual', params: { editId: newMeal.id } });
+                }}
+              >
+                <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>Save to My Meals & Edit</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={{ position: 'absolute', top: insets.top + 8, right: 8, backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
+                onPress={() => {
+                  const newId = 'fav_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+                  addFav({ id: newId, name: plannedMeal!.meal_name, image_url: plannedMeal!.meal_image_url, ingredients: [], method_steps: [], dietary_tags: [], custom_tags: [], recipe_serving_size: plannedMeal!.recipe_serving_size, add_to_plan_count: 0, created_at: new Date().toISOString(), source: 'family_created', is_ingredient_complete: false, is_recipe_complete: false });
+                  linkMealToPlan(plannedMeal!.id, newId);
+                  router.push({ pathname: '/add-recipe-manual', params: { editId: newId } });
+                }}
+              >
+                <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>Save & Edit</Text>
+              </TouchableOpacity>
+            )
           )}
         </View>
 
@@ -533,6 +575,17 @@ export default function MealDetailScreen() {
         </View>
       )}
 
+      <MealPickerSheet
+        visible={deliveryEditVisible}
+        onClose={() => setDeliveryEditVisible(false)}
+        onSelectMeal={() => setDeliveryEditVisible(false)}
+        onCreateNewRecipe={() => {}}
+        date={plannedMeal?.date ?? ''}
+        slotId={plannedMeal?.slot_id ?? ''}
+        slotName=""
+        defaultServing={plannedMeal?.serving_size ?? 1}
+        editingDeliveryMeal={plannedMeal ?? undefined}
+      />
       <SlotPickerModal
         visible={slotPickerVisible}
         onClose={() => setSlotPickerVisible(false)}
