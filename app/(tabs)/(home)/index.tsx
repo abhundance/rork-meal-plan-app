@@ -124,30 +124,6 @@ export default function MealPlanScreen() {
     []
   );
 
-  const handleServingPress = useCallback(
-    (meal: PlannedMeal) => {
-      Alert.alert(
-        'Adjust Servings',
-        `Current: ${meal.serving_size} servings for ${meal.meal_name}`,
-        [
-          {
-            text: '-1',
-            onPress: () => {
-              if (meal.serving_size > 1) updateMealServing(meal.id, meal.serving_size - 1);
-            },
-          },
-          {
-            text: '+1',
-            onPress: () => {
-              if (meal.serving_size < 20) updateMealServing(meal.id, meal.serving_size + 1);
-            },
-          },
-          { text: 'Done', style: 'cancel' },
-        ]
-      );
-    },
-    [updateMealServing]
-  );
 
   const favMealsRef = useRef(favMeals);
   favMealsRef.current = favMeals;
