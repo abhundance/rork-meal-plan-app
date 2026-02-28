@@ -125,6 +125,24 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     console.log('[MealPlan] Updated serving for:', mealId, 'to', serving_size);
   }, []);
 
+  const linkMealToPlan = useCallback((plannedMealId: string, mealId: string) => {
+    const updated = mealsRef.current.map((m) =>
+      m.id === plannedMealId ? { ...m, meal_id: mealId } : m
+    );
+    setMeals(updated);
+    saveMutateRef.current(updated);
+    console.log('[MealPlan] Linked meal_id for: ' + plannedMealId);
+  }, []);
+
+  const updatePlannedMealDelivery = useCallback((plannedMealId: string, updates: { meal_name?: string; delivery_url?: string; delivery_platform?: string | null }) => {
+    const updated = mealsRef.current.map((m) =>
+      m.id === plannedMealId ? { ...m, ...updates } : m
+    );
+    setMeals(updated);
+    saveMutateRef.current(updated);
+    console.log('[MealPlan] Updated delivery for: ' + plannedMealId);
+  }, []);
+
   const updateMealNote = useCallback((mealId: string, daily_note: string) => {
     const updated = mealsRef.current.map((m) =>
       m.id === mealId ? { ...m, daily_note } : m
@@ -262,5 +280,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     getIngredientsForWeek,
     clearDay,
     clearWeek,
+    linkMealToPlan,
+    updatePlannedMealDelivery,
   };
 });
