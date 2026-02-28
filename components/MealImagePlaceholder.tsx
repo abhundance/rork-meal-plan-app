@@ -47,7 +47,7 @@ const NAME_EMOJI_MAP: Array<[string[], string]> = [
   [['gyro', 'falafel', 'hummus', 'shawarma'], '🥙'],
 ];
 
-const NAME_CUISINE_MAP: Array<[string[], [string, string, string]]> = [
+const NAME_CUISINE_MAP: Array<[string[], [string, string, string], string]> = [
   [['pizza', 'pasta', 'spaghetti', 'lasagna', 'risotto'], ['#FEE2E2', '#FECACA', '#FCA5A5'], 'Italian'],
   [['ramen', 'sushi', 'miso', 'teriyaki', 'kimchi', 'bibimbap', 'pho', 'udon'], ['#DBEAFE', '#BFDBFE', '#93C5FD'], 'Asian'],
   [['taco', 'burrito', 'enchilada', 'quesadilla', 'guacamole'], ['#FCE7F3', '#FBCFE8', '#F9A8D4'], 'Mexican'],
