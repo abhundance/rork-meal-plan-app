@@ -90,7 +90,7 @@ function CinemaCardBase({ meal, cardWidth, onPress, onHeartPress, isSaved, noMar
       />
 
       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8 }}>
-        <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#FFFFFF', numberOfLines: 2, lineHeight: 15 }} numberOfLines={2}>
+        <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#FFFFFF', lineHeight: 15 }} numberOfLines={2}>
           {meal.name}
         </Text>
         {timeLabel !== null && (
@@ -101,10 +101,7 @@ function CinemaCardBase({ meal, cardWidth, onPress, onHeartPress, isSaved, noMar
       </View>
 
       <Pressable
-        onPress={(e) => {
-          e.stopPropagation();
-          onHeartPress();
-        }}
+        onPress={() => onHeartPress()}
         style={{
           position: 'absolute',
           top: 7,
