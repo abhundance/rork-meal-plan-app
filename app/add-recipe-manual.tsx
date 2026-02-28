@@ -67,7 +67,6 @@ export default function AddMealScreen() {
   const [newTag, setNewTag] = useState<string>('');
   const [mealTypeSlotId, setMealTypeSlotId] = useState<string>(editMeal?.meal_type_slot_id ?? '');
   const [description, setDescription] = useState<string>(editMeal?.description ?? '');
-  const [chefNotes, setChefNotes] = useState<string>(editMeal?.chef_notes ?? '');
   const [servingSize, setServingSize] = useState<number>(editMeal?.recipe_serving_size ?? familySettings.default_serving_size);
   const [ingredients, setIngredients] = useState<{ name: string; quantity: string; unit: string }[]>(
     editMeal?.ingredients?.length
@@ -219,7 +218,6 @@ export default function AddMealScreen() {
         custom_tags: customTags,
         meal_type_slot_id: mealTypeSlotId || undefined,
         description: description || undefined,
-        chef_notes: chefNotes || undefined,
         recipe_serving_size: servingSize,
         ingredients: validIngredients,
         method_steps: validSteps,
@@ -247,7 +245,7 @@ export default function AddMealScreen() {
     }
 
     saveMeal(validIngredients, validSteps);
-  }, [name, userImageUri, suggestedImages, imageIndex, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, description, chefNotes, servingSize, ingredients, methodSteps, isEditing, editMeal, updateFav, isFavByName]);
+  }, [name, userImageUri, suggestedImages, imageIndex, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, description, servingSize, ingredients, methodSteps, isEditing, editMeal, updateFav, isFavByName]);
 
   const saveMeal = useCallback((validIngredients: Ingredient[], validSteps: string[]) => {
     const newMeal: Meal = {
@@ -265,7 +263,6 @@ export default function AddMealScreen() {
       recipe_serving_size: servingSize,
       method_steps: validSteps,
       description: description || undefined,
-      chef_notes: chefNotes || undefined,
       source: 'family_created',
       add_to_plan_count: 0,
       created_at: new Date().toISOString(),
@@ -297,7 +294,7 @@ export default function AddMealScreen() {
     } else {
       router.replace('/(tabs)/favs' as never);
     }
-  }, [name, userImageUri, suggestedImages, imageIndex, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, servingSize, description, chefNotes, deliveryUrl, addFav]);
+  }, [name, userImageUri, suggestedImages, imageIndex, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, servingSize, description, deliveryUrl, addFav]);
 
   return (
     <View style={styles.container}>
@@ -614,17 +611,6 @@ export default function AddMealScreen() {
               </View>
             );
           })()}
-
-          <Text style={styles.label}>Chef notes</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Tips, tricks, or variations..."
-            placeholderTextColor={Colors.textSecondary}
-            value={chefNotes}
-            onChangeText={setChefNotes}
-            multiline
-            numberOfLines={3}
-          />
 
           <View style={{ height: 100 }} />
         </ScrollView>

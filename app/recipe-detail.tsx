@@ -22,7 +22,6 @@ import {
   CalendarPlus,
   Clock,
   Users,
-  ChefHat,
   X,
   FileText,
 } from 'lucide-react-native';
@@ -103,10 +102,7 @@ export default function MealDetailScreen() {
         recipe_serving_size: plannedMeal.recipe_serving_size,
         method_steps: methodSteps,
         description: favMatch?.description ?? discMatch?.description,
-        chef_notes: favMatch?.chef_notes ?? discMatch?.chef_notes,
         source: favMatch ? favMatch.source : (discMatch ? 'discover' as const : 'family_created' as const),
-        source_chef_id: favMatch?.source_chef_id ?? discMatch?.chef_id,
-        source_chef_name: favMatch?.source_chef_name ?? discMatch?.chef_name,
         add_to_plan_count: favMatch?.add_to_plan_count ?? 0,
         created_at: favMatch?.created_at ?? plannedMeal.date,
         is_ingredient_complete: plannedMeal.ingredients.length > 0,
@@ -130,10 +126,7 @@ export default function MealDetailScreen() {
         recipe_serving_size: disc.recipe_serving_size,
         method_steps: disc.method_steps,
         description: disc.description,
-        chef_notes: disc.chef_notes,
         source: 'discover' as const,
-        source_chef_id: disc.chef_id,
-        source_chef_name: disc.chef_name,
         add_to_plan_count: 0,
         created_at: disc.created_at,
         is_ingredient_complete: disc.ingredients.length > 0,
@@ -236,10 +229,7 @@ export default function MealDetailScreen() {
         recipe_serving_size: meal.recipe_serving_size,
         method_steps: meal.method_steps,
         description: meal.description,
-        chef_notes: meal.chef_notes,
         source: 'family_created' as const,
-        source_chef_id: meal.source_chef_id,
-        source_chef_name: meal.source_chef_name,
         add_to_plan_count: 0,
         created_at: new Date().toISOString(),
         is_ingredient_complete: meal.ingredients.length > 0,
@@ -328,9 +318,7 @@ export default function MealDetailScreen() {
           {meal.image_url ? (
             <Image source={{ uri: meal.image_url }} style={styles.heroImage} contentFit="cover" />
           ) : (
-            <View style={[styles.heroImage, styles.heroPlaceholder]}>
-              <ChefHat size={48} color={Colors.textSecondary} strokeWidth={1} />
-            </View>
+            <View style={[styles.heroImage, styles.heroPlaceholder]} />
           )}
           <TouchableOpacity
             style={[styles.backBtn, { top: insets.top + 8 }]}

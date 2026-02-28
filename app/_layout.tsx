@@ -52,19 +52,11 @@ function RootLayoutNav() {
         options={{ headerShown: false, presentation: "modal" }}
       />
       <Stack.Screen
-        name="chef-profile"
-        options={{ headerShown: false, presentation: "card" }}
-      />
-      <Stack.Screen
         name="discover-search"
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen
         name="discover-collection"
-        options={{ headerShown: false, presentation: "card" }}
-      />
-      <Stack.Screen
-        name="chefs-directory"
         options={{ headerShown: false, presentation: "card" }}
       />
       <Stack.Screen

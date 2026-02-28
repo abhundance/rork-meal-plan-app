@@ -567,11 +567,6 @@ export default function FamilySettingsScreen() {
         <SectionHeader title="Notifications" />
         <Card>
           <SwitchRow
-            label="New recipes from chefs you follow"
-            value={notificationSettings.new_recipes}
-            onValueChange={(val) => updateNotificationSettings({ new_recipes: val })}
-          />
-          <SwitchRow
             label="Weekly planning reminder"
             value={notificationSettings.weekly_reminder}
             onValueChange={(val) => updateNotificationSettings({ weekly_reminder: val })}
