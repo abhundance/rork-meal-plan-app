@@ -229,7 +229,9 @@ export default function WeeklyPlanView({
                                   {meal.meal_id ? (favMeals.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}
                                 </Text>
                                 {!!meal.delivery_url && (
-                                  <View style={styles.deliveryDot} />
+                                  <View style={styles.deliveryDot}>
+                                    <Ionicons name="bicycle" size={10} color="#7C3AED" />
+                                  </View>
                                 )}
                               </View>
                             ))}
@@ -478,12 +480,19 @@ const styles = StyleSheet.create({
   },
   deliveryDot: {
     position: 'absolute' as const,
-    top: -2,
-    right: -2,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.primary,
+    top: -3,
+    right: -3,
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   mealPillText: {
     fontSize: 9,
