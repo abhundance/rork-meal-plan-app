@@ -18,7 +18,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
 import { BorderRadius } from '@/constants/theme';
-import { PlannedMeal } from '@/types';
+import { PlannedMeal, FavMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { useFavs } from '@/providers/FavsProvider';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
@@ -50,7 +50,8 @@ export default function MealPickerSheet({
   const [deliveryName, setDeliveryName] = useState<string>('');
   const [deliveryUrl, setDeliveryUrl] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const { meals: favMeals } = useFavs();
+  const [saveToMyMeals, setSaveToMyMeals] = useState<boolean>(false);
+  const { meals: favMeals, addFav } = useFavs();
   const router = useRouter();
 
   const formattedDate = useMemo(() => {
@@ -84,9 +85,26 @@ export default function MealPickerSheet({
       recipe_serving_size: defaultServing,
     };
     onSelectMeal(planned);
+    if (saveToMyMeals) {
+      const favMeal: FavMeal = {
+        id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        name: manualName.trim(),
+        source: 'family_created',
+        ingredients: [],
+        recipe_serving_size: defaultServing,
+        is_ingredient_complete: false,
+        is_recipe_complete: false,
+        dietary_tags: [],
+        custom_tags: [],
+        method_steps: [],
+        add_to_plan_count: 0,
+        created_at: new Date().toISOString(),
+      };
+      addFav(favMeal);
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     resetAndClose();
-  }, [manualName, slotId, date, defaultServing, onSelectMeal]);
+  }, [manualName, slotId, date, defaultServing, onSelectMeal, saveToMyMeals, addFav]);
 
   const resetAndClose = useCallback(() => {
     setMode('choose');
@@ -94,6 +112,7 @@ export default function MealPickerSheet({
     setDeliveryName('');
     setDeliveryUrl('');
     setSearchQuery('');
+    setSaveToMyMeals(false);
     onClose();
   }, [onClose]);
 
@@ -414,6 +433,19 @@ export default function MealPickerSheet({
               autoFocus
               testID="manual-meal-input"
             />
+            <TouchableOpacity
+              style={styles.saveToMyMealsRow}
+              onPress={() => setSaveToMyMeals((v) => !v)}
+              activeOpacity={0.75}
+              testID="save-to-my-meals-toggle"
+            >
+              <Ionicons
+                name={saveToMyMeals ? 'heart' : 'heart-outline'}
+                size={18}
+                color={saveToMyMeals ? Colors.primary : Colors.textSecondary}
+              />
+              <Text style={styles.saveToMyMealsText}>Save to My Meals</Text>
+            </TouchableOpacity>
             <Text style={styles.manualHint}>
               You can add ingredients later from the meal detail screen.
             </Text>
@@ -620,6 +652,17 @@ const styles = StyleSheet.create({
   },
   backLink: {
     paddingVertical: 8,
+  },
+  saveToMyMealsRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+  },
+  saveToMyMealsText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
   },
   backLinkText: {
     fontSize: 14,
