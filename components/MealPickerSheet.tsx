@@ -263,6 +263,9 @@ export default function MealPickerSheet({
                     <View style={styles.searchEmptyState}>
                       <Search size={36} color={Colors.textSecondary} strokeWidth={1.5} />
                       <Text style={styles.searchEmptyText}>No saved meals match "{searchQuery}"</Text>
+                      <TouchableOpacity onPress={() => { onClose(); router.push('/(tabs)/discover'); }} testID="browse-discover-from-search-btn">
+                        <Text style={styles.searchEmptyDiscoverBtn}>Browse Discover meals</Text>
+                      </TouchableOpacity>
                     </View>
                   ) : (
                     filteredFavMeals.map((meal, index) => (
@@ -755,6 +758,13 @@ const styles = StyleSheet.create({
   searchEmptyText: {
     fontSize: 15,
     color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  searchEmptyDiscoverBtn: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+    marginTop: 12,
     textAlign: 'center',
   },
   searchOnlineStub: {
