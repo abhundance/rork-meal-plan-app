@@ -56,6 +56,7 @@ import {
 import Colors from '@/constants/colors';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import AppHeader from '@/components/AppHeader';
+import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import FilterPill from '@/components/FilterPill';
 import SlotPickerModal from '@/components/SlotPickerModal';
 import { useFavs } from '@/providers/FavsProvider';
@@ -961,11 +962,7 @@ const DiscoverMealCard = React.memo(function DiscoverMealCard({
         }
       >
         <View style={styles.mealImageWrap}>
-          <Image
-            source={{ uri: meal.image_url }}
-            style={styles.mealImage}
-            contentFit="cover"
-          />
+          <MealImagePlaceholder size="card" mealType={meal.meal_type} cuisine={meal.cuisine} />
           <TouchableOpacity
             style={styles.saveFavBtn}
             onPress={() => {
@@ -1240,10 +1237,6 @@ const styles = StyleSheet.create({
   mealImageWrap: {
     aspectRatio: 4 / 3,
     position: 'relative' as const,
-  },
-  mealImage: {
-    width: '100%',
-    height: '100%',
   },
   saveFavBtn: {
     position: 'absolute' as const,
