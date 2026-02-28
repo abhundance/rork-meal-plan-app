@@ -13,7 +13,6 @@ interface MealImagePlaceholderProps {
 interface PlaceholderConfig {
   colors: [string, string, string];
   emoji: string;
-  label: string;
 }
 
 const NAME_EMOJI_MAP: Array<[string[], string]> = [
@@ -48,7 +47,7 @@ const NAME_EMOJI_MAP: Array<[string[], string]> = [
   [['gyro', 'falafel', 'hummus', 'shawarma'], '🥙'],
 ];
 
-const NAME_CUISINE_MAP: Array<[string[], [string, string, string], string]> = [
+const NAME_CUISINE_MAP: Array<[string[], [string, string, string]]> = [
   [['pizza', 'pasta', 'spaghetti', 'lasagna', 'risotto'], ['#FEE2E2', '#FECACA', '#FCA5A5'], 'Italian'],
   [['ramen', 'sushi', 'miso', 'teriyaki', 'kimchi', 'bibimbap', 'pho', 'udon'], ['#DBEAFE', '#BFDBFE', '#93C5FD'], 'Asian'],
   [['taco', 'burrito', 'enchilada', 'quesadilla', 'guacamole'], ['#FCE7F3', '#FBCFE8', '#F9A8D4'], 'Mexican'],
@@ -70,73 +69,66 @@ function getConfig(mealType?: string, cuisine?: string, name?: string): Placehol
   if (c.length > 0) {
     let colors: [string, string, string];
     let baseEmoji: string;
-    let label: string;
 
     if (c.includes('italian')) {
       colors = ['#FEE2E2', '#FECACA', '#FCA5A5'];
       baseEmoji = '🍕';
-      label = 'Italian';
     } else if (c.includes('japanese') || c.includes('asian') || c.includes('korean') || c.includes('thai')) {
       colors = ['#DBEAFE', '#BFDBFE', '#93C5FD'];
       baseEmoji = '🍜';
-      label = cuisine ?? '';
     } else if (c.includes('mexican')) {
       colors = ['#FCE7F3', '#FBCFE8', '#F9A8D4'];
       baseEmoji = '🌮';
-      label = 'Mexican';
     } else if (c.includes('indian')) {
       colors = ['#FEF9C3', '#FDE68A', '#FCD34D'];
       baseEmoji = '🍛';
-      label = 'Indian';
     } else if (c.includes('mediterranean') || c.includes('middle eastern')) {
       colors = ['#CCFBF1', '#99F6E4', '#5EEAD4'];
       baseEmoji = '🥙';
-      label = cuisine ?? '';
     } else {
       colors = ['#EDE9FE', '#C4B5FD', '#DDD6FE'];
       baseEmoji = '🍴';
-      label = '';
     }
 
     const nameEmoji = n.length > 0 ? getEmojiFromName(n) : null;
-    return { colors, emoji: nameEmoji ?? baseEmoji, label };
+    return { colors, emoji: nameEmoji ?? baseEmoji };
   }
 
   if (n.length > 0) {
-    for (const [keywords, colors, label] of NAME_CUISINE_MAP) {
+    for (const [keywords, colors] of NAME_CUISINE_MAP) {
       if (keywords.some((kw) => n.includes(kw))) {
         const nameEmoji = getEmojiFromName(n);
-        return { colors, emoji: nameEmoji ?? '🍴', label };
+        return { colors, emoji: nameEmoji ?? '🍴' };
       }
     }
     const nameEmoji = getEmojiFromName(n);
     if (nameEmoji) {
       const m = mealType?.toLowerCase() ?? '';
       if (m === 'breakfast') {
-        return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: nameEmoji, label: 'Breakfast' };
+        return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: nameEmoji };
       }
       if (m === 'lunch_dinner') {
-        return { colors: ['#FEF3C7', '#FDE68A', '#FCD34D'], emoji: nameEmoji, label: 'Lunch & Dinner' };
+        return { colors: ['#FEF3C7', '#FDE68A', '#FCD34D'], emoji: nameEmoji };
       }
       if (m === 'light_bites') {
-        return { colors: ['#D1FAE5', '#A7F3D0', '#6EE7B7'], emoji: nameEmoji, label: 'Light Bites' };
+        return { colors: ['#D1FAE5', '#A7F3D0', '#6EE7B7'], emoji: nameEmoji };
       }
-      return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: nameEmoji, label: '' };
+      return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: nameEmoji };
     }
   }
 
   const m = mealType?.toLowerCase() ?? '';
   if (m === 'breakfast') {
-    return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: '🥞', label: 'Breakfast' };
+    return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: '🥞' };
   }
   if (m === 'lunch_dinner') {
-    return { colors: ['#FEF3C7', '#FDE68A', '#FCD34D'], emoji: '🍽', label: 'Lunch & Dinner' };
+    return { colors: ['#FEF3C7', '#FDE68A', '#FCD34D'], emoji: '🍽' };
   }
   if (m === 'light_bites') {
-    return { colors: ['#D1FAE5', '#A7F3D0', '#6EE7B7'], emoji: '🥗', label: 'Light Bites' };
+    return { colors: ['#D1FAE5', '#A7F3D0', '#6EE7B7'], emoji: '🥗' };
   }
 
-  return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: '🍴', label: '' };
+  return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: '🍴' };
 }
 
 export default function MealImagePlaceholder({
@@ -166,10 +158,7 @@ export default function MealImagePlaceholder({
   })();
 
   const glowSize = isThumbnail ? 30 : isCard ? 56 : 100;
-  const emojiFontSize = isThumbnail ? 20 : isCard ? 30 : 52;
-  const labelFontSize = isCard ? 9 : 11;
-  const showLabel = !isThumbnail && config.label.length > 0;
-  const labelOpacity = isThumbnail ? 0.45 : 0.65;
+  const emojiFontSize = isThumbnail ? 26 : isCard ? 42 : 70;
 
   return (
     <LinearGradient
@@ -185,16 +174,6 @@ export default function MealImagePlaceholder({
         ]}
       />
       <Text style={{ fontSize: emojiFontSize }}>{config.emoji}</Text>
-      {showLabel && (
-        <Text
-          style={[
-            styles.label,
-            { fontSize: labelFontSize, opacity: labelOpacity },
-          ]}
-        >
-          {config.label.toUpperCase()}
-        </Text>
-      )}
     </LinearGradient>
   );
 }
@@ -231,10 +210,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
     backgroundColor: 'rgba(255,255,255,0.28)',
   },
-  label: {
-    fontWeight: '700',
-    letterSpacing: 1,
-    color: '#2C2C2C',
-    marginTop: 4,
-  },
+
 });
