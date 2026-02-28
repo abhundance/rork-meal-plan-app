@@ -13,6 +13,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href, useFocusEffect } from 'expo-router';
@@ -860,7 +861,11 @@ const MyRecipeGridCard = React.memo(function MyRecipeGridCard({
         }
         style={styles.listCardRow}
       >
-        <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
+        {meal.image_url ? (
+          <Image source={{ uri: meal.image_url }} style={{ width: 42, height: 42, borderRadius: 12 }} resizeMode="cover" />
+        ) : (
+          <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
+        )}
         <View style={styles.listCardContent}>
           <Text style={styles.listMealName} numberOfLines={1}>{meal.name}</Text>
           <View style={styles.listMeta}>
@@ -922,7 +927,11 @@ const SavedMealGridCard = React.memo(function SavedMealGridCard({
         }
         style={styles.listCardRow}
       >
-        <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
+        {meal.image_url ? (
+          <Image source={{ uri: meal.image_url }} style={{ width: 42, height: 42, borderRadius: 12 }} resizeMode="cover" />
+        ) : (
+          <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
+        )}
         <View style={styles.listCardContent}>
           <Text style={styles.listMealName} numberOfLines={1}>{meal.name}</Text>
           <View style={styles.listMeta}>
