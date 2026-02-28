@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
-import { PlannedMeal, Ingredient } from '@/types';
+import { PlannedMeal, Ingredient, Meal } from '@/types';
 import { formatDateKey, getWeekDates } from '@/utils/dates';
 
 const MEAL_PLAN_KEY = 'meal_plan_data';
@@ -190,7 +190,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
   );
 
   const getIngredientsForWeek = useCallback(
-    (weekOffset: number, fromTodayOnly: boolean): { ingredients: Map<string, { name: string; quantity: number; unit: string; category: string; meals: { meal_name: string; quantity: number }[] }>; mealCount: number; totalDays: number } => {
+    (weekOffset: number, fromTodayOnly: boolean, mealsList: Meal[] = []): { ingredients: Map<string, { name: string; quantity: number; unit: string; category: string; meals: { meal_name: string; quantity: number }[] }>; mealCount: number; totalDays: number } => {
       const weekMeals = getMealsForWeek(weekOffset);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -203,11 +203,14 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
       const ingredientMap = new Map<string, { name: string; quantity: number; unit: string; category: string; meals: { meal_name: string; quantity: number }[] }>();
 
       for (const meal of filtered) {
-        const scale = meal.recipe_serving_size > 0
-          ? meal.serving_size / meal.recipe_serving_size
+        const sourceMeal = meal.meal_id ? mealsList.find((m) => m.id === meal.meal_id) : undefined;
+        const ingredients = sourceMeal ? sourceMeal.ingredients : meal.ingredients;
+        const recipeServingSize = sourceMeal ? sourceMeal.recipe_serving_size : meal.recipe_serving_size;
+        const scale = recipeServingSize > 0
+          ? meal.serving_size / recipeServingSize
           : 1;
 
-        for (const ing of meal.ingredients) {
+        for (const ing of ingredients) {
           const key = `${ing.name.toLowerCase()}_${ing.unit}`;
           const scaledQty = ing.quantity * scale;
           const existing = ingredientMap.get(key);

@@ -37,6 +37,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import FilterPill from '@/components/FilterPill';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
+import { useFavs } from '@/providers/FavsProvider';
 import { useShopping } from '@/providers/ShoppingProvider';
 import { ShoppingItem, INGREDIENT_CATEGORIES } from '@/types';
 import { router, Href } from 'expo-router';
@@ -51,6 +52,7 @@ export default function ShoppingScreen() {
   const insets = useSafeAreaInsets();
   const { familySettings } = useFamilySettings();
   const { getIngredientsForWeek, meals } = useMealPlan();
+  const { meals: favMeals } = useFavs();
   const shopping = useShopping();
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [addText, setAddText] = useState<string>('');
@@ -60,7 +62,7 @@ export default function ShoppingScreen() {
   const weekOffset = shopping.weekMode === 'current' ? 0 : 1;
 
   const handleGenerate = useCallback(() => {
-    const { ingredients } = getIngredientsForWeek(weekOffset, !shopping.fullWeek);
+    const { ingredients } = getIngredientsForWeek(weekOffset, !shopping.fullWeek, favMeals);
     const pantryNames = familySettings.pantry_items.map((p) => p.name);
     shopping.generateList(ingredients, pantryNames);
     console.log('[Shopping] Generated list from meal plan');
@@ -169,7 +171,7 @@ export default function ShoppingScreen() {
   }, [shopping.items, shopping.groupBy, collapsedSections]);
 
   const weekMeals = useMemo(() => {
-    const { mealCount, totalDays } = getIngredientsForWeek(weekOffset, !shopping.fullWeek);
+    const { mealCount, totalDays } = getIngredientsForWeek(weekOffset, !shopping.fullWeek, favMeals);
     return { mealCount, totalDays };
   }, [weekOffset, shopping.fullWeek, getIngredientsForWeek]);
 
