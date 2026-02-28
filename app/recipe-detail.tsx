@@ -63,6 +63,11 @@ export default function MealDetailScreen() {
     }
   }, [plannedMeal, params.source, initialized]);
 
+  const planMealFoundViaId = useMemo<boolean>(() => {
+    if (params.source !== 'plan' || !plannedMeal?.meal_id) return false;
+    return favMeals.some((f) => f.id === plannedMeal.meal_id);
+  }, [params.source, plannedMeal, favMeals]);
+
   const meal = useMemo<Meal | null>(() => {
     if (params.source === 'favs') {
       return favMeals.find((m) => m.id === params.id) ?? null;
@@ -70,9 +75,14 @@ export default function MealDetailScreen() {
 
     if (params.source === 'plan') {
       if (!plannedMeal) return null;
-      const favMatch = favMeals.find(
-        (f) => f.name.toLowerCase() === plannedMeal.meal_name.toLowerCase()
-      );
+      let favMatch = plannedMeal.meal_id
+        ? favMeals.find((f) => f.id === plannedMeal.meal_id)
+        : undefined;
+      if (!favMatch) {
+        favMatch = favMeals.find(
+          (f) => f.name.toLowerCase() === plannedMeal.meal_name.toLowerCase()
+        );
+      }
       const discMatch = DISCOVER_MEALS.find(
         (d) => d.name.toLowerCase() === plannedMeal.meal_name.toLowerCase()
       );
@@ -326,10 +336,10 @@ export default function MealDetailScreen() {
           >
             <ArrowLeft size={20} color={Colors.text} strokeWidth={2} />
           </TouchableOpacity>
-          {params.source === 'favs' && (
+          {(params.source === 'favs' || (params.source === 'plan' && planMealFoundViaId)) && (
             <TouchableOpacity
               style={[styles.editBtn, { top: insets.top + 8 }]}
-              onPress={() => router.push({ pathname: '/add-recipe-manual', params: { editId: meal.id } })}
+              onPress={() => router.push({ pathname: '/add-recipe-manual', params: { editId: params.source === 'favs' ? meal.id : (plannedMeal?.meal_id ?? meal.id) } })}
             >
               <Pencil size={18} color={Colors.text} strokeWidth={2} />
             </TouchableOpacity>
