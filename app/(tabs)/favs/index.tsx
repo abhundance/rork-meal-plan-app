@@ -40,7 +40,7 @@ import SlotPickerModal from '@/components/SlotPickerModal';
 import { useFavs, useFilteredFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
-import { FavMeal, PlannedMeal } from '@/types';
+import { Meal, PlannedMeal } from '@/types';
 
 const SORT_OPTIONS = [
   { key: 'recently_added', label: 'Recently Added' },
@@ -66,7 +66,7 @@ export default function FavsScreen() {
   const [activeCookTimeFilter, setActiveCookTimeFilter] = useState<string>('');
   const [activeDietaryFilter, setActiveDietaryFilter] = useState<string>('');
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
-  const [selectedMealForPlan, setSelectedMealForPlan] = useState<FavMeal | null>(null);
+  const [selectedMealForPlan, setSelectedMealForPlan] = useState<Meal | null>(null);
 
   const [showAddMethodSheet, setShowAddMethodSheet] = useState<boolean>(false);
   const [addMethodMode, setAddMethodMode] = useState<'choose' | 'quick_add'>('choose');
@@ -167,7 +167,7 @@ export default function FavsScreen() {
     setActiveDietaryFilter('');
   }, []);
 
-  const handleAddToPlan = useCallback((meal: FavMeal) => {
+  const handleAddToPlan = useCallback((meal: Meal) => {
     setSelectedMealForPlan(meal);
     setSlotPickerVisible(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -197,11 +197,11 @@ export default function FavsScreen() {
     [selectedMealForPlan, addMeal, incrementPlanCount, familySettings, showToast]
   );
 
-  const handleMealPress = useCallback((meal: FavMeal) => {
+  const handleMealPress = useCallback((meal: Meal) => {
     router.push(`/recipe-detail?id=${meal.id}&source=favs` as Href);
   }, []);
 
-  const handleDeleteMyRecipe = useCallback((meal: FavMeal) => {
+  const handleDeleteMyRecipe = useCallback((meal: Meal) => {
     Alert.alert(
       'Delete recipe?',
       `"${meal.name}" will be permanently deleted. This can't be undone.`,
@@ -212,7 +212,7 @@ export default function FavsScreen() {
     );
   }, [removeFav]);
 
-  const handleRemoveSaved = useCallback((meal: FavMeal) => {
+  const handleRemoveSaved = useCallback((meal: Meal) => {
     Alert.alert('Remove from Favs?', `Remove "${meal.name}" from your favourites?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => removeFav(meal.id) },
@@ -222,7 +222,7 @@ export default function FavsScreen() {
   const handleQuickAddSave = useCallback(() => {
     if (!quickAddName.trim()) return;
     const trimmedUrl = quickAddDeliveryUrl.trim();
-    const newMeal: FavMeal = {
+    const newMeal: Meal = {
       id: 'meal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       name: quickAddName.trim(),
       source: 'family_created',
@@ -299,7 +299,7 @@ export default function FavsScreen() {
     );
   }, [handleMealPress, handleAddToPlan, handleDeleteMyRecipe]);
 
-  const renderSavedItem = useCallback(({ item }: { item: FavMeal }) => (
+  const renderSavedItem = useCallback(({ item }: { item: Meal }) => (
     <SavedMealGridCard
       meal={item}
       onPress={() => handleMealPress(item)}
@@ -829,7 +829,7 @@ export default function FavsScreen() {
 }
 
 interface MyRecipeGridCardProps {
-  meal: FavMeal;
+  meal: Meal;
   onPress: () => void;
   onAddToPlan: () => void;
   onDelete: () => void;
@@ -903,7 +903,7 @@ const MyRecipeGridCard = React.memo(function MyRecipeGridCard({
 });
 
 interface SavedMealGridCardProps {
-  meal: FavMeal;
+  meal: Meal;
   onPress: () => void;
   onAddToPlan: () => void;
   onRemove: () => void;

@@ -33,7 +33,7 @@ import SlotPickerModal from '@/components/SlotPickerModal';
 import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
-import { FavMeal, PlannedMeal, Ingredient } from '@/types';
+import { Meal, PlannedMeal, Ingredient } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 
 const DESTRUCTIVE_RED = '#E05252';
@@ -63,7 +63,7 @@ export default function MealDetailScreen() {
     }
   }, [plannedMeal, params.source, initialized]);
 
-  const meal = useMemo<FavMeal | null>(() => {
+  const meal = useMemo<Meal | null>(() => {
     if (params.source === 'favs') {
       return favMeals.find((m) => m.id === params.id) ?? null;
     }
@@ -99,7 +99,7 @@ export default function MealDetailScreen() {
         created_at: favMatch?.created_at ?? plannedMeal.date,
         is_ingredient_complete: plannedMeal.ingredients.length > 0,
         is_recipe_complete: methodSteps.length > 0,
-      } as FavMeal;
+      } as Meal;
     }
 
     const disc = DISCOVER_MEALS.find((m) => m.id === params.id);
@@ -126,7 +126,7 @@ export default function MealDetailScreen() {
         created_at: disc.created_at,
         is_ingredient_complete: disc.ingredients.length > 0,
         is_recipe_complete: disc.method_steps.length > 0,
-      } as FavMeal;
+      } as Meal;
     }
     return null;
   }, [params.id, params.source, favMeals, plannedMeal]);
@@ -210,7 +210,7 @@ export default function MealDetailScreen() {
         ]);
       }
     } else {
-      const newFav: FavMeal = {
+      const newFav: Meal = {
         id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         name: meal.name,
         image_url: meal.image_url,

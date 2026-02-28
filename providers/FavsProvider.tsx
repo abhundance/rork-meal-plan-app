@@ -2,24 +2,24 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
-import { FavMeal, DiscoverMeal } from '@/types';
+import { Meal, DiscoverMeal } from '@/types';
 
 const FAVS_KEY = 'favs_meals';
 const RECENT_SEARCHES_KEY = 'favs_recent_searches';
 
 export const [FavsProvider, useFavs] = createContextHook(() => {
   const queryClient = useQueryClient();
-  const [meals, setMeals] = useState<FavMeal[]>([]);
+  const [meals, setMeals] = useState<Meal[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
   const favsQuery = useQuery({
     queryKey: ['favsMeals'],
-    queryFn: async (): Promise<FavMeal[]> => {
+    queryFn: async (): Promise<Meal[]> => {
       try {
         const stored = await AsyncStorage.getItem(FAVS_KEY);
         if (stored) {
           console.log('[Favs] Loaded from storage');
-          const parsed = JSON.parse(stored) as FavMeal[];
+          const parsed = JSON.parse(stored) as Meal[];
           const seen = new Set<string>();
           return parsed.filter((m) => {
             if (seen.has(m.id)) return false;
@@ -61,7 +61,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
   recentSearchesRef.current = recentSearches;
 
   const saveMutation = useMutation({
-    mutationFn: async (updated: FavMeal[]) => {
+    mutationFn: async (updated: Meal[]) => {
       await AsyncStorage.setItem(FAVS_KEY, JSON.stringify(updated));
       console.log('[Favs] Saved, count:', updated.length);
       return updated;
@@ -82,7 +82,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
   const saveSearchesMutateRef = useRef(saveSearchesMutation.mutate);
   saveSearchesMutateRef.current = saveSearchesMutation.mutate;
 
-  const addFav = useCallback((meal: FavMeal) => {
+  const addFav = useCallback((meal: Meal) => {
     const exists = mealsRef.current.find((m) => m.id === meal.id);
     if (exists) {
       console.log('[Favs] Meal already in favs:', meal.name);
@@ -104,7 +104,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
     console.log('[Favs] Removed:', mealId);
   }, []);
 
-  const updateFav = useCallback((mealId: string, partial: Partial<FavMeal>) => {
+  const updateFav = useCallback((mealId: string, partial: Partial<Meal>) => {
     const updated = mealsRef.current.map((m) => (m.id === mealId ? { ...m, ...partial } : m));
     setMeals(updated);
     saveMutateRef.current(updated);
@@ -130,8 +130,8 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
     return mealsRef.current.some((m) => m.name.toLowerCase() === mealName.toLowerCase());
   }, []);
 
-  const addFromDiscover = useCallback((discoverMeal: DiscoverMeal): FavMeal => {
-    const favMeal: FavMeal = {
+  const addFromDiscover = useCallback((discoverMeal: DiscoverMeal): Meal => {
+    const favMeal: Meal = {
       id: discoverMeal.id,
       name: discoverMeal.name,
       image_url: discoverMeal.image_url,

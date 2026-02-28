@@ -82,9 +82,10 @@ export interface PlannedMeal {
   delivery_url?: string;
   delivery_platform?: 'uber_eats' | 'zomato' | 'grab' | 'swiggy' | 'deliveroo' | 'doordash' | 'other';
   position?: number;
+  meal_id?: string;
 }
 
-export interface FavMeal {
+export interface Meal {
   id: string;
   name: string;
   image_url?: string;

@@ -18,7 +18,7 @@ import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { useFavs } from '@/providers/FavsProvider';
 import { DISCOVER_MEALS } from '@/mocks/discover';
-import { FavMeal, PlannedMeal } from '@/types';
+import { Meal, PlannedMeal } from '@/types';
 import { getWeekDates, formatDateKey, getDayName, isToday } from '@/utils/dates';
 import { setPendingPlanSlot } from '@/services/pendingPlanSlot';
 import { CalendarDays } from 'lucide-react-native';

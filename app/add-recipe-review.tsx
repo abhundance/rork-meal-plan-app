@@ -26,7 +26,7 @@ import { searchFoodImages, UnsplashImage } from '@/services/imageSearch';
 import { useFavs } from '@/providers/FavsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { consumePendingPlanSlot, hasPendingPlanSlot, peekPendingPlanSlot } from '@/services/pendingPlanSlot';
-import { FavMeal, Ingredient, PlannedMeal } from '@/types';
+import { Meal, Ingredient, PlannedMeal } from '@/types';
 import ServingStepper from '@/components/ServingStepper';
 
 type Params = {
@@ -320,7 +320,7 @@ export default function AddMealReviewScreen() {
     const trimmedName = name.trim();
     if (!trimmedName) return;
 
-    const meal: FavMeal = {
+    const meal: Meal = {
       id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: trimmedName,
       image_url: userImageUri ?? (suggestedImages[imageIndex]?.regularUrl ?? undefined),
