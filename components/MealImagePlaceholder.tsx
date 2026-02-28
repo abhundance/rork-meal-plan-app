@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 interface MealImagePlaceholderProps {
   mealType?: string;
   cuisine?: string;
+  name?: string;
   size: 'card' | 'thumbnail' | 'hero';
   borderRadius?: number;
 }
@@ -15,27 +16,116 @@ interface PlaceholderConfig {
   label: string;
 }
 
-function getConfig(mealType?: string, cuisine?: string): PlaceholderConfig {
-  const c = cuisine?.toLowerCase() ?? '';
+const NAME_EMOJI_MAP: Array<[string[], string]> = [
+  [['rice', 'biryani', 'pilaf', 'risotto'], '🍚'],
+  [['pasta', 'spaghetti', 'penne', 'linguine', 'fettuccine', 'lasagna'], '🍝'],
+  [['noodle', 'ramen', 'pho', 'udon', 'soba'], '🍜'],
+  [['pizza'], '🍕'],
+  [['burger'], '🍔'],
+  [['sandwich', 'sub'], '🥪'],
+  [['wrap', 'burrito', 'quesadilla'], '🌯'],
+  [['taco'], '🌮'],
+  [['salad'], '🥗'],
+  [['soup', 'stew', 'broth', 'chowder'], '🍲'],
+  [['curry'], '🍛'],
+  [['egg', 'omelette', 'omelet', 'frittata'], '🍳'],
+  [['pancake', 'waffle'], '🥞'],
+  [['sushi', 'maki', 'sashimi'], '🍣'],
+  [['bibimbap'], '🍱'],
+  [['kimchi'], '🥬'],
+  [['chicken', 'poultry'], '🍗'],
+  [['fish', 'salmon', 'tuna', 'prawn', 'shrimp', 'seafood'], '🐟'],
+  [['steak', 'beef', 'lamb', 'pork'], '🥩'],
+  [['bread', 'toast', 'bagel'], '🍞'],
+  [['cake', 'dessert', 'cookie', 'brownie', 'pudding'], '🍰'],
+  [['smoothie', 'shake', 'juice'], '🥤'],
+  [['coffee', 'latte', 'cappuccino'], '☕'],
+  [['bowl', 'poke'], '🥣'],
+  [['avocado', 'guacamole'], '🥑'],
+  [['dal', 'dhal', 'lentil'], '🫘'],
+  [['curd', 'yogurt', 'raita'], '🥛'],
+  [['paneer', 'tikka', 'masala'], '🍛'],
+  [['gyro', 'falafel', 'hummus', 'shawarma'], '🥙'],
+];
 
-  if (c.includes('italian')) {
-    return { colors: ['#FEE2E2', '#FECACA', '#FCA5A5'], emoji: '🍕', label: 'Italian' };
+const NAME_CUISINE_MAP: Array<[string[], [string, string, string], string]> = [
+  [['pizza', 'pasta', 'spaghetti', 'lasagna', 'risotto'], ['#FEE2E2', '#FECACA', '#FCA5A5'], 'Italian'],
+  [['ramen', 'sushi', 'miso', 'teriyaki', 'kimchi', 'bibimbap', 'pho', 'udon'], ['#DBEAFE', '#BFDBFE', '#93C5FD'], 'Asian'],
+  [['taco', 'burrito', 'enchilada', 'quesadilla', 'guacamole'], ['#FCE7F3', '#FBCFE8', '#F9A8D4'], 'Mexican'],
+  [['curry', 'biryani', 'dal', 'dhal', 'samosa', 'tikka', 'masala', 'paneer', 'curd rice', 'curd'], ['#FEF9C3', '#FDE68A', '#FCD34D'], 'Indian'],
+  [['hummus', 'falafel', 'gyro', 'shawarma', 'pita', 'halloumi'], ['#CCFBF1', '#99F6E4', '#5EEAD4'], 'Mediterranean'],
+];
+
+function getEmojiFromName(n: string): string | null {
+  for (const [keywords, emoji] of NAME_EMOJI_MAP) {
+    if (keywords.some((kw) => n.includes(kw))) return emoji;
   }
-  if (c.includes('japanese') || c.includes('asian') || c.includes('korean') || c.includes('thai')) {
-    return { colors: ['#DBEAFE', '#BFDBFE', '#93C5FD'], emoji: '🍜', label: cuisine ?? '' };
+  return null;
+}
+
+function getConfig(mealType?: string, cuisine?: string, name?: string): PlaceholderConfig {
+  const c = cuisine?.toLowerCase() ?? '';
+  const n = name?.toLowerCase() ?? '';
+
+  if (c.length > 0) {
+    let colors: [string, string, string];
+    let baseEmoji: string;
+    let label: string;
+
+    if (c.includes('italian')) {
+      colors = ['#FEE2E2', '#FECACA', '#FCA5A5'];
+      baseEmoji = '🍕';
+      label = 'Italian';
+    } else if (c.includes('japanese') || c.includes('asian') || c.includes('korean') || c.includes('thai')) {
+      colors = ['#DBEAFE', '#BFDBFE', '#93C5FD'];
+      baseEmoji = '🍜';
+      label = cuisine ?? '';
+    } else if (c.includes('mexican')) {
+      colors = ['#FCE7F3', '#FBCFE8', '#F9A8D4'];
+      baseEmoji = '🌮';
+      label = 'Mexican';
+    } else if (c.includes('indian')) {
+      colors = ['#FEF9C3', '#FDE68A', '#FCD34D'];
+      baseEmoji = '🍛';
+      label = 'Indian';
+    } else if (c.includes('mediterranean') || c.includes('middle eastern')) {
+      colors = ['#CCFBF1', '#99F6E4', '#5EEAD4'];
+      baseEmoji = '🥙';
+      label = cuisine ?? '';
+    } else {
+      colors = ['#EDE9FE', '#C4B5FD', '#DDD6FE'];
+      baseEmoji = '🍴';
+      label = '';
+    }
+
+    const nameEmoji = n.length > 0 ? getEmojiFromName(n) : null;
+    return { colors, emoji: nameEmoji ?? baseEmoji, label };
   }
-  if (c.includes('mexican')) {
-    return { colors: ['#FCE7F3', '#FBCFE8', '#F9A8D4'], emoji: '🌮', label: 'Mexican' };
-  }
-  if (c.includes('indian')) {
-    return { colors: ['#FEF9C3', '#FDE68A', '#FCD34D'], emoji: '🍛', label: 'Indian' };
-  }
-  if (c.includes('mediterranean') || c.includes('middle eastern')) {
-    return { colors: ['#CCFBF1', '#99F6E4', '#5EEAD4'], emoji: '🥙', label: cuisine ?? '' };
+
+  if (n.length > 0) {
+    for (const [keywords, colors, label] of NAME_CUISINE_MAP) {
+      if (keywords.some((kw) => n.includes(kw))) {
+        const nameEmoji = getEmojiFromName(n);
+        return { colors, emoji: nameEmoji ?? '🍴', label };
+      }
+    }
+    const nameEmoji = getEmojiFromName(n);
+    if (nameEmoji) {
+      const m = mealType?.toLowerCase() ?? '';
+      if (m === 'breakfast') {
+        return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: nameEmoji, label: 'Breakfast' };
+      }
+      if (m === 'lunch_dinner') {
+        return { colors: ['#FEF3C7', '#FDE68A', '#FCD34D'], emoji: nameEmoji, label: 'Lunch & Dinner' };
+      }
+      if (m === 'light_bites') {
+        return { colors: ['#D1FAE5', '#A7F3D0', '#6EE7B7'], emoji: nameEmoji, label: 'Light Bites' };
+      }
+      return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: nameEmoji, label: '' };
+    }
   }
 
   const m = mealType?.toLowerCase() ?? '';
-
   if (m === 'breakfast') {
     return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: '🥞', label: 'Breakfast' };
   }
@@ -52,10 +142,11 @@ function getConfig(mealType?: string, cuisine?: string): PlaceholderConfig {
 export default function MealImagePlaceholder({
   mealType,
   cuisine,
+  name,
   size,
   borderRadius,
 }: MealImagePlaceholderProps) {
-  const config = getConfig(mealType, cuisine);
+  const config = getConfig(mealType, cuisine, name);
 
   const isThumbnail = size === 'thumbnail';
   const isCard = size === 'card';
@@ -78,6 +169,7 @@ export default function MealImagePlaceholder({
   const emojiFontSize = isThumbnail ? 20 : isCard ? 30 : 52;
   const labelFontSize = isCard ? 9 : 11;
   const showLabel = !isThumbnail && config.label.length > 0;
+  const labelOpacity = isThumbnail ? 0.45 : 0.65;
 
   return (
     <LinearGradient
@@ -97,7 +189,7 @@ export default function MealImagePlaceholder({
         <Text
           style={[
             styles.label,
-            { fontSize: labelFontSize },
+            { fontSize: labelFontSize, opacity: labelOpacity },
           ]}
         >
           {config.label.toUpperCase()}
@@ -142,7 +234,6 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: '700',
     letterSpacing: 1,
-    opacity: 0.45,
     color: '#2C2C2C',
     marginTop: 4,
   },
