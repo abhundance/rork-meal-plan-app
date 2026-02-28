@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback, useState } from 'react';
+import React, { useMemo, useRef, useCallback } from 'react';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import {
   View,
@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Animated,
-  PanResponder,
   Alert,
   Pressable,
 } from 'react-native';
@@ -23,8 +22,6 @@ import { formatDateKey, getDayName, getWeekLabel, isBefore } from '@/utils/dates
 import { openDeliveryLink } from '@/services/deliveryUtils';
 import ServingStepper from './ServingStepper';
 import Card from './Card';
-
-const SWIPE_DELETE_WIDTH = 72;
 
 interface DailyPlanViewProps {
   mealSlots: MealSlot[];
@@ -329,138 +326,67 @@ const MealItemRow = React.memo(function MealItemRow({
   onPress,
 }: MealItemRowProps) {
   const { meals: favMeals } = useFavs();
-  const translateX = useRef(new Animated.Value(0)).current;
-  const rowOpacity = useRef(new Animated.Value(1)).current;
-  const isSwipeOpen = useRef(false);
-
-  const snapClose = useCallback(() => {
-    Animated.spring(translateX, {
-      toValue: 0,
-      useNativeDriver: true,
-      speed: 30,
-      bounciness: 3,
-    }).start();
-    isSwipeOpen.current = false;
-  }, [translateX]);
-
-  const snapOpen = useCallback(() => {
-    Animated.spring(translateX, {
-      toValue: -SWIPE_DELETE_WIDTH,
-      useNativeDriver: true,
-      speed: 30,
-      bounciness: 3,
-    }).start();
-    isSwipeOpen.current = true;
-  }, [translateX]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gs) =>
-        Math.abs(gs.dx) > Math.abs(gs.dy) && Math.abs(gs.dx) > 8,
-      onPanResponderGrant: () => {
-        translateX.setOffset(isSwipeOpen.current ? -SWIPE_DELETE_WIDTH : 0);
-        translateX.setValue(0);
-      },
-      onPanResponderMove: (_, gs) => {
-        const clamped = isSwipeOpen.current
-          ? Math.max(-SWIPE_DELETE_WIDTH, Math.min(SWIPE_DELETE_WIDTH, gs.dx))
-          : Math.max(-SWIPE_DELETE_WIDTH, Math.min(0, gs.dx));
-        translateX.setValue(clamped);
-      },
-      onPanResponderRelease: (_, gs) => {
-        translateX.flattenOffset();
-        if (gs.dx < -30) {
-          snapOpen();
-        } else if (gs.dx > 30) {
-          snapClose();
-        } else {
-          isSwipeOpen.current ? snapOpen() : snapClose();
-        }
-      },
-    })
-  ).current;
 
   const handleDelete = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Animated.timing(rowOpacity, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      onRemoveMealById(meal.id);
-    });
-  }, [rowOpacity, meal.id, onRemoveMealById]);
+    onRemoveMealById(meal.id);
+  }, [meal.id, onRemoveMealById]);
 
   const handlePress = useCallback(() => {
-    if (isSwipeOpen.current) {
-      snapClose();
-    } else {
-      onPress(meal);
-    }
-  }, [isSwipeOpen, snapClose, onPress, meal]);
+    onPress(meal);
+  }, [onPress, meal]);
 
   return (
-    <Animated.View style={{ opacity: rowOpacity }}>
-      <View style={styles.rowContainer}>
-        <View style={styles.deleteAction}>
-          <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
-            <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-        <Animated.View
-          style={[styles.itemRow, { transform: [{ translateX }] }]}
-          {...panResponder.panHandlers}
+    <View>
+      <View style={styles.itemRow}>
+        <TouchableOpacity
+          style={styles.itemRowInner}
+          onPress={handlePress}
+          onLongPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            Alert.alert(meal.meal_name, undefined, [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Remove from plan', style: 'destructive', onPress: () => handleDelete() },
+            ]);
+          }}
+          activeOpacity={0.7}
         >
-          <TouchableOpacity
-            style={styles.itemRowInner}
-            onPress={handlePress}
-            onLongPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              Alert.alert(meal.meal_name, undefined, [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Remove from plan', style: 'destructive', onPress: () => handleDelete() },
-              ]);
-            }}
-            activeOpacity={0.7}
-          >
-            {meal.meal_image_url ? (
-              <Image
-                source={{ uri: meal.meal_image_url }}
-                style={styles.itemThumb}
-                contentFit="cover"
-              />
-            ) : (
-              <View style={styles.itemThumbPlaceholder}>
-                <Ionicons name="restaurant-outline" size={20} color={Colors.primary} />
-              </View>
-            )}
-            <View style={styles.itemNameCol}>
-              <Text style={styles.itemName} numberOfLines={2}>
-                {meal.meal_id ? (favMeals.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}
-              </Text>
-              {!!meal.delivery_url && (
-                <TouchableOpacity
-                  style={styles.orderPill}
-                  onPress={() => openDeliveryLink(meal.delivery_url!)}
-                  activeOpacity={0.75}
-                >
-                  <Ionicons name="bicycle-outline" size={13} color={Colors.primary} />
-                  <Text style={styles.orderPillText}>Order</Text>
-                </TouchableOpacity>
-              )}
+          {meal.meal_image_url ? (
+            <Image
+              source={{ uri: meal.meal_image_url }}
+              style={styles.itemThumb}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={styles.itemThumbPlaceholder}>
+              <Ionicons name="restaurant-outline" size={20} color={Colors.primary} />
             </View>
-          </TouchableOpacity>
-          <ServingStepper
-            value={meal.serving_size}
-            onValueChange={(v) => onServingChange(meal.id, v)}
-            onRemoveAtMin={() => onRemoveMealById(meal.id)}
-            compact
-          />
-        </Animated.View>
+          )}
+          <View style={styles.itemNameCol}>
+            <Text style={styles.itemName} numberOfLines={2}>
+              {meal.meal_id ? (favMeals.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}
+            </Text>
+            {!!meal.delivery_url && (
+              <TouchableOpacity
+                style={styles.orderPill}
+                onPress={() => openDeliveryLink(meal.delivery_url!)}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="bicycle-outline" size={13} color={Colors.primary} />
+                <Text style={styles.orderPillText}>Order</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </TouchableOpacity>
+        <ServingStepper
+          value={meal.serving_size}
+          onValueChange={(v) => onServingChange(meal.id, v)}
+          onRemoveAtMin={() => onRemoveMealById(meal.id)}
+          compact
+        />
       </View>
       {!isLast && <View style={styles.itemDivider} />}
-    </Animated.View>
+    </View>
   );
 });
 
@@ -615,27 +541,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     letterSpacing: 0.8,
     marginBottom: 8,
-  },
-  rowContainer: {
-    position: 'relative' as const,
-    overflow: 'hidden' as const,
-    minHeight: 56,
-  },
-  deleteAction: {
-    position: 'absolute' as const,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: SWIPE_DELETE_WIDTH,
-    backgroundColor: '#FF3B30',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtn: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   itemRow: {
     flexDirection: 'row',
