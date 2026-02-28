@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
-import { Image } from 'expo-image';
+import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { BorderRadius } from '@/constants/theme';
@@ -351,17 +351,7 @@ const MealItemRow = React.memo(function MealItemRow({
           }}
           activeOpacity={0.7}
         >
-          {meal.meal_image_url ? (
-            <Image
-              source={{ uri: meal.meal_image_url }}
-              style={styles.itemThumb}
-              contentFit="cover"
-            />
-          ) : (
-            <View style={styles.itemThumbPlaceholder}>
-              <Ionicons name="restaurant-outline" size={20} color={Colors.primary} />
-            </View>
-          )}
+          <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} />
           <View style={styles.itemNameCol}>
             <Text style={styles.itemName} numberOfLines={2}>
               {meal.meal_id ? (favMeals.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}
@@ -560,14 +550,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-  },
-  itemThumbPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: Colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   itemNameCol: {
     flex: 1,
