@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href, useFocusEffect } from 'expo-router';
-import { Image } from 'expo-image';
+import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -857,13 +857,7 @@ const MyRecipeGridCard = React.memo(function MyRecipeGridCard({
         }
       >
         <View style={styles.gridImageWrap}>
-          {meal.image_url ? (
-            <Image source={{ uri: meal.image_url }} style={styles.gridImage} contentFit="cover" />
-          ) : (
-            <View style={styles.gridImagePlaceholder}>
-              <Ionicons name="restaurant-outline" size={24} color={Colors.textSecondary} />
-            </View>
-          )}
+          <MealImagePlaceholder size="card" mealType={meal.meal_type} cuisine={meal.cuisine} />
           {totalTime > 0 && (
             <View style={styles.cookTimeBadge}>
               <Clock size={11} color="#FFFFFF" strokeWidth={2} />
@@ -930,13 +924,7 @@ const SavedMealGridCard = React.memo(function SavedMealGridCard({
         }
       >
         <View style={styles.gridImageWrap}>
-          {meal.image_url ? (
-            <Image source={{ uri: meal.image_url }} style={styles.gridImage} contentFit="cover" />
-          ) : (
-            <View style={styles.gridImagePlaceholder}>
-              <Heart size={24} color={Colors.textSecondary} strokeWidth={1.5} />
-            </View>
-          )}
+          <MealImagePlaceholder size="card" mealType={meal.meal_type} cuisine={meal.cuisine} />
           {totalTime > 0 && (
             <View style={styles.cookTimeBadge}>
               <Clock size={11} color="#FFFFFF" strokeWidth={2} />
@@ -1129,19 +1117,7 @@ const styles = StyleSheet.create({
     ...Shadows.card,
   },
   gridImageWrap: {
-    aspectRatio: 4 / 3,
-    backgroundColor: Colors.surface,
-  },
-  gridImage: {
-    width: '100%',
-    height: '100%',
-  },
-  gridImagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.surface,
+    overflow: 'hidden',
   },
   gridCardBody: {
     padding: 10,

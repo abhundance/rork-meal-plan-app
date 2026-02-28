@@ -75,6 +75,8 @@ export interface PlannedMeal {
   date: string;
   meal_name: string;
   meal_image_url?: string;
+  meal_type?: 'breakfast' | 'lunch_dinner' | 'light_bites';
+  cuisine?: string;
   serving_size: number;
   ingredients: Ingredient[];
   recipe_serving_size: number;
