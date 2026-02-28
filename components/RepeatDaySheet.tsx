@@ -22,17 +22,8 @@ interface RepeatDaySheetProps {
 
 interface DayItem {
   dateKey: string;
-  relativeLabel: string;
-  fullLabel: string;
+  label: string;
   mealCount: number;
-}
-
-function getRelativeLabel(date: Date, dayDiff: number): string {
-  if (dayDiff === 1) return 'Yesterday';
-  if (dayDiff <= 6) {
-    return 'Last ' + date.toLocaleDateString('en-US', { weekday: 'long' });
-  }
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 export default function RepeatDaySheet({
@@ -52,9 +43,8 @@ export default function RepeatDaySheet({
       if (meals.length > 0) {
         result.push({
           dateKey,
-          relativeLabel: getRelativeLabel(d, i),
-          fullLabel: d.toLocaleDateString('en-US', {
-            weekday: 'long',
+          label: d.toLocaleDateString('en-US', {
+            weekday: 'short',
             month: 'short',
             day: 'numeric',
           }),
@@ -144,8 +134,7 @@ function DayRow({ item, onPress }: DayRowProps) {
         style={styles.row}
       >
         <View style={styles.rowLeft}>
-          <Text style={styles.relativeLabel}>{item.relativeLabel}</Text>
-          <Text style={styles.fullLabel}>{item.fullLabel}</Text>
+          <Text style={styles.label}>{item.label}</Text>
         </View>
         <View style={styles.mealCountPill}>
           <Text style={styles.mealCountText}>{item.mealCount} meals</Text>
@@ -204,15 +193,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
-  relativeLabel: {
+  label: {
     fontSize: 15,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: 2,
-  },
-  fullLabel: {
-    fontSize: 13,
-    color: Colors.textSecondary,
   },
   mealCountPill: {
     backgroundColor: Colors.primaryLight,

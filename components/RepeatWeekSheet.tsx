@@ -23,14 +23,8 @@ interface RepeatWeekSheetProps {
 
 interface WeekItem {
   offset: number;
-  relativeLabel: string;
   dateRange: string;
   mealCount: number;
-}
-
-function getRelativeLabel(diff: number): string {
-  if (diff === 1) return 'Last week';
-  return `${diff} weeks ago`;
 }
 
 export default function RepeatWeekSheet({
@@ -49,7 +43,6 @@ export default function RepeatWeekSheet({
         const dates = getWeekDates(offset);
         result.push({
           offset,
-          relativeLabel: getRelativeLabel(i),
           dateRange: getWeekLabel(dates),
           mealCount: meals.length,
         });
@@ -137,7 +130,6 @@ function WeekRow({ item, onPress }: WeekRowProps) {
         style={styles.row}
       >
         <View style={styles.rowLeft}>
-          <Text style={styles.relativeLabel}>{item.relativeLabel}</Text>
           <Text style={styles.dateRange}>{item.dateRange}</Text>
         </View>
         <View style={styles.mealCountPill}>
@@ -197,15 +189,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
-  relativeLabel: {
+  dateRange: {
     fontSize: 15,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: 2,
-  },
-  dateRange: {
-    fontSize: 13,
-    color: Colors.textSecondary,
   },
   mealCountPill: {
     backgroundColor: Colors.primaryLight,
