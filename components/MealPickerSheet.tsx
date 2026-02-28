@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { BorderRadius } from '@/constants/theme';
 import { PlannedMeal, Meal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { useFavs } from '@/providers/FavsProvider';
+import { useMealPlan } from '@/providers/MealPlanProvider';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
 import PrimaryButton from './PrimaryButton';
 
@@ -33,6 +34,7 @@ interface MealPickerSheetProps {
   slotId: string;
   slotName: string;
   defaultServing: number;
+  editingDeliveryMeal?: PlannedMeal;
 }
 
 export default function MealPickerSheet({
@@ -44,6 +46,7 @@ export default function MealPickerSheet({
   slotId,
   slotName,
   defaultServing,
+  editingDeliveryMeal,
 }: MealPickerSheetProps) {
   const [mode, setMode] = useState<'choose' | 'manual' | 'delivery'>('choose');
   const [manualName, setManualName] = useState<string>('');
@@ -52,7 +55,18 @@ export default function MealPickerSheet({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [saveToMyMeals, setSaveToMyMeals] = useState<boolean>(false);
   const { meals: favMeals, addFav } = useFavs();
+  const { updatePlannedMealDelivery } = useMealPlan();
   const router = useRouter();
+
+  const isEditingDelivery = !!editingDeliveryMeal;
+
+  useEffect(() => {
+    if (editingDeliveryMeal) {
+      setMode('delivery');
+      setDeliveryName(editingDeliveryMeal.meal_name);
+      setDeliveryUrl(editingDeliveryMeal.delivery_url ?? '');
+    }
+  }, [editingDeliveryMeal]);
 
   const formattedDate = useMemo(() => {
     return new Date(date + 'T00:00:00').toLocaleDateString('en-GB', {
@@ -123,6 +137,16 @@ export default function MealPickerSheet({
   const handleDeliverySave = useCallback(() => {
     if (!deliveryName.trim()) return;
     const trimmedUrl = deliveryUrl.trim();
+    if (isEditingDelivery) {
+      updatePlannedMealDelivery(editingDeliveryMeal!.id, {
+        meal_name: deliveryName.trim(),
+        delivery_url: trimmedUrl || undefined,
+        delivery_platform: trimmedUrl ? (detectPlatformFromUrl(trimmedUrl) ?? undefined) : undefined,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      resetAndClose();
+      return;
+    }
     const planned: PlannedMeal = {
       id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       slot_id: slotId,
@@ -137,7 +161,7 @@ export default function MealPickerSheet({
     onSelectMeal(planned);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     resetAndClose();
-  }, [deliveryName, deliveryUrl, slotId, date, defaultServing, onSelectMeal, resetAndClose]);
+  }, [deliveryName, deliveryUrl, slotId, date, defaultServing, onSelectMeal, resetAndClose, isEditingDelivery, editingDeliveryMeal, updatePlannedMealDelivery]);
 
   const handleSelectFavMeal = useCallback((meal: Meal) => {
     const planned: import('@/types').PlannedMeal = {
