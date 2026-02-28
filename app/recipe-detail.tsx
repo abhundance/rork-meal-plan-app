@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Href } from 'expo-router';
 import { Stack } from 'expo-router';
-import { Image } from 'expo-image';
+import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import * as Haptics from 'expo-haptics';
 import {
   ArrowLeft,
@@ -315,11 +315,7 @@ export default function MealDetailScreen() {
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.heroWrap}>
-          {meal.image_url ? (
-            <Image source={{ uri: meal.image_url }} style={styles.heroImage} contentFit="cover" />
-          ) : (
-            <View style={[styles.heroImage, styles.heroPlaceholder]} />
-          )}
+          <MealImagePlaceholder size="hero" mealType={meal.meal_type} cuisine={meal.cuisine} />
           <TouchableOpacity
             style={[styles.backBtn, { top: insets.top + 8 }]}
             onPress={() => router.back()}
@@ -597,15 +593,7 @@ const styles = StyleSheet.create({
   heroWrap: {
     position: 'relative' as const,
   },
-  heroImage: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-  },
-  heroPlaceholder: {
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   backBtn: {
     position: 'absolute' as const,
     left: 16,
