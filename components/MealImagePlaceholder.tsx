@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 interface MealImagePlaceholderProps {
   mealType?: string;
@@ -161,12 +160,7 @@ export default function MealImagePlaceholder({
   const emojiFontSize = isThumbnail ? 26 : isCard ? 42 : 70;
 
   return (
-    <LinearGradient
-      colors={config.colors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={containerStyle}
-    >
+    <View style={[containerStyle, { backgroundColor: config.colors[0] }]}>
       <View
         style={[
           styles.glow,
@@ -174,7 +168,7 @@ export default function MealImagePlaceholder({
         ]}
       />
       <Text style={{ fontSize: emojiFontSize }}>{config.emoji}</Text>
-    </LinearGradient>
+    </View>
   );
 }
 
