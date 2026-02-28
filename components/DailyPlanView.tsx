@@ -35,8 +35,6 @@ interface DailyPlanViewProps {
   onServingChange: (mealId: string, serving: number) => void;
   onRemoveMealById: (mealId: string) => void;
   onAddItemToSlot: (date: string, slotId: string, slotName: string) => void;
-  onToggleFav: (meal: PlannedMeal) => void;
-  isFavByName: (name: string) => boolean;
   onSmartPlan: () => void;
   onClearDay: () => void;
   onRepeatDay: () => void;
@@ -52,8 +50,6 @@ export default function DailyPlanView({
   onServingChange,
   onRemoveMealById,
   onAddItemToSlot,
-  onToggleFav,
-  isFavByName,
   onSmartPlan,
   onClearDay,
   onRepeatDay,

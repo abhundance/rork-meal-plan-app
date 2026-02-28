@@ -74,7 +74,7 @@ export default function MealPlanScreen() {
     clearDay,
     clearWeek,
   } = useMealPlan();
-  const { meals: favMeals, addFav, removeFav, isFavByName } = useFavs();
+  const { meals: favMeals, addFav, removeFav } = useFavs();
 
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [weekOffset, setWeekOffset] = useState<number>(0);
@@ -151,45 +151,6 @@ export default function MealPlanScreen() {
 
   const favMealsRef = useRef(favMeals);
   favMealsRef.current = favMeals;
-
-  const handleToggleFav = useCallback(
-    (meal: PlannedMeal) => {
-      const existing = favMealsRef.current.find(
-        (f) => f.name.toLowerCase() === meal.meal_name.toLowerCase()
-      );
-      if (existing) {
-        removeFav(existing.id);
-        console.log('[MealPlan] Removed from favs:', meal.meal_name);
-      } else {
-        const favMeal: FavMeal = {
-          id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          name: meal.meal_name,
-          image_url: meal.meal_image_url,
-          cuisine: undefined,
-          cooking_time_band: undefined,
-          prep_time: undefined,
-          cook_time: undefined,
-          dietary_tags: [],
-          custom_tags: [],
-          ingredients: meal.ingredients,
-          recipe_serving_size: meal.recipe_serving_size,
-          method_steps: [],
-          description: undefined,
-          chef_notes: undefined,
-          source: 'family_created',
-          source_chef_id: undefined,
-          source_chef_name: undefined,
-          add_to_plan_count: 0,
-          created_at: new Date().toISOString(),
-          is_ingredient_complete: meal.ingredients.length > 0,
-          is_recipe_complete: false,
-        };
-        addFav(favMeal);
-        console.log('[MealPlan] Added to favs:', meal.meal_name);
-      }
-    },
-    [addFav, removeFav]
-  );
 
   const handleRemoveMealById = useCallback((mealId: string) => {
     removeMealById(mealId);
@@ -499,8 +460,6 @@ export default function MealPlanScreen() {
           onServingChange={updateMealServing}
           onRemoveMealById={handleRemoveMealById}
           onAddItemToSlot={handleAddItemToSlot}
-          onToggleFav={handleToggleFav}
-          isFavByName={isFavByName}
           onSmartPlan={handleSmartPlanDay}
           onClearDay={handleClearDay}
           onRepeatDay={() => setRepeatDayVisible(true)}
