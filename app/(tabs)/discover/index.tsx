@@ -13,7 +13,6 @@ import {
   TextInput,
   Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -82,12 +81,8 @@ function CinemaCardBase({ meal, cardWidth, onPress, onHeartPress, isSaved, noMar
         </View>
       )}
 
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.00)', 'rgba(0,0,0,0.78)']}
-        start={{ x: 0, y: 0.38 }}
-        end={{ x: 0, y: 1 }}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-      />
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: '20%', height: '40%', backgroundColor: 'rgba(0,0,0,0.35)' }} />
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '45%', backgroundColor: 'rgba(0,0,0,0.72)' }} />
 
       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8 }}>
         <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#FFFFFF', lineHeight: 15 }} numberOfLines={2}>
