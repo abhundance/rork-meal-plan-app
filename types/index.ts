@@ -101,10 +101,7 @@ export interface Meal {
   recipe_serving_size: number;
   method_steps: string[];
   description?: string;
-  chef_notes?: string;
   source: 'family_created' | 'discover';
-  source_chef_id?: string;
-  source_chef_name?: string;
   add_to_plan_count: number;
   last_planned_date?: string;
   created_at: string;
@@ -170,24 +167,11 @@ export interface DiscoverMeal {
   method_steps: string[];
 
   // ── Attribution ────────────────────────────────────
-  chef_id?: string;
-  chef_name?: string;
-  chef_avatar_url?: string;
   source_url?: string;            // For Spoonacular-sourced recipes
   source_name?: string;           // e.g. 'BBC Good Food'
 
   // ── App metadata ───────────────────────────────────
   health_score?: number;          // 0–100, Spoonacular calculated
-}
-
-export interface Chef {
-  id: string;
-  name: string;
-  avatar_url: string;
-  banner_url?: string;
-  cuisine_focus: string;
-  bio: string;
-  recipe_count: number;
 }
 
 export interface MealCollection {

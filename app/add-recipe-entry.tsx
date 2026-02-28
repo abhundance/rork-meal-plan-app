@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   },
   extractBtn: {
     backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.button,
     paddingHorizontal: 14,
     paddingVertical: 8,
     minWidth: 90,

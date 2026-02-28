@@ -21,7 +21,6 @@ export interface ExtractedRecipe {
   dietary_tags: string[];
   ingredients: { name: string; quantity: number; unit: string }[];
   method_steps: string[];
-  chef_notes: string;
 }
 
 const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Extract the recipe from the provided content and return ONLY a valid JSON object with this exact structure. No markdown, no explanation — raw JSON only:
@@ -36,8 +35,7 @@ const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Extract the re
   "recipe_serving_size": number,
   "dietary_tags": array of applicable values from ["Vegan","Vegetarian","Gluten-Free","Dairy-Free","High Protein"],
   "ingredients": [{"name": "string", "quantity": number, "unit": "string"}],
-  "method_steps": ["Step 1 text", "Step 2 text"],
-  "chef_notes": "Any tips or notes, empty string if none"
+  "method_steps": ["Step 1 text", "Step 2 text"]
 }
 meal_type rules: use "breakfast" for morning meals, "lunch_dinner" for main meals, "light_bites" for snacks/sides.
 cooking_time_band rules: total of prep+cook time: <30min = "Under 30", 30-60min = "30-60", >60min = "Over 60".`;
