@@ -11,13 +11,12 @@ import {
   Dimensions,
   TextInput,
   Image,
+  Pressable,
 } from 'react-native';
-
-const { width: screenWidth } = Dimensions.get('window');
-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { Ionicons } from '@expo/vector-icons';
 import { Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import AppHeader from '@/components/AppHeader';
@@ -29,16 +28,7 @@ import { useMealPlan } from '@/providers/MealPlanProvider';
 import { DiscoverMeal, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 
-const CUISINE_COLORS: Record<string, string> = {
-  Italian: '#E8A87C',
-  Japanese: '#A8D8EA',
-  Mexican: '#F7DC6F',
-  Mediterranean: '#82E0AA',
-  Indian: '#F0B27A',
-  Thai: '#BB8FCE',
-  Korean: '#F1948A',
-  'Middle Eastern': '#85C1E9',
-};
+const { width: screenWidth } = Dimensions.get('window');
 
 const DIET_CHIPS = [
   { emoji: '🌱', label: 'Vegan', key: 'vegan' },
@@ -46,13 +36,74 @@ const DIET_CHIPS = [
   { emoji: '🌾', label: 'Gluten-Free', key: 'gluten_free' },
 ];
 
+const CAROUSEL_CARD_WIDTH = 110;
+const CAROUSEL_CARD_HEIGHT = 148;
+const GRID_CARD_WIDTH = (screenWidth - 48) / 3;
+
+type CinemaCardProps = {
+  meal: DiscoverMeal;
+  onPress: () => void;
+  onHeartPress: () => void;
+  heartActive: boolean;
+  width: number;
+  height: number;
+};
+
+const CinemaCard = React.memo(function CinemaCard({ meal, onPress, onHeartPress, heartActive, width, height }: CinemaCardProps) {
+  const timeLabel = meal.cook_time ? `${meal.cook_time}m` : meal.prep_time ? `${meal.prep_time}m` : '?';
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.cinemaCard, { width, height }]}
+    >
+      <View style={StyleSheet.absoluteFill}>
+        {meal.image_url ? (
+          <Image
+            source={{ uri: meal.image_url }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+        ) : (
+          <MealImagePlaceholder
+            size="thumbnail"
+            mealType={meal.meal_type}
+            cuisine={meal.cuisine}
+            name={meal.name}
+          />
+        )}
+      </View>
+
+      <View style={[styles.cinemaOverlay1, { width }]} />
+      <View style={[styles.cinemaOverlay2, { width }]} />
+
+      <View style={[styles.cinemaBottom, { width }]}>
+        <Text style={styles.cinemaName} numberOfLines={2}>{meal.name}</Text>
+        <Text style={styles.cinemaTime}>{timeLabel}</Text>
+      </View>
+
+      <Pressable
+        onPress={onHeartPress}
+        hitSlop={8}
+        style={styles.cinemaHeart}
+      >
+        <Ionicons
+          name={heartActive ? 'heart' : 'heart-outline'}
+          size={13}
+          color={heartActive ? '#FF6B8A' : '#FFFFFF'}
+        />
+      </Pressable>
+    </Pressable>
+  );
+});
+
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
   const { isFav, addFromDiscover, removeFav } = useFavs();
   const { familySettings } = useFamilySettings();
   const { addMeal, getMealsForSlot } = useMealPlan();
 
-  const [initialLoading, setInitialLoading] = useState<boolean>(true);
+  const [, setInitialLoading] = useState<boolean>(true);
   useEffect(() => {
     const t = setTimeout(() => setInitialLoading(false), 500);
     return () => clearTimeout(t);
@@ -178,45 +229,8 @@ export default function DiscoverScreen() {
 
   const allFiltered = useMemo(() => filteredMeals(DISCOVER_MEALS).filter(m => !isExcluded(m)), [filteredMeals, isExcluded]);
 
-  const MicroCarouselCard = useCallback(({ meal, onPress }: { meal: DiscoverMeal; onPress: () => void }) => {
-    const cuisineColor = CUISINE_COLORS[meal.cuisine] || '#7B68CC';
-    const timeLabel = meal.cook_time ? meal.cook_time + 'm' : meal.prep_time ? meal.prep_time + 'm' : '?';
-    return (
-      <TouchableOpacity
-        onPress={onPress}
-        style={{
-          width: 86,
-          borderRadius: 12,
-          backgroundColor: Colors.card,
-          marginRight: 8,
-          elevation: 2,
-          shadowColor: '#000',
-          shadowOpacity: 0.08,
-          shadowRadius: 4,
-          shadowOffset: { width: 0, height: 2 },
-        }}
-      >
-        <View style={{ height: 3, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: cuisineColor }} />
-        <View style={{ padding: 7, paddingTop: 8 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', marginBottom: 6 }}>
-            {meal.image_url ? (
-              <Image source={{ uri: meal.image_url }} style={{ width: 40, height: 40 }} resizeMode="cover" />
-            ) : (
-              <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
-            )}
-          </View>
-          <Text style={{ fontSize: 10.5, fontWeight: '600', color: Colors.text, lineHeight: 14 }} numberOfLines={2}>
-            {meal.name}
-          </Text>
-          <Text style={{ fontSize: 9.5, color: Colors.textSecondary, marginTop: 3 }}>{timeLabel}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  }, []);
-
   const MealActionSheet = useCallback(({ visible, meal, onClose }: { visible: boolean; meal: DiscoverMeal | null; onClose: () => void }) => {
     if (!meal) return null;
-    const cuisineColor = CUISINE_COLORS[meal.cuisine] || '#7B68CC';
     const saved = isFav(meal.id);
     const timeLabel = meal.cook_time ? meal.cook_time + 'm' : meal.prep_time ? meal.prep_time + 'm' : '?';
     return (
@@ -278,6 +292,28 @@ export default function DiscoverScreen() {
       </Modal>
     );
   }, [isFav, handleAddToPlan, handleSaveFav, handleMealPress]);
+
+  const renderCarouselItem = useCallback(({ item }: { item: DiscoverMeal }) => (
+    <CinemaCard
+      meal={item}
+      onPress={() => handleCardPress(item)}
+      onHeartPress={() => handleSaveFav(item)}
+      heartActive={isFav(item.id)}
+      width={CAROUSEL_CARD_WIDTH}
+      height={CAROUSEL_CARD_HEIGHT}
+    />
+  ), [handleCardPress, handleSaveFav, isFav]);
+
+  const renderGridItem = useCallback(({ item }: { item: DiscoverMeal }) => (
+    <CinemaCard
+      meal={item}
+      onPress={() => handleCardPress(item)}
+      onHeartPress={() => handleSaveFav(item)}
+      heartActive={isFav(item.id)}
+      width={GRID_CARD_WIDTH}
+      height={GRID_CARD_WIDTH * 1.28}
+    />
+  ), [handleCardPress, handleSaveFav, isFav]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -348,15 +384,16 @@ export default function DiscoverScreen() {
                   <Text style={{ fontSize: 15, fontWeight: '700', color: Colors.text, marginBottom: 10 }}>
                     {row.emoji} {row.label}
                   </Text>
-                  <FlatList
-                    horizontal
-                    data={row.meals}
-                    keyExtractor={item => item.id}
-                    renderItem={({ item }) => (
-                      <MicroCarouselCard meal={item} onPress={() => handleCardPress(item)} />
-                    )}
-                    showsHorizontalScrollIndicator={false}
-                  />
+                  <View style={{ height: 160 }}>
+                    <FlatList
+                      horizontal
+                      data={row.meals}
+                      keyExtractor={item => item.id}
+                      renderItem={renderCarouselItem}
+                      showsHorizontalScrollIndicator={false}
+                      ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
+                    />
+                  </View>
                 </View>
               );
             })}
@@ -370,41 +407,8 @@ export default function DiscoverScreen() {
                 numColumns={3}
                 columnWrapperStyle={{ gap: 8 }}
                 keyExtractor={item => 'grid-' + item.id}
-                renderItem={({ item }) => {
-                  const cuisineColor = CUISINE_COLORS[item.cuisine] || '#7B68CC';
-                  const timeLabel = item.cook_time ? item.cook_time + 'm' : item.prep_time ? item.prep_time + 'm' : '?';
-                  return (
-                    <TouchableOpacity
-                      onPress={() => handleCardPress(item)}
-                      style={{
-                        width: (screenWidth - 48) / 3,
-                        borderRadius: 12,
-                        backgroundColor: Colors.card,
-                        marginBottom: 8,
-                        elevation: 2,
-                        shadowColor: '#000',
-                        shadowOpacity: 0.08,
-                        shadowRadius: 4,
-                        shadowOffset: { width: 0, height: 2 },
-                      }}
-                    >
-                      <View style={{ height: 3, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: cuisineColor }} />
-                      <View style={{ padding: 7, paddingTop: 8 }}>
-                        <View style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', marginBottom: 6 }}>
-                          {item.image_url ? (
-                            <Image source={{ uri: item.image_url }} style={{ width: 40, height: 40 }} resizeMode="cover" />
-                          ) : (
-                            <MealImagePlaceholder size="thumbnail" mealType={item.meal_type} cuisine={item.cuisine} name={item.name} />
-                          )}
-                        </View>
-                        <Text style={{ fontSize: 10.5, fontWeight: '600', color: Colors.text, lineHeight: 14 }} numberOfLines={2}>
-                          {item.name}
-                        </Text>
-                        <Text style={{ fontSize: 9.5, color: Colors.textSecondary, marginTop: 3 }}>{timeLabel}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }}
+                renderItem={renderGridItem}
+                ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
                 scrollEnabled={false}
               />
             </View>
@@ -412,7 +416,7 @@ export default function DiscoverScreen() {
         ) : (
           <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 24 }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.textSecondary, letterSpacing: 0.5, marginBottom: 12 }}>
-              RESULTS FOR "{searchQuery}"
+              {'RESULTS FOR "' + searchQuery + '"'}
             </Text>
             {allFiltered.length === 0 ? (
               <Text style={{ fontSize: 15, color: Colors.textSecondary, textAlign: 'center', marginTop: 40 }}>
@@ -424,41 +428,8 @@ export default function DiscoverScreen() {
                 numColumns={3}
                 columnWrapperStyle={{ gap: 8 }}
                 keyExtractor={item => 'search-' + item.id}
-                renderItem={({ item }) => {
-                  const cuisineColor = CUISINE_COLORS[item.cuisine] || '#7B68CC';
-                  const timeLabel = item.cook_time ? item.cook_time + 'm' : item.prep_time ? item.prep_time + 'm' : '?';
-                  return (
-                    <TouchableOpacity
-                      onPress={() => handleCardPress(item)}
-                      style={{
-                        width: (screenWidth - 48) / 3,
-                        borderRadius: 12,
-                        backgroundColor: Colors.card,
-                        marginBottom: 8,
-                        elevation: 2,
-                        shadowColor: '#000',
-                        shadowOpacity: 0.08,
-                        shadowRadius: 4,
-                        shadowOffset: { width: 0, height: 2 },
-                      }}
-                    >
-                      <View style={{ height: 3, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: cuisineColor }} />
-                      <View style={{ padding: 7, paddingTop: 8 }}>
-                        <View style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', marginBottom: 6 }}>
-                          {item.image_url ? (
-                            <Image source={{ uri: item.image_url }} style={{ width: 40, height: 40 }} resizeMode="cover" />
-                          ) : (
-                            <MealImagePlaceholder size="thumbnail" mealType={item.meal_type} cuisine={item.cuisine} name={item.name} />
-                          )}
-                        </View>
-                        <Text style={{ fontSize: 10.5, fontWeight: '600', color: Colors.text, lineHeight: 14 }} numberOfLines={2}>
-                          {item.name}
-                        </Text>
-                        <Text style={{ fontSize: 9.5, color: Colors.textSecondary, marginTop: 3 }}>{timeLabel}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }}
+                renderItem={renderGridItem}
+                ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
                 scrollEnabled={false}
               />
             )}
@@ -532,5 +503,56 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+  },
+  cinemaCard: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#1C1C2E',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  cinemaOverlay1: {
+    position: 'absolute',
+    bottom: 0,
+    height: 70,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+  },
+  cinemaOverlay2: {
+    position: 'absolute',
+    bottom: 0,
+    height: 44,
+    backgroundColor: 'rgba(0,0,0,0.44)',
+  },
+  cinemaBottom: {
+    position: 'absolute',
+    bottom: 0,
+    paddingHorizontal: 7,
+    paddingBottom: 7,
+  },
+  cinemaName: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    lineHeight: 13,
+    marginBottom: 2,
+  },
+  cinemaTime: {
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.75)',
+    fontWeight: '500',
+  },
+  cinemaHeart: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.38)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
