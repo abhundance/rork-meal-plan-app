@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Pressable,
   ScrollView,
   FlatList,
   StyleSheet,
@@ -13,11 +12,13 @@ import {
   TextInput,
   Image,
 } from 'react-native';
+
+const { width: screenWidth } = Dimensions.get('window');
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Check } from 'lucide-react-native';
-import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/colors';
 import AppHeader from '@/components/AppHeader';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
@@ -28,7 +29,16 @@ import { useMealPlan } from '@/providers/MealPlanProvider';
 import { DiscoverMeal, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 
-const { width: screenWidth } = Dimensions.get('window');
+const CUISINE_COLORS: Record<string, string> = {
+  Italian: '#E8A87C',
+  Japanese: '#A8D8EA',
+  Mexican: '#F7DC6F',
+  Mediterranean: '#82E0AA',
+  Indian: '#F0B27A',
+  Thai: '#BB8FCE',
+  Korean: '#F1948A',
+  'Middle Eastern': '#85C1E9',
+};
 
 const DIET_CHIPS = [
   { emoji: '🌱', label: 'Vegan', key: 'vegan' },
@@ -36,99 +46,17 @@ const DIET_CHIPS = [
   { emoji: '🌾', label: 'Gluten-Free', key: 'gluten_free' },
 ];
 
-interface CinemaCardProps {
-  meal: DiscoverMeal;
-  cardWidth: number;
-  onPress: () => void;
-  onHeartPress: () => void;
-  isSaved: boolean;
-  noMarginRight?: boolean;
-}
-
-function CinemaCardBase({ meal, cardWidth, onPress, onHeartPress, isSaved, noMarginRight }: CinemaCardProps) {
-  const timeLabel = meal.cook_time
-    ? meal.cook_time + 'm'
-    : meal.prep_time
-    ? meal.prep_time + 'm'
-    : null;
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        width: cardWidth,
-        height: 148,
-        borderRadius: 14,
-        overflow: 'hidden',
-        marginRight: noMarginRight ? 0 : 10,
-        marginBottom: 8,
-        shadowColor: '#000',
-        shadowOpacity: 0.10,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 4,
-      }}
-    >
-      {meal.image_url ? (
-        <Image
-          source={{ uri: meal.image_url }}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-          <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
-        </View>
-      )}
-
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: '20%', height: '40%', backgroundColor: 'rgba(0,0,0,0.35)' }} />
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '45%', backgroundColor: 'rgba(0,0,0,0.72)' }} />
-
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8 }}>
-        <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#FFFFFF', lineHeight: 15 }} numberOfLines={2}>
-          {meal.name}
-        </Text>
-        {timeLabel !== null && (
-          <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.72)', marginTop: 2 }}>
-            {timeLabel}
-          </Text>
-        )}
-      </View>
-
-      <Pressable
-        onPress={() => onHeartPress()}
-        style={{
-          position: 'absolute',
-          top: 7,
-          right: 7,
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          backgroundColor: 'rgba(0,0,0,0.38)',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Ionicons
-          name={isSaved ? 'heart' : 'heart-outline'}
-          size={14}
-          color={isSaved ? '#FF6B9D' : '#FFFFFF'}
-        />
-      </Pressable>
-    </Pressable>
-  );
-}
-
-const CinemaCard = React.memo(CinemaCardBase);
-CinemaCard.displayName = 'CinemaCard';
-
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
   const { isFav, addFromDiscover, removeFav } = useFavs();
   const { familySettings } = useFamilySettings();
   const { addMeal, getMealsForSlot } = useMealPlan();
 
-  useEffect(() => {}, []);
+  const [initialLoading, setInitialLoading] = useState<boolean>(true);
+  useEffect(() => {
+    const t = setTimeout(() => setInitialLoading(false), 500);
+    return () => clearTimeout(t);
+  }, []);
 
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMeal, setSelectedMeal] = useState<DiscoverMeal | null>(null);
@@ -250,10 +178,45 @@ export default function DiscoverScreen() {
 
   const allFiltered = useMemo(() => filteredMeals(DISCOVER_MEALS).filter(m => !isExcluded(m)), [filteredMeals, isExcluded]);
 
-  const gridCardWidth = (screenWidth - 48) / 3;
+  const MicroCarouselCard = useCallback(({ meal, onPress }: { meal: DiscoverMeal; onPress: () => void }) => {
+    const cuisineColor = CUISINE_COLORS[meal.cuisine] || '#7B68CC';
+    const timeLabel = meal.cook_time ? meal.cook_time + 'm' : meal.prep_time ? meal.prep_time + 'm' : '?';
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        style={{
+          width: 86,
+          borderRadius: 12,
+          backgroundColor: Colors.card,
+          marginRight: 8,
+          elevation: 2,
+          shadowColor: '#000',
+          shadowOpacity: 0.08,
+          shadowRadius: 4,
+          shadowOffset: { width: 0, height: 2 },
+        }}
+      >
+        <View style={{ height: 3, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: cuisineColor }} />
+        <View style={{ padding: 7, paddingTop: 8 }}>
+          <View style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', marginBottom: 6 }}>
+            {meal.image_url ? (
+              <Image source={{ uri: meal.image_url }} style={{ width: 40, height: 40 }} resizeMode="cover" />
+            ) : (
+              <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
+            )}
+          </View>
+          <Text style={{ fontSize: 10.5, fontWeight: '600', color: Colors.text, lineHeight: 14 }} numberOfLines={2}>
+            {meal.name}
+          </Text>
+          <Text style={{ fontSize: 9.5, color: Colors.textSecondary, marginTop: 3 }}>{timeLabel}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }, []);
 
   const MealActionSheet = useCallback(({ visible, meal, onClose }: { visible: boolean; meal: DiscoverMeal | null; onClose: () => void }) => {
     if (!meal) return null;
+    const cuisineColor = CUISINE_COLORS[meal.cuisine] || '#7B68CC';
     const saved = isFav(meal.id);
     const timeLabel = meal.cook_time ? meal.cook_time + 'm' : meal.prep_time ? meal.prep_time + 'm' : '?';
     return (
@@ -385,23 +348,15 @@ export default function DiscoverScreen() {
                   <Text style={{ fontSize: 15, fontWeight: '700', color: Colors.text, marginBottom: 10 }}>
                     {row.emoji} {row.label}
                   </Text>
-                  <View style={{ height: 160 }}>
-                    <FlatList
-                      horizontal
-                      data={row.meals}
-                      keyExtractor={item => item.id}
-                      renderItem={({ item }) => (
-                        <CinemaCard
-                          meal={item}
-                          cardWidth={110}
-                          onPress={() => handleCardPress(item)}
-                          onHeartPress={() => handleSaveFav(item)}
-                          isSaved={isFav(item.id)}
-                        />
-                      )}
-                      showsHorizontalScrollIndicator={false}
-                    />
-                  </View>
+                  <FlatList
+                    horizontal
+                    data={row.meals}
+                    keyExtractor={item => item.id}
+                    renderItem={({ item }) => (
+                      <MicroCarouselCard meal={item} onPress={() => handleCardPress(item)} />
+                    )}
+                    showsHorizontalScrollIndicator={false}
+                  />
                 </View>
               );
             })}
@@ -415,16 +370,41 @@ export default function DiscoverScreen() {
                 numColumns={3}
                 columnWrapperStyle={{ gap: 8 }}
                 keyExtractor={item => 'grid-' + item.id}
-                renderItem={({ item }) => (
-                  <CinemaCard
-                    meal={item}
-                    cardWidth={gridCardWidth}
-                    onPress={() => handleCardPress(item)}
-                    onHeartPress={() => handleSaveFav(item)}
-                    isSaved={isFav(item.id)}
-                    noMarginRight
-                  />
-                )}
+                renderItem={({ item }) => {
+                  const cuisineColor = CUISINE_COLORS[item.cuisine] || '#7B68CC';
+                  const timeLabel = item.cook_time ? item.cook_time + 'm' : item.prep_time ? item.prep_time + 'm' : '?';
+                  return (
+                    <TouchableOpacity
+                      onPress={() => handleCardPress(item)}
+                      style={{
+                        width: (screenWidth - 48) / 3,
+                        borderRadius: 12,
+                        backgroundColor: Colors.card,
+                        marginBottom: 8,
+                        elevation: 2,
+                        shadowColor: '#000',
+                        shadowOpacity: 0.08,
+                        shadowRadius: 4,
+                        shadowOffset: { width: 0, height: 2 },
+                      }}
+                    >
+                      <View style={{ height: 3, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: cuisineColor }} />
+                      <View style={{ padding: 7, paddingTop: 8 }}>
+                        <View style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', marginBottom: 6 }}>
+                          {item.image_url ? (
+                            <Image source={{ uri: item.image_url }} style={{ width: 40, height: 40 }} resizeMode="cover" />
+                          ) : (
+                            <MealImagePlaceholder size="thumbnail" mealType={item.meal_type} cuisine={item.cuisine} name={item.name} />
+                          )}
+                        </View>
+                        <Text style={{ fontSize: 10.5, fontWeight: '600', color: Colors.text, lineHeight: 14 }} numberOfLines={2}>
+                          {item.name}
+                        </Text>
+                        <Text style={{ fontSize: 9.5, color: Colors.textSecondary, marginTop: 3 }}>{timeLabel}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
                 scrollEnabled={false}
               />
             </View>
@@ -432,7 +412,7 @@ export default function DiscoverScreen() {
         ) : (
           <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 24 }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.textSecondary, letterSpacing: 0.5, marginBottom: 12 }}>
-              {'RESULTS FOR "'}{searchQuery}{'"'}
+              RESULTS FOR "{searchQuery}"
             </Text>
             {allFiltered.length === 0 ? (
               <Text style={{ fontSize: 15, color: Colors.textSecondary, textAlign: 'center', marginTop: 40 }}>
@@ -444,16 +424,41 @@ export default function DiscoverScreen() {
                 numColumns={3}
                 columnWrapperStyle={{ gap: 8 }}
                 keyExtractor={item => 'search-' + item.id}
-                renderItem={({ item }) => (
-                  <CinemaCard
-                    meal={item}
-                    cardWidth={gridCardWidth}
-                    onPress={() => handleCardPress(item)}
-                    onHeartPress={() => handleSaveFav(item)}
-                    isSaved={isFav(item.id)}
-                    noMarginRight
-                  />
-                )}
+                renderItem={({ item }) => {
+                  const cuisineColor = CUISINE_COLORS[item.cuisine] || '#7B68CC';
+                  const timeLabel = item.cook_time ? item.cook_time + 'm' : item.prep_time ? item.prep_time + 'm' : '?';
+                  return (
+                    <TouchableOpacity
+                      onPress={() => handleCardPress(item)}
+                      style={{
+                        width: (screenWidth - 48) / 3,
+                        borderRadius: 12,
+                        backgroundColor: Colors.card,
+                        marginBottom: 8,
+                        elevation: 2,
+                        shadowColor: '#000',
+                        shadowOpacity: 0.08,
+                        shadowRadius: 4,
+                        shadowOffset: { width: 0, height: 2 },
+                      }}
+                    >
+                      <View style={{ height: 3, borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: cuisineColor }} />
+                      <View style={{ padding: 7, paddingTop: 8 }}>
+                        <View style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', marginBottom: 6 }}>
+                          {item.image_url ? (
+                            <Image source={{ uri: item.image_url }} style={{ width: 40, height: 40 }} resizeMode="cover" />
+                          ) : (
+                            <MealImagePlaceholder size="thumbnail" mealType={item.meal_type} cuisine={item.cuisine} name={item.name} />
+                          )}
+                        </View>
+                        <Text style={{ fontSize: 10.5, fontWeight: '600', color: Colors.text, lineHeight: 14 }} numberOfLines={2}>
+                          {item.name}
+                        </Text>
+                        <Text style={{ fontSize: 9.5, color: Colors.textSecondary, marginTop: 3 }}>{timeLabel}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
                 scrollEnabled={false}
               />
             )}
