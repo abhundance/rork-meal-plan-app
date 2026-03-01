@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Audio } from 'expo-av';
+import { useAudioRecorder, RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync } from 'expo-audio';
 import Colors from '@/constants/colors';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 import { transcribeAndExtract, ExtractedRecipe } from '@/services/recipeExtraction';
@@ -39,7 +39,7 @@ export default function VoiceRecordSheet({ visible, onClose, onExtracted, onErro
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [elapsed, setElapsed] = useState<number>(0);
 
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
@@ -91,12 +91,8 @@ export default function VoiceRecordSheet({ visible, onClose, onExtracted, onErro
       setRecordingState('processing');
 
       try {
-        const recording = recordingRef.current;
-        if (!recording) throw new Error('No active recording');
-
-        await recording.stopAndUnloadAsync();
-        const uri = recording.getURI();
-        recordingRef.current = null;
+        await audioRecorder.stop();
+        const uri = audioRecorder.uri;
         stopPulse();
 
         if (!uri) throw new Error('No URI from recording');
@@ -112,7 +108,7 @@ export default function VoiceRecordSheet({ visible, onClose, onExtracted, onErro
       return;
     }
 
-    const { status } = await Audio.requestPermissionsAsync();
+    const { status } = await requestRecordingPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
         'Microphone Access Required',
@@ -128,9 +124,9 @@ export default function VoiceRecordSheet({ visible, onClose, onExtracted, onErro
     }
 
     try {
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      recordingRef.current = recording;
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
       setElapsed(0);
       setRecordingState('recording');
       startPulse();
