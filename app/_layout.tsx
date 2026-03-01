@@ -13,10 +13,74 @@ import { AppState, Animated, View, Text, TouchableOpacity, StyleSheet } from "re
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
+import { Spacing, BorderRadius } from "@/constants/theme";
 import { detectPlatformFromUrl, getPlatformLabel } from "@/services/deliveryUtils";
 import { setPendingDeliveryLink } from "@/services/pendingDeliveryLink";
 
 SplashScreen.preventAutoHideAsync();
+
+type ErrorBoundaryState = { hasError: boolean; error: Error | null };
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[ErrorBoundary] Unhandled render error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{
+          flex: 1,
+          backgroundColor: Colors.background,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: Spacing.xxxl,
+        }}>
+          <Ionicons name="alert-circle-outline" size={64} color={Colors.textSecondary} />
+          <Text style={{
+            fontSize: 20,
+            fontWeight: '600',
+            color: Colors.text,
+            marginTop: Spacing.lg,
+          }}>
+            Something went wrong
+          </Text>
+          <Text style={{
+            fontSize: 15,
+            fontWeight: '400',
+            color: Colors.textSecondary,
+            textAlign: 'center',
+            marginTop: Spacing.sm,
+            maxWidth: 280,
+          }}>
+            The app ran into an unexpected error. Tap below to try again.
+          </Text>
+          <TouchableOpacity
+            style={{
+              backgroundColor: Colors.primary,
+              borderRadius: BorderRadius.button,
+              paddingVertical: 14,
+              paddingHorizontal: Spacing.xxxl,
+              marginTop: Spacing.xxl,
+            }}
+            onPress={() => this.setState({ hasError: false, error: null })}
+          >
+            <Text style={{ fontSize: 15, fontWeight: '600', color: Colors.white }}>
+              Try Again
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const queryClient = new QueryClient();
 
@@ -233,6 +297,7 @@ export default function RootLayout() {
   }, []);
 
   return (
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <FamilySettingsProvider>
@@ -248,5 +313,6 @@ export default function RootLayout() {
         </FamilySettingsProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
