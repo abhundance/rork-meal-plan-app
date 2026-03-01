@@ -7,7 +7,6 @@ import {
   FlatList,
   StyleSheet,
   Animated,
-  Modal,
   Dimensions,
   TextInput,
   Image,
@@ -117,8 +116,6 @@ export default function DiscoverScreen() {
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeDietPrefs, setActiveDietPrefs] = useState<string[]>([]);
-  const [actionMeal, setActionMeal] = useState<DiscoverMeal | null>(null);
-  const [actionSheetVisible, setActionSheetVisible] = useState<boolean>(false);
 
   const showToast = useCallback((message: string) => {
     setToastMsg(message);
@@ -178,11 +175,6 @@ export default function DiscoverScreen() {
     router.push(`/recipe-detail?id=${meal.id}&source=discover` as Href);
   }, []);
 
-  const handleCardPress = useCallback((meal: DiscoverMeal) => {
-    setActionMeal(meal);
-    setActionSheetVisible(true);
-  }, []);
-
   const isExcluded = useCallback((meal: DiscoverMeal): boolean => {
     if (activeDietPrefs.length === 0) return false;
     if (activeDietPrefs.includes('vegan') && !meal.is_vegan) return true;
@@ -229,91 +221,27 @@ export default function DiscoverScreen() {
 
   const allFiltered = useMemo(() => filteredMeals(DISCOVER_MEALS).filter(m => !isExcluded(m)), [filteredMeals, isExcluded]);
 
-  const MealActionSheet = useCallback(({ visible, meal, onClose }: { visible: boolean; meal: DiscoverMeal | null; onClose: () => void }) => {
-    if (!meal) return null;
-    const saved = isFav(meal.id);
-    const timeLabel = meal.cook_time ? meal.cook_time + 'm' : meal.prep_time ? meal.prep_time + 'm' : '?';
-    return (
-      <Modal
-        visible={visible}
-        transparent
-        animationType="slide"
-        presentationStyle="overFullScreen"
-        onRequestClose={onClose}
-      >
-        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }} activeOpacity={1} onPress={onClose} />
-        <View style={{ backgroundColor: Colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingBottom: 32 }}>
-          <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginTop: 12, marginBottom: 16 }} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-            <View style={{ width: 52, height: 52, borderRadius: 12, overflow: 'hidden', marginRight: 12 }}>
-              {meal.image_url ? (
-                <Image source={{ uri: meal.image_url }} style={{ width: 52, height: 52 }} resizeMode="cover" />
-              ) : (
-                <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
-              )}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.text, marginBottom: 4 }} numberOfLines={2}>
-                {meal.name}
-              </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                {meal.cuisine && (
-                  <View style={{ backgroundColor: Colors.primaryLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
-                    <Text style={{ fontSize: 11, color: Colors.primary, fontWeight: '600' }}>{meal.cuisine}</Text>
-                  </View>
-                )}
-                <Text style={{ fontSize: 12, color: Colors.textSecondary }}>{timeLabel}</Text>
-              </View>
-            </View>
-          </View>
-          <TouchableOpacity
-            onPress={() => { handleAddToPlan(meal); onClose(); }}
-            style={{ backgroundColor: Colors.primary, borderRadius: 12, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}
-          >
-            <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Add to Meal Plan</Text>
-          </TouchableOpacity>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity
-              onPress={() => { handleSaveFav(meal); onClose(); }}
-              style={{ flex: 1, backgroundColor: Colors.surface, borderRadius: 12, height: 44, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}
-            >
-              <Text style={{ fontSize: 14, fontWeight: '600', color: saved ? Colors.primary : Colors.textSecondary }}>
-                {saved ? '♥ Saved' : '♡ Save'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => { handleMealPress(meal); onClose(); }}
-              style={{ flex: 1, backgroundColor: Colors.surface, borderRadius: 12, height: 44, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Text style={{ fontSize: 14, fontWeight: '600', color: Colors.textSecondary }}>View recipe</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    );
-  }, [isFav, handleAddToPlan, handleSaveFav, handleMealPress]);
-
   const renderCarouselItem = useCallback(({ item }: { item: DiscoverMeal }) => (
     <CinemaCard
       meal={item}
-      onPress={() => handleCardPress(item)}
+      onPress={() => handleMealPress(item)}
       onHeartPress={() => handleSaveFav(item)}
       heartActive={isFav(item.id)}
       width={CAROUSEL_CARD_WIDTH}
       height={CAROUSEL_CARD_HEIGHT}
     />
-  ), [handleCardPress, handleSaveFav, isFav]);
+  ), [handleMealPress, handleSaveFav, isFav]);
 
   const renderGridItem = useCallback(({ item }: { item: DiscoverMeal }) => (
     <CinemaCard
       meal={item}
-      onPress={() => handleCardPress(item)}
+      onPress={() => handleMealPress(item)}
       onHeartPress={() => handleSaveFav(item)}
       heartActive={isFav(item.id)}
       width={GRID_CARD_WIDTH}
       height={GRID_CARD_WIDTH * 1.28}
     />
-  ), [handleCardPress, handleSaveFav, isFav]);
+  ), [handleMealPress, handleSaveFav, isFav]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -438,12 +366,6 @@ export default function DiscoverScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      <MealActionSheet
-        visible={actionSheetVisible}
-        meal={actionMeal}
-        onClose={() => { setActionSheetVisible(false); setActionMeal(null); }}
-      />
 
       <SlotPickerModal
         visible={slotPickerVisible}
