@@ -179,7 +179,8 @@ export default function DiscoverScreen() {
   }, []);
 
   const handleCardPress = useCallback((meal: DiscoverMeal) => {
-    router.push(`/recipe-detail?id=${meal.id}&source=discover`);
+    setActionMeal(meal);
+    setActionSheetVisible(true);
   }, []);
 
   const isExcluded = useCallback((meal: DiscoverMeal): boolean => {
