@@ -12,9 +12,9 @@ import {
   Linking,
   Platform,
 } from 'react-native';
+import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-const Audio = Platform.OS !== 'web' ? require('expo-av').Audio : null;
 import Colors from '@/constants/colors';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 import { transcribeAndExtract, ExtractedRecipe } from '@/services/recipeExtraction';
