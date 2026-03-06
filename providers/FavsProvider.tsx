@@ -244,10 +244,12 @@ const DIETARY_TAG_MAP: Record<string, string> = {
 export function useFilteredFavs(
   search: string,
   filters: {
-    sort:     string;
-    cuisines: string[];
-    cookTime: string;
-    dietary:  string[];
+    sort:        string;
+    cuisines:    string[];
+    cookTime:    string;
+    dietary:     string[];
+    mealMoment?: string;
+    dishType?:   string;
   }
 ) {
   const { meals } = useFavs();
@@ -283,6 +285,16 @@ export function useFilteredFavs(
           return tag ? tags.includes(tag) : true;
         });
       });
+    }
+
+    // Meal Moment filter — maps to meal_type field
+    if (filters.mealMoment && filters.mealMoment !== 'all') {
+      result = result.filter((m) => m.meal_type === filters.mealMoment);
+    }
+
+    // Dish Type filter — maps to dish_category field
+    if (filters.dishType && filters.dishType !== 'all') {
+      result = result.filter((m) => m.dish_category === filters.dishType);
     }
 
     switch (filters.sort) {

@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  ScrollView,
   StyleSheet,
   RefreshControl,
   Animated,
@@ -85,6 +86,8 @@ export default function FavsScreen() {
   const [quickAddSource, setQuickAddSource] = useState<'manual' | 'delivery'>('manual');
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
+  const [mealMomentFilter, setMealMomentFilter] = useState<string>('all');
+  const [dishTypeFilter, setDishTypeFilter] = useState<string>('all');
 
   const uniqueCuisines = useMemo(() => {
     const seen = new Set<string>();
@@ -104,7 +107,11 @@ export default function FavsScreen() {
     ]).start(() => setToastMsg(null));
   }, [toastAnim]);
 
-  const allFilteredMeals = useFilteredFavs(search, favFilters);
+  const allFilteredMeals = useFilteredFavs(search, {
+    ...favFilters,
+    mealMoment: mealMomentFilter,
+    dishType: dishTypeFilter,
+  });
 
   const filteredMeals = useMemo(() => {
     return allFilteredMeals;
@@ -148,6 +155,8 @@ export default function FavsScreen() {
   const clearFilters = useCallback(() => {
     setFavFilters(DEFAULT_FILTER_STATE);
     setSearch('');
+    setMealMomentFilter('all');
+    setDishTypeFilter('all');
   }, []);
 
   const handleAddToPlan = useCallback((meal: Recipe) => {
@@ -262,7 +271,7 @@ export default function FavsScreen() {
   }, []);
 
   const filterCount = countActiveFilters(favFilters, FAVS_FILTER_CONFIG);
-  const hasFilters = filterCount > 0 || search.trim().length > 0;
+  const hasFilters = filterCount > 0 || search.trim().length > 0 || mealMomentFilter !== 'all' || dishTypeFilter !== 'all';
 
   const renderGridItem = useCallback(({ item }: { item: Recipe }) => {
     if ((item as any)._isAddTile) {
@@ -402,6 +411,83 @@ export default function FavsScreen() {
           ))}
         </View>
       )}
+
+      {/* Meal Moment chip row */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ height: 46 }}
+        contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingVertical: 8, gap: 8, flexDirection: 'row' }}
+      >
+        {([
+          { label: 'All',            value: 'all' },
+          { label: 'Breakfast',      value: 'breakfast' },
+          { label: 'Lunch & Dinner', value: 'lunch_dinner' },
+          { label: 'Light Bites',    value: 'light_bites' },
+        ] as { label: string; value: string }[]).map((opt) => {
+          const active = mealMomentFilter === opt.value;
+          return (
+            <TouchableOpacity
+              key={opt.value}
+              onPress={() => {
+                setMealMomentFilter(opt.value);
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: BorderRadius.pill,
+                backgroundColor: active ? Colors.primary : Colors.surface,
+              }}
+              activeOpacity={0.75}
+            >
+              <Text style={{ fontSize: 13, fontWeight: active ? '600' : '400', color: active ? Colors.white : Colors.text }}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Dish Type chip row */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ height: 46 }}
+        contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingVertical: 8, gap: 8, flexDirection: 'row' }}
+      >
+        {([
+          { label: 'All',      value: 'all' },
+          { label: 'Mains',    value: 'mains' },
+          { label: 'Salads',   value: 'salads' },
+          { label: 'Soups',    value: 'soups' },
+          { label: 'Desserts', value: 'desserts' },
+          { label: 'Drinks',   value: 'drinks' },
+          { label: 'Sides',    value: 'sides' },
+        ] as { label: string; value: string }[]).map((opt) => {
+          const active = dishTypeFilter === opt.value;
+          return (
+            <TouchableOpacity
+              key={opt.value}
+              onPress={() => {
+                setDishTypeFilter(opt.value);
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: BorderRadius.pill,
+                backgroundColor: active ? Colors.primary : Colors.surface,
+              }}
+              activeOpacity={0.75}
+            >
+              <Text style={{ fontSize: 13, fontWeight: active ? '600' : '400', color: active ? Colors.white : Colors.text }}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
       {filterCount > 0 && (
         <TouchableOpacity
