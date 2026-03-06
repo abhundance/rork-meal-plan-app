@@ -16,8 +16,51 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Check } from 'lucide-react-native';
+import { Check, SlidersHorizontal } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import RecipeFilterSheet, {
+  RecipeFilterState,
+  RecipeFilterConfig,
+  DEFAULT_FILTER_STATE,
+  countActiveFilters,
+} from '@/components/RecipeFilterSheet';
+
+// ─── Discover filter configuration ───────────────────────────────────────────
+const DISCOVER_FILTER_CONFIG: RecipeFilterConfig = {
+  showSort:     false,
+  showCuisine:  true,
+  showCookTime: true,
+  showDietary:  true,
+  showProtein:  true,
+  showCalories: true,
+  cuisineOptions: [
+    { key: 'american',       label: 'American' },
+    { key: 'french',         label: 'French' },
+    { key: 'greek',          label: 'Greek' },
+    { key: 'indian',         label: 'Indian' },
+    { key: 'italian',        label: 'Italian' },
+    { key: 'japanese',       label: 'Japanese' },
+    { key: 'korean',         label: 'Korean' },
+    { key: 'mediterranean',  label: 'Mediterranean' },
+    { key: 'mexican',        label: 'Mexican' },
+    { key: 'middle-eastern', label: 'Middle Eastern' },
+    { key: 'thai',           label: 'Thai' },
+    { key: 'vietnamese',     label: 'Vietnamese' },
+  ],
+};
+
+// Maps dietary filter keys → DiscoverMeal field check
+function discoverMatchesDietary(m: { diet_labels: string[]; allergens: string[]; dietary_tags: string[] }, key: string): boolean {
+  switch (key) {
+    case 'vegan':        return m.diet_labels.includes('vegan')       || m.allergens.includes('vegan')       || m.dietary_tags.includes('Vegan');
+    case 'vegetarian':   return m.diet_labels.includes('vegetarian')  || m.dietary_tags.includes('Vegetarian');
+    case 'gluten_free':  return m.allergens.includes('gluten-free')   || m.diet_labels.includes('gluten-free') || m.dietary_tags.includes('Gluten-Free');
+    case 'dairy_free':   return m.allergens.includes('dairy-free')    || m.diet_labels.includes('dairy-free')  || m.dietary_tags.includes('Dairy-Free');
+    case 'high_protein': return m.diet_labels.includes('high-protein');
+    case 'low_carb':     return m.diet_labels.includes('low-carb');
+    default:             return true;
+  }
+}
 import AppHeader from '@/components/AppHeader';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import SlotPickerModal from '@/components/SlotPickerModal';
@@ -64,8 +107,12 @@ export default function DiscoverScreen() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   // null = show all occasions; a mealType string = filter carousels to that type
   const [activeOccasion, setActiveOccasion] = useState<string | null>(null);
+  const [discoverFilters, setDiscoverFilters] = useState<RecipeFilterState>(DEFAULT_FILTER_STATE);
+  const [showDiscoverFilter, setShowDiscoverFilter] = useState<boolean>(false);
   const [actionMeal, setActionMeal] = useState<DiscoverMeal | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState<boolean>(false);
+
+  const discoverFilterCount = countActiveFilters(discoverFilters, DISCOVER_FILTER_CONFIG);
 
   const showToast = useCallback((message: string) => {
     setToastMsg(message);
@@ -132,17 +179,61 @@ export default function DiscoverScreen() {
 
   const { carousels, recordInteraction, recordView } = useDiscoverRecommendations();
 
-  // When an occasion is selected, narrow each carousel to matching meal_type
-  // and drop carousels that end up empty. When null, show everything.
+  // Filter carousels by occasion chip and the RecipeFilterSheet state.
+  // Drop carousels that end up empty after filtering.
   const filteredCarousels = useMemo(() => {
-    if (!activeOccasion) return carousels;
+    const { cuisines, cookTime, dietary, protein, calories } = discoverFilters;
+    const hasAdvancedFilter =
+      cuisines.length > 0 || !!cookTime || dietary.length > 0 ||
+      protein.length > 0 || !!calories;
+
     return carousels
-      .map(carousel => ({
-        ...carousel,
-        meals: carousel.meals.filter(m => m.meal_type === activeOccasion),
-      }))
+      .map(carousel => {
+        let meals = carousel.meals;
+
+        // Occasion chip
+        if (activeOccasion) {
+          meals = meals.filter(m => m.meal_type === activeOccasion);
+        }
+
+        if (hasAdvancedFilter) {
+          // Cuisine (OR logic — match any selected cuisine)
+          if (cuisines.length > 0) {
+            meals = meals.filter(m => m.cuisines.some(c => cuisines.includes(c)));
+          }
+          // Cook time
+          if (cookTime) {
+            meals = meals.filter(m => m.cooking_time_band === cookTime);
+          }
+          // Dietary (AND logic — meal must satisfy every selected tag)
+          if (dietary.length > 0) {
+            meals = meals.filter(m =>
+              dietary.every(key => discoverMatchesDietary(m, key))
+            );
+          }
+          // Protein source (OR logic)
+          if (protein.length > 0) {
+            meals = meals.filter(m =>
+              protein.some(p => {
+                if (p === 'beef_lamb') return m.protein_source === 'beef' || m.protein_source === 'lamb';
+                return m.protein_source === p;
+              })
+            );
+          }
+          // Calories per serving
+          if (calories === 'under_400') {
+            meals = meals.filter(m => m.calories_per_serving < 400);
+          } else if (calories === '400_600') {
+            meals = meals.filter(m => m.calories_per_serving >= 400 && m.calories_per_serving <= 600);
+          } else if (calories === 'over_600') {
+            meals = meals.filter(m => m.calories_per_serving > 600);
+          }
+        }
+
+        return { ...carousel, meals };
+      })
       .filter(carousel => carousel.meals.length > 0);
-  }, [carousels, activeOccasion]);
+  }, [carousels, activeOccasion, discoverFilters]);
 
   const MealActionSheet = useCallback(({ visible, meal, onClose }: { visible: boolean; meal: DiscoverMeal | null; onClose: () => void }) => {
     if (!meal) return null;
@@ -210,7 +301,43 @@ export default function DiscoverScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <AppHeader title="Discover" />
+      <AppHeader
+        title="Discover"
+        rightElement={
+          <TouchableOpacity
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: Colors.surface,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 16,
+            }}
+            onPress={() => setShowDiscoverFilter(true)}
+          >
+            <SlidersHorizontal size={18} color={discoverFilterCount > 0 ? Colors.primary : Colors.text} strokeWidth={2} />
+            {discoverFilterCount > 0 && (
+              <View style={{
+                position: 'absolute',
+                top: 4,
+                right: 4,
+                minWidth: 16,
+                height: 16,
+                borderRadius: 8,
+                backgroundColor: Colors.primary,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingHorizontal: 3,
+              }}>
+                <Text style={{ fontSize: 9, fontWeight: '700', color: '#FFFFFF' }}>
+                  {discoverFilterCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView
         style={styles.scroll}
@@ -313,8 +440,8 @@ export default function DiscoverScreen() {
                 : 'Discovering your taste'}
             </Text>
             <Text style={styles.emptySubtitle}>
-              {activeOccasion
-                ? 'Try a different occasion or clear the filter to see all recipes'
+              {(activeOccasion || discoverFilterCount > 0)
+                ? 'Try adjusting or clearing your filters to see more recipes'
                 : 'Add meals to your plan and we will personalise your picks'}
             </Text>
           </View>
@@ -376,6 +503,14 @@ export default function DiscoverScreen() {
         mealSlots={sortedSlots}
         getMealsForSlot={getMealsForSlot}
         mealName={selectedMeal?.name ?? ''}
+      />
+
+      <RecipeFilterSheet
+        visible={showDiscoverFilter}
+        onClose={() => setShowDiscoverFilter(false)}
+        onApply={(state) => setDiscoverFilters(state)}
+        initialState={discoverFilters}
+        config={DISCOVER_FILTER_CONFIG}
       />
 
       {toastMsg !== null && (

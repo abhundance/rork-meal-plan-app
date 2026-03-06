@@ -192,17 +192,24 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
   };
 });
 
+// Maps RecipeFilterSheet dietary keys → Meal.dietary_tags values
+const DIETARY_TAG_MAP: Record<string, string> = {
+  vegan:        'Vegan',
+  vegetarian:   'Vegetarian',
+  gluten_free:  'Gluten-Free',
+  dairy_free:   'Dairy-Free',
+  high_protein: 'High Protein',
+  low_carb:     'Low Carb',
+};
+
 export function useFilteredFavs(
   search: string,
   filters: {
-    mealType?: string;
-    cuisine?: string;
-    cookingTime?: string;
-    dietaryTag?: string;
-    activeDietary?: string;
-    source?: string;
-  },
-  sortBy: string
+    sort:     string;
+    cuisines: string[];
+    cookTime: string;
+    dietary:  string[];
+  }
 ) {
   const { meals } = useFavs();
 
@@ -219,40 +226,27 @@ export function useFilteredFavs(
       );
     }
 
-    if (filters.mealType) {
-      const slotToMealType: Record<string, string[]> = {
-        breakfast: ['breakfast'],
-        lunch:     ['lunch_dinner'],
-        dinner:    ['lunch_dinner'],
-        snack:     ['light_bites'],
-      };
-      const allowed = slotToMealType[filters.mealType] ?? [filters.mealType];
-      result = result.filter((m) => !!m.meal_type && allowed.includes(m.meal_type));
-    }
-    if (filters.cuisine) {
-      result = result.filter((m) => m.cuisine === filters.cuisine);
-    }
-    if (filters.cookingTime) {
-      result = result.filter((m) => m.cooking_time_band === filters.cookingTime);
-    }
-    if (filters.activeDietary) {
-      result = result.filter((m) => {
-        const tags = m.dietary_tags ?? [];
-        switch (filters.activeDietary) {
-          case 'vegan':        return tags.includes('Vegan');
-          case 'vegetarian':   return tags.includes('Vegetarian');
-          case 'gluten_free':  return tags.includes('Gluten-Free');
-          case 'dairy_free':   return tags.includes('Dairy-Free');
-          case 'high_protein': return tags.includes('High Protein');
-          default:             return true;
-        }
-      });
-    }
-    if (filters.source) {
-      result = result.filter((m) => m.source === filters.source);
+    // Multi-select cuisine — OR logic (show if meal matches any selected cuisine)
+    if (filters.cuisines.length > 0) {
+      result = result.filter((m) => !!m.cuisine && filters.cuisines.includes(m.cuisine));
     }
 
-    switch (sortBy) {
+    if (filters.cookTime) {
+      result = result.filter((m) => m.cooking_time_band === filters.cookTime);
+    }
+
+    // Multi-select dietary — AND logic (meal must satisfy all selected tags)
+    if (filters.dietary.length > 0) {
+      result = result.filter((m) => {
+        const tags = m.dietary_tags ?? [];
+        return filters.dietary.every((key) => {
+          const tag = DIETARY_TAG_MAP[key];
+          return tag ? tags.includes(tag) : true;
+        });
+      });
+    }
+
+    switch (filters.sort) {
       case 'most_used':
         result.sort((a, b) => b.add_to_plan_count - a.add_to_plan_count);
         break;
@@ -277,5 +271,5 @@ export function useFilteredFavs(
     }
 
     return result;
-  }, [meals, search, filters, sortBy]);
+  }, [meals, search, filters]);
 }

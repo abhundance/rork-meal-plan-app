@@ -42,14 +42,21 @@ import { useFavs, useFilteredFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { Meal, PlannedMeal } from '@/types';
+import RecipeFilterSheet, {
+  RecipeFilterState,
+  RecipeFilterConfig,
+  DEFAULT_FILTER_STATE,
+  countActiveFilters,
+} from '@/components/RecipeFilterSheet';
 
-const SORT_OPTIONS = [
-  { key: 'recently_added', label: 'Recently Added' },
-  { key: 'most_used', label: 'Most Used' },
-  { key: 'recently_planned', label: 'Recently Planned' },
-  { key: 'cooking_time', label: 'Cooking Time' },
-  { key: 'a_to_z', label: 'A to Z' },
-];
+const FAVS_FILTER_CONFIG: RecipeFilterConfig = {
+  showSort:     true,
+  showCuisine:  true,
+  showCookTime: true,
+  showDietary:  true,
+  showProtein:  false,
+  showCalories: false,
+};
 
 export default function FavsScreen() {
   const insets = useSafeAreaInsets();
@@ -61,11 +68,7 @@ export default function FavsScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
-  const [sortBy, setSortBy] = useState<string>('recently_added');
-  const [activeMealTypeFilter, setActiveMealTypeFilter] = useState<string>('');
-  const [activeCuisineFilter, setActiveCuisineFilter] = useState<string>('');
-  const [activeCookTimeFilter, setActiveCookTimeFilter] = useState<string>('');
-  const [activeDietaryFilter, setActiveDietaryFilter] = useState<string>('');
+  const [favFilters, setFavFilters] = useState<RecipeFilterState>(DEFAULT_FILTER_STATE);
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<Meal | null>(null);
 
@@ -76,10 +79,6 @@ export default function FavsScreen() {
   const [quickAddSource, setQuickAddSource] = useState<'manual' | 'delivery'>('manual');
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
-  const [sheetSort, setSheetSort] = useState<string>(sortBy);
-  const [sheetCuisine, setSheetCuisine] = useState<string>(activeCuisineFilter);
-  const [sheetCookTime, setSheetCookTime] = useState<string>(activeCookTimeFilter);
-  const [sheetDietary, setSheetDietary] = useState<string>('');
 
   const myRecipesCount = useMemo(() => meals.filter(m => m.source === 'family_created').length, [meals]);
   const savedCount = useMemo(() => meals.filter(m => m.source !== 'family_created').length, [meals]);
@@ -102,14 +101,7 @@ export default function FavsScreen() {
     ]).start(() => setToastMsg(null));
   }, [toastAnim]);
 
-  const filters = useMemo(() => ({
-    ...(activeMealTypeFilter ? { mealType: activeMealTypeFilter }      : {}),
-    ...(activeCuisineFilter   ? { cuisine: activeCuisineFilter }       : {}),
-    ...(activeCookTimeFilter  ? { cookingTime: activeCookTimeFilter }  : {}),
-    ...(activeDietaryFilter   ? { activeDietary: activeDietaryFilter } : {}),
-  }), [activeMealTypeFilter, activeCuisineFilter, activeCookTimeFilter, activeDietaryFilter]);
-
-  const allFilteredMeals = useFilteredFavs(search, filters, sortBy);
+  const allFilteredMeals = useFilteredFavs(search, favFilters);
 
   const filteredMeals = useMemo(() => {
     if (activeSegment === 'my_recipes') {
@@ -152,20 +144,14 @@ export default function FavsScreen() {
   }, []);
 
   const clearFilters = useCallback(() => {
-    setActiveMealTypeFilter('');
-    setActiveCuisineFilter('');
-    setActiveCookTimeFilter('');
-    setActiveDietaryFilter('');
+    setFavFilters(DEFAULT_FILTER_STATE);
     setSearch('');
   }, []);
 
   const handleSegmentChange = useCallback((segment: 'my_recipes' | 'saved') => {
     setActiveSegment(segment);
     setSearch('');
-    setActiveMealTypeFilter('');
-    setActiveCuisineFilter('');
-    setActiveCookTimeFilter('');
-    setActiveDietaryFilter('');
+    setFavFilters(DEFAULT_FILTER_STATE);
   }, []);
 
   const handleAddToPlan = useCallback((meal: Meal) => {
@@ -267,9 +253,8 @@ export default function FavsScreen() {
     setShowAddMethodSheet(true);
   }, []);
 
-  const hasFilters = !!activeMealTypeFilter || !!activeCuisineFilter ||
-                     !!activeCookTimeFilter || !!activeDietaryFilter ||
-                     search.trim().length > 0;
+  const filterCount = countActiveFilters(favFilters, FAVS_FILTER_CONFIG);
+  const hasFilters = filterCount > 0 || search.trim().length > 0;
 
   const renderMyRecipeItem = useCallback(({ item }: { item: any }) => {
     if (item._isAddTile) {
@@ -364,17 +349,15 @@ export default function FavsScreen() {
         rightElement={
           <TouchableOpacity
             style={styles.filterBtn}
-            onPress={() => {
-              setSheetSort(sortBy);
-              setSheetCuisine(activeCuisineFilter);
-              setSheetCookTime(activeCookTimeFilter);
-              setSheetDietary(activeDietaryFilter);
-              setShowFilterSheet(true);
-            }}
+            onPress={() => setShowFilterSheet(true)}
             testID="favs-filter-btn"
           >
-            <SlidersHorizontal size={18} color={Colors.text} strokeWidth={2} />
-            {hasFilters && <View style={styles.filterBadge} />}
+            <SlidersHorizontal size={18} color={filterCount > 0 ? Colors.primary : Colors.text} strokeWidth={2} />
+            {filterCount > 0 && (
+              <View style={styles.filterBadgeCount}>
+                <Text style={styles.filterBadgeCountText}>{filterCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         }
       />
@@ -451,48 +434,14 @@ export default function FavsScreen() {
         </View>
       )}
 
-      {(activeCuisineFilter.length > 0 || activeCookTimeFilter.length > 0 || activeDietaryFilter.length > 0) && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.activeFilterRow}
-          contentContainerStyle={styles.activeFilterContent}
+      {filterCount > 0 && (
+        <TouchableOpacity
+          style={styles.activeFilterBar}
+          onPress={clearFilters}
         >
-          {activeCuisineFilter ? (
-            <TouchableOpacity
-              style={styles.activeFilterChip}
-              onPress={() => setActiveCuisineFilter('')}
-            >
-              <Text style={styles.activeFilterChipText}>{activeCuisineFilter}</Text>
-              <X size={12} color={Colors.primary} strokeWidth={2.5} />
-            </TouchableOpacity>
-          ) : null}
-          {activeCookTimeFilter ? (
-            <TouchableOpacity
-              style={styles.activeFilterChip}
-              onPress={() => setActiveCookTimeFilter('')}
-            >
-              <Text style={styles.activeFilterChipText}>{activeCookTimeFilter} min</Text>
-              <X size={12} color={Colors.primary} strokeWidth={2.5} />
-            </TouchableOpacity>
-          ) : null}
-          {activeDietaryFilter ? (
-            <TouchableOpacity
-              style={styles.activeFilterChip}
-              onPress={() => setActiveDietaryFilter('')}
-            >
-              <Text style={styles.activeFilterChipText}>
-                {activeDietaryFilter === 'vegan'        ? 'Vegan'
-               : activeDietaryFilter === 'vegetarian'   ? 'Vegetarian'
-               : activeDietaryFilter === 'gluten_free'  ? 'Gluten-Free'
-               : activeDietaryFilter === 'dairy_free'   ? 'Dairy-Free'
-               : activeDietaryFilter === 'high_protein' ? 'High Protein'
-               : activeDietaryFilter}
-              </Text>
-              <X size={12} color={Colors.primary} strokeWidth={2.5} />
-            </TouchableOpacity>
-          ) : null}
-        </ScrollView>
+          <Text style={styles.activeFilterBarText}>{filterCount} filter{filterCount > 1 ? 's' : ''} active</Text>
+          <X size={12} color={Colors.primary} strokeWidth={2.5} />
+        </TouchableOpacity>
       )}
 
       <FlatList
@@ -676,111 +625,16 @@ export default function FavsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <Modal
+      <RecipeFilterSheet
         visible={showFilterSheet}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowFilterSheet(false)}
-      >
-        <View style={styles.sheetContainer}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Filters</Text>
-            <TouchableOpacity onPress={() => setShowFilterSheet(false)}>
-              <X size={22} color="#6B7280" strokeWidth={2} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
-            <Text style={styles.sheetSectionLabel}>SORT BY</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.sheetChipRow}>
-              {SORT_OPTIONS.map((opt) => (
-                <FilterPill
-                  key={opt.key}
-                  label={opt.label}
-                  active={sheetSort === opt.key}
-                  onPress={() => setSheetSort(opt.key)}
-                />
-              ))}
-            </ScrollView>
-
-            {uniqueCuisines.length > 0 && (
-              <>
-                <Text style={[styles.sheetSectionLabel, { marginTop: 24 }]}>CUISINE</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.sheetChipRow}>
-                  {uniqueCuisines.map((c) => (
-                    <FilterPill
-                      key={c}
-                      label={c}
-                      active={sheetCuisine === c}
-                      onPress={() => setSheetCuisine(sheetCuisine === c ? '' : c)}
-                    />
-                  ))}
-                </ScrollView>
-              </>
-            )}
-
-            <Text style={[styles.sheetSectionLabel, { marginTop: 24 }]}>COOK TIME</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.sheetChipRow}>
-              {(['Under 30', '30-60', 'Over 60'] as const).map((t) => (
-                <FilterPill
-                  key={t}
-                  label={`${t} min`}
-                  active={sheetCookTime === t}
-                  onPress={() => setSheetCookTime(sheetCookTime === t ? '' : t)}
-                />
-              ))}
-            </ScrollView>
-
-            <Text style={[styles.sheetSectionLabel, { marginTop: 24 }]}>DIETARY</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.sheetChipRow}>
-              {[
-                { key: 'vegan',        label: 'Vegan' },
-                { key: 'vegetarian',   label: 'Vegetarian' },
-                { key: 'gluten_free',  label: 'Gluten-Free' },
-                { key: 'dairy_free',   label: 'Dairy-Free' },
-                { key: 'high_protein', label: 'High Protein' },
-              ].map((opt) => (
-                <FilterPill
-                  key={opt.key}
-                  label={opt.label}
-                  active={sheetDietary === opt.key}
-                  onPress={() => setSheetDietary(sheetDietary === opt.key ? '' : opt.key)}
-                />
-              ))}
-            </ScrollView>
-          </ScrollView>
-
-          <View style={styles.sheetFooter}>
-            <TouchableOpacity
-              style={styles.sheetClearBtn}
-              onPress={() => {
-                setSheetSort('recently_added');
-                setSheetCuisine('');
-                setSheetCookTime('');
-                setSheetDietary('');
-              }}
-            >
-              <Text style={styles.sheetClearText}>Clear All</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.sheetApplyBtn}
-              onPress={() => {
-                setSortBy(sheetSort);
-                setActiveCuisineFilter(sheetCuisine);
-                setActiveCookTimeFilter(sheetCookTime);
-                setActiveDietaryFilter(sheetDietary);
-                setShowFilterSheet(false);
-              }}
-            >
-              <Text style={styles.sheetApplyText}>Apply</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowFilterSheet(false)}
+        onApply={(state) => setFavFilters(state)}
+        initialState={favFilters}
+        config={{
+          ...FAVS_FILTER_CONFIG,
+          cuisineOptions: uniqueCuisines.map((c) => ({ key: c, label: c })),
+        }}
+      />
 
       {activeSegment === 'my_recipes' && (
         <TouchableOpacity
@@ -1030,14 +884,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 16,
   },
-  filterBadge: {
+  filterBadgeCount: {
     position: 'absolute' as const,
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: Colors.primary,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingHorizontal: 3,
+  },
+  filterBadgeCountText: {
+    fontSize: 9,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
   },
   searchWrap: {
     flexDirection: 'row',
@@ -1237,27 +1099,19 @@ const styles = StyleSheet.create({
     minHeight: 44,
     marginBottom: 8,
   },
-  activeFilterRow: {
-    maxHeight: 40,
-    marginTop: 4,
-  },
-  activeFilterContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-    alignItems: 'center' as const,
-  },
-  activeFilterChip: {
+  activeFilterBar: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 5,
+    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 8,
     backgroundColor: Colors.primaryLight,
-    borderRadius: 9999,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    borderRadius: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start' as const,
   },
-  activeFilterChipText: {
+  activeFilterBarText: {
     fontSize: 13,
     fontWeight: '600' as const,
     color: Colors.primary,
@@ -1276,72 +1130,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.22,
     shadowRadius: 10,
     elevation: 7,
-  },
-  sheetContainer: {
-    flex: 1,
-    backgroundColor: Colors.card,
-  },
-  sheetHeader: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  sheetTitle: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: Colors.text,
-  },
-  sheetScroll: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  sheetSectionLabel: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-    letterSpacing: 0.8,
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  sheetChipRow: {
-    flexDirection: 'row' as const,
-    gap: 8,
-    paddingBottom: 4,
-  },
-  sheetFooter: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  sheetClearBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-  },
-  sheetClearText: {
-    fontSize: 14,
-    fontWeight: '400' as const,
-    color: '#6B7280',
-  },
-  sheetApplyBtn: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center' as const,
-    marginLeft: 12,
-  },
-  sheetApplyText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: Colors.white,
   },
   addMethodOverlay: {
     flex: 1,
