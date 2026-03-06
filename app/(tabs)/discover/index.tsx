@@ -624,11 +624,6 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#111827',
   },
-  carouselSeeAll: {
-    fontSize: 15,
-    fontWeight: '500' as const,
-    color: '#7C3AED',
-  },
   carouselSubtitle: {
     fontSize: 14,
     fontWeight: '400' as const,
