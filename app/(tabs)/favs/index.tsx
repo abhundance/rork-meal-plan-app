@@ -294,8 +294,7 @@ export default function FavsScreen() {
           }}>
             <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
           </View>
-          <Text style={{ fontSize: 9, fontWeight: '600', color: Colors.primary, textAlign: 'center', lineHeight: 12 }}>Add{'
-'}Meal</Text>
+          <Text style={{ fontSize: 9, fontWeight: '600', color: Colors.primary, textAlign: 'center', lineHeight: 12 }}>Add Meal</Text>
         </TouchableOpacity>
       );
     }
