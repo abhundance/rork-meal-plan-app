@@ -74,7 +74,16 @@ const CinemaCard = React.memo(function CinemaCard({ meal, onPress, onHeartPress,
         )}
       </View>
 
-      <View style={[styles.cinemaOverlay, { width }]} />
+      <View style={[StyleSheet.absoluteFill, { flexDirection: 'column' }]} pointerEvents="none">
+        <View style={{ flex: 3, backgroundColor: 'transparent' }} />
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.03)' }} />
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.09)' }} />
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.18)' }} />
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.30)' }} />
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.44)' }} />
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.58)' }} />
+        <View style={{ flex: 2, backgroundColor: 'rgba(0,0,0,0.72)' }} />
+      </View>
 
       <View style={[styles.cinemaBottom, { width }]}>
         <Text style={styles.cinemaName} numberOfLines={2}>{meal.name}</Text>
@@ -512,12 +521,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
-  },
-  cinemaOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    height: 72,
-    backgroundColor: 'rgba(0,0,0,0.52)',
   },
   cinemaBottom: {
     position: 'absolute',
