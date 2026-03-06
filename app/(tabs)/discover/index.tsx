@@ -16,7 +16,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Ionicons } from '@expo/vector-icons';
 import { Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import AppHeader from '@/components/AppHeader';
@@ -43,13 +42,11 @@ const GRID_CARD_WIDTH = (screenWidth - 48) / 3;
 type CinemaCardProps = {
   meal: DiscoverMeal;
   onPress: () => void;
-  onHeartPress: () => void;
-  heartActive: boolean;
   width: number;
   height: number;
 };
 
-const CinemaCard = React.memo(function CinemaCard({ meal, onPress, onHeartPress, heartActive, width, height }: CinemaCardProps) {
+const CinemaCard = React.memo(function CinemaCard({ meal, onPress, width, height }: CinemaCardProps) {
   const timeLabel = meal.cook_time ? `${meal.cook_time}m` : meal.prep_time ? `${meal.prep_time}m` : '?';
 
   return (
@@ -90,17 +87,6 @@ const CinemaCard = React.memo(function CinemaCard({ meal, onPress, onHeartPress,
         <Text style={styles.cinemaTime}>{timeLabel}</Text>
       </View>
 
-      <Pressable
-        onPress={onHeartPress}
-        hitSlop={8}
-        style={styles.cinemaHeart}
-      >
-        <Ionicons
-          name={heartActive ? 'heart' : 'heart-outline'}
-          size={13}
-          color={heartActive ? '#FF6B8A' : '#FFFFFF'}
-        />
-      </Pressable>
     </Pressable>
   );
 });
@@ -305,23 +291,19 @@ export default function DiscoverScreen() {
     <CinemaCard
       meal={item}
       onPress={() => handleMealPress(item)}
-      onHeartPress={() => handleSaveFav(item)}
-      heartActive={isFav(item.id)}
       width={CAROUSEL_CARD_WIDTH}
       height={CAROUSEL_CARD_HEIGHT}
     />
-  ), [handleMealPress, handleSaveFav, isFav]);
+  ), [handleMealPress]);
 
   const renderGridItem = useCallback(({ item }: { item: DiscoverMeal }) => (
     <CinemaCard
       meal={item}
       onPress={() => handleMealPress(item)}
-      onHeartPress={() => handleSaveFav(item)}
-      heartActive={isFav(item.id)}
       width={GRID_CARD_WIDTH}
       height={GRID_CARD_WIDTH * 1.28}
     />
-  ), [handleMealPress, handleSaveFav, isFav]);
+  ), [handleMealPress]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -540,15 +522,5 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.75)',
     fontWeight: '500',
   },
-  cinemaHeart: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.38)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
 });
