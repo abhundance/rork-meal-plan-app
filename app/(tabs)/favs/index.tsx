@@ -430,7 +430,7 @@ export default function FavsScreen() {
             <TouchableOpacity
               key={opt.value}
               onPress={() => {
-                setMealMomentFilter(opt.value);
+                setMealMomentFilter((prev) => prev === opt.value ? 'all' : opt.value);
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={{
@@ -470,7 +470,7 @@ export default function FavsScreen() {
             <TouchableOpacity
               key={opt.value}
               onPress={() => {
-                setDishTypeFilter(opt.value);
+                setDishTypeFilter((prev) => prev === opt.value ? 'all' : opt.value);
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={{

@@ -287,14 +287,16 @@ export function useFilteredFavs(
       });
     }
 
-    // Meal Moment filter — maps to meal_type field
-    if (filters.mealMoment && filters.mealMoment !== 'all') {
-      result = result.filter((m) => m.meal_type === filters.mealMoment);
-    }
-
-    // Dish Type filter — maps to dish_category field
-    if (filters.dishType && filters.dishType !== 'all') {
-      result = result.filter((m) => m.dish_category === filters.dishType);
+    // Meal Moment + Dish Type — OR logic between rows:
+    // a meal passes if it matches ANY active chip selection across both rows.
+    const hasMoment = !!(filters.mealMoment && filters.mealMoment !== 'all');
+    const hasDish   = !!(filters.dishType   && filters.dishType   !== 'all');
+    if (hasMoment || hasDish) {
+      result = result.filter((m) => {
+        const matchesMoment = hasMoment ? m.meal_type     === filters.mealMoment : false;
+        const matchesDish   = hasDish   ? m.dish_category === filters.dishType   : false;
+        return matchesMoment || matchesDish;
+      });
     }
 
     switch (filters.sort) {
