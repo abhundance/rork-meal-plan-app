@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router, Href } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { Stack } from 'expo-router';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import * as Haptics from 'expo-haptics';
@@ -27,14 +27,14 @@ import {
   FileText,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
+import { BorderRadius, Shadows } from '@/constants/theme';
 import ServingStepper from '@/components/ServingStepper';
 import SlotPickerModal from '@/components/SlotPickerModal';
 import { useFavs } from '@/providers/FavsProvider';
 import MealPickerSheet from '@/components/MealPickerSheet';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
-import { Meal, PlannedMeal, Ingredient } from '@/types';
+import { Meal, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 
 const DESTRUCTIVE_RED = '#E05252';
@@ -175,7 +175,7 @@ export default function MealDetailScreen() {
 
   const handleToggleFav = useCallback(() => {
     if (!meal) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isInFavs && params.source === 'favs') {
       Alert.alert('Remove from Favs?', `Remove "${meal.name}"?`, [
         { text: 'Cancel', style: 'cancel' },
@@ -199,7 +199,7 @@ export default function MealDetailScreen() {
 
   const handleToggleFavFromPlan = useCallback(() => {
     if (!meal) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const currentlyFav = isFavByName(meal.name);
     if (currentlyFav) {
       const favEntry = favMeals.find(
@@ -243,7 +243,7 @@ export default function MealDetailScreen() {
 
   const handleRemoveFromPlan = useCallback(() => {
     if (!plannedMeal) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert('Remove from Plan?', `Remove "${plannedMeal.meal_name}" from this day?`, [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -421,7 +421,7 @@ export default function MealDetailScreen() {
             </View>
           )}
 
-          {discoverData?.nutrition && (
+          {discoverData?.calories_per_serving != null && (
             <View style={styles.nutritionCard}>
               <View style={styles.nutritionHeader}>
                 <Text style={styles.nutritionTitle}>Nutrition</Text>
@@ -429,10 +429,9 @@ export default function MealDetailScreen() {
               </View>
               <View style={styles.nutritionRow}>
                 {[
-                  { label: 'Calories', value: discoverData.nutrition.calories, unit: 'kcal' },
-                  { label: 'Protein', value: discoverData.nutrition.protein_g, unit: 'g' },
-                  { label: 'Carbs', value: discoverData.nutrition.carbs_g, unit: 'g' },
-                  { label: 'Fat', value: discoverData.nutrition.fat_g, unit: 'g' },
+                  { label: 'Calories', value: discoverData.calories_per_serving, unit: 'kcal' },
+                  { label: 'Protein', value: discoverData.protein_per_serving_g, unit: 'g' },
+                  { label: 'Carbs', value: discoverData.carbs_per_serving_g, unit: 'g' },
                 ].map((stat) => (
                   <View key={stat.label} style={styles.nutritionBox}>
                     <View style={styles.nutritionValueRow}>
@@ -770,7 +769,11 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     borderWidth: 1.5,
     borderColor: Colors.divider,
-    ...Shadows.card,
+    shadowColor: Colors.shadow,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 3,
   },
   bottomBar: {
     position: 'absolute' as const,
