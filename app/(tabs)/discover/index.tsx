@@ -74,14 +74,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-// Occasion chips — tap to narrow carousels to a specific meal type.
-// mealType maps directly to the meal_type field in DiscoverMeal.
-// Lunch and Dinner share 'lunch_dinner' until the data model distinguishes them.
-const OCCASION_CHIPS = [
-  { emoji: '🍳', label: 'Breakfast',      mealType: 'breakfast'    },
-  { emoji: '🥗', label: 'Lunch & Dinner', mealType: 'lunch_dinner' },
-  { emoji: '🫙', label: 'Light Bites',    mealType: 'light_bites'  },
-];
 
 import DiscoverCarouselCard, { CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_HEIGHT } from '@/components/DiscoverCarouselCard';
 
@@ -106,8 +98,6 @@ export default function DiscoverScreen() {
   const toastAnim = useRef(new Animated.Value(0)).current;
 
   const [searchQuery, setSearchQuery] = useState<string>('');
-  // null = show all occasions; a mealType string = filter carousels to that type
-  const [activeOccasion, setActiveOccasion] = useState<string | null>(null);
   const [discoverFilters, setDiscoverFilters] = useState<RecipeFilterState>(DEFAULT_FILTER_STATE);
   const [showDiscoverFilter, setShowDiscoverFilter] = useState<boolean>(false);
   const [actionMeal, setActionMeal] = useState<DiscoverMeal | null>(null);
@@ -192,11 +182,6 @@ export default function DiscoverScreen() {
       .map(carousel => {
         let meals = carousel.meals;
 
-        // Occasion chip
-        if (activeOccasion) {
-          meals = meals.filter(m => m.meal_type === activeOccasion);
-        }
-
         if (hasAdvancedFilter) {
           // Cuisine (OR logic — match any selected cuisine)
           if (cuisines.length > 0) {
@@ -234,7 +219,7 @@ export default function DiscoverScreen() {
         return { ...carousel, meals };
       })
       .filter(carousel => carousel.meals.length > 0);
-  }, [carousels, activeOccasion, discoverFilters]);
+  }, [carousels, discoverFilters]);
 
   // Search: filter the full DISCOVER_MEALS list by name, cuisine, description, and ingredients.
   const searchResults = useMemo(() => {
@@ -443,50 +428,12 @@ export default function DiscoverScreen() {
           </View>
         ) : (
         <>
-        <View style={{ paddingBottom: 4 }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ height: 46 }}
-            contentContainerStyle={{ paddingHorizontal: 16, alignItems: 'center' }}
-          >
-            {OCCASION_CHIPS.map(chip => {
-              const active = activeOccasion === chip.mealType;
-              return (
-                <TouchableOpacity
-                  key={chip.mealType}
-                  onPress={() =>
-                    setActiveOccasion(prev => prev === chip.mealType ? null : chip.mealType)
-                  }
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingHorizontal: 16,
-                    paddingVertical: 9,
-                    borderRadius: 20,
-                    marginRight: 8,
-                    backgroundColor: active ? Colors.primary : Colors.surface,
-                  }}
-                >
-                  <Text style={{ fontSize: 14, color: active ? '#FFFFFF' : Colors.textSecondary, fontWeight: active ? '600' : '400' }}>
-                    {chip.emoji} {chip.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-
         {filteredCarousels.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="compass-outline" size={64} color="#9CA3AF" />
-            <Text style={styles.emptyTitle}>
-              {activeOccasion
-                ? `No ${OCCASION_CHIPS.find(c => c.mealType === activeOccasion)?.label ?? ''} recipes yet`
-                : 'Discovering your taste'}
-            </Text>
+            <Text style={styles.emptyTitle}>Discovering your taste</Text>
             <Text style={styles.emptySubtitle}>
-              {(activeOccasion || discoverFilterCount > 0)
+              {discoverFilterCount > 0
                 ? 'Try adjusting or clearing your filters to see more recipes'
                 : 'Add meals to your plan and we will personalise your picks'}
             </Text>
