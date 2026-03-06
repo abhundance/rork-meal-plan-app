@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Check } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import AppHeader from '@/components/AppHeader';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
@@ -71,16 +72,12 @@ const CinemaCard = React.memo(function CinemaCard({ meal, onPress, width, height
         )}
       </View>
 
-      <View style={[StyleSheet.absoluteFill, { flexDirection: 'column' }]} pointerEvents="none">
-        <View style={{ flex: 3, backgroundColor: 'transparent' }} />
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.03)' }} />
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.09)' }} />
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.18)' }} />
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.30)' }} />
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.44)' }} />
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.58)' }} />
-        <View style={{ flex: 2, backgroundColor: 'rgba(0,0,0,0.72)' }} />
-      </View>
+      <LinearGradient
+        style={StyleSheet.absoluteFill}
+        colors={['transparent', 'transparent', 'rgba(0,0,0,0.75)']}
+        locations={[0, 0.45, 1]}
+        pointerEvents="none"
+      />
 
       <View style={[styles.cinemaBottom, { width }]}>
         <Text style={styles.cinemaName} numberOfLines={2}>{meal.name}</Text>
