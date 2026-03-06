@@ -30,10 +30,13 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const DIET_CHIPS = [
-  { emoji: '🌱', label: 'Vegan', key: 'vegan' },
-  { emoji: '🥦', label: 'Vegetarian', key: 'vegetarian' },
-  { emoji: '🌾', label: 'Gluten-Free', key: 'gluten_free' },
+// Occasion chips — tap to narrow carousels to a specific meal type.
+// mealType maps directly to the meal_type field in DiscoverMeal.
+// Lunch and Dinner share 'lunch_dinner' until the data model distinguishes them.
+const OCCASION_CHIPS = [
+  { emoji: '🍳', label: 'Breakfast',      mealType: 'breakfast'    },
+  { emoji: '🥗', label: 'Lunch & Dinner', mealType: 'lunch_dinner' },
+  { emoji: '🫙', label: 'Light Bites',    mealType: 'light_bites'  },
 ];
 
 import DiscoverCarouselCard, { CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_HEIGHT } from '@/components/DiscoverCarouselCard';
@@ -59,7 +62,8 @@ export default function DiscoverScreen() {
   const toastAnim = useRef(new Animated.Value(0)).current;
 
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeDietPrefs, setActiveDietPrefs] = useState<string[]>([]);
+  // null = show all occasions; a mealType string = filter carousels to that type
+  const [activeOccasion, setActiveOccasion] = useState<string | null>(null);
   const [actionMeal, setActionMeal] = useState<DiscoverMeal | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState<boolean>(false);
 
@@ -127,6 +131,18 @@ export default function DiscoverScreen() {
   }, []);
 
   const { carousels, recordInteraction, recordView } = useDiscoverRecommendations();
+
+  // When an occasion is selected, narrow each carousel to matching meal_type
+  // and drop carousels that end up empty. When null, show everything.
+  const filteredCarousels = useMemo(() => {
+    if (!activeOccasion) return carousels;
+    return carousels
+      .map(carousel => ({
+        ...carousel,
+        meals: carousel.meals.filter(m => m.meal_type === activeOccasion),
+      }))
+      .filter(carousel => carousel.meals.length > 0);
+  }, [carousels, activeOccasion]);
 
   const MealActionSheet = useCallback(({ visible, meal, onClose }: { visible: boolean; meal: DiscoverMeal | null; onClose: () => void }) => {
     if (!meal) return null;
@@ -225,32 +241,32 @@ export default function DiscoverScreen() {
           </View>
         </View>
 
-        <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: Colors.textSecondary, letterSpacing: 0.8, marginBottom: 8 }}>
-            MY PREFERENCES
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 40 }}>
-            {DIET_CHIPS.map(chip => {
-              const active = activeDietPrefs.includes(chip.key);
+        <View style={{ paddingBottom: 4 }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ height: 46 }}
+            contentContainerStyle={{ paddingHorizontal: 16, alignItems: 'center' }}
+          >
+            {OCCASION_CHIPS.map(chip => {
+              const active = activeOccasion === chip.mealType;
               return (
                 <TouchableOpacity
-                  key={chip.key}
+                  key={chip.mealType}
                   onPress={() =>
-                    setActiveDietPrefs(prev =>
-                      prev.includes(chip.key) ? prev.filter(k => k !== chip.key) : [...prev, chip.key]
-                    )
+                    setActiveOccasion(prev => prev === chip.mealType ? null : chip.mealType)
                   }
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    paddingVertical: 9,
                     borderRadius: 20,
                     marginRight: 8,
                     backgroundColor: active ? Colors.primary : Colors.surface,
                   }}
                 >
-                  <Text style={{ fontSize: 13, color: active ? '#FFFFFF' : Colors.textSecondary }}>
+                  <Text style={{ fontSize: 14, color: active ? '#FFFFFF' : Colors.textSecondary, fontWeight: active ? '600' : '400' }}>
                     {chip.emoji} {chip.label}
                   </Text>
                 </TouchableOpacity>
@@ -259,14 +275,22 @@ export default function DiscoverScreen() {
           </ScrollView>
         </View>
 
-        {carousels.length === 0 ? (
+        {filteredCarousels.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="compass-outline" size={64} color="#9CA3AF" />
-            <Text style={styles.emptyTitle}>Discovering your taste</Text>
-            <Text style={styles.emptySubtitle}>Add meals to your plan and we will personalise your picks</Text>
+            <Text style={styles.emptyTitle}>
+              {activeOccasion
+                ? `No ${OCCASION_CHIPS.find(c => c.mealType === activeOccasion)?.label ?? ''} recipes yet`
+                : 'Discovering your taste'}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              {activeOccasion
+                ? 'Try a different occasion or clear the filter to see all recipes'
+                : 'Add meals to your plan and we will personalise your picks'}
+            </Text>
           </View>
         ) : (
-          carousels.map((carousel, index) => (
+          filteredCarousels.map((carousel, index) => (
             <View key={carousel.id} style={{ marginBottom: 16, ...(index === 0 ? { marginTop: 20 } : {}) }}>
               <View style={styles.carouselHeader}>
                 <Text style={styles.carouselTitle}>{carousel.emoji} {carousel.title}</Text>
