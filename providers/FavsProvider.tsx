@@ -248,7 +248,6 @@ export function useFilteredFavs(
     cuisines:    string[];
     cookTime:    string;
     dietary:     string[];
-    mealMoment?: string;
     dishType?:   string;
   }
 ) {
@@ -287,16 +286,9 @@ export function useFilteredFavs(
       });
     }
 
-    // Meal Moment + Dish Type — OR logic between rows:
-    // a meal passes if it matches ANY active chip selection across both rows.
-    const hasMoment = !!(filters.mealMoment && filters.mealMoment !== 'all');
-    const hasDish   = !!(filters.dishType   && filters.dishType   !== 'all');
-    if (hasMoment || hasDish) {
-      result = result.filter((m) => {
-        const matchesMoment = hasMoment ? m.meal_type     === filters.mealMoment : false;
-        const matchesDish   = hasDish   ? m.dish_category === filters.dishType   : false;
-        return matchesMoment || matchesDish;
-      });
+    const hasDish = !!(filters.dishType && filters.dishType !== 'all');
+    if (hasDish) {
+      result = result.filter((m) => m.dish_category === filters.dishType);
     }
 
     switch (filters.sort) {
