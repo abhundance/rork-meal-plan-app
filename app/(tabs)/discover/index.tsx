@@ -310,8 +310,8 @@ export default function DiscoverScreen() {
             <Text style={styles.emptySubtitle}>Add meals to your plan and we will personalise your picks</Text>
           </View>
         ) : (
-          carousels.map((carousel) => (
-            <View key={carousel.id} style={{ marginBottom: 24 }}>
+          carousels.map((carousel, index) => (
+            <View key={carousel.id} style={{ marginBottom: 16, ...(index === 0 ? { marginTop: 20 } : {}) }}>
               <View style={styles.carouselHeader}>
                 <Text style={styles.carouselTitle}>{carousel.emoji} {carousel.title}</Text>
                 <TouchableOpacity>
@@ -321,7 +321,7 @@ export default function DiscoverScreen() {
               {carousel.subtitle ? (
                 <Text style={styles.carouselSubtitle}>{carousel.subtitle}</Text>
               ) : null}
-              <View style={{ height: 220 }}>
+              <View style={{ height: 200 }}>
                 <FlatList
                   horizontal
                   data={carousel.meals}
@@ -340,7 +340,7 @@ export default function DiscoverScreen() {
                     />
                   )}
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingLeft: 16 }}
+                  contentContainerStyle={{ paddingLeft: 16, paddingRight: 16 }}
                   ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
                 />
               </View>
