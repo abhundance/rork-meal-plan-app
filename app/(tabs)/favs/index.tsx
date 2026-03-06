@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  ScrollView,
   StyleSheet,
   RefreshControl,
   Animated,
@@ -39,7 +38,7 @@ import SlotPickerModal from '@/components/SlotPickerModal';
 import { useFavs, useFilteredFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
-import { Recipe, PlannedMeal, DISH_CATEGORY_OPTIONS } from '@/types';
+import { Recipe, PlannedMeal } from '@/types';
 import RecipeFilterSheet, {
   RecipeFilterState,
   RecipeFilterConfig,
@@ -86,28 +85,12 @@ export default function FavsScreen() {
   const [quickAddSource, setQuickAddSource] = useState<'manual' | 'delivery'>('manual');
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
-  const [dishTypeFilter, setDishTypeFilter] = useState<string>('all');
 
   const uniqueCuisines = useMemo(() => {
     const seen = new Set<string>();
     meals.forEach((m) => { if (m.cuisine) seen.add(m.cuisine); });
     return [...seen].sort();
   }, [meals]);
-
-  // Build dish-type chip options from categories actually present in saved meals.
-  // Preserves the canonical ordering from DISH_CATEGORY_OPTIONS so chips are stable.
-  const dishTypeChips = useMemo(() => {
-    const present = new Set(meals.map((m) => m.dish_category).filter(Boolean));
-    const matched = DISH_CATEGORY_OPTIONS.filter((opt) => present.has(opt.value));
-    return [{ value: 'all', label: 'All' }, ...matched];
-  }, [meals]);
-
-  // If a meal is removed and the active chip category disappears, reset to 'all'.
-  React.useEffect(() => {
-    if (dishTypeFilter !== 'all' && !dishTypeChips.some((c) => c.value === dishTypeFilter)) {
-      setDishTypeFilter('all');
-    }
-  }, [dishTypeChips, dishTypeFilter]);
 
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastAnim = useRef(new Animated.Value(0)).current;
@@ -123,7 +106,6 @@ export default function FavsScreen() {
 
   const allFilteredMeals = useFilteredFavs(search, {
     ...favFilters,
-    dishType: dishTypeFilter,
   });
 
   const filteredMeals = useMemo(() => {
@@ -283,7 +265,7 @@ export default function FavsScreen() {
   }, []);
 
   const filterCount = countActiveFilters(favFilters, FAVS_FILTER_CONFIG);
-  const hasFilters = filterCount > 0 || search.trim().length > 0 || dishTypeFilter !== 'all';
+  const hasFilters = filterCount > 0 || search.trim().length > 0;
 
   const renderGridItem = useCallback(({ item }: { item: Recipe }) => {
     if ((item as any)._isAddTile) {
@@ -424,39 +406,6 @@ export default function FavsScreen() {
         </View>
       )}
 
-      {/* Dish Type chip row */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ height: 46 }}
-        contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingVertical: 8, gap: 8, flexDirection: 'row' }}
-      >
-        {dishTypeChips.map((opt) => {
-          const active = dishTypeFilter === opt.value;
-          return (
-            <TouchableOpacity
-              key={opt.value}
-              onPress={() => {
-                setDishTypeFilter((prev) => prev === opt.value ? 'all' : opt.value);
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
-              style={{
-                height: 30,
-                paddingHorizontal: 14,
-                borderRadius: BorderRadius.pill,
-                backgroundColor: active ? Colors.primary : Colors.surface,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              activeOpacity={0.75}
-            >
-              <Text style={{ fontSize: 13, fontWeight: '600', color: active ? Colors.white : Colors.text }}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
 
       {filterCount > 0 && (
         <TouchableOpacity
