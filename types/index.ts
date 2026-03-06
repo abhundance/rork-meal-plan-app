@@ -166,8 +166,8 @@ export interface DiscoverMeal {
   /** @deprecated Use cuisines[] instead */
   cuisine?: string;
   /** @deprecated Use allergens[] and diet_labels[] instead */
-  dietary_tags?: string[];
-  /** @deprecated Use diet_labels.includes('vegan') instead */
+  dietary_tags: string[];   // kept required — used in FavsProvider, discover-filter-results, discover-search
+  
   is_vegan?: boolean;
   /** @deprecated Use diet_labels.includes('vegetarian') instead */
   is_vegetarian?: boolean;
