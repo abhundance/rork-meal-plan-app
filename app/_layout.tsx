@@ -13,8 +13,84 @@ import { AppState, Animated, View, Text, TouchableOpacity, StyleSheet } from "re
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
+import { Spacing, BorderRadius } from "@/constants/theme";
 import { detectPlatformFromUrl, getPlatformLabel } from "@/services/deliveryUtils";
 import { setPendingDeliveryLink } from "@/services/pendingDeliveryLink";
+
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[ErrorBoundary] Caught error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={errorStyles.container}>
+          <Ionicons name="alert-circle-outline" size={64} color={Colors.textSecondary} />
+          <Text style={errorStyles.title}>Something went wrong</Text>
+          <Text style={errorStyles.message}>
+            The app ran into an unexpected error. Tap below to try again.
+          </Text>
+          <TouchableOpacity
+            style={errorStyles.button}
+            onPress={() => this.setState({ hasError: false, error: null })}
+          >
+            <Text style={errorStyles.buttonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const errorStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.xxxl,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    marginTop: Spacing.lg,
+  },
+  message: {
+    fontSize: 15,
+    fontWeight: '400' as const,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    maxWidth: 280,
+  },
+  button: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.button,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.xxxl,
+    marginTop: Spacing.xxl,
+  },
+  buttonText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.white,
+  },
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -233,20 +309,22 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <FamilySettingsProvider>
-          <OnboardingProvider>
-            <MealPlanProvider>
-              <ShoppingProvider>
-                <FavsProvider>
-                  <DeliveryBannerLayout />
-                </FavsProvider>
-              </ShoppingProvider>
-            </MealPlanProvider>
-          </OnboardingProvider>
-        </FamilySettingsProvider>
-      </GestureHandlerRootView>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <FamilySettingsProvider>
+            <OnboardingProvider>
+              <MealPlanProvider>
+                <ShoppingProvider>
+                  <FavsProvider>
+                    <DeliveryBannerLayout />
+                  </FavsProvider>
+                </ShoppingProvider>
+              </MealPlanProvider>
+            </OnboardingProvider>
+          </FamilySettingsProvider>
+        </GestureHandlerRootView>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
