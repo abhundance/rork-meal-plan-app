@@ -9,6 +9,7 @@ import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import { MealPlanProvider } from "@/providers/MealPlanProvider";
 import { ShoppingProvider } from "@/providers/ShoppingProvider";
 import { FavsProvider } from "@/providers/FavsProvider";
+import { DiscoverProvider } from "@/providers/DiscoverProvider";
 import { AppState, Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -317,7 +318,9 @@ export default function RootLayout() {
               <MealPlanProvider>
                 <ShoppingProvider>
                   <FavsProvider>
-                    <DeliveryBannerLayout />
+                    <DiscoverProvider>
+                      <DeliveryBannerLayout />
+                    </DiscoverProvider>
                   </FavsProvider>
                 </ShoppingProvider>
               </MealPlanProvider>
