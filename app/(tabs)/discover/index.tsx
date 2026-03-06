@@ -450,9 +450,6 @@ export default function DiscoverScreen() {
             <View key={carousel.id} style={{ marginBottom: 16, ...(index === 0 ? { marginTop: 20 } : {}) }}>
               <View style={styles.carouselHeader}>
                 <Text style={styles.carouselTitle}>{carousel.emoji} {carousel.title}</Text>
-                <TouchableOpacity>
-                  <Text style={styles.carouselSeeAll}>See all</Text>
-                </TouchableOpacity>
               </View>
               {carousel.subtitle ? (
                 <Text style={styles.carouselSubtitle}>{carousel.subtitle}</Text>
@@ -478,6 +475,41 @@ export default function DiscoverScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ paddingLeft: 16, paddingRight: 16 }}
                   ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+                  ListFooterComponent={() => (
+                    <TouchableOpacity
+                      onPress={() =>
+                        router.push(
+                          `/discover-collection?mealIds=${encodeURIComponent(
+                            carousel.meals.map(m => m.id).join(',')
+                          )}&title=${encodeURIComponent(carousel.title)}&emoji=${encodeURIComponent(carousel.emoji)}` as Href
+                        )
+                      }
+                      style={{
+                        width: CAROUSEL_CARD_WIDTH,
+                        height: CAROUSEL_CARD_HEIGHT,
+                        borderRadius: 14,
+                        backgroundColor: Colors.primaryLight,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginLeft: 12,
+                        gap: 8,
+                      }}
+                    >
+                      <View style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: Colors.primary,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                      </View>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: Colors.primary, textAlign: 'center' }}>
+                        See all
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 />
               </View>
             </View>

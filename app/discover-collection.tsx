@@ -1,197 +1,121 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+/**
+ * DiscoverCollectionScreen
+ *
+ * Full-screen scrollable grid of recipes from a recommendation carousel.
+ * Receives mealIds (comma-separated), title, and emoji as URL params.
+ * Renders up to MAX_ITEMS recipes using DiscoverCarouselCard — the same
+ * card component used in the Discover tab carousels. 3-column grid layout.
+ */
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
-  FlatList,
   StyleSheet,
-  Alert,
-  Animated,
+  FlatList,
+  TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack, Href } from 'expo-router';
-import { Image } from 'expo-image';
-import * as Haptics from 'expo-haptics';
-import { ArrowLeft, Heart, CalendarPlus, Clock } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { BorderRadius, Shadows } from '@/constants/theme';
-import SlotPickerModal from '@/components/SlotPickerModal';
-import { useFavs } from '@/providers/FavsProvider';
-import { useFamilySettings } from '@/providers/FamilySettingsProvider';
-import { useMealPlan } from '@/providers/MealPlanProvider';
-import { DiscoverMeal, PlannedMeal } from '@/types';
-import { DISCOVER_MEALS, COLLECTIONS } from '@/mocks/discover';
+import { DISCOVER_MEALS } from '@/mocks/discover';
+import DiscoverCarouselCard, {
+  CAROUSEL_CARD_WIDTH,
+  CAROUSEL_CARD_HEIGHT,
+} from '@/components/DiscoverCarouselCard';
+import { DiscoverMeal } from '@/types';
 
-export default function CollectionScreen() {
+// ---------------------------------------------------------------------------
+// Layout constants
+// ---------------------------------------------------------------------------
+const { width: screenWidth } = Dimensions.get('window');
+
+const COLUMNS = 3;
+const H_PAD = 16;   // horizontal padding on each side
+const COL_GAP = 8;  // gap between columns
+
+// Card is scaled up proportionally from the canonical carousel card size
+export const COLLECTION_CARD_WIDTH = Math.floor(
+  (screenWidth - H_PAD * 2 - COL_GAP * (COLUMNS - 1)) / COLUMNS
+);
+export const COLLECTION_CARD_HEIGHT = Math.round(
+  COLLECTION_CARD_WIDTH * (CAROUSEL_CARD_HEIGHT / CAROUSEL_CARD_WIDTH)
+);
+
+const MAX_ITEMS = 30;
+
+// ---------------------------------------------------------------------------
+// Screen
+// ---------------------------------------------------------------------------
+export default function DiscoverCollectionScreen() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ id: string }>();
-  const { isFav, addFromDiscover } = useFavs();
-  const { familySettings } = useFamilySettings();
-  const { addMeal, getMealsForSlot } = useMealPlan();
+  const { mealIds, title, emoji } = useLocalSearchParams<{
+    mealIds: string;
+    title: string;
+    emoji: string;
+  }>();
 
-  const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
-  const [selectedMeal, setSelectedMeal] = useState<DiscoverMeal | null>(null);
+  const meals = useMemo<DiscoverMeal[]>(() => {
+    if (!mealIds) return [];
+    const ids = new Set(mealIds.split(','));
+    return DISCOVER_MEALS.filter(m => ids.has(m.id)).slice(0, MAX_ITEMS);
+  }, [mealIds]);
 
-  const collection = useMemo(() => COLLECTIONS.find((c) => c.id === params.id), [params.id]);
-
-  const meals = useMemo(() => {
-    if (params.id === 'all') return DISCOVER_MEALS;
-    if (!collection) return [];
-    return DISCOVER_MEALS.filter((m) => collection.meal_ids.includes(m.id));
-  }, [params.id, collection]);
-
-  const sortedSlots = useMemo(
-    () => [...familySettings.meal_slots].sort((a, b) => a.order - b.order),
-    [familySettings.meal_slots]
-  );
-
-  const title = params.id === 'all' ? 'All Collections' : collection?.title ?? 'Collection';
-
-  const handleSave = useCallback((meal: DiscoverMeal) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    addFromDiscover(meal);
-    Alert.alert('Saved!', `${meal.name} added to your Favs`);
-  }, [addFromDiscover]);
-
-  const handleAddToPlan = useCallback((meal: DiscoverMeal) => {
-    setSelectedMeal(meal);
-    setSlotPickerVisible(true);
-  }, []);
-
-  const handleSlotSelected = useCallback(
-    (date: string, slotId: string) => {
-      if (!selectedMeal) return;
-      const planned: PlannedMeal = {
-        id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        slot_id: slotId,
-        date,
-        meal_name: selectedMeal.name,
-        meal_image_url: selectedMeal.image_url,
-        serving_size: familySettings.default_serving_size,
-        ingredients: selectedMeal.ingredients,
-        recipe_serving_size: selectedMeal.recipe_serving_size,
-      };
-      addMeal(planned);
-      setSlotPickerVisible(false);
-      setSelectedMeal(null);
-      const slot = familySettings.meal_slots.find((s) => s.slot_id === slotId);
-      Alert.alert('Added!', `${selectedMeal.name} added to ${slot?.name ?? 'plan'}`);
-    },
-    [selectedMeal, addMeal, familySettings]
-  );
+  const screenTitle = [emoji, title].filter(Boolean).join(' ') || 'Collection';
 
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
 
+      {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={20} color={Colors.text} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {screenTitle}
+        </Text>
+        {/* Spacer to keep title visually centred */}
         <View style={{ width: 36 }} />
       </View>
 
-      {collection && (
-        <View style={styles.collectionHeader}>
-          <Image source={{ uri: collection.cover_image_url }} style={styles.collectionImage} contentFit="cover" />
-          <View style={styles.collectionOverlay}>
-            <Text style={styles.collectionTitle}>{collection.title}</Text>
-            {collection.subtitle && (
-              <Text style={styles.collectionSubtitle}>{collection.subtitle}</Text>
-            )}
-            <Text style={styles.collectionCount}>{collection.meal_count} meals</Text>
-          </View>
-        </View>
-      )}
-
+      {/* ── 3-column recipe grid ── */}
       <FlatList
         data={meals}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.gridRow}
+        keyExtractor={item => item.id}
+        numColumns={COLUMNS}
+        columnWrapperStyle={styles.row}
         contentContainerStyle={styles.gridContent}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <CollectionMealCard
+          <DiscoverCarouselCard
             meal={item}
-            isSaved={isFav(item.id)}
-            onPress={() => router.push(`/recipe-detail?id=${item.id}&source=discover` as Href)}
-            onSave={() => handleSave(item)}
-            onAddToPlan={() => handleAddToPlan(item)}
+            onPress={() =>
+              router.push(
+                `/recipe-detail?id=${item.id}&source=discover` as Href
+              )
+            }
+            width={COLLECTION_CARD_WIDTH}
+            height={COLLECTION_CARD_HEIGHT}
           />
         )}
-      />
-
-      <SlotPickerModal
-        visible={slotPickerVisible}
-        onClose={() => { setSlotPickerVisible(false); setSelectedMeal(null); }}
-        onSelect={handleSlotSelected}
-        mealSlots={sortedSlots}
-        getMealsForSlot={getMealsForSlot}
-        mealName={selectedMeal?.name ?? ''}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>No recipes here yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Check back soon as we add more
+            </Text>
+          </View>
+        }
       />
     </View>
   );
 }
 
-interface CollectionMealCardProps {
-  meal: DiscoverMeal;
-  isSaved: boolean;
-  onPress: () => void;
-  onSave: () => void;
-  onAddToPlan: () => void;
-}
-
-const CollectionMealCard = React.memo(function CollectionMealCard({ meal, isSaved, onPress, onSave, onAddToPlan }: CollectionMealCardProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  return (
-    <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={onPress}
-        onPressIn={() => Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 4 }).start()}
-        onPressOut={() => Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()}
-      >
-        <View style={styles.cardImageWrap}>
-          <Image source={{ uri: meal.image_url }} style={styles.cardImage} contentFit="cover" />
-          <TouchableOpacity style={styles.savBtn} onPress={onSave}>
-            <View style={styles.heartStack}>
-              <View style={styles.heartShadowLayer}>
-                <Heart
-                  size={16}
-                  color="rgba(0,0,0,0.28)"
-                  fill="transparent"
-                  strokeWidth={3.5}
-                />
-              </View>
-              <Heart
-                size={14}
-                color={isSaved ? '#EF4444' : '#FFFFFF'}
-                fill={isSaved ? '#EF4444' : 'transparent'}
-                strokeWidth={2}
-              />
-            </View>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.cardBody}>
-          <Text style={styles.cardName} numberOfLines={2}>{meal.name}</Text>
-          <View style={styles.cardTags}>
-            <View style={styles.miniTag}>
-              <Clock size={9} color={Colors.primary} strokeWidth={2} />
-              <Text style={styles.miniTagText}>{meal.cooking_time_band}</Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.planBtn} onPress={onAddToPlan}>
-        <CalendarPlus size={12} color={Colors.white} strokeWidth={2.5} />
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
-
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -218,120 +142,34 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: Colors.text,
-    textAlign: 'center' as const,
+    textAlign: 'center',
   },
-  collectionHeader: {
-    position: 'relative' as const,
-    height: 160,
-  },
-  collectionImage: {
-    width: '100%',
-    height: '100%',
-  },
-  collectionOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-    padding: 16,
-  },
-  collectionTitle: {
-    fontSize: 22,
-    fontWeight: '700' as const,
-    color: Colors.white,
-  },
-  collectionSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 2,
-  },
-  collectionCount: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
-  },
-  gridRow: {
-    paddingHorizontal: 12,
-    gap: 10,
+  row: {
+    paddingHorizontal: H_PAD,
+    gap: COL_GAP,
+    marginBottom: COL_GAP,
   },
   gridContent: {
-    paddingTop: 12,
+    paddingTop: 16,
     paddingBottom: 100,
   },
-  card: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.card,
-    overflow: 'hidden',
-    marginBottom: 10,
-    ...Shadows.card,
-  },
-  cardImageWrap: {
-    aspectRatio: 4 / 3,
-    position: 'relative' as const,
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-  },
-  savBtn: {
-    position: 'absolute' as const,
-    top: 8,
-    right: 8,
-    width: 30,
-    height: 30,
+  emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: 80,
+    paddingHorizontal: 32,
   },
-  heartStack: {
-    width: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heartShadowLayer: {
-    position: 'absolute' as const,
-    top: 0,
-    left: 0,
-  },
-  cardBody: {
-    padding: 10,
-  },
-  cardName: {
-    fontSize: 14,
-    fontWeight: '700' as const,
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '600',
     color: Colors.text,
-    marginBottom: 2,
   },
-
-  cardTags: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  miniTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: Colors.surface,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  miniTagText: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-  },
-  planBtn: {
-    position: 'absolute' as const,
-    bottom: 10,
-    right: 10,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+  emptySubtitle: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
   },
 });
