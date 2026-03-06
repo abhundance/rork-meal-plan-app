@@ -9,7 +9,7 @@ import {
   StyleSheet,
   RefreshControl,
   Animated,
-  Alert,
+  ActionSheetIOS,
   Modal,
   KeyboardAvoidingView,
   Platform,
@@ -26,9 +26,6 @@ import {
   Search,
   X,
   Plus,
-  Clock,
-  Heart,
-  CalendarPlus,
   Check,
   SlidersHorizontal,
 } from 'lucide-react-native';
@@ -71,15 +68,15 @@ const FAVS_FILTER_CONFIG: RecipeFilterConfig = {
 
 export default function FavsScreen() {
   const insets = useSafeAreaInsets();
-  const { meals, recentSearches, isLoading, removeFav, addFav, addRecentSearch, clearRecentSearches, incrementPlanCount } = useFavs();
+  const { meals, recentSearches, removeFav, addFav, addRecentSearch, clearRecentSearches, incrementPlanCount } = useFavs();
   const { familySettings } = useFamilySettings();
   const { addMeal, getMealsForSlot } = useMealPlan();
 
-  const [activeSegment, setActiveSegment] = useState<'my_recipes' | 'saved'>('my_recipes');
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
   const [favFilters, setFavFilters] = useState<RecipeFilterState>({ ...DEFAULT_FILTER_STATE, sort: 'most_used' });
+  const [quickFilter, setQuickFilter] = useState<'all' | 'mine' | 'saved'>('all');
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<Meal | null>(null);
 
@@ -90,9 +87,6 @@ export default function FavsScreen() {
   const [quickAddSource, setQuickAddSource] = useState<'manual' | 'delivery'>('manual');
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
-
-  const myRecipesCount = useMemo(() => meals.filter(m => m.source === 'family_created').length, [meals]);
-  const savedCount = useMemo(() => meals.filter(m => m.source !== 'family_created').length, [meals]);
 
   const uniqueCuisines = useMemo(() => {
     const seen = new Set<string>();
@@ -119,11 +113,13 @@ export default function FavsScreen() {
   }, [allFilteredMeals]);
 
   const gridData = useMemo(() => {
-    if (activeSegment === 'my_recipes') {
-      return [{ id: '__add_tile__', _isAddTile: true } as any, ...filteredMeals];
-    }
-    return filteredMeals;
-  }, [activeSegment, filteredMeals]);
+    const sourceFiltered = quickFilter === 'mine'
+      ? filteredMeals.filter(m => m.source === 'family_created')
+      : quickFilter === 'saved'
+        ? filteredMeals.filter(m => m.source !== 'family_created')
+        : filteredMeals;
+    return [{ id: '__add_tile__', _isAddTile: true } as any, ...sourceFiltered];
+  }, [quickFilter, filteredMeals]);
 
   const sortedSlots = useMemo(
     () => [...familySettings.meal_slots].sort((a, b) => a.order - b.order),
@@ -156,16 +152,10 @@ export default function FavsScreen() {
     setSearch('');
   }, []);
 
-  const handleSegmentChange = useCallback((segment: 'my_recipes' | 'saved') => {
-    setActiveSegment(segment);
-    setSearch('');
-    setFavFilters(DEFAULT_FILTER_STATE);
-  }, []);
-
   const handleAddToPlan = useCallback((meal: Meal) => {
     setSelectedMealForPlan(meal);
     setSlotPickerVisible(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
   const handleSlotSelected = useCallback(
@@ -198,21 +188,33 @@ export default function FavsScreen() {
   }, []);
 
   const handleDeleteMyRecipe = useCallback((meal: Meal) => {
-    Alert.alert(
-      'Delete recipe?',
-      `"${meal.name}" will be permanently deleted. This can't be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => removeFav(meal.id) },
-      ]
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ['Cancel', 'Delete'],
+        destructiveButtonIndex: 1,
+        cancelButtonIndex: 0,
+        title: 'Delete recipe?',
+        message: meal.name + ' will be permanently deleted.',
+      },
+      (i) => {
+        if (i === 1) removeFav(meal.id);
+      }
     );
   }, [removeFav]);
 
   const handleRemoveSaved = useCallback((meal: Meal) => {
-    Alert.alert('Remove from Favs?', `Remove "${meal.name}" from your favourites?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeFav(meal.id) },
-    ]);
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ['Cancel', 'Remove from Favs'],
+        destructiveButtonIndex: 1,
+        cancelButtonIndex: 0,
+        title: meal.name,
+        message: 'Remove from your favourites?',
+      },
+      (i) => {
+        if (i === 1) removeFav(meal.id);
+      }
+    );
   }, [removeFav]);
 
   const handleQuickAddSave = useCallback(() => {
@@ -235,7 +237,7 @@ export default function FavsScreen() {
       delivery_platform: trimmedUrl ? (detectPlatformFromUrl(trimmedUrl) ?? undefined) : undefined,
     };
     addFav(newMeal);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setQuickAddName('');
     setQuickAddDeliveryUrl('');
     setShowAddMethodSheet(false);
@@ -264,8 +266,8 @@ export default function FavsScreen() {
   const filterCount = countActiveFilters(favFilters, FAVS_FILTER_CONFIG);
   const hasFilters = filterCount > 0 || search.trim().length > 0;
 
-  const renderMyRecipeItem = useCallback(({ item }: { item: any }) => {
-    if (item._isAddTile) {
+  const renderGridItem = useCallback(({ item }: { item: Meal }) => {
+    if ((item as any)._isAddTile) {
       return (
         <TouchableOpacity
           style={styles.addTileCard}
@@ -287,33 +289,14 @@ export default function FavsScreen() {
       );
     }
     return (
-      <MyRecipeGridCard
+      <FavGridCard
         meal={item}
         onPress={() => handleMealPress(item)}
         onAddToPlan={() => handleAddToPlan(item)}
-        onDelete={() => handleDeleteMyRecipe(item)}
-        onLongPress={() => handleDeleteMyRecipe(item)}
+        onLongPress={() => item.source === 'family_created' ? handleDeleteMyRecipe(item) : handleRemoveSaved(item)}
       />
     );
-  }, [handleMealPress, handleAddToPlan, handleDeleteMyRecipe]);
-
-  const renderSavedItem = useCallback(({ item }: { item: Meal }) => (
-    <SavedMealGridCard
-      meal={item}
-      onPress={() => handleMealPress(item)}
-      onAddToPlan={() => handleAddToPlan(item)}
-      onRemove={() => handleRemoveSaved(item)}
-    />
-  ), [handleMealPress, handleAddToPlan, handleRemoveSaved]);
-
-  const renderGridItem = useCallback(({ item }: { item: Meal }) => (
-    <FavGridCard
-      meal={item}
-      onPress={() => handleMealPress(item)}
-      onAddToPlan={() => handleAddToPlan(item)}
-      onLongPress={() => item.source === 'family_created' ? handleDeleteMyRecipe(item) : handleRemoveSaved(item)}
-    />
-  ), [handleMealPress, handleAddToPlan, handleDeleteMyRecipe, handleRemoveSaved]);
+  }, [handleMealPress, handleAddToPlan, handleDeleteMyRecipe, handleRemoveSaved, openAddMethodSheet]);
 
   const MyRecipesEmptyState = useMemo(() => (
     <View style={styles.segmentEmptyContainer}>
@@ -329,17 +312,7 @@ export default function FavsScreen() {
         <Text style={styles.segmentEmptyCtaText}>Add a Meal</Text>
       </TouchableOpacity>
     </View>
-  ), []);
-
-  const SavedEmptyState = useMemo(() => (
-    <View style={styles.segmentEmptyContainer}>
-      <Ionicons name="bookmark-outline" size={64} color={Colors.textSecondary} />
-      <Text style={styles.segmentEmptyTitle}>Nothing saved yet</Text>
-      <Text style={styles.segmentEmptySubtitle}>
-        Browse Discover and tap ♡ on any recipe to save it here
-      </Text>
-    </View>
-  ), []);
+  ), [openAddMethodSheet]);
 
   const SearchEmptyState = useMemo(() => (
     <View style={styles.segmentEmptyContainer}>
@@ -356,8 +329,8 @@ export default function FavsScreen() {
 
   const getEmptyComponent = useCallback(() => {
     if (hasFilters) return SearchEmptyState;
-    return activeSegment === 'my_recipes' ? MyRecipesEmptyState : SavedEmptyState;
-  }, [hasFilters, activeSegment, MyRecipesEmptyState, SavedEmptyState, SearchEmptyState]);
+    return MyRecipesEmptyState;
+  }, [hasFilters, MyRecipesEmptyState, SearchEmptyState]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -379,36 +352,16 @@ export default function FavsScreen() {
         }
       />
 
-      <View style={styles.segmentedControl}>
-        <TouchableOpacity
-          style={[styles.segmentBtn, activeSegment === 'my_recipes' && styles.segmentBtnActive]}
-          onPress={() => handleSegmentChange('my_recipes')}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.segmentBtnText, activeSegment === 'my_recipes' && styles.segmentBtnTextActive]}>
-            My Meals
-          </Text>
-          <View style={[styles.segmentBadge, activeSegment === 'my_recipes' && styles.segmentBadgeActive]}>
-            <Text style={[styles.segmentBadgeText, activeSegment === 'my_recipes' && styles.segmentBadgeTextActive]}>
-              {myRecipesCount}
-            </Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.segmentBtn, activeSegment === 'saved' && styles.segmentBtnActive]}
-          onPress={() => handleSegmentChange('saved')}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.segmentBtnText, activeSegment === 'saved' && styles.segmentBtnTextActive]}>
-            Saved
-          </Text>
-          <View style={[styles.segmentBadge, activeSegment === 'saved' && styles.segmentBadgeActive]}>
-            <Text style={[styles.segmentBadgeText, activeSegment === 'saved' && styles.segmentBadgeTextActive]}>
-              {savedCount}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ height: 46 }}
+        contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 8, gap: 8 }}
+      >
+        <FilterPill label="All" active={quickFilter === 'all'} onPress={() => setQuickFilter('all')} />
+        <FilterPill label="Mine" active={quickFilter === 'mine'} onPress={() => setQuickFilter('mine')} />
+        <FilterPill label="Saved" active={quickFilter === 'saved'} onPress={() => setQuickFilter('saved')} />
+      </ScrollView>
 
       <View style={styles.searchWrap}>
         <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
@@ -654,16 +607,14 @@ export default function FavsScreen() {
         }}
       />
 
-      {activeSegment === 'my_recipes' && (
-        <TouchableOpacity
-          style={[styles.fab, { bottom: insets.bottom + 16 }]}
-          onPress={openAddMethodSheet}
-          activeOpacity={0.85}
-          testID="fab-add-meal"
-        >
-          <Plus size={20} color={Colors.white} strokeWidth={2.5} />
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        style={[styles.fab, { bottom: insets.bottom + 16 }]}
+        onPress={openAddMethodSheet}
+        activeOpacity={0.85}
+        testID="fab-add-meal"
+      >
+        <Plus size={20} color={Colors.white} strokeWidth={2.5} />
+      </TouchableOpacity>
 
       {toastMsg !== null && (
         <Animated.View
@@ -721,7 +672,7 @@ const FavGridCard = React.memo(function FavGridCard({
       <Pressable
         onPress={onPress}
         onLongPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           onLongPress();
         }}
         onPressIn={() =>
@@ -798,138 +749,6 @@ const FavGridCard = React.memo(function FavGridCard({
   );
 });
 
-interface MyRecipeGridCardProps {
-  meal: Meal;
-  onPress: () => void;
-  onAddToPlan: () => void;
-  onDelete: () => void;
-  onLongPress: () => void;
-}
-
-const MyRecipeGridCard = React.memo(function MyRecipeGridCard({
-  meal, onPress, onAddToPlan, onDelete, onLongPress,
-}: MyRecipeGridCardProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const totalTime = (meal.prep_time ?? 0) + (meal.cook_time ?? 0);
-
-  return (
-    <Animated.View style={[styles.listCard, { transform: [{ scale: scaleAnim }] }]}>
-      <View style={styles.listAccentBand} />
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={onPress}
-        onLongPress={onLongPress}
-        onPressIn={() =>
-          Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
-        }
-        onPressOut={() =>
-          Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
-        }
-        style={styles.listCardRow}
-      >
-        {meal.image_url ? (
-          <Image source={{ uri: meal.image_url }} style={{ width: 42, height: 42, borderRadius: 12 }} resizeMode="cover" />
-        ) : (
-          <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
-        )}
-        <View style={styles.listCardContent}>
-          <Text style={styles.listMealName} numberOfLines={1}>{meal.name}</Text>
-          <View style={styles.listMeta}>
-            {meal.cuisine ? (
-              <View style={styles.cuisinePill}>
-                <Text style={styles.cuisinePillText}>{meal.cuisine}</Text>
-              </View>
-            ) : null}
-            {totalTime > 0 && (
-              <>
-                <Ionicons name="time-outline" size={11} color="#8B7EA8" />
-                <Text style={styles.timeText}>{totalTime} min</Text>
-              </>
-            )}
-          </View>
-        </View>
-        <View style={styles.listActions}>
-          <TouchableOpacity
-            style={styles.listEditBtn}
-            onPress={() => router.push({ pathname: '/add-recipe-manual', params: { editId: meal.id } })}
-            hitSlop={8}
-          >
-            <Ionicons name="create-outline" size={16} color={Colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.listPlanBtn} onPress={onAddToPlan} activeOpacity={0.85}>
-            <CalendarPlus size={15} color={Colors.white} strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
-
-interface SavedMealGridCardProps {
-  meal: Meal;
-  onPress: () => void;
-  onAddToPlan: () => void;
-  onRemove: () => void;
-}
-
-const SavedMealGridCard = React.memo(function SavedMealGridCard({
-  meal, onPress, onAddToPlan, onRemove,
-}: SavedMealGridCardProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const totalTime = (meal.prep_time ?? 0) + (meal.cook_time ?? 0);
-
-  return (
-    <Animated.View style={[styles.listCard, { transform: [{ scale: scaleAnim }] }]}>
-      <View style={styles.listAccentBand} />
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={onPress}
-        onLongPress={onRemove}
-        onPressIn={() =>
-          Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
-        }
-        onPressOut={() =>
-          Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
-        }
-        style={styles.listCardRow}
-      >
-        {meal.image_url ? (
-          <Image source={{ uri: meal.image_url }} style={{ width: 42, height: 42, borderRadius: 12 }} resizeMode="cover" />
-        ) : (
-          <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
-        )}
-        <View style={styles.listCardContent}>
-          <Text style={styles.listMealName} numberOfLines={1}>{meal.name}</Text>
-          <View style={styles.listMeta}>
-            {meal.cuisine ? (
-              <View style={styles.cuisinePill}>
-                <Text style={styles.cuisinePillText}>{meal.cuisine}</Text>
-              </View>
-            ) : null}
-            {totalTime > 0 && (
-              <>
-                <Ionicons name="time-outline" size={11} color="#8B7EA8" />
-                <Text style={styles.timeText}>{totalTime} min</Text>
-              </>
-            )}
-          </View>
-        </View>
-        <View style={styles.listActions}>
-          <TouchableOpacity
-            style={styles.listHeartBtn}
-            onPress={onRemove}
-            hitSlop={8}
-          >
-            <Heart size={14} color={Colors.primary} fill={Colors.primary} strokeWidth={2} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.listPlanBtn} onPress={onAddToPlan} activeOpacity={0.85}>
-            <CalendarPlus size={15} color={Colors.white} strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-});
 
 const styles = StyleSheet.create({
   container: {
