@@ -416,8 +416,8 @@ export default function FavsScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ height: 46 }}
-        contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingVertical: 8, gap: 8, flexDirection: 'row' }}
+        style={{ height: 46, flexShrink: 0 }}
+        contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingVertical: 8, flexDirection: 'row' }}
       >
         {([
           { label: 'All',            value: 'all' },
@@ -434,12 +434,11 @@ export default function FavsScreen() {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={{
-                height: 30,
                 paddingHorizontal: 14,
+                paddingVertical: 6,
+                marginRight: 8,
                 borderRadius: BorderRadius.pill,
                 backgroundColor: active ? Colors.primary : Colors.surface,
-                alignItems: 'center',
-                justifyContent: 'center',
               }}
               activeOpacity={0.75}
             >
@@ -455,8 +454,8 @@ export default function FavsScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ height: 46 }}
-        contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingVertical: 8, gap: 8, flexDirection: 'row' }}
+        style={{ height: 46, flexShrink: 0 }}
+        contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingVertical: 8, flexDirection: 'row' }}
       >
         {([
           { label: 'All',      value: 'all' },
@@ -476,12 +475,11 @@ export default function FavsScreen() {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={{
-                height: 30,
                 paddingHorizontal: 14,
+                paddingVertical: 6,
+                marginRight: 8,
                 borderRadius: BorderRadius.pill,
                 backgroundColor: active ? Colors.primary : Colors.surface,
-                alignItems: 'center',
-                justifyContent: 'center',
               }}
               activeOpacity={0.75}
             >
