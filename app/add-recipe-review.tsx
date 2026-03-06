@@ -22,7 +22,7 @@ import { imageStore } from '@/services/imageStore';
 import { useFavs } from '@/providers/FavsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { consumePendingPlanSlot, hasPendingPlanSlot, peekPendingPlanSlot } from '@/services/pendingPlanSlot';
-import { Meal, Ingredient, PlannedMeal } from '@/types';
+import { Recipe, Ingredient, PlannedMeal } from '@/types';
 import ServingStepper from '@/components/ServingStepper';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 
@@ -255,7 +255,7 @@ export default function AddMealReviewScreen() {
     const trimmedName = name.trim();
     if (!trimmedName) return;
 
-    const meal: Meal = {
+    const meal: Recipe = {
       id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: trimmedName,
       image_url: undefined,

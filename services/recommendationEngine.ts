@@ -3,7 +3,7 @@
  * Safe to run client-side or copy verbatim into a Supabase Edge Function.
  */
 
-import { DiscoverMeal, Meal, PlannedMeal } from '@/types';
+import { DiscoverMeal, Recipe, PlannedMeal } from '@/types';
 
 // ─── Supporting types ─────────────────────────────────────────────────────────
 
@@ -63,7 +63,7 @@ export interface DiscoverCarousel {
 
 export function buildUserProfile(
   plannedMeals:         PlannedMeal[],
-  favMeals:             Meal[],
+  favMeals:             Recipe[],
   familyDietaryPrefs:   string[],
   discoverPrefs:        DiscoverPreference[],
   viewHistory:          ViewHistoryEntry[],

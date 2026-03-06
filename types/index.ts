@@ -88,31 +88,74 @@ export interface PlannedMeal {
   meal_id?: string;
 }
 
-export interface Meal {
+export interface Recipe {
+  // ── Core identity (always present) ────────────────────────────────────────
   id: string;
   name: string;
-  image_url?: string;
-  cuisine?: string;
-  cooking_time_band?: 'Under 30' | '30-60' | 'Over 60';
-  prep_time?: number;
-  cook_time?: number;
-  dietary_tags: string[];
-  custom_tags: string[];
-  meal_type_slot_id?: string;
-  meal_type?: 'breakfast' | 'lunch_dinner' | 'light_bites';
+  source: 'family_created' | 'discover';
   ingredients: Ingredient[];
   recipe_serving_size: number;
   method_steps: string[];
-  description?: string;
-  source: 'family_created' | 'discover';
+  dietary_tags: string[];        // legacy tag list — kept for backward compat
+  custom_tags: string[];
   add_to_plan_count: number;
-  last_planned_date?: string;
   created_at: string;
   is_ingredient_complete: boolean;
   is_recipe_complete: boolean;
+
+  // ── Optional core ──────────────────────────────────────────────────────────
+  image_url?: string;
+  description?: string;
+  cuisine?: string;              // single string (family-created / legacy). Use cuisines[] for discover.
+  cuisines?: string[];           // multi-cuisine array (populated for discover-sourced recipes)
+  meal_type?: 'breakfast' | 'lunch_dinner' | 'light_bites';
+  cooking_time_band?: 'Under 30' | '30-60' | 'Over 60';
+  prep_time?: number;
+  cook_time?: number;
+  last_planned_date?: string;
   delivery_url?: string;
   delivery_platform?: 'uber_eats' | 'zomato' | 'grab' | 'swiggy' | 'deliveroo' | 'doordash' | 'other';
+  meal_type_slot_id?: string;
+
+  // ── Rich classification (populated for discover-sourced recipes) ───────────
+  dish_category?: DishCategory;
+  protein_source?: ProteinSource;
+  occasions?: string[];
+
+  // ── Dietary & allergens (discover) ────────────────────────────────────────
+  allergens?: string[];          // what the recipe is FREE FROM (e.g. ['gluten-free', 'dairy-free'])
+  diet_labels?: string[];        // positive classifications (e.g. ['vegan', 'high-protein', 'keto'])
+
+  // ── Taste profile (0–100 scale, discover) ─────────────────────────────────
+  taste_sweetness?: number;
+  taste_saltiness?: number;
+  taste_sourness?: number;
+  taste_bitterness?: number;
+  taste_savoriness?: number;
+  taste_fattiness?: number;
+  taste_spiciness?: number;
+
+  // ── Nutrition per serving (discover) ──────────────────────────────────────
+  calories_per_serving?: number;
+  protein_per_serving_g?: number;
+  carbs_per_serving_g?: number;
+
+  // ── Scores & metadata ─────────────────────────────────────────────────────
+  health_score?: number;         // 0–100
+
+  // ── Family interaction data ────────────────────────────────────────────────
+  rating?: MealRating;
+  family_notes?: string;
+  last_cooked_at?: string;       // ISO date string
+
+  // ── Attribution (discover) ────────────────────────────────────────────────
+  source_url?: string;
+  credits?: string;
+  spoonacular_id?: number | null;
 }
+
+/** @deprecated Use Recipe instead. Alias retained for backward compatibility during migration. */
+export type Meal = Recipe;
 
 // ─── Discover-specific vocabulary types ──────────────────────────────────────
 

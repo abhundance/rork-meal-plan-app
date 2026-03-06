@@ -2,24 +2,24 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
-import { Meal, DiscoverMeal } from '@/types';
+import { Recipe, DiscoverMeal } from '@/types';
 
 const FAVS_KEY = 'favs_meals';
 const RECENT_SEARCHES_KEY = 'favs_recent_searches';
 
 export const [FavsProvider, useFavs] = createContextHook(() => {
   const queryClient = useQueryClient();
-  const [meals, setMeals] = useState<Meal[]>([]);
+  const [meals, setMeals] = useState<Recipe[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
   const favsQuery = useQuery({
     queryKey: ['favsMeals'],
-    queryFn: async (): Promise<Meal[]> => {
+    queryFn: async (): Promise<Recipe[]> => {
       try {
         const stored = await AsyncStorage.getItem(FAVS_KEY);
         if (stored) {
           console.log('[Favs] Loaded from storage');
-          const parsed = JSON.parse(stored) as Meal[];
+          const parsed = JSON.parse(stored) as Recipe[];
           const seen = new Set<string>();
           return parsed.filter((m) => {
             if (seen.has(m.id)) return false;
@@ -61,7 +61,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
   recentSearchesRef.current = recentSearches;
 
   const saveMutation = useMutation({
-    mutationFn: async (updated: Meal[]) => {
+    mutationFn: async (updated: Recipe[]) => {
       await AsyncStorage.setItem(FAVS_KEY, JSON.stringify(updated));
       console.log('[Favs] Saved, count:', updated.length);
       return updated;
@@ -82,7 +82,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
   const saveSearchesMutateRef = useRef(saveSearchesMutation.mutate);
   saveSearchesMutateRef.current = saveSearchesMutation.mutate;
 
-  const addFav = useCallback((meal: Meal) => {
+  const addFav = useCallback((meal: Recipe) => {
     const exists = mealsRef.current.find((m) => m.id === meal.id);
     if (exists) {
       console.log('[Favs] Meal already in favs:', meal.name);
@@ -104,7 +104,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
     console.log('[Favs] Removed:', mealId);
   }, []);
 
-  const updateFav = useCallback((mealId: string, partial: Partial<Meal>) => {
+  const updateFav = useCallback((mealId: string, partial: Partial<Recipe>) => {
     const updated = mealsRef.current.map((m) => (m.id === mealId ? { ...m, ...partial } : m));
     setMeals(updated);
     saveMutateRef.current(updated);
@@ -130,35 +130,74 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
     return mealsRef.current.some((m) => m.name.toLowerCase() === mealName.toLowerCase());
   }, []);
 
-  const addFromDiscover = useCallback((discoverMeal: DiscoverMeal): Meal => {
-    const favMeal: Meal = {
+  const addFromDiscover = useCallback((discoverMeal: DiscoverMeal): Recipe => {
+    const recipe: Recipe = {
+      // ── Core identity ────────────────────────────────────────────────────
       id: discoverMeal.id,
       name: discoverMeal.name,
-      image_url: discoverMeal.image_url,
-      cuisine: discoverMeal.cuisine,
-      cooking_time_band: discoverMeal.cooking_time_band,
-      prep_time: discoverMeal.prep_time,
-      cook_time: discoverMeal.cook_time,
-      dietary_tags: [
-        ...discoverMeal.dietary_tags,
-        ...(discoverMeal.is_dairy_free &&
-            !discoverMeal.dietary_tags.includes('Dairy-Free')
-              ? ['Dairy-Free'] : []),
-      ],
-      custom_tags: [],
+      source: 'discover',
       ingredients: discoverMeal.ingredients,
       recipe_serving_size: discoverMeal.recipe_serving_size,
       method_steps: discoverMeal.method_steps,
-      description: discoverMeal.description,
-      source: 'discover',
-      meal_type: discoverMeal.meal_type,
+      dietary_tags: [
+        ...discoverMeal.dietary_tags,
+        ...(discoverMeal.is_dairy_free && !discoverMeal.dietary_tags.includes('Dairy-Free')
+          ? ['Dairy-Free'] : []),
+      ],
+      custom_tags: [],
       add_to_plan_count: 0,
       created_at: new Date().toISOString(),
       is_ingredient_complete: discoverMeal.ingredients.length > 0,
       is_recipe_complete: discoverMeal.method_steps.length > 0,
+
+      // ── Optional core ────────────────────────────────────────────────────
+      image_url: discoverMeal.image_url,
+      description: discoverMeal.description,
+      cuisine: discoverMeal.cuisine,
+      cuisines: discoverMeal.cuisines,
+      meal_type: discoverMeal.meal_type,
+      cooking_time_band: discoverMeal.cooking_time_band,
+      prep_time: discoverMeal.prep_time,
+      cook_time: discoverMeal.cook_time,
+
+      // ── Rich classification ───────────────────────────────────────────────
+      dish_category: discoverMeal.dish_category,
+      protein_source: discoverMeal.protein_source,
+      occasions: discoverMeal.occasions,
+
+      // ── Dietary & allergens ───────────────────────────────────────────────
+      allergens: discoverMeal.allergens,
+      diet_labels: discoverMeal.diet_labels,
+
+      // ── Taste profile ─────────────────────────────────────────────────────
+      taste_sweetness: discoverMeal.taste_sweetness,
+      taste_saltiness: discoverMeal.taste_saltiness,
+      taste_sourness: discoverMeal.taste_sourness,
+      taste_bitterness: discoverMeal.taste_bitterness,
+      taste_savoriness: discoverMeal.taste_savoriness,
+      taste_fattiness: discoverMeal.taste_fattiness,
+      taste_spiciness: discoverMeal.taste_spiciness,
+
+      // ── Nutrition ─────────────────────────────────────────────────────────
+      calories_per_serving: discoverMeal.calories_per_serving,
+      protein_per_serving_g: discoverMeal.protein_per_serving_g,
+      carbs_per_serving_g: discoverMeal.carbs_per_serving_g,
+
+      // ── Scores ───────────────────────────────────────────────────────────
+      health_score: discoverMeal.health_score,
+
+      // ── Family interaction (carry over if already rated) ──────────────────
+      rating: discoverMeal.rating,
+      family_notes: discoverMeal.family_notes,
+      last_cooked_at: discoverMeal.last_cooked_at,
+
+      // ── Attribution ───────────────────────────────────────────────────────
+      source_url: discoverMeal.source_url,
+      credits: discoverMeal.credits,
+      spoonacular_id: discoverMeal.spoonacular_id,
     };
-    addFav(favMeal);
-    return favMeal;
+    addFav(recipe);
+    return recipe;
   }, [addFav]);
 
   const addRecentSearch = useCallback((term: string) => {

@@ -28,7 +28,7 @@ import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { consumePendingPlanSlot } from '@/services/pendingPlanSlot';
-import { Meal, Ingredient, PlannedMeal, CUISINE_OPTIONS, DIETARY_OPTIONS, COOKING_TIME_BANDS } from '@/types';
+import { Recipe, Ingredient, PlannedMeal, CUISINE_OPTIONS, DIETARY_OPTIONS, COOKING_TIME_BANDS } from '@/types';
 
 export default function AddMealScreen() {
   const insets = useSafeAreaInsets();
@@ -144,7 +144,7 @@ export default function AddMealScreen() {
         name: name.trim(),
         image_url: undefined,
         cuisine: cuisine || undefined,
-        cooking_time_band: cookingTimeBand as Meal['cooking_time_band'] || undefined,
+        cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
         prep_time: prepTime ? parseInt(prepTime) : undefined,
         cook_time: cookTime ? parseInt(cookTime) : undefined,
         dietary_tags: dietaryTags,
@@ -181,12 +181,12 @@ export default function AddMealScreen() {
   }, [name, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, description, servingSize, ingredients, methodSteps, isEditing, editMeal, updateFav, isFavByName]);
 
   const saveMeal = useCallback((validIngredients: Ingredient[], validSteps: string[]) => {
-    const newMeal: Meal = {
+    const newMeal: Recipe = {
       id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: name.trim(),
       image_url: undefined,
       cuisine: cuisine || undefined,
-      cooking_time_band: cookingTimeBand as Meal['cooking_time_band'] || undefined,
+      cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
       prep_time: prepTime ? parseInt(prepTime) : undefined,
       cook_time: cookTime ? parseInt(cookTime) : undefined,
       dietary_tags: dietaryTags,

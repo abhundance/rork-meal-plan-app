@@ -18,7 +18,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
 import { BorderRadius } from '@/constants/theme';
-import { PlannedMeal, Meal } from '@/types';
+import { PlannedMeal, Recipe } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { useFavs } from '@/providers/FavsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
@@ -104,7 +104,7 @@ export default function MealPickerSheet({
     };
     onSelectMeal(planned);
     if (saveToMyMeals && newMealId) {
-      const favMeal: Meal = {
+      const favMeal: Recipe = {
         id: newMealId,
         name: manualName.trim(),
         source: 'family_created',
@@ -164,7 +164,7 @@ export default function MealPickerSheet({
     resetAndClose();
   }, [deliveryName, deliveryUrl, slotId, date, defaultServing, onSelectMeal, resetAndClose, isEditingDelivery, editingDeliveryMeal, updatePlannedMealDelivery]);
 
-  const handleSelectFavMeal = useCallback((meal: Meal) => {
+  const handleSelectFavMeal = useCallback((meal: Recipe) => {
     const planned: import('@/types').PlannedMeal = {
       id: 'meal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       slot_id: slotId,

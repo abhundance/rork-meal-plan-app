@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
-import { PlannedMeal, Ingredient, Meal } from '@/types';
+import { PlannedMeal, Ingredient, Recipe } from '@/types';
 import { formatDateKey, getWeekDates } from '@/utils/dates';
 
 const MEAL_PLAN_KEY = 'meal_plan_data';
@@ -208,7 +208,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
   );
 
   const getIngredientsForWeek = useCallback(
-    (weekOffset: number, fromTodayOnly: boolean, mealsList: Meal[] = []): { ingredients: Map<string, { name: string; quantity: number; unit: string; category: string; meals: { meal_name: string; quantity: number }[] }>; mealCount: number; totalDays: number } => {
+    (weekOffset: number, fromTodayOnly: boolean, mealsList: Recipe[] = []): { ingredients: Map<string, { name: string; quantity: number; unit: string; category: string; meals: { meal_name: string; quantity: number }[] }>; mealCount: number; totalDays: number } => {
       const weekMeals = getMealsForWeek(weekOffset);
       const today = new Date();
       today.setHours(0, 0, 0, 0);

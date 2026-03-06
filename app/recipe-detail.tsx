@@ -34,7 +34,7 @@ import { useFavs } from '@/providers/FavsProvider';
 import MealPickerSheet from '@/components/MealPickerSheet';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
-import { Meal, PlannedMeal } from '@/types';
+import { Recipe, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 
 const DESTRUCTIVE_RED = '#E05252';
@@ -70,7 +70,7 @@ export default function MealDetailScreen() {
     return favMeals.some((f) => f.id === plannedMeal.meal_id);
   }, [params.source, plannedMeal, favMeals]);
 
-  const meal = useMemo<Meal | null>(() => {
+  const meal = useMemo<Recipe | null>(() => {
     if (params.source === 'favs') {
       return favMeals.find((m) => m.id === params.id) ?? null;
     }
@@ -108,7 +108,7 @@ export default function MealDetailScreen() {
         created_at: favMatch?.created_at ?? plannedMeal.date,
         is_ingredient_complete: plannedMeal.ingredients.length > 0,
         is_recipe_complete: methodSteps.length > 0,
-      } as Meal;
+      } as Recipe;
     }
 
     const disc = DISCOVER_MEALS.find((m) => m.id === params.id);
@@ -132,7 +132,7 @@ export default function MealDetailScreen() {
         created_at: disc.created_at,
         is_ingredient_complete: disc.ingredients.length > 0,
         is_recipe_complete: disc.method_steps.length > 0,
-      } as Meal;
+      } as Recipe;
     }
     return null;
   }, [params.id, params.source, favMeals, plannedMeal]);
@@ -216,7 +216,7 @@ export default function MealDetailScreen() {
         ]);
       }
     } else {
-      const newFav: Meal = {
+      const newFav: Recipe = {
         id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         name: meal.name,
         image_url: meal.image_url,
