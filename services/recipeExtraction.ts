@@ -70,13 +70,23 @@ export async function extractRecipeFromImage(base64Image: string): Promise<Extra
   }
   const data = await response.json();
   const content = data.choices[0].message.content;
+
+  if (!content || typeof content !== 'string') {
+    throw new Error('Could not extract recipe — no response from AI. Please try again.');
+  }
+
   console.log('[recipeExtraction] Raw response:', content);
 
   let cleaned = content.trim();
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
   }
-  return JSON.parse(cleaned) as ExtractedRecipe;
+  try {
+    return JSON.parse(cleaned) as ExtractedRecipe;
+  } catch (_parseError) {
+    console.error('[recipeExtraction] Failed to parse AI response:', cleaned);
+    throw new Error('Could not extract recipe — the AI returned an unexpected format. Please try again or enter the recipe manually.');
+  }
 }
 
 export async function extractRecipeFromText(text: string): Promise<ExtractedRecipe> {
@@ -103,13 +113,23 @@ export async function extractRecipeFromText(text: string): Promise<ExtractedReci
   }
   const data = await response.json();
   const content = data.choices[0].message.content;
+
+  if (!content || typeof content !== 'string') {
+    throw new Error('Could not extract recipe — no response from AI. Please try again.');
+  }
+
   console.log('[recipeExtraction] Raw response:', content);
 
   let cleaned = content.trim();
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
   }
-  return JSON.parse(cleaned) as ExtractedRecipe;
+  try {
+    return JSON.parse(cleaned) as ExtractedRecipe;
+  } catch (_parseError) {
+    console.error('[recipeExtraction] Failed to parse AI response:', cleaned);
+    throw new Error('Could not extract recipe — the AI returned an unexpected format. Please try again or enter the recipe manually.');
+  }
 }
 
 export function detectVideoUrlType(url: string): 'youtube' | 'tiktok' | 'other' {
