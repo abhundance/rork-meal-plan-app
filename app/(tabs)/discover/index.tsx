@@ -202,20 +202,27 @@ export default function DiscoverScreen() {
         testID="discover-scroll"
       >
         <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search recipes…"
-            placeholderTextColor={Colors.textSecondary}
-            style={{
-              backgroundColor: '#F3F4F6',
-              borderRadius: 12,
-              height: 44,
-              paddingHorizontal: 14,
-              fontSize: 15,
-              color: Colors.text,
-            }}
-          />
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#F3F4F6',
+            borderRadius: 12,
+            height: 44,
+            paddingHorizontal: 12,
+          }}>
+            <Ionicons name="search" size={17} color={Colors.textSecondary} style={{ marginRight: 7 }} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search recipes…"
+              placeholderTextColor={Colors.textSecondary}
+              style={{
+                flex: 1,
+                fontSize: 15,
+                color: Colors.text,
+              }}
+            />
+          </View>
         </View>
 
         <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
