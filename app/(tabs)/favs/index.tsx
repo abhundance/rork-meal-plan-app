@@ -467,7 +467,7 @@ export default function FavsScreen() {
         keyExtractor={(item) => item.id}
         numColumns={4}
         columnWrapperStyle={{ gap: COL_GAP, paddingHorizontal: H_PAD, marginBottom: 10 }}
-        contentContainerStyle={{ paddingTop: 0, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingTop: 12, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         ListEmptyComponent={getEmptyComponent()}
