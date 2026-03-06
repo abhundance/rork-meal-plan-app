@@ -15,6 +15,7 @@ export interface UseDiscoverRecommendationsResult {
   isLoading:          boolean;
   recordInteraction:  (event: Omit<DiscoverInteraction, 'created_at'>) => void;
   dismissMeal:        (mealId: string) => void;
+  recordView:         (mealId: string) => void;
   isDismissed:        (mealId: string) => boolean;
 }
 
@@ -33,6 +34,7 @@ export function useDiscoverRecommendations(): UseDiscoverRecommendationsResult {
     discoverPrefs,
     viewHistory,
     recordInteraction,
+    recordView,
     dismissMeal,
     isDismissed,
   } = useDiscover();
@@ -64,5 +66,6 @@ export function useDiscoverRecommendations(): UseDiscoverRecommendationsResult {
     recordInteraction,
     dismissMeal,
     isDismissed,
+    recordView,
   };
 }

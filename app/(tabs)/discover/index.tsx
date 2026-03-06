@@ -26,7 +26,8 @@ import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { DiscoverMeal, PlannedMeal } from '@/types';
-import { DISCOVER_MEALS } from '@/mocks/discover';
+import { useDiscoverRecommendations } from '@/hooks/useDiscoverRecommendations';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -38,7 +39,7 @@ const DIET_CHIPS = [
 
 const CAROUSEL_CARD_WIDTH = 110;
 const CAROUSEL_CARD_HEIGHT = 148;
-const GRID_CARD_WIDTH = (screenWidth - 48) / 3;
+const _GRID_CARD_WIDTH = (screenWidth - 48) / 3;
 
 type CinemaCardProps = {
   meal: DiscoverMeal;
@@ -129,7 +130,7 @@ export default function DiscoverScreen() {
 
   const handleSaveFav = useCallback(
     (meal: DiscoverMeal) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       if (isFav(meal.id)) {
         removeFav(meal.id);
       } else {
@@ -143,7 +144,7 @@ export default function DiscoverScreen() {
   const handleAddToPlan = useCallback((meal: DiscoverMeal) => {
     setSelectedMeal(meal);
     setSlotPickerVisible(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
   const handleSlotSelected = useCallback(
@@ -176,51 +177,7 @@ export default function DiscoverScreen() {
     setActionSheetVisible(true);
   }, []);
 
-  const isExcluded = useCallback((meal: DiscoverMeal): boolean => {
-    if (activeDietPrefs.length === 0) return false;
-    if (activeDietPrefs.includes('vegan') && !meal.is_vegan) return true;
-    if (activeDietPrefs.includes('vegetarian') && !meal.is_vegetarian) return true;
-    if (activeDietPrefs.includes('gluten_free') && !meal.is_gluten_free) return true;
-    return false;
-  }, [activeDietPrefs]);
-
-  const filteredMeals = useCallback((meals: DiscoverMeal[]): DiscoverMeal[] => {
-    return meals.filter(m =>
-      !searchQuery ||
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (m.cuisine && m.cuisine.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-  }, [searchQuery]);
-
-  const rows = useMemo(() => [
-    {
-      emoji: '⚡',
-      label: 'Under 20 min',
-      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.cooking_time_band === 'Under 30')).filter(m => !isExcluded(m)),
-    },
-    {
-      emoji: '🌅',
-      label: 'Breakfast',
-      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.meal_type === 'breakfast')).filter(m => !isExcluded(m)),
-    },
-    {
-      emoji: '🌏',
-      label: 'Asian flavours',
-      meals: filteredMeals(DISCOVER_MEALS.filter(m => ['Japanese', 'Thai', 'Korean'].includes(m.cuisine))).filter(m => !isExcluded(m)),
-    },
-    {
-      emoji: '🌶',
-      label: 'Indian kitchen',
-      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.cuisine === 'Indian')).filter(m => !isExcluded(m)),
-    },
-    {
-      emoji: '🥗',
-      label: 'Light bites',
-      meals: filteredMeals(DISCOVER_MEALS.filter(m => m.meal_type === 'light_bites')).filter(m => !isExcluded(m)),
-    },
-  ], [filteredMeals, isExcluded]);
-
-  const allFiltered = useMemo(() => filteredMeals(DISCOVER_MEALS).filter(m => !isExcluded(m)), [filteredMeals, isExcluded]);
+  const { carousels, recordInteraction, recordView } = useDiscoverRecommendations();
 
   const MealActionSheet = useCallback(({ visible, meal, onClose }: { visible: boolean; meal: DiscoverMeal | null; onClose: () => void }) => {
     if (!meal) return null;
@@ -286,26 +243,6 @@ export default function DiscoverScreen() {
     );
   }, [isFav, handleAddToPlan, handleSaveFav, handleMealPress]);
 
-  const renderCarouselItem = useCallback(({ item }: { item: DiscoverMeal }) => (
-    <CinemaCard
-      meal={item}
-      onPress={() => handleMealPress(item)}
-      onLongPress={() => handleCardPress(item)}
-      width={CAROUSEL_CARD_WIDTH}
-      height={CAROUSEL_CARD_HEIGHT}
-    />
-  ), [handleMealPress, handleCardPress]);
-
-  const renderGridItem = useCallback(({ item }: { item: DiscoverMeal }) => (
-    <CinemaCard
-      meal={item}
-      onPress={() => handleMealPress(item)}
-      onLongPress={() => handleCardPress(item)}
-      width={GRID_CARD_WIDTH}
-      height={GRID_CARD_WIDTH * 1.28}
-    />
-  ), [handleMealPress, handleCardPress]);
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <AppHeader title="Discover" />
@@ -366,65 +303,49 @@ export default function DiscoverScreen() {
           </ScrollView>
         </View>
 
-        {searchQuery === '' ? (
-          <>
-            {rows.map(row => {
-              if (row.meals.length === 0) return null;
-              return (
-                <View key={row.label} style={{ paddingHorizontal: 16, marginBottom: 24 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: Colors.text, marginBottom: 10 }}>
-                    {row.emoji} {row.label}
-                  </Text>
-                  <View style={{ height: 160 }}>
-                    <FlatList
-                      horizontal
-                      data={row.meals}
-                      keyExtractor={item => item.id}
-                      renderItem={renderCarouselItem}
-                      showsHorizontalScrollIndicator={false}
-                      ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
-                    />
-                  </View>
-                </View>
-              );
-            })}
-
-            <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 24 }}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.textSecondary, letterSpacing: 0.5, marginBottom: 12 }}>
-                ALL RECIPES
-              </Text>
-              <FlatList
-                data={allFiltered}
-                numColumns={3}
-                columnWrapperStyle={{ gap: 8 }}
-                keyExtractor={item => 'grid-' + item.id}
-                renderItem={renderGridItem}
-                ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-                scrollEnabled={false}
-              />
-            </View>
-          </>
-        ) : (
-          <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 24 }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.textSecondary, letterSpacing: 0.5, marginBottom: 12 }}>
-              {'RESULTS FOR "' + searchQuery + '"'}
-            </Text>
-            {allFiltered.length === 0 ? (
-              <Text style={{ fontSize: 15, color: Colors.textSecondary, textAlign: 'center', marginTop: 40 }}>
-                No recipes found
-              </Text>
-            ) : (
-              <FlatList
-                data={allFiltered}
-                numColumns={3}
-                columnWrapperStyle={{ gap: 8 }}
-                keyExtractor={item => 'search-' + item.id}
-                renderItem={renderGridItem}
-                ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-                scrollEnabled={false}
-              />
-            )}
+        {carousels.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="compass-outline" size={64} color="#9CA3AF" />
+            <Text style={styles.emptyTitle}>Discovering your taste</Text>
+            <Text style={styles.emptySubtitle}>Add meals to your plan and we will personalise your picks</Text>
           </View>
+        ) : (
+          carousels.map((carousel) => (
+            <View key={carousel.id} style={{ marginBottom: 24 }}>
+              <View style={styles.carouselHeader}>
+                <Text style={styles.carouselTitle}>{carousel.emoji} {carousel.title}</Text>
+                <TouchableOpacity>
+                  <Text style={styles.carouselSeeAll}>See all</Text>
+                </TouchableOpacity>
+              </View>
+              {carousel.subtitle ? (
+                <Text style={styles.carouselSubtitle}>{carousel.subtitle}</Text>
+              ) : null}
+              <View style={{ height: 220 }}>
+                <FlatList
+                  horizontal
+                  data={carousel.meals}
+                  keyExtractor={item => `${carousel.id}-${item.id}`}
+                  renderItem={({ item }) => (
+                    <CinemaCard
+                      meal={item}
+                      onPress={() => {
+                        recordInteraction({ meal_id: item.id, event_type: 'carousel_tap', metadata: { carousel_id: carousel.id } });
+                        recordView(item.id);
+                        handleMealPress(item);
+                      }}
+                      onLongPress={() => handleCardPress(item)}
+                      width={CAROUSEL_CARD_WIDTH}
+                      height={CAROUSEL_CARD_HEIGHT}
+                    />
+                  )}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingLeft: 16 }}
+                  ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+                />
+              </View>
+            </View>
+          ))
         )}
 
         <View style={{ height: 100 }} />
@@ -523,5 +444,48 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.75)',
     fontWeight: '500',
   },
-
+  emptyContainer: {
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingTop: 60,
+    paddingHorizontal: 32,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '600' as const,
+    color: '#111827',
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    fontWeight: '400' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    marginTop: 8,
+    lineHeight: 22,
+  },
+  carouselHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: 16,
+    marginBottom: 4,
+  },
+  carouselTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#111827',
+  },
+  carouselSeeAll: {
+    fontSize: 15,
+    fontWeight: '500' as const,
+    color: '#7C3AED',
+  },
+  carouselSubtitle: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    color: '#6B7280',
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
 });
