@@ -770,23 +770,23 @@ const FavGridCard = React.memo(function FavGridCard({
             paddingHorizontal: 5,
             gap: 3,
           }}>
-            <Text style={{ fontSize: 8.5, fontWeight: '600' as const, color: Colors.text, flex: 1, lineHeight: 12 }} numberOfLines={2}>{meal.name}</Text>
+            <Text style={{ fontSize: 10.5, fontWeight: '600' as const, color: Colors.text, flex: 1, lineHeight: 13 }} numberOfLines={2}>{meal.name}</Text>
             <TouchableOpacity
-              hitSlop={6}
+              hitSlop={8}
               onPress={(e) => {
                 e.stopPropagation?.();
                 onAddToPlan();
               }}
             >
               <View style={{
-                width: 20,
-                height: 20,
-                borderRadius: 10,
+                width: 16,
+                height: 16,
+                borderRadius: 8,
                 backgroundColor: Colors.primary,
                 alignItems: 'center' as const,
                 justifyContent: 'center' as const,
               }}>
-                <Plus size={11} color="#FFFFFF" strokeWidth={3} />
+                <Plus size={9} color="#FFFFFF" strokeWidth={2.5} />
               </View>
             </TouchableOpacity>
           </View>
