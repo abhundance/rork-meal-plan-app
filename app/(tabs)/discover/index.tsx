@@ -241,6 +241,35 @@ export default function DiscoverScreen() {
           </View>
         </View>
 
+        {/* Household dietary indicator — shown when family prefs are set in Family Settings */}
+        {(() => {
+          const activePrefs = familySettings.dietary_preferences_family.filter(p => p !== 'No Restrictions');
+          if (activePrefs.length === 0) return null;
+          return (
+            <TouchableOpacity
+              onPress={() => router.push('/family-settings' as Href)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginHorizontal: 16,
+                marginBottom: 10,
+                backgroundColor: Colors.primaryLight,
+                borderRadius: 10,
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+              }}
+            >
+              <Ionicons name="shield-checkmark" size={14} color={Colors.primary} style={{ marginRight: 6 }} />
+              <Text style={{ flex: 1, fontSize: 13, color: Colors.textSecondary }} numberOfLines={1}>
+                <Text style={{ fontWeight: '600', color: Colors.primary }}>Household filter: </Text>
+                {activePrefs.join(' · ')}
+              </Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: Colors.primary, marginLeft: 8 }}>Edit</Text>
+              <Ionicons name="chevron-forward" size={13} color={Colors.primary} style={{ marginLeft: 2 }} />
+            </TouchableOpacity>
+          );
+        })()}
+
         <View style={{ paddingBottom: 4 }}>
           <ScrollView
             horizontal
