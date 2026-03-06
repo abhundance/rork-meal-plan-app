@@ -114,6 +114,35 @@ export interface Meal {
   delivery_platform?: 'uber_eats' | 'zomato' | 'grab' | 'swiggy' | 'deliveroo' | 'doordash' | 'other';
 }
 
+// ─── Discover-specific vocabulary types ──────────────────────────────────────
+
+export type DishCategory =
+  | 'main'
+  | 'salad'
+  | 'soup'
+  | 'appetizer'
+  | 'side'
+  | 'dessert'
+  | 'drink'
+  | 'bread'
+  | 'sandwich'
+  | 'sauce'
+  | 'other';
+
+export type ProteinSource =
+  | 'chicken'
+  | 'beef'
+  | 'pork'
+  | 'lamb'
+  | 'turkey'
+  | 'seafood'
+  | 'egg'
+  | 'dairy'
+  | 'plant'
+  | 'none';
+
+export type MealRating = 'disliked' | 'liked' | 'loved';
+
 export interface DiscoverMeal {
   // ── Core identity ──────────────────────────────────
   id: string;
@@ -123,58 +152,67 @@ export interface DiscoverMeal {
   created_at: string;
 
   // ── Classification ─────────────────────────────────
-  cuisine: string;
+  cuisines: string[];              // e.g. ['italian', 'french']
   meal_type: 'breakfast' | 'lunch_dinner' | 'light_bites';
-  dish_types?: string[];          // Spoonacular: ['main course', 'soup', etc.]
-  occasions?: string[];           // Spoonacular: ['christmas', 'summer', etc.]
+  dish_category: DishCategory;    // WHAT type of dish (main, soup, appetizer, etc.)
+  protein_source: ProteinSource;  // primary protein (chicken, plant, seafood, etc.)
+  occasions: string[];            // e.g. ['weeknight', 'christmas', 'game-day']
+
+  // ── Dietary & Allergens ─────────────────────────────
+  allergens: string[];            // what the recipe is FREE FROM (e.g. ['gluten-free', 'dairy-free'])
+  diet_labels: string[];          // positive classifications (e.g. ['vegan', 'high-protein', 'keto'])
+
+  // ── Legacy classification — kept for backward compat ─
+  /** @deprecated Use cuisines[] instead */
+  cuisine?: string;
+  /** @deprecated Use allergens[] and diet_labels[] instead */
+  dietary_tags?: string[];
+  /** @deprecated Use diet_labels.includes('vegan') instead */
+  is_vegan?: boolean;
+  /** @deprecated Use diet_labels.includes('vegetarian') instead */
+  is_vegetarian?: boolean;
+  /** @deprecated Use allergens.includes('gluten-free') instead */
+  is_gluten_free?: boolean;
+  /** @deprecated Use allergens.includes('dairy-free') instead */
+  is_dairy_free?: boolean;
 
   // ── Time & servings ────────────────────────────────
   prep_time: number;              // minutes
   cook_time: number;              // minutes
   cooking_time_band: 'Under 30' | '30-60' | 'Over 60';
-  recipe_serving_size: number;
+  recipe_serving_size: number;    // canonical recipe yield (DB name: servings_default)
 
-  // ── Diet & allergens ───────────────────────────────
-  dietary_tags: string[];         // e.g. ['Vegetarian', 'Gluten-Free']
-  is_vegan?: boolean;
-  is_vegetarian?: boolean;
-  is_gluten_free?: boolean;
-  is_dairy_free?: boolean;
+  // ── Taste profile (0–100 scale, Spoonacular-compatible) ──
+  taste_sweetness: number;
+  taste_saltiness: number;
+  taste_sourness: number;
+  taste_bitterness: number;
+  taste_savoriness: number;
+  taste_fattiness: number;
+  taste_spiciness: number;
 
   // ── Nutrition (per serving at recipe_serving_size) ─
-  nutrition?: {
-    calories: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
-  };
+  calories_per_serving: number;
+  protein_per_serving_g: number;
+  carbs_per_serving_g: number;
 
-  // ── Taste profile ──────────────────────────────────
-  taste_profile?: {
-    sweetness: number;            // 0–100
-    saltiness: number;
-    spiciness: number;
-    savoriness: number;
-    fattiness: number;
-  };
+  // ── Scores & metadata ──────────────────────────────
+  health_score: number;           // 0–100
+  add_to_plan_count: number;
 
-  // ── Cost ───────────────────────────────────────────
-  price_per_serving_cents?: number;   // e.g. 240 = $2.40
-  is_budget_friendly?: boolean;
-
-  // ── Popularity ─────────────────────────────────────
-  popularity_score?: number;      // Spoonacular aggregateLikes
+  // ── Family data (populated after family interacts) ─
+  rating?: MealRating;            // disliked | liked | loved (👎/👍/👍👍)
+  family_notes?: string;          // persistent recipe-level family annotation
+  last_cooked_at?: string;        // ISO date string
 
   // ── Recipe content ─────────────────────────────────
   ingredients: Ingredient[];
   method_steps: string[];
 
   // ── Attribution ────────────────────────────────────
-  source_url?: string;            // For Spoonacular-sourced recipes
-  source_name?: string;           // e.g. 'BBC Good Food'
-
-  // ── App metadata ───────────────────────────────────
-  health_score?: number;          // 0–100, Spoonacular calculated
+  source_url?: string;            // original recipe URL, YouTube link, etc.
+  credits?: string;               // e.g. 'BBC Good Food', 'Jamie Oliver'
+  spoonacular_id?: number | null; // for Spoonacular-sourced recipes
 }
 
 export interface MealCollection {
@@ -244,19 +282,118 @@ export const INGREDIENT_CATEGORIES = [
   'Other',
 ] as const;
 
+// ─── Updated cuisine list (31 values, Spoonacular-compatible + additions) ─────
 export const CUISINE_OPTIONS = [
-  'Italian',
-  'Mexican',
-  'Asian',
-  'Mediterranean',
+  'African',
   'American',
-  'Indian',
-  'Japanese',
-  'Thai',
+  'British',
+  'Cajun',
+  'Caribbean',
+  'Chinese',
+  'Colombian',
+  'Eastern European',
+  'European',
+  'Filipino',
   'French',
-  'Middle Eastern',
+  'German',
+  'Greek',
+  'Indian',
+  'Irish',
+  'Italian',
+  'Japanese',
+  'Jewish',
   'Korean',
-  'Other',
+  'Latin American',
+  'Malaysian',
+  'Mediterranean',
+  'Mexican',
+  'Middle Eastern',
+  'Native American',
+  'Nordic',
+  'Singaporean',
+  'Southern',
+  'Spanish',
+  'Thai',
+  'Vietnamese',
 ] as const;
 
+export const DISH_CATEGORY_OPTIONS: { value: DishCategory; label: string }[] = [
+  { value: 'main',      label: 'Main Course' },
+  { value: 'salad',     label: 'Salad' },
+  { value: 'soup',      label: 'Soup' },
+  { value: 'appetizer', label: 'Appetizer / Starter' },
+  { value: 'side',      label: 'Side Dish' },
+  { value: 'dessert',   label: 'Dessert' },
+  { value: 'drink',     label: 'Drink' },
+  { value: 'bread',     label: 'Bread / Baked' },
+  { value: 'sandwich',  label: 'Sandwich / Wrap' },
+  { value: 'sauce',     label: 'Sauce / Condiment' },
+  { value: 'other',     label: 'Other' },
+];
+
+export const PROTEIN_SOURCE_OPTIONS: { value: ProteinSource; label: string }[] = [
+  { value: 'chicken',  label: 'Chicken' },
+  { value: 'beef',     label: 'Beef' },
+  { value: 'pork',     label: 'Pork' },
+  { value: 'lamb',     label: 'Lamb' },
+  { value: 'turkey',   label: 'Turkey' },
+  { value: 'seafood',  label: 'Seafood / Fish' },
+  { value: 'egg',      label: 'Egg' },
+  { value: 'dairy',    label: 'Dairy' },
+  { value: 'plant',    label: 'Plant-Based' },
+  { value: 'none',     label: 'None' },
+];
+
 export const COOKING_TIME_BANDS = ['Under 30', '30-60', 'Over 60'] as const;
+
+// ─── Occasion options (for filtering and recommendations) ────────────────────
+export const OCCASION_OPTIONS = [
+  'weeknight',
+  'weekend',
+  'brunch',
+  'date-night',
+  'meal-prep',
+  'potluck',
+  'game-day',
+  'bbq',
+  'picnic',
+  'summer',
+  'christmas',
+  'thanksgiving',
+  'easter',
+  'birthday',
+] as const;
+
+// ─── Allergen tags (what a recipe is free from) ──────────────────────────────
+export const ALLERGEN_OPTIONS = [
+  'gluten-free',
+  'dairy-free',
+  'egg-free',
+  'nut-free',
+  'peanut-free',
+  'soy-free',
+  'shellfish-free',
+  'wheat-free',
+  'sesame-free',
+  'vegan',        // also an allergen category: free from all animal products
+] as const;
+
+// ─── Diet label options (positive classifications) ───────────────────────────
+export const DIET_LABEL_OPTIONS = [
+  'vegan',
+  'vegetarian',
+  'high-protein',
+  'low-carb',
+  'keto',
+  'paleo',
+  'whole30',
+  'plant-based',
+  'high-fibre',
+  'low-calorie',
+  'low-fat',
+  'mediterranean',
+  'gluten-free',
+  'dairy-free',
+  'omega-3',
+  'antioxidant-rich',
+] as const;
