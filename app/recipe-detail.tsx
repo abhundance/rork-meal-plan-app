@@ -9,6 +9,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Href } from 'expo-router';
@@ -315,7 +316,11 @@ export default function MealDetailScreen() {
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.heroWrap}>
-          <MealImagePlaceholder size="hero" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
+          {meal.image_url ? (
+            <Image source={{ uri: meal.image_url }} style={styles.heroImage} resizeMode="cover" />
+          ) : (
+            <MealImagePlaceholder size="hero" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
+          )}
           <TouchableOpacity
             style={[styles.backBtn, { top: insets.top + 8 }]}
             onPress={() => router.back()}
@@ -589,6 +594,10 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+  },
+  heroImage: {
+    width: '100%',
+    aspectRatio: 16 / 9,
   },
   heroWrap: {
     position: 'relative' as const,
