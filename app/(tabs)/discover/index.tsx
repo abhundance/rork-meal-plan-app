@@ -17,7 +17,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Check } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import AppHeader from '@/components/AppHeader';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
@@ -37,59 +36,9 @@ const DIET_CHIPS = [
   { emoji: '🌾', label: 'Gluten-Free', key: 'gluten_free' },
 ];
 
-const CAROUSEL_CARD_WIDTH = 110;
-const CAROUSEL_CARD_HEIGHT = 148;
+import DiscoverCarouselCard, { CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_HEIGHT } from '@/components/DiscoverCarouselCard';
+
 const _GRID_CARD_WIDTH = (screenWidth - 48) / 3;
-
-type CinemaCardProps = {
-  meal: DiscoverMeal;
-  onPress: () => void;
-  onLongPress?: () => void;
-  width: number;
-  height: number;
-};
-
-const CinemaCard = React.memo(function CinemaCard({ meal, onPress, onLongPress, width, height }: CinemaCardProps) {
-  const timeLabel = meal.cook_time ? `${meal.cook_time}m` : meal.prep_time ? `${meal.prep_time}m` : '?';
-
-  return (
-    <Pressable
-      onPress={onPress}
-      onLongPress={onLongPress}
-      style={[styles.cinemaCard, { width, height }]}
-    >
-      <View style={StyleSheet.absoluteFill}>
-        {meal.image_url ? (
-          <Image
-            source={{ uri: meal.image_url }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-          />
-        ) : (
-          <MealImagePlaceholder
-            size="thumbnail"
-            mealType={meal.meal_type}
-            cuisine={meal.cuisine}
-            name={meal.name}
-          />
-        )}
-      </View>
-
-      <LinearGradient
-        style={StyleSheet.absoluteFill}
-        colors={['transparent', 'transparent', 'rgba(0,0,0,0.75)']}
-        locations={[0, 0.45, 1]}
-        pointerEvents="none"
-      />
-
-      <View style={[styles.cinemaBottom, { width }]}>
-        <Text style={styles.cinemaName} numberOfLines={2}>{meal.name}</Text>
-        <Text style={styles.cinemaTime}>{timeLabel}</Text>
-      </View>
-
-    </Pressable>
-  );
-});
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
@@ -327,7 +276,7 @@ export default function DiscoverScreen() {
                   data={carousel.meals}
                   keyExtractor={item => `${carousel.id}-${item.id}`}
                   renderItem={({ item }) => (
-                    <CinemaCard
+                    <DiscoverCarouselCard
                       meal={item}
                       onPress={() => {
                         recordInteraction({ meal_id: item.id, event_type: 'carousel_tap', metadata: { carousel_id: carousel.id } });
@@ -415,34 +364,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
-  },
-  cinemaCard: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: '#1C1C2E',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-  },
-  cinemaBottom: {
-    position: 'absolute',
-    bottom: 0,
-    paddingHorizontal: 7,
-    paddingBottom: 7,
-  },
-  cinemaName: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    lineHeight: 13,
-    marginBottom: 2,
-  },
-  cinemaTime: {
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.75)',
-    fontWeight: '500',
   },
   emptyContainer: {
     alignItems: 'center' as const,
