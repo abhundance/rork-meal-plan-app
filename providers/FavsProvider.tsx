@@ -249,6 +249,7 @@ export function useFilteredFavs(
     cookTime:    string;
     dietary:     string[];
     dishType?:   string;
+    mealType?:   string;
   }
 ) {
   const { meals } = useFavs();
@@ -289,6 +290,11 @@ export function useFilteredFavs(
     const hasDish = !!(filters.dishType && filters.dishType !== 'all');
     if (hasDish) {
       result = result.filter((m) => m.dish_category === filters.dishType);
+    }
+
+    const hasMealType = !!(filters.mealType && filters.mealType !== 'all');
+    if (hasMealType) {
+      result = result.filter((m) => m.meal_type === filters.mealType);
     }
 
     switch (filters.sort) {

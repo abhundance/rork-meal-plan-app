@@ -64,6 +64,29 @@ const FAVS_FILTER_CONFIG: RecipeFilterConfig = {
   showCalories: false,
 };
 
+// ─── Inline filter pill option lists ─────────────────────────────────────────
+const SORT_OPTIONS = [
+  { label: 'Most Used',      value: 'most_used'      },
+  { label: 'Newest First',   value: 'recently_added' },
+  { label: 'A–Z',            value: 'a_to_z'         },
+  { label: 'Quickest First', value: 'cooking_time'   },
+];
+const MEAL_TYPE_OPTIONS = [
+  { label: 'Any',            value: 'all'            },
+  { label: 'Breakfast',      value: 'breakfast'      },
+  { label: 'Lunch & Dinner', value: 'lunch_dinner'   },
+  { label: 'Light Bites',    value: 'light_bites'    },
+];
+const DISH_TYPE_OPTIONS = [
+  { label: 'Any',      value: 'all'     },
+  { label: 'Mains',    value: 'main'    },
+  { label: 'Salads',   value: 'salad'   },
+  { label: 'Soups',    value: 'soup'    },
+  { label: 'Desserts', value: 'dessert' },
+  { label: 'Sides',    value: 'side'    },
+  { label: 'Drinks',   value: 'drink'   },
+];
+
 export default function FavsScreen() {
   const insets = useSafeAreaInsets();
   const { meals, recentSearches, removeFav, addFav, addRecentSearch, clearRecentSearches, incrementPlanCount } = useFavs();
@@ -74,7 +97,8 @@ export default function FavsScreen() {
   const [search, setSearch] = useState<string>('');
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
   const [favFilters, setFavFilters] = useState<RecipeFilterState>({ ...DEFAULT_FILTER_STATE, sort: 'most_used' });
-  const [quickFilter] = useState<'all' | 'mine' | 'saved'>('all');
+  const [mealTypeFilter, setMealTypeFilter] = useState<string>('all');
+  const [dishTypeFilter, setDishTypeFilter] = useState<string>('all');
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<Recipe | null>(null);
 
@@ -106,6 +130,8 @@ export default function FavsScreen() {
 
   const allFilteredMeals = useFilteredFavs(search, {
     ...favFilters,
+    mealType: mealTypeFilter,
+    dishType:  dishTypeFilter,
   });
 
   const filteredMeals = useMemo(() => {
@@ -113,13 +139,8 @@ export default function FavsScreen() {
   }, [allFilteredMeals]);
 
   const gridData = useMemo(() => {
-    const sourceFiltered = quickFilter === 'mine'
-      ? filteredMeals.filter(m => m.source === 'family_created')
-      : quickFilter === 'saved'
-        ? filteredMeals.filter(m => m.source !== 'family_created')
-        : filteredMeals;
-    return [{ id: '__add_tile__', _isAddTile: true } as any, ...sourceFiltered];
-  }, [quickFilter, filteredMeals]);
+    return [{ id: '__add_tile__', _isAddTile: true } as any, ...filteredMeals];
+  }, [filteredMeals]);
 
   const sortedSlots = useMemo(
     () => [...familySettings.meal_slots].sort((a, b) => a.order - b.order),
@@ -148,9 +169,34 @@ export default function FavsScreen() {
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFavFilters(DEFAULT_FILTER_STATE);
+    setFavFilters({ ...DEFAULT_FILTER_STATE, sort: 'most_used' });
     setSearch('');
+    setMealTypeFilter('all');
     setDishTypeFilter('all');
+  }, []);
+
+  const openSortSheet = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options: [...SORT_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: SORT_OPTIONS.length },
+      (i) => { if (i < SORT_OPTIONS.length) setFavFilters(f => ({ ...f, sort: SORT_OPTIONS[i].value })); }
+    );
+  }, []);
+
+  const openMealTypeSheet = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options: [...MEAL_TYPE_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: MEAL_TYPE_OPTIONS.length },
+      (i) => { if (i < MEAL_TYPE_OPTIONS.length) setMealTypeFilter(MEAL_TYPE_OPTIONS[i].value); }
+    );
+  }, []);
+
+  const openDishTypeSheet = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options: [...DISH_TYPE_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: DISH_TYPE_OPTIONS.length },
+      (i) => { if (i < DISH_TYPE_OPTIONS.length) setDishTypeFilter(DISH_TYPE_OPTIONS[i].value); }
+    );
   }, []);
 
   const handleAddToPlan = useCallback((meal: Recipe) => {
@@ -265,7 +311,7 @@ export default function FavsScreen() {
   }, []);
 
   const filterCount = countActiveFilters(favFilters, FAVS_FILTER_CONFIG);
-  const hasFilters = filterCount > 0 || search.trim().length > 0;
+  const hasFilters = filterCount > 0 || search.trim().length > 0 || mealTypeFilter !== 'all' || dishTypeFilter !== 'all';
 
   const renderGridItem = useCallback(({ item }: { item: Recipe }) => {
     if ((item as any)._isAddTile) {
@@ -406,6 +452,29 @@ export default function FavsScreen() {
         </View>
       )}
 
+
+      {/* ── Inline filter pill row ─────────────────────────────── */}
+      {(() => {
+        const sortLabel  = SORT_OPTIONS.find(o => o.value === favFilters.sort)?.label ?? 'Sort';
+        const sortActive = favFilters.sort !== 'most_used';
+        const whenLabel  = MEAL_TYPE_OPTIONS.find(o => o.value === mealTypeFilter)?.label ?? 'When';
+        const whenActive = mealTypeFilter !== 'all';
+        const typeLabel  = DISH_TYPE_OPTIONS.find(o => o.value === dishTypeFilter)?.label ?? 'Type';
+        const typeActive = dishTypeFilter !== 'all';
+        return (
+          <View style={styles.pillRow}>
+            <TouchableOpacity onPress={openSortSheet} activeOpacity={0.75} style={[styles.filterPill, sortActive && styles.filterPillActive]}>
+              <Text style={[styles.filterPillText, sortActive && styles.filterPillTextActive]}>{sortLabel} ▾</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={openMealTypeSheet} activeOpacity={0.75} style={[styles.filterPill, whenActive && styles.filterPillActive]}>
+              <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}>{whenActive ? whenLabel : 'When'} ▾</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={openDishTypeSheet} activeOpacity={0.75} style={[styles.filterPill, typeActive && styles.filterPillActive]}>
+              <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}>{typeActive ? typeLabel : 'Type'} ▾</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      })()}
 
       {filterCount > 0 && (
         <TouchableOpacity
@@ -1032,6 +1101,31 @@ const styles = StyleSheet.create({
   cuisineFilterRow: {
     minHeight: 44,
     marginBottom: 8,
+  },
+  pillRow: {
+    flexDirection: 'row' as const,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  filterPill: {
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: Colors.surface,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  filterPillActive: {
+    backgroundColor: Colors.primary,
+  },
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  filterPillTextActive: {
+    color: Colors.white,
   },
   activeFilterBar: {
     flexDirection: 'row' as const,
