@@ -14,6 +14,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Dimensions,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href, useFocusEffect } from 'expo-router';
@@ -49,6 +51,15 @@ import RecipeFilterSheet, {
   countActiveFilters,
 } from '@/components/RecipeFilterSheet';
 
+const SCREEN_W = Dimensions.get('window').width;
+const COLS = 4;
+const H_PAD = 12;
+const COL_GAP = 6;
+const CARD_W = Math.floor((SCREEN_W - H_PAD * 2 - COL_GAP * (COLS - 1)) / COLS);
+const CARD_H = Math.round(CARD_W * 1.38);
+const IMG_H = Math.round(CARD_H * 0.62);
+const STRIP_H = CARD_H - IMG_H;
+
 const FAVS_FILTER_CONFIG: RecipeFilterConfig = {
   showSort:     true,
   showCuisine:  true,
@@ -68,7 +79,7 @@ export default function FavsScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
-  const [favFilters, setFavFilters] = useState<RecipeFilterState>(DEFAULT_FILTER_STATE);
+  const [favFilters, setFavFilters] = useState<RecipeFilterState>({ ...DEFAULT_FILTER_STATE, sort: 'most_used' });
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<Meal | null>(null);
 
@@ -104,11 +115,8 @@ export default function FavsScreen() {
   const allFilteredMeals = useFilteredFavs(search, favFilters);
 
   const filteredMeals = useMemo(() => {
-    if (activeSegment === 'my_recipes') {
-      return allFilteredMeals.filter(m => m.source === 'family_created');
-    }
-    return allFilteredMeals.filter(m => m.source !== 'family_created');
-  }, [allFilteredMeals, activeSegment]);
+    return allFilteredMeals;
+  }, [allFilteredMeals]);
 
   const gridData = useMemo(() => {
     if (activeSegment === 'my_recipes') {
@@ -298,6 +306,15 @@ export default function FavsScreen() {
     />
   ), [handleMealPress, handleAddToPlan, handleRemoveSaved]);
 
+  const renderGridItem = useCallback(({ item }: { item: Meal }) => (
+    <FavGridCard
+      meal={item}
+      onPress={() => handleMealPress(item)}
+      onAddToPlan={() => handleAddToPlan(item)}
+      onLongPress={() => item.source === 'family_created' ? handleDeleteMyRecipe(item) : handleRemoveSaved(item)}
+    />
+  ), [handleMealPress, handleAddToPlan, handleDeleteMyRecipe, handleRemoveSaved]);
+
   const MyRecipesEmptyState = useMemo(() => (
     <View style={styles.segmentEmptyContainer}>
       <Ionicons name="restaurant-outline" size={64} color={Colors.textSecondary} />
@@ -446,10 +463,11 @@ export default function FavsScreen() {
 
       <FlatList
         data={gridData}
-        renderItem={activeSegment === 'my_recipes' ? renderMyRecipeItem : renderSavedItem}
+        renderItem={renderGridItem}
         keyExtractor={(item) => item.id}
-        numColumns={1}
-        contentContainerStyle={styles.gridContent}
+        numColumns={4}
+        columnWrapperStyle={{ gap: COL_GAP, paddingHorizontal: H_PAD }}
+        contentContainerStyle={{ paddingTop: 0, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         ListEmptyComponent={getEmptyComponent()}
@@ -685,6 +703,100 @@ export default function FavsScreen() {
     </View>
   );
 }
+
+interface FavGridCardProps {
+  meal: Meal;
+  onPress: () => void;
+  onAddToPlan: () => void;
+  onLongPress: () => void;
+}
+
+const FavGridCard = React.memo(function FavGridCard({
+  meal, onPress, onAddToPlan, onLongPress,
+}: FavGridCardProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <Pressable
+        onPress={onPress}
+        onLongPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onLongPress();
+        }}
+        onPressIn={() =>
+          Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
+        }
+        onPressOut={() =>
+          Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
+        }
+      >
+        <View style={{
+          width: CARD_W,
+          height: CARD_H,
+          borderRadius: 12,
+          backgroundColor: Colors.card,
+          overflow: 'hidden' as const,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 3,
+        }}>
+          <View style={{
+            width: CARD_W,
+            height: IMG_H,
+            overflow: 'hidden' as const,
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+          }}>
+            {meal.image_url ? (
+              <Image source={{ uri: meal.image_url }} style={{ width: CARD_W, height: IMG_H }} resizeMode="cover" />
+            ) : (
+              <View style={{
+                width: CARD_W,
+                height: IMG_H,
+                backgroundColor: Colors.primaryLight,
+                alignItems: 'center' as const,
+                justifyContent: 'center' as const,
+              }}>
+                <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
+              </View>
+            )}
+          </View>
+          <View style={{
+            height: STRIP_H,
+            backgroundColor: Colors.card,
+            flexDirection: 'row' as const,
+            alignItems: 'center' as const,
+            paddingHorizontal: 5,
+            gap: 3,
+          }}>
+            <Text style={{ fontSize: 8.5, fontWeight: '600' as const, color: Colors.text, flex: 1, lineHeight: 12 }} numberOfLines={2}>{meal.name}</Text>
+            <TouchableOpacity
+              hitSlop={6}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onAddToPlan();
+              }}
+            >
+              <View style={{
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: Colors.primary,
+                alignItems: 'center' as const,
+                justifyContent: 'center' as const,
+              }}>
+                <Plus size={11} color="#FFFFFF" strokeWidth={3} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+});
 
 interface MyRecipeGridCardProps {
   meal: Meal;
