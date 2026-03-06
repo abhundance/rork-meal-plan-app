@@ -421,7 +421,7 @@ export default function MealDetailScreen() {
             </View>
           )}
 
-          {discoverData?.calories_per_serving != null && (
+          {(meal?.calories_per_serving ?? discoverData?.calories_per_serving) != null && (
             <View style={styles.nutritionCard}>
               <View style={styles.nutritionHeader}>
                 <Text style={styles.nutritionTitle}>Nutrition</Text>
@@ -429,9 +429,9 @@ export default function MealDetailScreen() {
               </View>
               <View style={styles.nutritionRow}>
                 {[
-                  { label: 'Calories', value: discoverData.calories_per_serving, unit: 'kcal' },
-                  { label: 'Protein', value: discoverData.protein_per_serving_g, unit: 'g' },
-                  { label: 'Carbs', value: discoverData.carbs_per_serving_g, unit: 'g' },
+                  { label: 'Calories', value: meal?.calories_per_serving ?? discoverData?.calories_per_serving, unit: 'kcal' },
+                  { label: 'Protein', value: meal?.protein_per_serving_g ?? discoverData?.protein_per_serving_g, unit: 'g' },
+                  { label: 'Carbs', value: meal?.carbs_per_serving_g ?? discoverData?.carbs_per_serving_g, unit: 'g' },
                 ].map((stat) => (
                   <View key={stat.label} style={styles.nutritionBox}>
                     <View style={styles.nutritionValueRow}>
