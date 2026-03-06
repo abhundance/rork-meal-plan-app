@@ -418,12 +418,12 @@ export default function FavsScreen() {
       >
         {([
           { label: 'All',      value: 'all' },
-          { label: 'Mains',    value: 'mains' },
-          { label: 'Salads',   value: 'salads' },
-          { label: 'Soups',    value: 'soups' },
-          { label: 'Desserts', value: 'desserts' },
-          { label: 'Drinks',   value: 'drinks' },
-          { label: 'Sides',    value: 'sides' },
+          { label: 'Mains',    value: 'main' },
+          { label: 'Salads',   value: 'salad' },
+          { label: 'Soups',    value: 'soup' },
+          { label: 'Desserts', value: 'dessert' },
+          { label: 'Drinks',   value: 'drink' },
+          { label: 'Sides',    value: 'side' },
         ] as { label: string; value: string }[]).map((opt) => {
           const active = dishTypeFilter === opt.value;
           return (
