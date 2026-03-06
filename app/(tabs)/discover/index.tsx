@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Check, SlidersHorizontal } from 'lucide-react-native';
+import { Check, SlidersHorizontal, X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import RecipeFilterSheet, {
   RecipeFilterState,
@@ -68,6 +68,7 @@ import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { DiscoverMeal, PlannedMeal } from '@/types';
+import { DISCOVER_MEALS } from '@/mocks/discover';
 import { useDiscoverRecommendations } from '@/hooks/useDiscoverRecommendations';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -235,6 +236,18 @@ export default function DiscoverScreen() {
       .filter(carousel => carousel.meals.length > 0);
   }, [carousels, activeOccasion, discoverFilters]);
 
+  // Search: filter the full DISCOVER_MEALS list by name, cuisine, description, and ingredients.
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return DISCOVER_MEALS.filter(m =>
+      m.name.toLowerCase().includes(q) ||
+      (m.cuisine && m.cuisine.toLowerCase().includes(q)) ||
+      (m.description && m.description.toLowerCase().includes(q)) ||
+      m.ingredients.some(i => i.name.toLowerCase().includes(q))
+    );
+  }, [searchQuery]);
+
   const MealActionSheet = useCallback(({ visible, meal, onClose }: { visible: boolean; meal: DiscoverMeal | null; onClose: () => void }) => {
     if (!meal) return null;
     const saved = isFav(meal.id);
@@ -359,12 +372,18 @@ export default function DiscoverScreen() {
               onChangeText={setSearchQuery}
               placeholder="Search recipes…"
               placeholderTextColor={Colors.textSecondary}
+              returnKeyType="search"
               style={{
                 flex: 1,
                 fontSize: 15,
                 color: Colors.text,
               }}
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
+                <X size={16} color={Colors.textSecondary} strokeWidth={2} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -397,6 +416,33 @@ export default function DiscoverScreen() {
           );
         })()}
 
+        {/* Search results — shown only when a query is active */}
+        {searchQuery.trim().length > 0 ? (
+          <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100 }}>
+            <Text style={{ fontSize: 13, color: Colors.textSecondary, marginBottom: 12 }}>
+              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &quot;{searchQuery.trim()}&quot;
+            </Text>
+            {searchResults.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="search-outline" size={56} color="#9CA3AF" />
+                <Text style={styles.emptyTitle}>No recipes found</Text>
+                <Text style={styles.emptySubtitle}>Try searching by name, cuisine, or ingredient</Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                {searchResults.map(meal => (
+                  <DiscoverCarouselCard
+                    key={meal.id}
+                    meal={meal}
+                    onPress={() => handleMealPress(meal)}
+                    style={{ width: _GRID_CARD_WIDTH, height: Math.round(_GRID_CARD_WIDTH * 1.35) }}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        ) : (
+        <>
         <View style={{ paddingBottom: 4 }}>
           <ScrollView
             horizontal
@@ -517,6 +563,8 @@ export default function DiscoverScreen() {
         )}
 
         <View style={{ height: 100 }} />
+        </>
+        )}
       </ScrollView>
 
       <MealActionSheet
