@@ -43,16 +43,18 @@ const GRID_CARD_WIDTH = (screenWidth - 48) / 3;
 type CinemaCardProps = {
   meal: DiscoverMeal;
   onPress: () => void;
+  onLongPress?: () => void;
   width: number;
   height: number;
 };
 
-const CinemaCard = React.memo(function CinemaCard({ meal, onPress, width, height }: CinemaCardProps) {
+const CinemaCard = React.memo(function CinemaCard({ meal, onPress, onLongPress, width, height }: CinemaCardProps) {
   const timeLabel = meal.cook_time ? `${meal.cook_time}m` : meal.prep_time ? `${meal.prep_time}m` : '?';
 
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
       style={[styles.cinemaCard, { width, height }]}
     >
       <View style={StyleSheet.absoluteFill}>
@@ -288,19 +290,21 @@ export default function DiscoverScreen() {
     <CinemaCard
       meal={item}
       onPress={() => handleMealPress(item)}
+      onLongPress={() => handleCardPress(item)}
       width={CAROUSEL_CARD_WIDTH}
       height={CAROUSEL_CARD_HEIGHT}
     />
-  ), [handleMealPress]);
+  ), [handleMealPress, handleCardPress]);
 
   const renderGridItem = useCallback(({ item }: { item: DiscoverMeal }) => (
     <CinemaCard
       meal={item}
       onPress={() => handleMealPress(item)}
+      onLongPress={() => handleCardPress(item)}
       width={GRID_CARD_WIDTH}
       height={GRID_CARD_WIDTH * 1.28}
     />
-  ), [handleMealPress]);
+  ), [handleMealPress, handleCardPress]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
