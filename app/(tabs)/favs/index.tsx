@@ -39,7 +39,7 @@ import SlotPickerModal from '@/components/SlotPickerModal';
 import { useFavs, useFilteredFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
-import { Recipe, PlannedMeal } from '@/types';
+import { Recipe, PlannedMeal, DISH_CATEGORY_OPTIONS } from '@/types';
 import RecipeFilterSheet, {
   RecipeFilterState,
   RecipeFilterConfig,
@@ -93,6 +93,21 @@ export default function FavsScreen() {
     meals.forEach((m) => { if (m.cuisine) seen.add(m.cuisine); });
     return [...seen].sort();
   }, [meals]);
+
+  // Build dish-type chip options from categories actually present in saved meals.
+  // Preserves the canonical ordering from DISH_CATEGORY_OPTIONS so chips are stable.
+  const dishTypeChips = useMemo(() => {
+    const present = new Set(meals.map((m) => m.dish_category).filter(Boolean));
+    const matched = DISH_CATEGORY_OPTIONS.filter((opt) => present.has(opt.value));
+    return [{ value: 'all', label: 'All' }, ...matched];
+  }, [meals]);
+
+  // If a meal is removed and the active chip category disappears, reset to 'all'.
+  React.useEffect(() => {
+    if (dishTypeFilter !== 'all' && !dishTypeChips.some((c) => c.value === dishTypeFilter)) {
+      setDishTypeFilter('all');
+    }
+  }, [dishTypeChips, dishTypeFilter]);
 
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastAnim = useRef(new Animated.Value(0)).current;
@@ -416,15 +431,7 @@ export default function FavsScreen() {
         style={{ height: 46 }}
         contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingVertical: 8, gap: 8, flexDirection: 'row' }}
       >
-        {([
-          { label: 'All',      value: 'all' },
-          { label: 'Mains',    value: 'main' },
-          { label: 'Salads',   value: 'salad' },
-          { label: 'Soups',    value: 'soup' },
-          { label: 'Desserts', value: 'dessert' },
-          { label: 'Drinks',   value: 'drink' },
-          { label: 'Sides',    value: 'side' },
-        ] as { label: string; value: string }[]).map((opt) => {
+        {dishTypeChips.map((opt) => {
           const active = dishTypeFilter === opt.value;
           return (
             <TouchableOpacity
