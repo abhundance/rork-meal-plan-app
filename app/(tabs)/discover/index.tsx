@@ -74,8 +74,7 @@ const CinemaCard = React.memo(function CinemaCard({ meal, onPress, onHeartPress,
         )}
       </View>
 
-      <View style={[styles.cinemaOverlay1, { width }]} />
-      <View style={[styles.cinemaOverlay2, { width }]} />
+      <View style={[styles.cinemaOverlay, { width }]} />
 
       <View style={[styles.cinemaBottom, { width }]}>
         <Text style={styles.cinemaName} numberOfLines={2}>{meal.name}</Text>
@@ -514,17 +513,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
-  cinemaOverlay1: {
+  cinemaOverlay: {
     position: 'absolute',
     bottom: 0,
-    height: 70,
-    backgroundColor: 'rgba(0,0,0,0.28)',
-  },
-  cinemaOverlay2: {
-    position: 'absolute',
-    bottom: 0,
-    height: 44,
-    backgroundColor: 'rgba(0,0,0,0.44)',
+    height: 72,
+    backgroundColor: 'rgba(0,0,0,0.52)',
   },
   cinemaBottom: {
     position: 'absolute',
