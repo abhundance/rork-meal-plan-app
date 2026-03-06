@@ -296,24 +296,24 @@ export default function DiscoverScreen() {
   const renderCarouselItem = useCallback(({ item }: { item: DiscoverMeal }) => (
     <CinemaCard
       meal={item}
-      onPress={() => handleCardPress(item)}
+      onPress={() => handleMealPress(item)}
       onHeartPress={() => handleSaveFav(item)}
       heartActive={isFav(item.id)}
       width={CAROUSEL_CARD_WIDTH}
       height={CAROUSEL_CARD_HEIGHT}
     />
-  ), [handleCardPress, handleSaveFav, isFav]);
+  ), [handleMealPress, handleSaveFav, isFav]);
 
   const renderGridItem = useCallback(({ item }: { item: DiscoverMeal }) => (
     <CinemaCard
       meal={item}
-      onPress={() => handleCardPress(item)}
+      onPress={() => handleMealPress(item)}
       onHeartPress={() => handleSaveFav(item)}
       heartActive={isFav(item.id)}
       width={GRID_CARD_WIDTH}
       height={GRID_CARD_WIDTH * 1.28}
     />
-  ), [handleCardPress, handleSaveFav, isFav]);
+  ), [handleMealPress, handleSaveFav, isFav]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
