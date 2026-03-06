@@ -56,7 +56,7 @@ const IMG_H = Math.round(CARD_H * 0.62);
 const STRIP_H = CARD_H - IMG_H;
 
 const FAVS_FILTER_CONFIG: RecipeFilterConfig = {
-  showSort:     true,
+  showSort:     false,  // Sort is owned by the inline Sort pill, not the filter sheet
   showCuisine:  true,
   showCookTime: true,
   showDietary:  true,
