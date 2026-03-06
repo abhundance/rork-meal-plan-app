@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  ScrollView,
   StyleSheet,
   RefreshControl,
   Animated,
@@ -35,7 +34,6 @@ import { consumePendingDeliveryLink } from '@/services/pendingDeliveryLink';
 import Colors from '@/constants/colors';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import AppHeader from '@/components/AppHeader';
-import FilterPill from '@/components/FilterPill';
 import SlotPickerModal from '@/components/SlotPickerModal';
 import { useFavs, useFilteredFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
@@ -76,7 +74,7 @@ export default function FavsScreen() {
   const [search, setSearch] = useState<string>('');
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
   const [favFilters, setFavFilters] = useState<RecipeFilterState>({ ...DEFAULT_FILTER_STATE, sort: 'most_used' });
-  const [quickFilter, setQuickFilter] = useState<'all' | 'mine' | 'saved'>('all');
+  const [quickFilter] = useState<'all' | 'mine' | 'saved'>('all');
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<Meal | null>(null);
 
@@ -351,17 +349,6 @@ export default function FavsScreen() {
           </TouchableOpacity>
         }
       />
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ height: 46 }}
-        contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 8, gap: 8 }}
-      >
-        <FilterPill label="All" active={quickFilter === 'all'} onPress={() => setQuickFilter('all')} />
-        <FilterPill label="Mine" active={quickFilter === 'mine'} onPress={() => setQuickFilter('mine')} />
-        <FilterPill label="Saved" active={quickFilter === 'saved'} onPress={() => setQuickFilter('saved')} />
-      </ScrollView>
 
       <View style={styles.searchWrap}>
         <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
