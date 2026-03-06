@@ -268,21 +268,34 @@ export default function FavsScreen() {
     if ((item as any)._isAddTile) {
       return (
         <TouchableOpacity
-          style={styles.addTileCard}
+          style={{
+            width: CARD_W,
+            height: CARD_H,
+            borderRadius: 12,
+            backgroundColor: Colors.primaryLight,
+            borderWidth: 1.5,
+            borderColor: Colors.primary,
+            borderStyle: 'dashed',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+          }}
           onPress={openAddMethodSheet}
-          activeOpacity={0.75}
+          activeOpacity={0.7}
           testID="add-recipe-tile"
         >
-          <View style={styles.listAccentBand} />
-          <View style={styles.addTileRow}>
-            <View style={styles.addTileIcon}>
-              <Ionicons name="add-circle-outline" size={26} color={Colors.textSecondary} />
-            </View>
-            <View style={styles.addTileTextBlock}>
-              <Text style={styles.addTileName}>Add Recipe</Text>
-              <Text style={styles.addTileSubtitle}>Tap to add yours</Text>
-            </View>
+          <View style={{
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: Colors.primary,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
           </View>
+          <Text style={{ fontSize: 9, fontWeight: '600', color: Colors.primary, textAlign: 'center', lineHeight: 12 }}>Add{'
+'}Meal</Text>
         </TouchableOpacity>
       );
     }
