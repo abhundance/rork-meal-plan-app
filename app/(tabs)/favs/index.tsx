@@ -434,14 +434,16 @@ export default function FavsScreen() {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={{
+                height: 30,
                 paddingHorizontal: 14,
-                paddingVertical: 6,
                 borderRadius: BorderRadius.pill,
                 backgroundColor: active ? Colors.primary : Colors.surface,
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               activeOpacity={0.75}
             >
-              <Text style={{ fontSize: 13, fontWeight: active ? '600' : '400', color: active ? Colors.white : Colors.text }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: active ? Colors.white : Colors.text }}>
                 {opt.label}
               </Text>
             </TouchableOpacity>
@@ -474,14 +476,16 @@ export default function FavsScreen() {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={{
+                height: 30,
                 paddingHorizontal: 14,
-                paddingVertical: 6,
                 borderRadius: BorderRadius.pill,
                 backgroundColor: active ? Colors.primary : Colors.surface,
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               activeOpacity={0.75}
             >
-              <Text style={{ fontSize: 13, fontWeight: active ? '600' : '400', color: active ? Colors.white : Colors.text }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: active ? Colors.white : Colors.text }}>
                 {opt.label}
               </Text>
             </TouchableOpacity>
