@@ -321,7 +321,7 @@ export default function DiscoverScreen() {
               {carousel.subtitle ? (
                 <Text style={styles.carouselSubtitle}>{carousel.subtitle}</Text>
               ) : null}
-              <View style={{ height: 200 }}>
+              <View style={{ height: 180 }}>
                 <FlatList
                   horizontal
                   data={carousel.meals}
