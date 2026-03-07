@@ -10,17 +10,36 @@ function getApiKey(): string {
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 export interface ExtractedRecipe {
+  // ── Core content ───────────────────────────────────────────────────────────
   name: string;
   description: string;
-  cuisine: string;
-  meal_type: 'breakfast' | 'lunch_dinner' | 'light_bites';
-  cooking_time_band: 'Under 30' | '30-60' | 'Over 60';
-  prep_time: number;
-  cook_time: number;
-  recipe_serving_size: number;
-  dietary_tags: string[];
   ingredients: { name: string; quantity: number; unit: string }[];
   method_steps: string[];
+
+  // ── Time & servings ────────────────────────────────────────────────────────
+  prep_time: number;
+  cook_time: number;
+  cooking_time_band: 'Under 30' | '30-60' | 'Over 60';
+  recipe_serving_size: number;
+
+  // ── Classification (new) ───────────────────────────────────────────────────
+  dish_category?: string;    // main | salad | soup | appetizer | side | dessert | drink | bread | sandwich | sauce | other
+  protein_source?: string;   // chicken | beef | pork | lamb | turkey | seafood | egg | dairy | plant | none
+  occasions?: string[];      // weeknight | weekend | brunch | date-night | meal-prep | etc.
+
+  // ── Dietary & allergens (new) ──────────────────────────────────────────────
+  allergens?: string[];      // what the recipe IS FREE FROM: gluten-free | dairy-free | etc.
+  diet_labels?: string[];    // positive classifications: vegan | vegetarian | high-protein | etc.
+
+  // ── Nutrition (new, per serving, estimated) ────────────────────────────────
+  calories_per_serving?: number;
+  protein_per_serving_g?: number;
+  carbs_per_serving_g?: number;
+
+  // ── Legacy fields — kept for backward compatibility ────────────────────────
+  cuisine: string;
+  meal_type: 'breakfast' | 'lunch_dinner' | 'light_bites';
+  dietary_tags: string[];    // @deprecated — derived from diet_labels + allergens
 }
 
 const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Extract the recipe from the provided content and return ONLY a valid JSON object with this exact structure. No markdown, no explanation — raw JSON only:
@@ -35,10 +54,21 @@ const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Extract the re
   "recipe_serving_size": number,
   "dietary_tags": array of applicable values from ["Vegan","Vegetarian","Gluten-Free","Dairy-Free","High Protein"],
   "ingredients": [{"name": "string", "quantity": number, "unit": "string"}],
-  "method_steps": ["Step 1 text", "Step 2 text"]
+  "method_steps": ["Step 1 text", "Step 2 text"],
+  "dish_category": one of "main"|"salad"|"soup"|"appetizer"|"side"|"dessert"|"drink"|"bread"|"sandwich"|"sauce"|"other",
+  "protein_source": one of "chicken"|"beef"|"pork"|"lamb"|"turkey"|"seafood"|"egg"|"dairy"|"plant"|"none",
+  "allergens": array of values this recipe is genuinely FREE FROM, chosen from ["gluten-free","dairy-free","egg-free","nut-free","peanut-free","soy-free","shellfish-free","wheat-free","sesame-free"],
+  "diet_labels": array of positive dietary classifications that genuinely apply, chosen from ["vegan","vegetarian","high-protein","low-carb","keto","paleo","whole30","plant-based","high-fibre","low-calorie","low-fat","mediterranean","gluten-free","dairy-free","omega-3","antioxidant-rich"],
+  "occasions": array of 1-3 most applicable values from ["weeknight","weekend","brunch","date-night","meal-prep","potluck","game-day","bbq","picnic","summer","christmas","thanksgiving","easter","birthday"],
+  "calories_per_serving": number or null if not determinable,
+  "protein_per_serving_g": number or null if not determinable,
+  "carbs_per_serving_g": number or null if not determinable
 }
 meal_type rules: use "breakfast" for morning meals, "lunch_dinner" for main meals, "light_bites" for snacks/sides.
-cooking_time_band rules: total of prep+cook time: <30min = "Under 30", 30-60min = "30-60", >60min = "Over 60".`;
+cooking_time_band rules: total of prep+cook time: <30min = "Under 30", 30-60min = "30-60", >60min = "Over 60".
+allergens rules: only include values the recipe is genuinely free from — do NOT add speculatively.
+diet_labels rules: only include labels that clearly apply based on the ingredients.
+nutrition rules: estimate per serving if ingredients are known; use null if not determinable.`;
 
 export async function extractRecipeFromImage(base64Image: string): Promise<ExtractedRecipe> {
   const response = await fetch(OPENAI_URL, {
@@ -282,4 +312,82 @@ export async function transcribeAndExtract(audioUri: string): Promise<ExtractedR
   console.log('[recipeExtraction] Transcribed:', transcribedText);
 
   return extractRecipeFromText(transcribedText);
+}
+
+// ─── Metadata-only extraction (for manual entry AI fill) ─────────────────────
+// Given a recipe name + ingredient list, infers classification / dietary /
+// nutrition metadata without re-extracting the full recipe content.
+
+export interface ExtractedMetadata {
+  dish_category?: string;
+  protein_source?: string;
+  allergens?: string[];
+  diet_labels?: string[];
+  occasions?: string[];
+  calories_per_serving?: number;
+  protein_per_serving_g?: number;
+  carbs_per_serving_g?: number;
+}
+
+const METADATA_PROMPT = `You are a recipe metadata assistant. Given a recipe name and ingredient list, infer the classification and nutritional metadata. Return ONLY a valid JSON object — no markdown, no explanation:
+{
+  "dish_category": one of "main"|"salad"|"soup"|"appetizer"|"side"|"dessert"|"drink"|"bread"|"sandwich"|"sauce"|"other",
+  "protein_source": one of "chicken"|"beef"|"pork"|"lamb"|"turkey"|"seafood"|"egg"|"dairy"|"plant"|"none",
+  "allergens": array of values this recipe is genuinely FREE FROM, chosen from ["gluten-free","dairy-free","egg-free","nut-free","peanut-free","soy-free","shellfish-free","wheat-free","sesame-free"],
+  "diet_labels": array of positive dietary classifications that genuinely apply, chosen from ["vegan","vegetarian","high-protein","low-carb","keto","paleo","whole30","plant-based","high-fibre","low-calorie","low-fat","mediterranean","gluten-free","dairy-free","omega-3","antioxidant-rich"],
+  "occasions": array of 1-3 most applicable values from ["weeknight","weekend","brunch","date-night","meal-prep","potluck","game-day","bbq","picnic","summer","christmas","thanksgiving","easter","birthday"],
+  "calories_per_serving": number or null if not determinable,
+  "protein_per_serving_g": number or null if not determinable,
+  "carbs_per_serving_g": number or null if not determinable
+}
+Rules: only include allergens the recipe is genuinely free from. Only include diet_labels that clearly apply. Estimate nutrition from ingredients if possible; use null otherwise.`;
+
+export async function extractRecipeMetadata(
+  name: string,
+  ingredients: { name: string; quantity: number; unit: string }[],
+): Promise<ExtractedMetadata> {
+  const ingredientList = ingredients
+    .map((i) => `${i.quantity} ${i.unit} ${i.name}`.trim())
+    .join(', ');
+
+  const userContent = `${METADATA_PROMPT}\n\nRecipe name: ${name}\nIngredients: ${ingredientList}`;
+
+  const response = await fetch(OPENAI_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getApiKey()}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: userContent }],
+      max_tokens: 500,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error('[recipeExtraction] Metadata API error:', response.status, errorBody);
+    throw new Error(`OpenAI error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices[0].message.content;
+
+  if (!content || typeof content !== 'string') {
+    throw new Error('Could not extract metadata — no response from AI.');
+  }
+
+  console.log('[recipeExtraction] Metadata response:', content);
+
+  let cleaned = content.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  }
+  try {
+    return JSON.parse(cleaned) as ExtractedMetadata;
+  } catch (_parseError) {
+    console.error('[recipeExtraction] Failed to parse metadata response:', cleaned);
+    throw new Error('Could not parse metadata — please try again.');
+  }
 }
