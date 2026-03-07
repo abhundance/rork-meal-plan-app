@@ -210,6 +210,9 @@ export default function MealPlanScreen() {
     const weekDates = getWeekDates(weekOffset);
     const defaultServing = familySettings.default_serving_size;
     const favNames = new Set(favMeals.map((f) => f.name.toLowerCase()));
+    const weekWasEmpty = weekDates.every((date) =>
+      sortedSlots.every((slot) => getMealsForSlot(formatDateKey(date), slot.slot_id).length === 0)
+    );
 
     type PoolEntry = {
       id?: string;
@@ -280,7 +283,9 @@ export default function MealPlanScreen() {
       addMeals(newMeals);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       console.log('[MealPlan] Smart plan generated', newMeals.length, 'meals');
-      showSmartPlanToast(`✨ Week planned! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} added`);
+      showSmartPlanToast(weekWasEmpty
+        ? `✨ Week planned! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} added`
+        : `🔀 Reshuffled! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} swapped in`);
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for this week already have meals. Clear some first to use Smart Fill.');
     }
@@ -318,6 +323,8 @@ export default function MealPlanScreen() {
   const handleSmartPlanDay = useCallback(() => {
     const defaultServing = familySettings.default_serving_size;
     const favNames = new Set(favMeals.map((f) => f.name.toLowerCase()));
+    const dateKey = formatDateKey(currentDate);
+    const dayWasEmpty = sortedSlots.every((slot) => getMealsForSlot(dateKey, slot.slot_id).length === 0);
 
     type PoolEntry = {
       id?: string;
@@ -388,7 +395,9 @@ export default function MealPlanScreen() {
       addMeals(newMeals);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       console.log('[MealPlan] Smart plan day generated', newMeals.length, 'meals');
-      showSmartPlanToast(`✨ Day planned! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} added`);
+      showSmartPlanToast(dayWasEmpty
+        ? `✨ Day planned! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} added`
+        : `🔀 Reshuffled! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} swapped in`);
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for today already have meals. Clear some first to use Smart Fill.');
     }

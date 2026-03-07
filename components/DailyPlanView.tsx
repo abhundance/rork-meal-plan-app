@@ -57,6 +57,10 @@ export default function DailyPlanView({
 
   const isPastDay = useMemo(() => isBefore(currentDate, new Date()), [currentDate]);
 
+  // No useMemo — getMealsForSlot has a stable function reference ([] deps), so a memo over it
+  // would never recompute after addMeals fires. Bare evaluation is cheap and always accurate.
+  const dayIsEmpty = mealSlots.every((slot) => getMealsForSlot(dateKey, slot.slot_id).length === 0);
+
   const weekDates = useMemo(() => {
     const day = currentDate.getDay();
     const diff = day === 0 ? -6 : 1 - day;
@@ -157,7 +161,7 @@ export default function DailyPlanView({
         })}
       </View>
 
-      {!isPastDay && <ActionStrip onSmartPlan={onSmartPlan} onClearDay={onClearDay} onRepeatDay={onRepeatDay} />}
+      {!isPastDay && <ActionStrip dayIsEmpty={dayIsEmpty} onSmartPlan={onSmartPlan} onClearDay={onClearDay} onRepeatDay={onRepeatDay} />}
 
       <ScrollView
         style={styles.scroll}
@@ -189,12 +193,13 @@ export default function DailyPlanView({
 }
 
 interface ActionStripProps {
+  dayIsEmpty: boolean;
   onSmartPlan: () => void;
   onClearDay: () => void;
   onRepeatDay: () => void;
 }
 
-const ActionStrip = React.memo(function ActionStrip({ onSmartPlan, onClearDay, onRepeatDay }: ActionStripProps) {
+const ActionStrip = React.memo(function ActionStrip({ dayIsEmpty, onSmartPlan, onClearDay, onRepeatDay }: ActionStripProps) {
   const smartScale = useRef(new Animated.Value(1)).current;
 
   const handleSmartPressIn = useCallback(() => {
@@ -213,7 +218,7 @@ const ActionStrip = React.memo(function ActionStrip({ onSmartPlan, onClearDay, o
         onPress={onSmartPlan}
       >
         <Animated.View style={[styles.smartFillBtn, { transform: [{ scale: smartScale }] }]}>
-          <Text style={styles.smartFillLabel}>✨ Smart Fill</Text>
+          <Text style={styles.smartFillLabel}>{dayIsEmpty ? '✨ Smart Fill' : '🔀 Reshuffle'}</Text>
         </Animated.View>
       </Pressable>
       <TouchableOpacity onPress={onRepeatDay} style={styles.clearDayBtn} activeOpacity={0.7}>

@@ -145,7 +145,7 @@ export default function WeeklyPlanView({
               <Animated.View
                 style={[styles.smartFillBtn, { transform: [{ scale: smartFillScale }] }]}
               >
-                <Text style={styles.smartFillText}>✨ Smart Fill</Text>
+                <Text style={styles.smartFillText}>🔀 Reshuffle</Text>
               </Animated.View>
             </Pressable>
 
