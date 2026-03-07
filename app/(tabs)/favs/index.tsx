@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Animated,
   ActionSheetIOS,
+  Alert,
   Modal,
   KeyboardAvoidingView,
   Platform,
@@ -16,6 +17,32 @@ import {
   Dimensions,
   Pressable,
 } from 'react-native';
+
+// Cross-platform action sheet — uses native ActionSheetIOS on iOS, falls back to Alert elsewhere (e.g. Rork web preview)
+function showSheet(
+  opts: {
+    options: string[];
+    cancelButtonIndex: number;
+    destructiveButtonIndex?: number;
+    title?: string;
+    message?: string;
+  },
+  callback: (index: number) => void
+) {
+  if (Platform.OS === 'ios') {
+    showSheet(opts, callback);
+  } else {
+    const buttons = opts.options.map((label, i) => ({
+      text: label,
+      style: (
+        i === opts.destructiveButtonIndex ? 'destructive' :
+        i === opts.cancelButtonIndex      ? 'cancel'      : 'default'
+      ) as 'destructive' | 'cancel' | 'default',
+      onPress: () => callback(i),
+    }));
+    Alert.alert(opts.title ?? '', opts.message ?? '', buttons);
+  }
+}
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href, useFocusEffect } from 'expo-router';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
@@ -177,7 +204,7 @@ export default function FavsScreen() {
 
   const openSortSheet = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    ActionSheetIOS.showActionSheetWithOptions(
+    showSheet(
       { options: [...SORT_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: SORT_OPTIONS.length },
       (i) => { if (i < SORT_OPTIONS.length) setFavFilters(f => ({ ...f, sort: SORT_OPTIONS[i].value })); }
     );
@@ -185,7 +212,7 @@ export default function FavsScreen() {
 
   const openMealTypeSheet = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    ActionSheetIOS.showActionSheetWithOptions(
+    showSheet(
       { options: [...MEAL_TYPE_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: MEAL_TYPE_OPTIONS.length },
       (i) => { if (i < MEAL_TYPE_OPTIONS.length) setMealTypeFilter(MEAL_TYPE_OPTIONS[i].value); }
     );
@@ -193,7 +220,7 @@ export default function FavsScreen() {
 
   const openDishTypeSheet = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    ActionSheetIOS.showActionSheetWithOptions(
+    showSheet(
       { options: [...DISH_TYPE_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: DISH_TYPE_OPTIONS.length },
       (i) => { if (i < DISH_TYPE_OPTIONS.length) setDishTypeFilter(DISH_TYPE_OPTIONS[i].value); }
     );
@@ -235,7 +262,7 @@ export default function FavsScreen() {
   }, []);
 
   const handleDeleteMyRecipe = useCallback((meal: Recipe) => {
-    ActionSheetIOS.showActionSheetWithOptions(
+    showSheet(
       {
         options: ['Cancel', 'Delete'],
         destructiveButtonIndex: 1,
@@ -250,7 +277,7 @@ export default function FavsScreen() {
   }, [removeFav]);
 
   const handleRemoveSaved = useCallback((meal: Recipe) => {
-    ActionSheetIOS.showActionSheetWithOptions(
+    showSheet(
       {
         options: ['Cancel', 'Remove from Favs'],
         destructiveButtonIndex: 1,
