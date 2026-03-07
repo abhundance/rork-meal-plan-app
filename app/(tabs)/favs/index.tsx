@@ -643,7 +643,7 @@ export default function FavsScreen() {
 
       {noResults ? FilterEmptyState : (
         <FlatList
-          key={`favs-${mealTypeFilter}-${dishTypeFilter}-${proteinFilter}-${dietFilter}-${sortOption}`}
+          key={`favs-${mealTypeFilter}-${dishTypeFilter}-${proteinFilter}-${dietFilter}-${favFilters.sort}`}
           ref={flatListRef}
           style={{ flex: 1 }}
           data={gridData}
