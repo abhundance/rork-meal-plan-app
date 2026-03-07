@@ -75,6 +75,12 @@ import RecipeFilterSheet, {
   countActiveFilters,
 } from '@/components/RecipeFilterSheet';
 
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));
+  return result;
+}
+
 const SCREEN_W = Dimensions.get('window').width;
 const COLS = 4;
 const H_PAD = 12;
@@ -171,7 +177,7 @@ export default function FavsScreen() {
 
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastAnim = useRef(new Animated.Value(0)).current;
-  const flatListRef = useRef<FlatList>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const showToast = useCallback((message: string) => {
     setToastMsg(message);
@@ -236,7 +242,7 @@ export default function FavsScreen() {
   // Scroll back to top whenever any filter/sort/search changes so the grid
   // never shows a phantom blank gap caused by a stale scroll offset.
   useEffect(() => {
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   }, [search, mealTypeFilter, dishTypeFilter, proteinFilter, dietFilter, favFilters]);
 
   // Cycles to the next sort option on each tap — no sheet needed
@@ -642,21 +648,30 @@ export default function FavsScreen() {
       )}
 
       {noResults ? FilterEmptyState : (
-        <FlatList
-          key={`favs-${mealTypeFilter}-${dishTypeFilter}-${proteinFilter}-${dietFilter}-${favFilters.sort}`}
-          ref={flatListRef}
+        <ScrollView
+          ref={scrollViewRef}
           style={{ flex: 1 }}
-          data={gridData}
-          renderItem={renderGridItem}
-          keyExtractor={(item) => item.id}
-          numColumns={4}
-          columnWrapperStyle={{ gap: COL_GAP, paddingHorizontal: H_PAD, marginBottom: 10 }}
           contentContainerStyle={{ paddingTop: 12, paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
-          ListEmptyComponent={getEmptyComponent()}
           testID="favs-grid"
-        />
+        >
+          {chunkArray(gridData, COLS).map((row, rowIdx) => (
+            <View
+              key={`row-${rowIdx}`}
+              style={{ flexDirection: 'row', gap: COL_GAP, paddingHorizontal: H_PAD, marginBottom: 10 }}
+            >
+              {row.map((item) => (
+                <React.Fragment key={item.id}>
+                  {renderGridItem({ item })}
+                </React.Fragment>
+              ))}
+              {row.length < COLS && Array.from({ length: COLS - row.length }).map((_, i) => (
+                <View key={`spacer-${i}`} style={{ width: CARD_W }} />
+              ))}
+            </View>
+          ))}
+        </ScrollView>
       )}
 
       <SlotPickerModal
