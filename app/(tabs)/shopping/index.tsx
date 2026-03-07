@@ -723,7 +723,7 @@ export default function ShoppingScreen() {
           )}
         </View>
         <TouchableOpacity
-          style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 72 }]}
+          style={[styles.fab, { bottom: insets.bottom + 16 }]}
           onPress={() => setShowAddSheet(true)}
           activeOpacity={0.85}
         >
@@ -762,7 +762,7 @@ export default function ShoppingScreen() {
       />
 
       <TouchableOpacity
-        style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 72 }]}
+        style={[styles.fab, { bottom: insets.bottom + 16 }]}
         onPress={() => setShowAddSheet(true)}
         activeOpacity={0.85}
       >
@@ -868,12 +868,16 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute' as const,
     right: 20,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.header,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#5B21B6',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 7,
   },
 });
