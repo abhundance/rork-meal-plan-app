@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -88,6 +89,33 @@ export default function AddMealReviewScreen() {
   );
   const [retryCount, setRetryCount] = useState<number>(0);
 
+  // ── Selected image URI (persisted to image_url on save) ──────────────────────
+  const [selectedImageUri, setSelectedImageUri] = useState<string>(params.imageUri ?? '');
+
+  const handlePickImage = useCallback(() => {
+    Alert.alert('Change Photo', 'Choose a source', [
+      {
+        text: 'Take Photo',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') { Alert.alert('Permission needed', 'Camera access is required.'); return; }
+          const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+          if (!result.canceled && result.assets?.[0]?.uri) setSelectedImageUri(result.assets[0].uri);
+        },
+      },
+      {
+        text: 'Choose from Library',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') { Alert.alert('Permission needed', 'Photo library access is required.'); return; }
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+          if (!result.canceled && result.assets?.[0]?.uri) setSelectedImageUri(result.assets[0].uri);
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, []);
+
   // ── Core recipe fields ───────────────────────────────────────────────────────
   const [name, setName] = useState<string>(params.prefillName ?? '');
   const [description, setDescription] = useState<string>(params.prefillDescription ?? '');
@@ -164,6 +192,7 @@ export default function AddMealReviewScreen() {
           const stored = imageStore.get();
           if (!stored?.base64) { setIsLoading(false); return; }
           result = await extractRecipeFromImage(stored.base64);
+          if (stored.uri) setSelectedImageUri(stored.uri);
           imageStore.clear();
         } else if (inputMode === 'text' && params.inputText) {
           result = await extractRecipeFromText(params.inputText);
@@ -292,7 +321,7 @@ export default function AddMealReviewScreen() {
     const meal: Recipe = {
       id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: trimmedName,
-      image_url: undefined,
+      image_url: selectedImageUri || undefined,
       description: description.trim() || undefined,
       // Time
       cooking_time_band: cookTimeBand ? cookTimeBand : undefined,
@@ -405,9 +434,19 @@ export default function AddMealReviewScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Image Hero Zone */}
-          <View style={styles.heroZoneWrapper}>
-            <MealImagePlaceholder size="hero" mealType={mealType || undefined} cuisine={cuisine || undefined} name={name} />
-          </View>
+          <TouchableOpacity style={styles.heroZoneWrapper} onPress={handlePickImage} activeOpacity={0.85}>
+            {selectedImageUri ? (
+              <Image source={{ uri: selectedImageUri }} style={styles.heroImage} resizeMode="cover" />
+            ) : (
+              <MealImagePlaceholder size="hero" mealType={mealType || undefined} cuisine={cuisine || undefined} name={name} />
+            )}
+            <View style={styles.heroEditBadge}>
+              <Ionicons name="camera" size={16} color="#FFFFFF" />
+              <Text style={styles.heroEditBadgeText}>
+                {selectedImageUri ? 'Change photo' : 'Add photo'}
+              </Text>
+            </View>
+          </TouchableOpacity>
 
           {/* BASICS — name + description */}
           <View style={styles.card}>
@@ -906,6 +945,28 @@ const styles = StyleSheet.create({
   },
   heroZoneWrapper: {
     marginBottom: Spacing.sm,
+    overflow: 'hidden' as const,
+  },
+  heroImage: {
+    width: '100%',
+    height: 220,
+  },
+  heroEditBadge: {
+    position: 'absolute' as const,
+    bottom: 10,
+    right: 12,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  heroEditBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600' as const,
   },
   card: {
     backgroundColor: Colors.card,

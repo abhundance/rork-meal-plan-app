@@ -11,7 +11,9 @@ import {
   Alert,
   Linking,
   ActivityIndicator,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -84,6 +86,34 @@ export default function AddMealScreen() {
   const [isAiFillingMetadata, setIsAiFillingMetadata] = useState<boolean>(false);
   // Tracks whether AI fill has run at least once (for new meals — auto-fills on first open)
   const [hasAutoFilled, setHasAutoFilled] = useState<boolean>(false);
+  // Photo
+  const [selectedImageUri, setSelectedImageUri] = useState<string>(editMeal?.image_url ?? '');
+
+  const handlePickImage = useCallback(() => {
+    Alert.alert('Change Photo', 'Choose a source', [
+      {
+        text: 'Take Photo',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') { Alert.alert('Permission needed', 'Camera access is required.'); return; }
+          const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+          if (!result.canceled && result.assets?.[0]?.uri) setSelectedImageUri(result.assets[0].uri);
+        },
+      },
+      {
+        text: 'Choose from Library',
+        onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') { Alert.alert('Permission needed', 'Photo library access is required.'); return; }
+          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+          if (!result.canceled && result.assets?.[0]?.uri) setSelectedImageUri(result.assets[0].uri);
+        },
+      },
+      ...(selectedImageUri ? [{ text: 'Remove Photo', style: 'destructive' as const, onPress: () => setSelectedImageUri('') }] : []),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  }, [selectedImageUri]);
+
   // Meal type enum (breakfast / lunch_dinner / light_bites)
   const [mealType, setMealType] = useState<string>(editMeal?.meal_type ?? '');
   // Cuisine
@@ -238,7 +268,7 @@ export default function AddMealScreen() {
     if (isEditing && editMeal) {
       updateFav(editMeal.id, {
         name: name.trim(),
-        image_url: undefined,
+        image_url: selectedImageUri || undefined,
         // Time
         cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
         prep_time: prepTime ? parseInt(prepTime) : undefined,
@@ -286,7 +316,7 @@ export default function AddMealScreen() {
 
     saveMeal(validIngredients, validSteps, derivedDietaryTags);
   }, [
-    name, cookingTimeBand, prepTime, cookTime, mealType,
+    name, cookingTimeBand, prepTime, cookTime, mealType, selectedImageUri,
     cuisine, dishCategory, proteinSource, occasions,
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
@@ -302,7 +332,7 @@ export default function AddMealScreen() {
     const newMeal: Recipe = {
       id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: name.trim(),
-      image_url: undefined,
+      image_url: selectedImageUri || undefined,
       // Time
       cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
       prep_time: prepTime ? parseInt(prepTime) : undefined,
@@ -360,7 +390,7 @@ export default function AddMealScreen() {
       router.replace('/(tabs)/favs' as never);
     }
   }, [
-    name, cookingTimeBand, prepTime, cookTime, mealType,
+    name, cookingTimeBand, prepTime, cookTime, mealType, selectedImageUri,
     cuisine, dishCategory, proteinSource, occasions,
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
@@ -382,7 +412,19 @@ export default function AddMealScreen() {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
           {/* Hero image */}
-          <MealImagePlaceholder size="hero" mealType={mealType} cuisine={cuisine} name={name} />
+          <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={styles.heroTouchable}>
+            {selectedImageUri ? (
+              <Image source={{ uri: selectedImageUri }} style={styles.heroImage} resizeMode="cover" />
+            ) : (
+              <MealImagePlaceholder size="hero" mealType={mealType} cuisine={cuisine} name={name} />
+            )}
+            <View style={styles.heroEditBadge}>
+              <Ionicons name="camera" size={16} color="#FFFFFF" />
+              <Text style={styles.heroEditBadgeText}>
+                {selectedImageUri ? 'Change photo' : 'Add photo'}
+              </Text>
+            </View>
+          </TouchableOpacity>
 
           {/* Name */}
           <Text style={styles.label}>Meal name *</Text>
@@ -857,6 +899,31 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700' as const,
     color: Colors.text,
+  },
+  heroTouchable: {
+    overflow: 'hidden' as const,
+    marginBottom: 4,
+  },
+  heroImage: {
+    width: '100%',
+    height: 220,
+  },
+  heroEditBadge: {
+    position: 'absolute' as const,
+    bottom: 10,
+    right: 12,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  heroEditBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600' as const,
   },
   scroll: {
     flex: 1,
