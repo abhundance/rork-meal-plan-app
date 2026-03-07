@@ -84,8 +84,8 @@ export default function AddMealScreen() {
   const [isAiFillingMetadata, setIsAiFillingMetadata] = useState<boolean>(false);
   // Tracks whether AI fill has run at least once (for new meals — auto-fills on first open)
   const [hasAutoFilled, setHasAutoFilled] = useState<boolean>(false);
-  // Meal type slot (plan integration)
-  const [mealTypeSlotId, setMealTypeSlotId] = useState<string>(editMeal?.meal_type_slot_id ?? '');
+  // Meal type enum (breakfast / lunch_dinner / light_bites)
+  const [mealType, setMealType] = useState<string>(editMeal?.meal_type ?? '');
   // Cuisine
   const [cuisine, setCuisine] = useState<string>(editMeal?.cuisine ?? '');
   // Classification
@@ -113,11 +113,6 @@ export default function AddMealScreen() {
   const [customTags, setCustomTags] = useState<string[]>(editMeal?.custom_tags ?? []);
   const [newTag, setNewTag] = useState<string>('');
 
-  const sortedSlots = useMemo(
-    () => [...familySettings.meal_slots].sort((a, b) => a.order - b.order),
-    [familySettings.meal_slots]
-  );
-
   // ── AI fill ──────────────────────────────────────────────────────────────────
   const handleAiFill = useCallback(async () => {
     if (!name.trim()) {
@@ -136,13 +131,10 @@ export default function AddMealScreen() {
       const result = await extractRecipeMetadata(name.trim(), validIngredients);
       if (result.cuisine) setCuisine(result.cuisine);
       if (result.meal_type) {
-        const normalised = result.meal_type.toLowerCase();
-        const match = sortedSlots.find(
-          (slot) =>
-            slot.name.toLowerCase().includes(normalised) ||
-            normalised.includes(slot.name.toLowerCase())
-        );
-        if (match) setMealTypeSlotId(match.slot_id);
+        const t = result.meal_type.toLowerCase();
+        if (t === 'breakfast') setMealType('breakfast');
+        else if (t === 'lunch' || t === 'dinner' || t === 'lunch_dinner') setMealType('lunch_dinner');
+        else if (t === 'snack' || t === 'light_bites' || t === 'dessert') setMealType('light_bites');
       }
       if (result.dish_category) setDishCategory(result.dish_category);
       if (result.protein_source) setProteinSource(result.protein_source);
@@ -159,7 +151,7 @@ export default function AddMealScreen() {
     } finally {
       setIsAiFillingMetadata(false);
     }
-  }, [name, ingredients, sortedSlots]);
+  }, [name, ingredients]);
 
   // Opening the accordion on a NEW meal auto-triggers AI fill on first open.
   // On edit mode the accordion just opens normally — details are already filled.
@@ -251,8 +243,8 @@ export default function AddMealScreen() {
         cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
         prep_time: prepTime ? parseInt(prepTime) : undefined,
         cook_time: cookTime ? parseInt(cookTime) : undefined,
-        // Slot
-        meal_type_slot_id: mealTypeSlotId || undefined,
+        // Meal type
+        meal_type: (mealType as Recipe['meal_type']) || undefined,
         // Classification
         cuisine: cuisine || undefined,
         dish_category: (dishCategory as Recipe['dish_category']) || undefined,
@@ -294,7 +286,7 @@ export default function AddMealScreen() {
 
     saveMeal(validIngredients, validSteps, derivedDietaryTags);
   }, [
-    name, cookingTimeBand, prepTime, cookTime, mealTypeSlotId,
+    name, cookingTimeBand, prepTime, cookTime, mealType,
     cuisine, dishCategory, proteinSource, occasions,
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
@@ -315,8 +307,8 @@ export default function AddMealScreen() {
       cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
       prep_time: prepTime ? parseInt(prepTime) : undefined,
       cook_time: cookTime ? parseInt(cookTime) : undefined,
-      // Slot
-      meal_type_slot_id: mealTypeSlotId || undefined,
+      // Meal type
+      meal_type: (mealType as Recipe['meal_type']) || undefined,
       // Classification
       cuisine: cuisine || undefined,
       dish_category: dishCategory || undefined,
@@ -368,7 +360,7 @@ export default function AddMealScreen() {
       router.replace('/(tabs)/favs' as never);
     }
   }, [
-    name, cookingTimeBand, prepTime, cookTime, mealTypeSlotId,
+    name, cookingTimeBand, prepTime, cookTime, mealType,
     cuisine, dishCategory, proteinSource, occasions,
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
@@ -390,7 +382,7 @@ export default function AddMealScreen() {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
           {/* Hero image */}
-          <MealImagePlaceholder size="hero" mealType={mealTypeSlotId} cuisine={cuisine} name={name} />
+          <MealImagePlaceholder size="hero" mealType={mealType} cuisine={cuisine} name={name} />
 
           {/* Name */}
           <Text style={styles.label}>Meal name *</Text>
@@ -537,19 +529,23 @@ export default function AddMealScreen() {
                 )}
               </TouchableOpacity>
 
-              {/* Meal Slot */}
+              {/* Meal Type */}
               <Text style={styles.accordionFieldLabel}>Meal type</Text>
               <View style={styles.chipWrap}>
-                {sortedSlots.map((slot) => {
-                  const active = mealTypeSlotId === slot.slot_id;
+                {([
+                  { value: 'breakfast',   label: 'Breakfast' },
+                  { value: 'lunch_dinner', label: 'Lunch / Dinner' },
+                  { value: 'light_bites', label: 'Light Bites' },
+                ] as const).map(({ value, label }) => {
+                  const active = mealType === value;
                   return (
                     <TouchableOpacity
-                      key={slot.slot_id}
+                      key={value}
                       style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => setMealTypeSlotId(active ? '' : slot.slot_id)}
+                      onPress={() => setMealType(active ? '' : value)}
                     >
                       <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                        {slot.name}
+                        {label}
                       </Text>
                     </TouchableOpacity>
                   );
