@@ -75,11 +75,6 @@ import RecipeFilterSheet, {
   countActiveFilters,
 } from '@/components/RecipeFilterSheet';
 
-function chunkArray<T>(arr: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));
-  return result;
-}
 
 const SCREEN_W = Dimensions.get('window').width;
 const COLS = 4;
@@ -177,7 +172,7 @@ export default function FavsScreen() {
 
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastAnim = useRef(new Animated.Value(0)).current;
-  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
 
   const showToast = useCallback((message: string) => {
     setToastMsg(message);
@@ -242,7 +237,7 @@ export default function FavsScreen() {
   // Scroll back to top whenever any filter/sort/search changes so the grid
   // never shows a phantom blank gap caused by a stale scroll offset.
   useEffect(() => {
-    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [search, mealTypeFilter, dishTypeFilter, proteinFilter, dietFilter, favFilters]);
 
   // Cycles to the next sort option on each tap — no sheet needed
@@ -388,10 +383,7 @@ export default function FavsScreen() {
         setShowAddMethodSheet(true);
       }
       // Reset scroll to top every time this tab is focused.
-      // Without this, the native UIScrollView preserves its contentOffset
-      // when the user returns to the tab — producing a phantom blank gap
-      // at the top of the grid equal to the previous scroll distance.
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     }, [])
   );
 
@@ -539,145 +531,127 @@ export default function FavsScreen() {
         }
       />
 
-      <View style={styles.searchWrap}>
-        <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search meals or ingredients..."
-          placeholderTextColor={Colors.textSecondary}
-          value={search}
-          onChangeText={handleSearch}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          onSubmitEditing={handleSearchSubmit}
-          returnKeyType="search"
-          testID="favs-search"
-        />
-        {search.length > 0 && (
-          <TouchableOpacity onPress={() => setSearch('')}>
-            <X size={16} color={Colors.textSecondary} strokeWidth={2} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {searchFocused && search.length === 0 && recentSearches.length > 0 && (
-        <View style={styles.recentSearches}>
-          <View style={styles.recentHeader}>
-            <Text style={styles.recentTitle}>Recent searches</Text>
-            <TouchableOpacity onPress={clearRecentSearches}>
-              <Text style={styles.recentClear}>Clear</Text>
-            </TouchableOpacity>
-          </View>
-          {recentSearches.map((term) => (
-            <TouchableOpacity
-              key={term}
-              style={styles.recentItem}
-              onPress={() => handleRecentSearchTap(term)}
-            >
-              <Search size={14} color={Colors.textSecondary} strokeWidth={1.5} />
-              <Text style={styles.recentItemText}>{term}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-
-      {/* ── Inline filter pill row ─────────────────────────────── */}
-      {(() => {
-        const sortLabel    = SORT_OPTIONS.find(o => o.value === favFilters.sort)?.label ?? 'Sort';
-        const sortActive   = favFilters.sort !== 'most_used';
-        const whenLabel    = MEAL_TYPE_OPTIONS.find(o => o.value === mealTypeFilter)?.label ?? 'When';
-        const whenActive   = mealTypeFilter !== 'all';
-        const typeLabel    = DISH_TYPE_OPTIONS.find(o => o.value === dishTypeFilter)?.label ?? 'Type';
-        const typeActive   = dishTypeFilter !== 'all';
-        const proteinLabel = PROTEIN_OPTIONS.find(o => o.value === proteinFilter)?.label ?? 'Protein';
-        const proteinActive = proteinFilter !== 'all';
-        const dietLabel    = DIET_OPTIONS.find(o => o.value === dietFilter)?.label ?? 'Diet';
-        const dietActive   = dietFilter !== 'all';
-        // For filter pills (When/Type/Protein/Diet):
-        //   inactive → tap opens ActionSheet to pick a value
-        //   active   → tap clears the filter instantly (no sheet), shows ✕ instead of ▾
-        const handleWhenPress    = whenActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMealTypeFilter('all'); } : openMealTypeSheet;
-        const handleTypePress    = typeActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setDishTypeFilter('all'); } : openDishTypeSheet;
-        const handleProteinPress = proteinActive ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setProteinFilter('all');  } : openProteinSheet;
-        const handleDietPress    = dietActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setDietFilter('all');     } : openDietSheet;
-
-        return (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ height: 46 }}
-            contentContainerStyle={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 7 }}
-          >
-            {/* Sort — cycles through options on each tap, no sheet */}
-            <TouchableOpacity onPress={cycleSortOption} activeOpacity={0.75} style={[styles.filterPill, sortActive && styles.filterPillActive]}>
-              <ArrowUpDown size={13} color={sortActive ? Colors.white : Colors.text} strokeWidth={2.5} />
-              <Text style={[styles.filterPillText, sortActive && styles.filterPillTextActive, { marginLeft: 5 }]}>{sortLabel}</Text>
-            </TouchableOpacity>
-
-            {/* When */}
-            <TouchableOpacity onPress={handleWhenPress} activeOpacity={0.75} style={[styles.filterPill, whenActive && styles.filterPillActive]}>
-              <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}>{whenActive ? whenLabel : 'When'}</Text>
-              <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}> {whenActive ? '✕' : '▾'}</Text>
-            </TouchableOpacity>
-
-            {/* Type */}
-            <TouchableOpacity onPress={handleTypePress} activeOpacity={0.75} style={[styles.filterPill, typeActive && styles.filterPillActive]}>
-              <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}>{typeActive ? typeLabel : 'Type'}</Text>
-              <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}> {typeActive ? '✕' : '▾'}</Text>
-            </TouchableOpacity>
-
-            {/* Protein */}
-            <TouchableOpacity onPress={handleProteinPress} activeOpacity={0.75} style={[styles.filterPill, proteinActive && styles.filterPillActive]}>
-              <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}>{proteinActive ? proteinLabel : 'Protein'}</Text>
-              <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}> {proteinActive ? '✕' : '▾'}</Text>
-            </TouchableOpacity>
-
-            {/* Diet */}
-            <TouchableOpacity onPress={handleDietPress} activeOpacity={0.75} style={[styles.filterPill, dietActive && styles.filterPillActive]}>
-              <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}>{dietActive ? dietLabel : 'Diet'}</Text>
-              <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}> {dietActive ? '✕' : '▾'}</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        );
-      })()}
-
-      {filterCount > 0 && (
-        <TouchableOpacity
-          style={styles.activeFilterBar}
-          onPress={clearFilters}
-        >
-          <Text style={styles.activeFilterBarText}>{filterCount} filter{filterCount > 1 ? 's' : ''} active</Text>
-          <X size={12} color={Colors.primary} strokeWidth={2.5} />
-        </TouchableOpacity>
-      )}
-
-      {noResults ? FilterEmptyState : (
-        <ScrollView
-          ref={scrollViewRef}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingTop: 12, paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
-          testID="favs-grid"
-        >
-          {chunkArray(gridData, COLS).map((row, rowIdx) => (
-            <View
-              key={`row-${rowIdx}`}
-              style={{ flexDirection: 'row', gap: COL_GAP, paddingHorizontal: H_PAD, marginBottom: 10 }}
-            >
-              {row.map((item) => (
-                <React.Fragment key={item.id}>
-                  {renderGridItem({ item })}
-                </React.Fragment>
-              ))}
-              {row.length < COLS && Array.from({ length: COLS - row.length }).map((_, i) => (
-                <View key={`spacer-${i}`} style={{ width: CARD_W }} />
-              ))}
+      {/* Single FlatList owns the entire scroll area — search bar, filter pills,
+          and recipe grid are all inside one scroll container so there can be no
+          phantom gap between sections caused by stale contentOffset. */}
+      <FlatList
+        ref={flatListRef}
+        data={noResults ? [] : gridData}
+        renderItem={renderGridItem}
+        keyExtractor={(item: any) => item.id}
+        numColumns={COLS}
+        columnWrapperStyle={{ gap: COL_GAP, paddingHorizontal: H_PAD, marginBottom: 10 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+        ListHeaderComponent={
+          <View>
+            {/* ── Search bar ─────────────────────────────────────── */}
+            <View style={styles.searchWrap}>
+              <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search meals or ingredients..."
+                placeholderTextColor={Colors.textSecondary}
+                value={search}
+                onChangeText={handleSearch}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                onSubmitEditing={handleSearchSubmit}
+                returnKeyType="search"
+                testID="favs-search"
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch('')}>
+                  <X size={16} color={Colors.textSecondary} strokeWidth={2} />
+                </TouchableOpacity>
+              )}
             </View>
-          ))}
-        </ScrollView>
-      )}
+
+            {searchFocused && search.length === 0 && recentSearches.length > 0 && (
+              <View style={styles.recentSearches}>
+                <View style={styles.recentHeader}>
+                  <Text style={styles.recentTitle}>Recent searches</Text>
+                  <TouchableOpacity onPress={clearRecentSearches}>
+                    <Text style={styles.recentClear}>Clear</Text>
+                  </TouchableOpacity>
+                </View>
+                {recentSearches.map((term) => (
+                  <TouchableOpacity
+                    key={term}
+                    style={styles.recentItem}
+                    onPress={() => handleRecentSearchTap(term)}
+                  >
+                    <Search size={14} color={Colors.textSecondary} strokeWidth={1.5} />
+                    <Text style={styles.recentItemText}>{term}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* ── Inline filter pill row ─────────────────────────── */}
+            {(() => {
+              const sortLabel    = SORT_OPTIONS.find(o => o.value === favFilters.sort)?.label ?? 'Sort';
+              const sortActive   = favFilters.sort !== 'most_used';
+              const whenLabel    = MEAL_TYPE_OPTIONS.find(o => o.value === mealTypeFilter)?.label ?? 'When';
+              const whenActive   = mealTypeFilter !== 'all';
+              const typeLabel    = DISH_TYPE_OPTIONS.find(o => o.value === dishTypeFilter)?.label ?? 'Type';
+              const typeActive   = dishTypeFilter !== 'all';
+              const proteinLabel = PROTEIN_OPTIONS.find(o => o.value === proteinFilter)?.label ?? 'Protein';
+              const proteinActive = proteinFilter !== 'all';
+              const dietLabel    = DIET_OPTIONS.find(o => o.value === dietFilter)?.label ?? 'Diet';
+              const dietActive   = dietFilter !== 'all';
+              const handleWhenPress    = whenActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMealTypeFilter('all'); } : openMealTypeSheet;
+              const handleTypePress    = typeActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setDishTypeFilter('all'); } : openDishTypeSheet;
+              const handleProteinPress = proteinActive ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setProteinFilter('all');  } : openProteinSheet;
+              const handleDietPress    = dietActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setDietFilter('all');     } : openDietSheet;
+              return (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ height: 46 }}
+                  contentContainerStyle={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 7 }}
+                >
+                  <TouchableOpacity onPress={cycleSortOption} activeOpacity={0.75} style={[styles.filterPill, sortActive && styles.filterPillActive]}>
+                    <ArrowUpDown size={13} color={sortActive ? Colors.white : Colors.text} strokeWidth={2.5} />
+                    <Text style={[styles.filterPillText, sortActive && styles.filterPillTextActive, { marginLeft: 5 }]}>{sortLabel}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleWhenPress} activeOpacity={0.75} style={[styles.filterPill, whenActive && styles.filterPillActive]}>
+                    <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}>{whenActive ? whenLabel : 'When'}</Text>
+                    <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}> {whenActive ? '✕' : '▾'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleTypePress} activeOpacity={0.75} style={[styles.filterPill, typeActive && styles.filterPillActive]}>
+                    <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}>{typeActive ? typeLabel : 'Type'}</Text>
+                    <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}> {typeActive ? '✕' : '▾'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleProteinPress} activeOpacity={0.75} style={[styles.filterPill, proteinActive && styles.filterPillActive]}>
+                    <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}>{proteinActive ? proteinLabel : 'Protein'}</Text>
+                    <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}> {proteinActive ? '✕' : '▾'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleDietPress} activeOpacity={0.75} style={[styles.filterPill, dietActive && styles.filterPillActive]}>
+                    <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}>{dietActive ? dietLabel : 'Diet'}</Text>
+                    <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}> {dietActive ? '✕' : '▾'}</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              );
+            })()}
+
+            {filterCount > 0 && (
+              <TouchableOpacity
+                style={styles.activeFilterBar}
+                onPress={clearFilters}
+              >
+                <Text style={styles.activeFilterBarText}>{filterCount} filter{filterCount > 1 ? 's' : ''} active</Text>
+                <X size={12} color={Colors.primary} strokeWidth={2.5} />
+              </TouchableOpacity>
+            )}
+
+            <View style={{ height: 12 }} />
+          </View>
+        }
+        ListEmptyComponent={noResults ? FilterEmptyState : getEmptyComponent()}
+        testID="favs-grid"
+      />
 
       <SlotPickerModal
         visible={slotPickerVisible}
