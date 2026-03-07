@@ -15,10 +15,9 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { X, Plus, Minus } from 'lucide-react-native';
+import { X, Plus, Minus, Camera, Sparkles, ChevronUp, ChevronDown, Clipboard, CheckCircle2, Link as LinkIcon } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
@@ -419,7 +418,7 @@ export default function AddMealScreen() {
               <MealImagePlaceholder size="hero" mealType={mealType} cuisine={cuisine} name={name} />
             )}
             <View style={styles.heroEditBadge}>
-              <Ionicons name="camera" size={16} color="#FFFFFF" />
+              <Camera size={16} color="#FFFFFF" strokeWidth={2} />
               <Text style={styles.heroEditBadgeText}>
                 {selectedImageUri ? 'Change photo' : 'Add photo'}
               </Text>
@@ -529,7 +528,7 @@ export default function AddMealScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.accordionHeaderLeft}>
-              <Ionicons name="sparkles" size={17} color={Colors.primary} />
+              <Sparkles size={17} color={Colors.primary} strokeWidth={2} />
               <View style={styles.accordionHeaderTextBlock}>
                 <Text style={styles.accordionHeaderTitle}>Recipe Details</Text>
                 <Text style={styles.accordionHeaderSubtitle}>
@@ -539,11 +538,10 @@ export default function AddMealScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons
-              name={accordionOpen ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={Colors.primary}
-            />
+            {accordionOpen
+              ? <ChevronUp size={18} color={Colors.primary} strokeWidth={2} />
+              : <ChevronDown size={18} color={Colors.primary} strokeWidth={2} />
+            }
           </TouchableOpacity>
 
           {accordionOpen && (
@@ -563,7 +561,7 @@ export default function AddMealScreen() {
                   </>
                 ) : (
                   <>
-                    <Ionicons name="sparkles" size={16} color={Colors.primary} />
+                    <Sparkles size={16} color={Colors.primary} strokeWidth={2} />
                     <Text style={styles.aiFillBtnText}>
                       {hasAutoFilled ? 'Re-fill with AI' : 'Auto-fill with AI'}
                     </Text>
@@ -834,21 +832,21 @@ export default function AddMealScreen() {
                 if (text) setDeliveryUrl(text);
               }}
             >
-              <Ionicons name="clipboard-outline" size={20} color={Colors.primary} />
+              <Clipboard size={20} color={Colors.primary} strokeWidth={2} />
             </TouchableOpacity>
           </View>
           {deliveryUrl.trim().length > 0 && (() => {
             const platform = detectPlatformFromUrl(deliveryUrl.trim());
             return platform !== null ? (
               <View style={styles.platformChip}>
-                <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
+                <CheckCircle2 size={14} color={Colors.primary} strokeWidth={2} />
                 <Text style={styles.platformChipText}>
                   {getPlatformLabel(platform)} detected
                 </Text>
               </View>
             ) : (
               <View style={styles.platformChip}>
-                <Ionicons name="link-outline" size={14} color="#6B7280" />
+                <LinkIcon size={14} color="#6B7280" strokeWidth={2} />
                 <Text style={[styles.platformChipText, { color: '#6B7280' }]}>Link saved</Text>
               </View>
             );

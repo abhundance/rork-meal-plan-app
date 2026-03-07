@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons'; // kept for logo-youtube / logo-tiktok brand icons only
+import { Info, Link as LinkIcon } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import {
@@ -117,14 +118,14 @@ export default function AddMealVideoScreen() {
 
         <View style={styles.content}>
           <View style={styles.disclaimer}>
-            <Ionicons name="information-circle" size={20} color="#D97706" />
+            <Info size={20} color="#D97706" strokeWidth={2} />
             <Text style={styles.disclaimerText}>
               This only works if the full recipe — including ingredients and steps — is listed in the video description or caption. If the recipe is only spoken in the video, use Voice or Paste Text instead.
             </Text>
           </View>
 
           <View style={styles.inputRow}>
-            <Ionicons name="link-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
+            <LinkIcon size={18} color={Colors.textSecondary} strokeWidth={2} style={styles.inputIcon} />
             <TextInput
               style={styles.textInput}
               value={url}

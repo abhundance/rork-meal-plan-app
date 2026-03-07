@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { BorderRadius, Spacing } from '@/constants/theme';
 
@@ -105,7 +105,7 @@ export default function AddMealPasteScreen() {
 
           {hasText && (
             <Pressable onPress={() => setText('')} hitSlop={12}>
-              <Ionicons name="trash-outline" size={18} color={Colors.textSecondary} />
+              <Trash2 size={18} color={Colors.textSecondary} strokeWidth={2} />
             </Pressable>
           )}
         </View>

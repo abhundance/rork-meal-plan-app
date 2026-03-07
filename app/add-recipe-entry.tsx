@@ -17,7 +17,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons'; // kept for logo-youtube / logo-tiktok brand icons only
+import { ChevronLeft, Link as LinkIcon, Globe, FileText, PenLine, Image as LucideImage, Video, Mic, Camera } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/colors';
 import { imageStore } from '@/services/imageStore';
@@ -25,18 +26,20 @@ import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 
 type MethodKey = 'camera' | 'photos' | 'paste' | 'voice' | 'manual' | 'video';
 
+const ICON_PROPS = { size: 24, color: Colors.primary, strokeWidth: 2 } as const;
+
 const METHODS: {
   key: MethodKey;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: React.ReactNode;
   title: string;
   subtitle: string;
 }[] = [
-  { key: 'paste',  icon: 'document-text-outline', title: 'Paste Text',   subtitle: 'Paste a recipe from anywhere' },
-  { key: 'manual', icon: 'create-outline',        title: 'Manual Entry', subtitle: 'Fill in every detail yourself' },
-  { key: 'photos', icon: 'image',                 title: 'Photos',       subtitle: 'Pick from your library' },
-  { key: 'video',  icon: 'videocam',              title: 'Video Link',   subtitle: 'YouTube or TikTok recipe' },
-  { key: 'voice',  icon: 'mic',                   title: 'Voice',        subtitle: 'Describe the recipe aloud' },
-  { key: 'camera', icon: 'camera',                title: 'Camera',       subtitle: 'Take a photo of a recipe' },
+  { key: 'paste',  icon: <FileText    {...ICON_PROPS} />, title: 'Paste Text',   subtitle: 'Paste a recipe from anywhere' },
+  { key: 'manual', icon: <PenLine     {...ICON_PROPS} />, title: 'Manual Entry', subtitle: 'Fill in every detail yourself' },
+  { key: 'photos', icon: <LucideImage {...ICON_PROPS} />, title: 'Photos',       subtitle: 'Pick from your library' },
+  { key: 'video',  icon: <Video       {...ICON_PROPS} />, title: 'Video Link',   subtitle: 'YouTube or TikTok recipe' },
+  { key: 'voice',  icon: <Mic         {...ICON_PROPS} />, title: 'Voice',        subtitle: 'Describe the recipe aloud' },
+  { key: 'camera', icon: <Camera      {...ICON_PROPS} />, title: 'Camera',       subtitle: 'Take a photo of a recipe' },
 ];
 
 function MethodCard({
@@ -45,7 +48,7 @@ function MethodCard({
   subtitle,
   onPress,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: React.ReactNode;
   title: string;
   subtitle: string;
   onPress: () => void;
@@ -63,7 +66,7 @@ function MethodCard({
     <Pressable onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut} style={styles.methodCardOuter}>
       <Animated.View style={[styles.methodCard, { transform: [{ scale }] }]}>
         <View style={styles.methodIconCircle}>
-          <Ionicons name={icon} size={24} color={Colors.primary} />
+          {icon}
         </View>
         <Text style={styles.methodTitle}>{title}</Text>
         <Text style={styles.methodSubtitle}>{subtitle}</Text>
@@ -77,7 +80,7 @@ export default function AddMealEntryScreen() {
   const router = useRouter();
   const [showVoiceSheet, setShowVoiceSheet] = useState(false);
   const [pastedText, setPastedText] = useState<string>('');
-  const [urlFeedback, setUrlFeedback] = useState<{ type: string; icon: string; iconColor: string; message: string } | null>(null);
+  const [urlFeedback, setUrlFeedback] = useState<{ type: string; iconNode: React.ReactNode; message: string } | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const extractScale = useRef(new Animated.Value(1)).current;
 
@@ -85,15 +88,15 @@ export default function AddMealEntryScreen() {
     if (text.length < 10) { setUrlFeedback(null); return; }
     const lower = text.toLowerCase();
     if (lower.includes('youtube.com/watch') || lower.includes('youtu.be/')) {
-      setUrlFeedback({ type: 'youtube', icon: 'logo-youtube', iconColor: '#FF0000', message: 'YouTube video — we\'ll extract from the description' });
+      setUrlFeedback({ type: 'youtube', iconNode: <Ionicons name="logo-youtube" size={16} color="#FF0000" />, message: 'YouTube video — we\'ll extract from the description' });
     } else if (lower.includes('tiktok.com/')) {
-      setUrlFeedback({ type: 'tiktok', icon: 'logo-tiktok', iconColor: '#111827', message: 'TikTok video — we\'ll extract from the caption' });
+      setUrlFeedback({ type: 'tiktok', iconNode: <Ionicons name="logo-tiktok" size={16} color="#111827" />, message: 'TikTok video — we\'ll extract from the caption' });
     } else if (lower.startsWith('http://') || lower.startsWith('https://')) {
       try {
         const hostname = new URL(text).hostname.replace('www.', '');
-        setUrlFeedback({ type: 'web', icon: 'globe-outline', iconColor: '#7C3AED', message: 'We\'ll extract the recipe from ' + hostname });
+        setUrlFeedback({ type: 'web', iconNode: <Globe size={16} color="#7C3AED" strokeWidth={2} />, message: 'We\'ll extract the recipe from ' + hostname });
       } catch {
-        setUrlFeedback({ type: 'web', icon: 'globe-outline', iconColor: '#7C3AED', message: 'We\'ll extract the recipe from this page' });
+        setUrlFeedback({ type: 'web', iconNode: <Globe size={16} color="#7C3AED" strokeWidth={2} />, message: 'We\'ll extract the recipe from this page' });
       }
     } else {
       setUrlFeedback(null);
@@ -235,7 +238,7 @@ export default function AddMealEntryScreen() {
     <View style={[styles.root, { backgroundColor: Colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          <ChevronLeft size={24} color={Colors.text} strokeWidth={2} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add a Recipe</Text>
         <View style={styles.backBtn} />
@@ -250,7 +253,7 @@ export default function AddMealEntryScreen() {
           <Text style={styles.sectionLabel}>PASTE A LINK</Text>
           <View style={styles.inputRow}>
             <View style={styles.inputWrapper}>
-              <Ionicons name="link-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
+              <LinkIcon size={18} color={Colors.textSecondary} strokeWidth={2} style={styles.inputIcon} />
               <TextInput
                 style={styles.textInput}
                 placeholder="Recipe blog, website, YouTube, TikTok..."
@@ -279,7 +282,7 @@ export default function AddMealEntryScreen() {
             </View>
             {urlFeedback && (
               <View style={styles.urlHintRow}>
-                <Ionicons name={urlFeedback.icon as any} size={16} color={urlFeedback.iconColor} />
+                {urlFeedback.iconNode}
                 <Text style={styles.urlHintText}>{urlFeedback.message}</Text>
               </View>
             )}

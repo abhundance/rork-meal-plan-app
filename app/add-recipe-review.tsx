@@ -15,7 +15,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { ChevronLeft, Camera, XCircle, PlusCircle, ChevronUp, ChevronDown } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 import { extractRecipeFromImage, extractRecipeFromText, detectVideoUrlType, extractRecipeFromVideoUrl } from '@/services/recipeExtraction';
@@ -405,7 +405,7 @@ export default function AddMealReviewScreen() {
       >
         <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
           <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={styles.headerSide}>
-            <Ionicons name="chevron-back" size={24} color={Colors.text} />
+            <ChevronLeft size={24} color={Colors.text} strokeWidth={2} />
           </TouchableOpacity>
           <View style={styles.headerTitleBlock}>
             <Text style={styles.headerTitle}>Review Recipe</Text>
@@ -441,7 +441,7 @@ export default function AddMealReviewScreen() {
               <MealImagePlaceholder size="hero" mealType={mealType || undefined} cuisine={cuisine || undefined} name={name} />
             )}
             <View style={styles.heroEditBadge}>
-              <Ionicons name="camera" size={16} color="#FFFFFF" />
+              <Camera size={16} color="#FFFFFF" strokeWidth={2} />
               <Text style={styles.heroEditBadgeText}>
                 {selectedImageUri ? 'Change photo' : 'Add photo'}
               </Text>
@@ -509,12 +509,12 @@ export default function AddMealReviewScreen() {
                       placeholderTextColor={Colors.textSecondary}
                     />
                     <TouchableOpacity onPress={() => removeIngredient(idx)} hitSlop={8}>
-                      <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+                      <XCircle size={20} color={Colors.textSecondary} strokeWidth={2} />
                     </TouchableOpacity>
                   </View>
                 ))}
                 <TouchableOpacity style={styles.addRowBtn} onPress={addIngredient}>
-                  <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+                  <PlusCircle size={18} color={Colors.primary} strokeWidth={2} />
                   <Text style={styles.addRowText}>Add ingredient</Text>
                 </TouchableOpacity>
               </>
@@ -562,12 +562,12 @@ export default function AddMealReviewScreen() {
                       multiline
                     />
                     <TouchableOpacity onPress={() => removeStep(idx)} hitSlop={8}>
-                      <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+                      <XCircle size={20} color={Colors.textSecondary} strokeWidth={2} />
                     </TouchableOpacity>
                   </View>
                 ))}
                 <TouchableOpacity style={styles.addRowBtn} onPress={addStep}>
-                  <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+                  <PlusCircle size={18} color={Colors.primary} strokeWidth={2} />
                   <Text style={styles.addRowText}>Add step</Text>
                 </TouchableOpacity>
               </>
@@ -636,11 +636,10 @@ export default function AddMealReviewScreen() {
                   </View>
                 )}
               </View>
-              <Ionicons
-                name={accordionOpen ? 'chevron-up' : 'chevron-down'}
-                size={18}
-                color={Colors.textSecondary}
-              />
+              {accordionOpen
+                ? <ChevronUp size={18} color={Colors.textSecondary} strokeWidth={2} />
+                : <ChevronDown size={18} color={Colors.textSecondary} strokeWidth={2} />
+              }
             </TouchableOpacity>
 
             {accordionOpen && (
