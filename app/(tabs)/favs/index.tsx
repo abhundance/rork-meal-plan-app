@@ -62,7 +62,7 @@ import {
   Pencil,
   Bike,
   ChevronLeft,
-  Clipboard,
+  Clipboard as ClipboardIcon,
   CheckCircle2,
 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -809,7 +809,7 @@ export default function FavsScreen() {
                       }}
                       style={styles.addMethodClipboardBtn}
                     >
-                      <Clipboard size={20} color={Colors.primary} strokeWidth={2} />
+                      <ClipboardIcon size={20} color={Colors.primary} strokeWidth={2} />
                     </TouchableOpacity>
                   </View>
                   {quickAddDeliveryUrl.trim().length > 0 && (

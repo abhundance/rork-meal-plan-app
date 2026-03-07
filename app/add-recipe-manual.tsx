@@ -17,13 +17,13 @@ import * as ImagePicker from 'expo-image-picker';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { X, Plus, Minus, Camera, Sparkles, ChevronUp, ChevronDown, Clipboard, CheckCircle2, Link as LinkIcon } from 'lucide-react-native';
+import { X, Plus, Minus, Camera, Sparkles, ChevronUp, ChevronDown, Clipboard as ClipboardIcon, CheckCircle2, Link as LinkIcon } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
 import { extractRecipeMetadata } from '@/services/recipeExtraction';
 import Colors from '@/constants/colors';
-import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
+import { BorderRadius, Spacing } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import FilterPill from '@/components/FilterPill';
 import ServingStepper from '@/components/ServingStepper';
@@ -832,7 +832,7 @@ export default function AddMealScreen() {
                 if (text) setDeliveryUrl(text);
               }}
             >
-              <Clipboard size={20} color={Colors.primary} strokeWidth={2} />
+              <ClipboardIcon size={20} color={Colors.primary} strokeWidth={2} />
             </TouchableOpacity>
           </View>
           {deliveryUrl.trim().length > 0 && (() => {

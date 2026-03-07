@@ -11,13 +11,13 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { X, Utensils, Heart, Search, ChevronLeft, ChevronRight, Clipboard, CheckCircle2, Globe, Compass, Pencil, Sparkles, Bike } from 'lucide-react-native';
+import { X, Utensils, Heart, Search, ChevronLeft, ChevronRight, Clipboard as ClipboardIcon, CheckCircle2, Globe, Compass, Pencil, Sparkles, Bike } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
-import { BorderRadius, Spacing } from '@/constants/theme';
+import { BorderRadius } from '@/constants/theme';
 import { PlannedMeal, Recipe } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { useFavs } from '@/providers/FavsProvider';
@@ -253,7 +253,7 @@ export default function MealPickerSheet({
                 }}
                 testID="delivery-clipboard-btn"
               >
-                <Clipboard size={20} color={Colors.primary} strokeWidth={2} />
+                <ClipboardIcon size={20} color={Colors.primary} strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
