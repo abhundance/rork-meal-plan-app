@@ -31,7 +31,7 @@ function showSheet(
   callback: (index: number) => void
 ) {
   if (Platform.OS === 'ios') {
-    showSheet(opts, callback);
+    ActionSheetIOS.showActionSheetWithOptions(opts, callback);
   } else {
     const buttons = opts.options.map((label, i) => ({
       text: label,
