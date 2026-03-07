@@ -205,6 +205,15 @@ function AddItemSheet({ visible, onClose, onAdd }: AddItemSheetProps) {
   const [unit, setUnit] = useState('');
   const [category, setCategory] = useState('Other');
   const insets = useSafeAreaInsets();
+  const nameInputRef = useRef<TextInput>(null);
+
+  // Focus the input after the sheet slide-up animation finishes (~350ms)
+  useEffect(() => {
+    if (visible) {
+      const timer = setTimeout(() => nameInputRef.current?.focus(), 350);
+      return () => clearTimeout(timer);
+    }
+  }, [visible]);
 
   const reset = () => { setName(''); setQty(''); setUnit(''); setCategory('Other'); };
 
@@ -230,12 +239,12 @@ function AddItemSheet({ visible, onClose, onAdd }: AddItemSheetProps) {
           <Text style={sheetStyles.title}>Add item</Text>
 
           <TextInput
+            ref={nameInputRef}
             style={sheetStyles.input}
             placeholder="Item name"
             placeholderTextColor={Colors.textSecondary}
             value={name}
             onChangeText={setName}
-            autoFocus
             returnKeyType="next"
           />
 
