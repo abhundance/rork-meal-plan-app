@@ -105,7 +105,7 @@ export default function SlotPickerModal({
                         ]}
                         onPress={() => handleSlotPress(dateKey, slot.slot_id)}
                         disabled={isFull}
-                        activeOpacity={0.7}
+                        activeOpacity={0.8}
                       >
                         {isFull ? (
                           <Text style={styles.slotFullText}>FULL</Text>

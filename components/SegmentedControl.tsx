@@ -47,7 +47,7 @@ export default function SegmentedControl({ segments, activeIndex, onChange }: Se
           key={label}
           style={styles.segment}
           onPress={() => onChange(idx)}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
           testID={`segment-${label.toLowerCase().replace(/\s/g, '-')}`}
         >
           <Text style={[styles.label, activeIndex === idx && styles.labelActive]}>

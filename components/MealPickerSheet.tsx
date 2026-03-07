@@ -11,8 +11,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { X, Utensils, Heart, Search } from 'lucide-react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { X, Utensils, Heart, Search, ChevronLeft, ChevronRight, Clipboard, CheckCircle2, Globe, Compass, Pencil, Sparkles, Bike } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
@@ -196,7 +195,7 @@ export default function MealPickerSheet({
         <View style={styles.header}>
           {mode === 'manual' || mode === 'delivery' ? (
             <TouchableOpacity onPress={() => setMode('choose')} style={styles.closeBtn} testID="back-to-choose-btn">
-              <Ionicons name="chevron-back" size={22} color={Colors.text} />
+              <ChevronLeft size={22} color={Colors.text} strokeWidth={2} />
             </TouchableOpacity>
           ) : (
             <View style={styles.closeBtn} />
@@ -252,13 +251,13 @@ export default function MealPickerSheet({
                 }}
                 testID="delivery-clipboard-btn"
               >
-                <Ionicons name="clipboard-outline" size={20} color={Colors.primary} />
+                <Clipboard size={20} color={Colors.primary} strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
             {deliveryUrl.trim().length > 0 && (
               <View style={styles.deliveryPlatformChip}>
-                <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
+                <CheckCircle2 size={14} color={Colors.primary} strokeWidth={2} />
                 <Text style={styles.deliveryPlatformText}>
                   {getPlatformLabel(detectPlatformFromUrl(deliveryUrl.trim()))} detected
                 </Text>
@@ -317,7 +316,7 @@ export default function MealPickerSheet({
                       <TouchableOpacity
                         key={meal.id}
                         style={[styles.searchResultRow, index < filteredFavMeals.length - 1 && styles.searchResultRowBorder]}
-                        activeOpacity={0.82}
+                        activeOpacity={0.8}
                         onPress={() => handleSelectFavMeal(meal)}
                         testID={'search-result-' + meal.id}
                       >
@@ -325,7 +324,7 @@ export default function MealPickerSheet({
                           {meal.image_url ? (
                             <Image source={{ uri: meal.image_url }} style={{ width: 40, height: 40, borderRadius: 20 }} resizeMode="cover" />
                           ) : (
-                            <Ionicons name="restaurant-outline" size={18} color={Colors.textSecondary} />
+                            <Utensils size={18} color={Colors.textSecondary} strokeWidth={2} />
                           )}
                         </View>
                         <View style={styles.searchResultText}>
@@ -336,7 +335,7 @@ export default function MealPickerSheet({
                             </Text>
                           )}
                         </View>
-                        <Ionicons name="chevron-forward" size={16} color={Colors.border} />
+                        <ChevronRight size={16} color={Colors.border} strokeWidth={2} />
                       </TouchableOpacity>
                     ))
                   )}
@@ -344,7 +343,7 @@ export default function MealPickerSheet({
                   <Text style={[styles.searchSectionLabel, { marginTop: 28 }]}>SEARCH ONLINE</Text>
                   <View style={styles.searchOnlineStub}>
                     <View style={styles.searchResultImage}>
-                      <Ionicons name="globe-outline" size={18} color={Colors.textSecondary} />
+                      <Globe size={18} color={Colors.textSecondary} strokeWidth={2} />
                     </View>
                     <Text style={styles.searchOnlineText}>Search millions of recipes online — coming soon</Text>
                   </View>
@@ -354,7 +353,7 @@ export default function MealPickerSheet({
                   <View style={styles.browseCardsRow}>
                     <TouchableOpacity
                       style={styles.browseCardLeft}
-                      activeOpacity={0.82}
+                      activeOpacity={0.8}
                       onPress={() => { resetAndClose(); router.push('/(tabs)/favs'); }}
                       testID="browse-favs-btn"
                     >
@@ -367,11 +366,11 @@ export default function MealPickerSheet({
 
                     <TouchableOpacity
                       style={styles.browseCardRight}
-                      activeOpacity={0.82}
+                      activeOpacity={0.8}
                       onPress={() => { resetAndClose(); router.push('/(tabs)/discover'); }}
                       testID="browse-discover-btn"
                     >
-                      <Ionicons name="compass-outline" size={22} color="#059669" />
+                      <Compass size={22} color="#059669" strokeWidth={2} />
                       <Text style={styles.browseCardTitle}>Try Something New</Text>
                       <Text style={styles.browseCardSubtitle}>
                         {DISCOVER_MEALS.length} curated recipes
@@ -388,54 +387,54 @@ export default function MealPickerSheet({
                   <View testID="option-rows">
                     <TouchableOpacity
                       style={styles.optionRow}
-                      activeOpacity={0.82}
+                      activeOpacity={0.8}
                       onPress={() => setMode('manual')}
                       testID="add-without-recipe-btn"
                     >
                       <View style={[styles.optionIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                        <Ionicons name="pencil-outline" size={16} color="#D97706" />
+                        <Pencil size={16} color="#D97706" strokeWidth={2} />
                       </View>
                       <View style={styles.optionTextBlock}>
                         <Text style={styles.optionTitle}>Add without Recipe</Text>
                         <Text style={styles.optionSubtitle}>Just a name - add steps later</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color={Colors.border} />
+                      <ChevronRight size={16} color={Colors.border} strokeWidth={2} />
                     </TouchableOpacity>
 
                     <View style={styles.optionSeparator} />
 
                     <TouchableOpacity
                       style={styles.optionRow}
-                      activeOpacity={0.82}
+                      activeOpacity={0.8}
                       onPress={() => { resetAndClose(); onCreateNewRecipe(); }}
                       testID="add-with-recipe-btn"
                     >
                       <View style={[styles.optionIconCircle, { backgroundColor: Colors.primaryLight }]}>
-                        <Ionicons name="sparkles-outline" size={16} color={Colors.primary} />
+                        <Sparkles size={16} color={Colors.primary} strokeWidth={2} />
                       </View>
                       <View style={styles.optionTextBlock}>
                         <Text style={styles.optionTitle}>Add with Recipe</Text>
                         <Text style={styles.optionSubtitle}>URL, camera, YouTube & more</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color={Colors.border} />
+                      <ChevronRight size={16} color={Colors.border} strokeWidth={2} />
                     </TouchableOpacity>
 
                     <View style={styles.optionSeparator} />
 
                     <TouchableOpacity
                       style={styles.optionRow}
-                      activeOpacity={0.82}
+                      activeOpacity={0.8}
                       onPress={() => setMode('delivery')}
                       testID="add-delivery-btn"
                     >
                       <View style={[styles.optionIconCircle, { backgroundColor: '#DBEAFE' }]}>
-                        <Ionicons name="bicycle-outline" size={16} color="#2563EB" />
+                        <Bike size={16} color="#2563EB" strokeWidth={2} />
                       </View>
                       <View style={styles.optionTextBlock}>
                         <Text style={styles.optionTitle}>Add from Delivery App</Text>
                         <Text style={styles.optionSubtitle}>Paste a delivery link</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color={Colors.border} />
+                      <ChevronRight size={16} color={Colors.border} strokeWidth={2} />
                     </TouchableOpacity>
                   </View>
                 </>
@@ -462,13 +461,14 @@ export default function MealPickerSheet({
             <TouchableOpacity
               style={styles.saveToMyMealsRow}
               onPress={() => setSaveToMyMeals((v) => !v)}
-              activeOpacity={0.75}
+              activeOpacity={0.8}
               testID="save-to-my-meals-toggle"
             >
-              <Ionicons
-                name={saveToMyMeals ? 'heart' : 'heart-outline'}
+              <Heart
                 size={18}
                 color={saveToMyMeals ? Colors.primary : Colors.textSecondary}
+                fill={saveToMyMeals ? Colors.primary : 'none'}
+                strokeWidth={2}
               />
               <Text style={styles.saveToMyMealsText}>Save to My Meals</Text>
             </TouchableOpacity>
@@ -500,10 +500,10 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    borderRadius: 2,
+    borderRadius: 99,
     backgroundColor: Colors.divider,
     alignSelf: 'center',
-    marginTop: 10,
+    marginTop: 12,
     marginBottom: 4,
   },
   header: {

@@ -4,7 +4,6 @@ import {
   Text,
   Modal,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   StyleSheet,
   Animated,
   ActivityIndicator,
@@ -12,11 +11,10 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Mic, Square } from 'lucide-react-native';
 import { useAudioRecorder, RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync } from 'expo-audio';
 import Colors from '@/constants/colors';
-import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
+import { BorderRadius, Spacing } from '@/constants/theme';
 import { transcribeAndExtract, ExtractedRecipe } from '@/services/recipeExtraction';
 
 type RecordingState = 'idle' | 'recording' | 'processing' | 'error';
@@ -35,7 +33,6 @@ function formatTime(seconds: number): string {
 }
 
 export default function VoiceRecordSheet({ visible, onClose, onExtracted, onError }: Props) {
-  const insets = useSafeAreaInsets();
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [elapsed, setElapsed] = useState<number>(0);
 
@@ -162,20 +159,16 @@ export default function VoiceRecordSheet({ visible, onClose, onExtracted, onErro
       return <ActivityIndicator size="small" color={Colors.primary} />;
     }
     if (recordingState === 'recording') {
-      return <Ionicons name="stop" size={32} color={Colors.white} />;
+      return <Square size={30} color={Colors.white} fill={Colors.white} strokeWidth={2} />;
     }
-    return <Ionicons name="mic" size={36} color={Colors.primary} />;
+    return <Mic size={36} color={Colors.primary} strokeWidth={2} />;
   };
 
   const buttonBg = recordingState === 'recording' ? Colors.primary : Colors.primaryLight;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay} />
-      </TouchableWithoutFeedback>
-
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={styles.sheet}>
         <View style={styles.handle} />
 
         <View style={styles.content}>
@@ -203,7 +196,7 @@ export default function VoiceRecordSheet({ visible, onClose, onExtracted, onErro
           )}
 
           {recordingState !== 'processing' && (
-            <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={styles.cancelButton}>
+            <TouchableOpacity onPress={onClose} activeOpacity={0.8} style={styles.cancelButton}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
           )}
@@ -214,27 +207,18 @@ export default function VoiceRecordSheet({ visible, onClose, onExtracted, onErro
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: Colors.overlay,
-  },
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    flex: 1,
     backgroundColor: Colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    ...Shadows.card,
   },
   handle: {
-    width: 32,
+    width: 36,
     height: 4,
     backgroundColor: Colors.border,
-    borderRadius: 2,
+    borderRadius: 99,
     alignSelf: 'center',
-    marginTop: 16,
+    marginTop: 12,
+    marginBottom: 4,
   },
   content: {
     alignItems: 'center',

@@ -11,8 +11,7 @@ import {
   Pressable,
   Image,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Plus, PlusCircle, Bike } from 'lucide-react-native';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -221,10 +220,10 @@ const ActionStrip = React.memo(function ActionStrip({ dayIsEmpty, onSmartPlan, o
           <Text style={styles.smartFillLabel}>{dayIsEmpty ? '✨ Smart Fill' : '🔀 Reshuffle'}</Text>
         </Animated.View>
       </Pressable>
-      <TouchableOpacity onPress={onRepeatDay} style={styles.clearDayBtn} activeOpacity={0.7}>
+      <TouchableOpacity onPress={onRepeatDay} style={styles.clearDayBtn} activeOpacity={0.8}>
         <Text style={styles.clearDayLabel}>Repeat day</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={onClearDay} style={styles.clearDayBtn} activeOpacity={0.7}>
+      <TouchableOpacity onPress={onClearDay} style={styles.clearDayBtn} activeOpacity={0.8}>
         <Text style={styles.clearDayLabel}>Clear day</Text>
       </TouchableOpacity>
     </View>
@@ -269,7 +268,7 @@ const DailySlotCard = React.memo(function DailySlotCard({
           onPress={() => onEmptyPress(dateKey, slot.slot_id)}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
           <Card style={styles.emptyCard}>
             <Text style={styles.slotName}>{slot.name}</Text>
@@ -305,9 +304,9 @@ const DailySlotCard = React.memo(function DailySlotCard({
             onPress={() => onAddItemToSlot(dateKey, slot.slot_id, slot.name)}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
-            <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+            <PlusCircle size={18} color={Colors.primary} strokeWidth={1.5} />
             <Text style={styles.addItemText}>Add item</Text>
           </TouchableOpacity>
         )}
@@ -355,7 +354,7 @@ const MealItemRow = React.memo(function MealItemRow({
               { text: 'Remove from plan', style: 'destructive', onPress: () => handleDelete() },
             ]);
           }}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
           {meal.meal_image_url ? (
             <Image source={{ uri: meal.meal_image_url }} style={{ width: 42, height: 42, borderRadius: 10 }} resizeMode="cover" />
@@ -370,9 +369,9 @@ const MealItemRow = React.memo(function MealItemRow({
               <TouchableOpacity
                 style={styles.orderPill}
                 onPress={() => openDeliveryLink(meal.delivery_url!)}
-                activeOpacity={0.75}
+                activeOpacity={0.8}
               >
-                <Ionicons name="bicycle-outline" size={13} color={Colors.primary} />
+                <Bike size={13} color={Colors.primary} strokeWidth={2} />
                 <Text style={styles.orderPillText}>Order</Text>
               </TouchableOpacity>
             )}

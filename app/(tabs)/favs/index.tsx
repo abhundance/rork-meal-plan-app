@@ -48,7 +48,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href, useFocusEffect } from 'expo-router';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import * as Haptics from 'expo-haptics';
-import { Ionicons } from '@expo/vector-icons';
 import {
   Search,
   X,
@@ -57,6 +56,14 @@ import {
   SlidersHorizontal,
   ArrowUpDown,
   CalendarPlus,
+  Utensils,
+  FileText,
+  ChevronRight,
+  Pencil,
+  Bike,
+  ChevronLeft,
+  Clipboard,
+  CheckCircle2,
 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
@@ -421,7 +428,7 @@ export default function FavsScreen() {
             gap: 6,
           }}
           onPress={openAddMethodSheet}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
           testID="add-recipe-tile"
         >
           <View style={{
@@ -450,7 +457,7 @@ export default function FavsScreen() {
 
   const MyRecipesEmptyState = useMemo(() => (
     <View style={styles.segmentEmptyContainer}>
-      <Ionicons name="restaurant-outline" size={64} color={Colors.textSecondary} />
+      <Utensils size={64} color={Colors.textSecondary} strokeWidth={1.5} />
       <Text style={styles.segmentEmptyTitle}>No recipes yet</Text>
       <Text style={styles.segmentEmptySubtitle}>
         Add your family's favourite meals to keep them all in one place
@@ -466,7 +473,7 @@ export default function FavsScreen() {
 
   const SearchEmptyState = useMemo(() => (
     <View style={styles.segmentEmptyContainer}>
-      <Ionicons name="search-outline" size={48} color={Colors.textSecondary} />
+      <Search size={48} color={Colors.textSecondary} strokeWidth={1.5} />
       <Text style={styles.segmentEmptyTitle}>No meals found</Text>
       <Text style={styles.segmentEmptySubtitle}>
         {search ? `No results for "${search}"` : 'Try adjusting your filters'}
@@ -498,7 +505,7 @@ export default function FavsScreen() {
   const FilterEmptyState = (
     <View style={styles.filterEmptyContainer}>
       <View style={styles.filterEmptyIconWrap}>
-        <Ionicons name="options-outline" size={32} color={Colors.primary} />
+        <SlidersHorizontal size={32} color={Colors.primary} strokeWidth={2} />
       </View>
       <Text style={styles.filterEmptyTitle}>No meals found</Text>
       <Text style={styles.filterEmptySubtitle}>{filterEmptySubtitle}</Text>
@@ -618,23 +625,23 @@ export default function FavsScreen() {
                   style={{ height: 46 }}
                   contentContainerStyle={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 7 }}
                 >
-                  <TouchableOpacity onPress={cycleSortOption} activeOpacity={0.75} style={[styles.filterPill, sortActive && styles.filterPillActive]}>
+                  <TouchableOpacity onPress={cycleSortOption} activeOpacity={0.8} style={[styles.filterPill, sortActive && styles.filterPillActive]}>
                     <ArrowUpDown size={13} color={sortActive ? Colors.white : Colors.text} strokeWidth={2.5} />
                     <Text style={[styles.filterPillText, sortActive && styles.filterPillTextActive, { marginLeft: 5 }]}>{sortLabel}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={handleWhenPress} activeOpacity={0.75} style={[styles.filterPill, whenActive && styles.filterPillActive]}>
+                  <TouchableOpacity onPress={handleWhenPress} activeOpacity={0.8} style={[styles.filterPill, whenActive && styles.filterPillActive]}>
                     <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}>{whenActive ? whenLabel : 'When'}</Text>
                     <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}> {whenActive ? '✕' : '▾'}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={handleTypePress} activeOpacity={0.75} style={[styles.filterPill, typeActive && styles.filterPillActive]}>
+                  <TouchableOpacity onPress={handleTypePress} activeOpacity={0.8} style={[styles.filterPill, typeActive && styles.filterPillActive]}>
                     <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}>{typeActive ? typeLabel : 'Type'}</Text>
                     <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}> {typeActive ? '✕' : '▾'}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={handleProteinPress} activeOpacity={0.75} style={[styles.filterPill, proteinActive && styles.filterPillActive]}>
+                  <TouchableOpacity onPress={handleProteinPress} activeOpacity={0.8} style={[styles.filterPill, proteinActive && styles.filterPillActive]}>
                     <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}>{proteinActive ? proteinLabel : 'Protein'}</Text>
                     <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}> {proteinActive ? '✕' : '▾'}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={handleDietPress} activeOpacity={0.75} style={[styles.filterPill, dietActive && styles.filterPillActive]}>
+                  <TouchableOpacity onPress={handleDietPress} activeOpacity={0.8} style={[styles.filterPill, dietActive && styles.filterPillActive]}>
                     <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}>{dietActive ? dietLabel : 'Diet'}</Text>
                     <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}> {dietActive ? '✕' : '▾'}</Text>
                   </TouchableOpacity>
@@ -703,38 +710,38 @@ export default function FavsScreen() {
               <View style={{ paddingHorizontal: 20, gap: 10, marginBottom: 24 }}>
                 <TouchableOpacity
                   style={styles.addMethodOptionRow}
-                  activeOpacity={0.82}
+                  activeOpacity={0.8}
                   onPress={() => {
                     setShowAddMethodSheet(false);
                     router.push('/add-recipe-entry' as Href);
                   }}
                 >
                   <View style={styles.addMethodOptionIcon}>
-                    <Ionicons name="document-text-outline" size={22} color={Colors.primary} />
+                    <FileText size={22} color={Colors.primary} strokeWidth={2} />
                   </View>
                   <View style={styles.addMethodOptionTextBlock}>
                     <Text style={{ fontSize: 15, fontWeight: '700' as const, color: Colors.text }}>Add with Recipe</Text>
                     <Text style={{ fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary, marginTop: 2 }}>URL, camera, YouTube & more</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+                  <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.addMethodOptionRow}
-                  activeOpacity={0.82}
+                  activeOpacity={0.8}
                   onPress={() => { setQuickAddSource('manual'); setAddMethodMode('quick_add'); }}
                 >
                   <View style={styles.addMethodOptionIcon}>
-                    <Ionicons name="pencil-outline" size={22} color={Colors.primary} />
+                    <Pencil size={22} color={Colors.primary} strokeWidth={2} />
                   </View>
                   <View style={styles.addMethodOptionTextBlock}>
                     <Text style={{ fontSize: 15, fontWeight: '700' as const, color: Colors.text }}>Add without Recipe</Text>
                     <Text style={{ fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary, marginTop: 2 }}>Just a name — add the recipe later</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+                  <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.addMethodOptionRow}
-                  activeOpacity={0.82}
+                  activeOpacity={0.8}
                   onPress={async () => {
                     const text = (await Clipboard.getStringAsync())?.trim() ?? '';
                     if (text && detectPlatformFromUrl(text)) {
@@ -745,13 +752,13 @@ export default function FavsScreen() {
                   }}
                 >
                   <View style={styles.addMethodOptionIcon}>
-                    <Ionicons name="bicycle-outline" size={22} color={Colors.primary} />
+                    <Bike size={22} color={Colors.primary} strokeWidth={2} />
                   </View>
                   <View style={styles.addMethodOptionTextBlock}>
                     <Text style={{ fontSize: 15, fontWeight: '700' as const, color: Colors.text }}>Add from Delivery App</Text>
                     <Text style={{ fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary, marginTop: 2 }}>Save a link from Uber Eats, Grab & more</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+                  <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
                 </TouchableOpacity>
               </View>
               <TouchableOpacity
@@ -766,7 +773,7 @@ export default function FavsScreen() {
               <View style={styles.addMethodHandle} />
               <View style={styles.addMethodBackRow}>
                 <TouchableOpacity onPress={() => { setAddMethodMode('choose'); setQuickAddSource('manual'); }}>
-                  <Ionicons name="chevron-back" size={20} color={Colors.primary} />
+                  <ChevronLeft size={20} color={Colors.primary} strokeWidth={2} />
                 </TouchableOpacity>
                 <Text style={styles.addMethodBackTitle}>{quickAddSource === 'delivery' ? 'Add from Delivery App' : 'Add without Recipe'}</Text>
               </View>
@@ -802,12 +809,12 @@ export default function FavsScreen() {
                       }}
                       style={styles.addMethodClipboardBtn}
                     >
-                      <Ionicons name="clipboard-outline" size={20} color={Colors.primary} />
+                      <Clipboard size={20} color={Colors.primary} strokeWidth={2} />
                     </TouchableOpacity>
                   </View>
                   {quickAddDeliveryUrl.trim().length > 0 && (
                     <View style={styles.addMethodPlatformChip}>
-                      <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
+                      <CheckCircle2 size={14} color={Colors.primary} strokeWidth={2} />
                       <Text style={styles.addMethodPlatformChipText}>
                         {getPlatformLabel(detectPlatformFromUrl(quickAddDeliveryUrl.trim()))} detected
                       </Text>
@@ -842,7 +849,7 @@ export default function FavsScreen() {
       <TouchableOpacity
         style={[styles.fab, { bottom: insets.bottom + 16 }]}
         onPress={openAddMethodSheet}
-        activeOpacity={0.85}
+        activeOpacity={0.8}
         testID="fab-add-meal"
       >
         <Plus size={20} color={Colors.white} strokeWidth={2.5} />

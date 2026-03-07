@@ -12,7 +12,7 @@ import { FavsProvider } from "@/providers/FavsProvider";
 import { DiscoverProvider } from "@/providers/DiscoverProvider";
 import { AppState, Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { AlertCircle, Bike, X } from 'lucide-react-native';
 import Colors from "@/constants/colors";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { detectPlatformFromUrl, getPlatformLabel } from "@/services/deliveryUtils";
@@ -39,7 +39,7 @@ class ErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <View style={errorStyles.container}>
-          <Ionicons name="alert-circle-outline" size={64} color={Colors.textSecondary} />
+          <AlertCircle size={64} color={Colors.textSecondary} strokeWidth={1.5} />
           <Text style={errorStyles.title}>Something went wrong</Text>
           <Text style={errorStyles.message}>
             The app ran into an unexpected error. Tap below to try again.
@@ -224,7 +224,7 @@ function DeliveryBannerLayout() {
       >
         {bannerUrl !== null && (
           <View style={styles.bannerCard}>
-            <Ionicons name="bicycle-outline" size={18} color={Colors.primary} />
+            <Bike size={18} color={Colors.primary} strokeWidth={2} />
             <View style={styles.bannerTextContainer}>
               <Text style={styles.bannerTitle}>{platformLabel} link detected</Text>
               <Text style={styles.bannerSubtitle}>Tap Add Meal to save it to your favourites</Text>
@@ -242,7 +242,7 @@ function DeliveryBannerLayout() {
               <Text style={styles.addButtonText}>Add Meal</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={dismissBanner} style={styles.closeButton}>
-              <Ionicons name="close-outline" size={16} color={Colors.textSecondary} />
+              <X size={16} color={Colors.textSecondary} strokeWidth={2} />
             </TouchableOpacity>
           </View>
         )}

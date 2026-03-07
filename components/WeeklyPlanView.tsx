@@ -9,8 +9,7 @@ import {
   Pressable,
 } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import { Ionicons } from '@expo/vector-icons';
-import { ChevronLeft, ChevronRight, Copy, Wand2, CalendarDays } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Copy, Wand2, CalendarDays, Clock, Bike } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors, { SlotColors } from '@/constants/colors';
 import { MealSlot, PlannedMeal } from '@/types';
@@ -177,7 +176,7 @@ export default function WeeklyPlanView({
               <Animated.View
                 style={[styles.copyBtn, { transform: [{ scale: copyScale }] }]}
               >
-                <Ionicons name="time-outline" size={13} color={Colors.primary} />
+                <Clock size={13} color={Colors.primary} strokeWidth={2} />
                 <Text style={styles.copyText}>Repeat</Text>
               </Animated.View>
             </Pressable>
@@ -240,7 +239,7 @@ export default function WeeklyPlanView({
                     onDayPress(date);
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
                   <View style={styles.leftCell}>
                     <Text style={[styles.dayAbbrev, today && styles.dayAbbrevToday]}>
@@ -274,7 +273,7 @@ export default function WeeklyPlanView({
                                 </Text>
                                 {(!!meal.is_delivery || !!meal.delivery_url) && (
                                   <View style={styles.deliveryDot}>
-                                    <Ionicons name="bicycle" size={10} color={Colors.primary} />
+                                    <Bike size={10} color={Colors.primary} strokeWidth={2} />
                                   </View>
                                 )}
                               </View>
@@ -308,7 +307,7 @@ function EmptyWeekState({ weekOffset, onRepeatWeek, onSmartPlan }: EmptyWeekStat
   if (weekOffset < 0) {
     return (
       <View style={emptyStyles.pastContainer}>
-        <Ionicons name="calendar-outline" size={36} color={Colors.textSecondary} />
+        <CalendarDays size={36} color={Colors.textSecondary} strokeWidth={1.5} />
         <Text style={emptyStyles.pastTitle}>Nothing was planned</Text>
         <Text style={emptyStyles.pastSubtitle}>No meals were recorded for this week</Text>
       </View>

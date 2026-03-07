@@ -8,7 +8,7 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { CalendarDays } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import EmptyState from '@/components/EmptyState';
 import { formatDateKey } from '@/utils/dates';
@@ -75,7 +75,7 @@ export default function RepeatDaySheet({
 
         {items.length === 0 ? (
           <EmptyState
-            icon={<Ionicons name="calendar-outline" size={40} color={Colors.textSecondary} />}
+            icon={<CalendarDays size={40} color={Colors.textSecondary} strokeWidth={1.5} />}
             title="No meals found"
             description="Meals from the last 30 days will appear here to copy."
           />
@@ -132,7 +132,7 @@ function DayRow({ item, onPress }: DayRowProps) {
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={0.85}
+        activeOpacity={0.8}
         style={styles.row}
       >
         <View style={styles.rowLeft}>
@@ -152,10 +152,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   handle: {
-    width: 40,
+    width: 36,
     height: 4,
     backgroundColor: Colors.border,
-    borderRadius: 2,
+    borderRadius: 99,
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 4,

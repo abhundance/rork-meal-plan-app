@@ -102,7 +102,7 @@ import { useMealPlan } from '@/providers/MealPlanProvider';
 import { DiscoverMeal, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { useDiscoverRecommendations } from '@/hooks/useDiscoverRecommendations';
-import { Ionicons } from '@expo/vector-icons';
+import { ShieldCheck, ChevronRight, Search, Compass, ArrowRight } from 'lucide-react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -410,12 +410,12 @@ export default function DiscoverScreen() {
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: '#F3F4F6',
+            backgroundColor: Colors.surface,
             borderRadius: 12,
             height: 44,
             paddingHorizontal: 12,
           }}>
-            <Ionicons name="search" size={17} color={Colors.textSecondary} style={{ marginRight: 7 }} />
+            <Search size={17} color={Colors.textSecondary} strokeWidth={2} style={{ marginRight: 7 }} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -454,13 +454,13 @@ export default function DiscoverScreen() {
                 paddingHorizontal: 12,
               }}
             >
-              <Ionicons name="shield-checkmark" size={14} color={Colors.primary} style={{ marginRight: 6 }} />
+              <ShieldCheck size={14} color={Colors.primary} strokeWidth={2} style={{ marginRight: 6 }} />
               <Text style={{ flex: 1, fontSize: 13, color: Colors.textSecondary }} numberOfLines={1}>
                 <Text style={{ fontWeight: '600', color: Colors.primary }}>Household filter: </Text>
                 {activePrefs.join(' · ')}
               </Text>
               <Text style={{ fontSize: 13, fontWeight: '600', color: Colors.primary, marginLeft: 8 }}>Edit</Text>
-              <Ionicons name="chevron-forward" size={13} color={Colors.primary} style={{ marginLeft: 2 }} />
+              <ChevronRight size={13} color={Colors.primary} strokeWidth={2} style={{ marginLeft: 2 }} />
             </TouchableOpacity>
           );
         })()}
@@ -473,7 +473,7 @@ export default function DiscoverScreen() {
             </Text>
             {searchResults.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Ionicons name="search-outline" size={56} color="#9CA3AF" />
+                <Search size={56} color={Colors.textSecondary} strokeWidth={1.5} />
                 <Text style={styles.emptyTitle}>No recipes found</Text>
                 <Text style={styles.emptySubtitle}>Try searching by name, cuisine, or ingredient</Text>
               </View>
@@ -494,7 +494,7 @@ export default function DiscoverScreen() {
         <>
         {filteredCarousels.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="compass-outline" size={64} color="#9CA3AF" />
+            <Compass size={64} color={Colors.textSecondary} strokeWidth={1.5} />
             <Text style={styles.emptyTitle}>Discovering your taste</Text>
             <Text style={styles.emptySubtitle}>
               {discoverFilterCount > 0
@@ -560,7 +560,7 @@ export default function DiscoverScreen() {
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}>
-                        <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                        <ArrowRight size={16} color={Colors.white} strokeWidth={2.5} />
                       </View>
                       <Text style={{ fontSize: 11, fontWeight: '700', color: Colors.primary, textAlign: 'center' }}>
                         See all
@@ -660,13 +660,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '600' as const,
-    color: '#111827',
+    color: Colors.text,
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 16,
     fontWeight: '400' as const,
-    color: '#6B7280',
+    color: Colors.textSecondary,
     textAlign: 'center' as const,
     marginTop: 8,
     lineHeight: 22,
@@ -681,12 +681,12 @@ const styles = StyleSheet.create({
   carouselTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: '#111827',
+    color: Colors.text,
   },
   carouselSubtitle: {
     fontSize: 14,
     fontWeight: '400' as const,
-    color: '#6B7280',
+    color: Colors.textSecondary,
     paddingHorizontal: 16,
     marginBottom: 8,
   },

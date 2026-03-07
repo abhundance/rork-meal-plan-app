@@ -1,7 +1,6 @@
 import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Minus, Plus } from 'lucide-react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Minus, Plus, Trash2 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 
@@ -51,7 +50,7 @@ export default function ServingStepper({
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         {onRemoveAtMin && value <= min
-          ? <Ionicons name="trash-outline" size={iconSize} color="#FF3B30" />
+          ? <Trash2 size={iconSize} color="#FF3B30" strokeWidth={2} />
           : <Minus size={iconSize} color={value <= min ? Colors.inactive : Colors.primary} strokeWidth={2.5} />}
       </TouchableOpacity>
       <Text style={[styles.value, compact && styles.valueCompact]}>{value}</Text>
