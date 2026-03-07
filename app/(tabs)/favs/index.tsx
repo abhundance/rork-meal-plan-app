@@ -56,6 +56,7 @@ import {
   Check,
   SlidersHorizontal,
   ArrowUpDown,
+  CalendarPlus,
 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
@@ -958,14 +959,16 @@ const FavGridCard = React.memo(function FavGridCard({
               }}
             >
               <View style={{
-                width: 16,
-                height: 16,
-                borderRadius: 8,
-                backgroundColor: Colors.primary,
+                width: 22,
+                height: 22,
+                borderRadius: 11,
+                backgroundColor: 'transparent',
+                borderWidth: 1.5,
+                borderColor: Colors.primary,
                 alignItems: 'center' as const,
                 justifyContent: 'center' as const,
               }}>
-                <Plus size={9} color="#FFFFFF" strokeWidth={2.5} />
+                <CalendarPlus size={12} color={Colors.primary} strokeWidth={2} />
               </View>
             </TouchableOpacity>
           </View>
