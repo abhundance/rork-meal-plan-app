@@ -237,7 +237,7 @@ export default function FavsScreen() {
   // never shows a phantom blank gap caused by a stale scroll offset.
   useEffect(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, [search, mealTypeFilter, dishTypeFilter, proteinFilter, dietFilter, favFilters.sort]);
+  }, [search, mealTypeFilter, dishTypeFilter, proteinFilter, dietFilter, favFilters]);
 
   // Cycles to the next sort option on each tap — no sheet needed
   const cycleSortOption = useCallback(() => {
@@ -468,6 +468,41 @@ export default function FavsScreen() {
     </View>
   ), [search, clearFilters]);
 
+  // Build a contextual filter empty state based on which filters are active
+  const noResults = hasFilters && filteredMeals.length === 0;
+
+  const filterEmptySubtitle = useMemo(() => {
+    if (search.trim()) {
+      return `No meals match "${search.trim()}". Try a different search or clear your filters.`;
+    }
+    const activeLabels: string[] = [];
+    if (mealTypeFilter !== 'all') activeLabels.push(MEAL_TYPE_OPTIONS.find(o => o.value === mealTypeFilter)?.label ?? '');
+    if (dishTypeFilter !== 'all') activeLabels.push(DISH_TYPE_OPTIONS.find(o => o.value === dishTypeFilter)?.label ?? '');
+    if (proteinFilter   !== 'all') activeLabels.push(PROTEIN_OPTIONS.find(o => o.value === proteinFilter)?.label   ?? '');
+    if (dietFilter      !== 'all') activeLabels.push(DIET_OPTIONS.find(o => o.value === dietFilter)?.label         ?? '');
+    if (activeLabels.length === 1) {
+      return `None of your saved meals match the ${activeLabels[0]} filter yet. Try a different filter or add a new meal.`;
+    }
+    return `None of your saved meals match the current filters. Try adjusting or clearing them.`;
+  }, [search, mealTypeFilter, dishTypeFilter, proteinFilter, dietFilter]);
+
+  const FilterEmptyState = (
+    <View style={styles.filterEmptyContainer}>
+      <View style={styles.filterEmptyIconWrap}>
+        <Ionicons name="options-outline" size={32} color={Colors.primary} />
+      </View>
+      <Text style={styles.filterEmptyTitle}>No meals found</Text>
+      <Text style={styles.filterEmptySubtitle}>{filterEmptySubtitle}</Text>
+      <TouchableOpacity style={styles.filterEmptyClearBtn} onPress={clearFilters}>
+        <Text style={styles.filterEmptyClearBtnText}>Clear Filters</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.filterEmptyAddBtn} onPress={openAddMethodSheet}>
+        <Plus size={14} color={Colors.primary} strokeWidth={2.5} />
+        <Text style={styles.filterEmptyAddBtnText}>Add a Meal</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const getEmptyComponent = useCallback(() => {
     if (hasFilters) return SearchEmptyState;
     return MyRecipesEmptyState;
@@ -606,19 +641,21 @@ export default function FavsScreen() {
         </TouchableOpacity>
       )}
 
-      <FlatList
-        ref={flatListRef}
-        data={gridData}
-        renderItem={renderGridItem}
-        keyExtractor={(item) => item.id}
-        numColumns={4}
-        columnWrapperStyle={{ gap: COL_GAP, paddingHorizontal: H_PAD, marginBottom: 10 }}
-        contentContainerStyle={{ paddingTop: 12, paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
-        ListEmptyComponent={getEmptyComponent()}
-        testID="favs-grid"
-      />
+      {noResults ? FilterEmptyState : (
+        <FlatList
+          ref={flatListRef}
+          data={gridData}
+          renderItem={renderGridItem}
+          keyExtractor={(item) => item.id}
+          numColumns={4}
+          columnWrapperStyle={{ gap: COL_GAP, paddingHorizontal: H_PAD, marginBottom: 10 }}
+          contentContainerStyle={{ paddingTop: 12, paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+          ListEmptyComponent={getEmptyComponent()}
+          testID="favs-grid"
+        />
+      )}
 
       <SlotPickerModal
         visible={slotPickerVisible}
@@ -1478,5 +1515,61 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
+  },
+  // ── Filter empty state ───────────────────────────────────────────────────
+  filterEmptyContainer: {
+    flex: 1,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingHorizontal: 40,
+    paddingBottom: 80,
+  },
+  filterEmptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginBottom: 20,
+  },
+  filterEmptyTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    textAlign: 'center' as const,
+    marginBottom: 10,
+  },
+  filterEmptySubtitle: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    color: Colors.textSecondary,
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    marginBottom: 32,
+  },
+  filterEmptyClearBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.button,
+    paddingVertical: 13,
+    paddingHorizontal: 32,
+    marginBottom: 14,
+  },
+  filterEmptyClearBtnText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.white,
+  },
+  filterEmptyAddBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  filterEmptyAddBtnText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.primary,
   },
 });
