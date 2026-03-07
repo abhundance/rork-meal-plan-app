@@ -387,6 +387,11 @@ export default function FavsScreen() {
         setAddMethodMode('quick_add');
         setShowAddMethodSheet(true);
       }
+      // Reset scroll to top every time this tab is focused.
+      // Without this, the native UIScrollView preserves its contentOffset
+      // when the user returns to the tab — producing a phantom blank gap
+      // at the top of the grid equal to the previous scroll distance.
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
     }, [])
   );
 
