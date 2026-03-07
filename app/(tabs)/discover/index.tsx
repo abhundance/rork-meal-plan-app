@@ -27,37 +27,69 @@ import RecipeFilterSheet, {
 
 // ─── Discover filter configuration ───────────────────────────────────────────
 const DISCOVER_FILTER_CONFIG: RecipeFilterConfig = {
-  showSort:     false,
-  showCuisine:  true,
-  showCookTime: true,
-  showDietary:  true,
-  showProtein:  true,
-  showCalories: true,
+  showSort:          false,
+  showMealType:      true,
+  showDishType:      true,
+  showCuisine:       true,
+  showProtein:       true,
+  showCookTime:      true,
+  showDietary:       true,
+  showIntolerances:  true,
+  showOccasion:      true,
+  showSpiceLevel:    true,
+  showCalories:      true,
+  // Full 32-cuisine list (mirrors CUISINE_OPTIONS in types/index.ts + Spoonacular keys)
   cuisineOptions: [
-    { key: 'american',       label: 'American' },
-    { key: 'french',         label: 'French' },
-    { key: 'greek',          label: 'Greek' },
-    { key: 'indian',         label: 'Indian' },
-    { key: 'italian',        label: 'Italian' },
-    { key: 'japanese',       label: 'Japanese' },
-    { key: 'korean',         label: 'Korean' },
-    { key: 'mediterranean',  label: 'Mediterranean' },
-    { key: 'mexican',        label: 'Mexican' },
-    { key: 'middle-eastern', label: 'Middle Eastern' },
-    { key: 'thai',           label: 'Thai' },
-    { key: 'vietnamese',     label: 'Vietnamese' },
+    { key: 'African',           label: 'African' },
+    { key: 'American',          label: 'American' },
+    { key: 'British',           label: 'British' },
+    { key: 'Cajun',             label: 'Cajun' },
+    { key: 'Caribbean',         label: 'Caribbean' },
+    { key: 'Chinese',           label: 'Chinese' },
+    { key: 'Colombian',         label: 'Colombian' },
+    { key: 'Eastern European',  label: 'Eastern European' },
+    { key: 'European',          label: 'European' },
+    { key: 'Filipino',          label: 'Filipino' },
+    { key: 'French',            label: 'French' },
+    { key: 'German',            label: 'German' },
+    { key: 'Greek',             label: 'Greek' },
+    { key: 'Indian',            label: 'Indian' },
+    { key: 'Irish',             label: 'Irish' },
+    { key: 'Italian',           label: 'Italian' },
+    { key: 'Japanese',          label: 'Japanese' },
+    { key: 'Jewish',            label: 'Jewish' },
+    { key: 'Korean',            label: 'Korean' },
+    { key: 'Latin American',    label: 'Latin American' },
+    { key: 'Malaysian',         label: 'Malaysian' },
+    { key: 'Mediterranean',     label: 'Mediterranean' },
+    { key: 'Mexican',           label: 'Mexican' },
+    { key: 'Middle Eastern',    label: 'Middle Eastern' },
+    { key: 'Native American',   label: 'Native American' },
+    { key: 'Nordic',            label: 'Nordic' },
+    { key: 'Singaporean',       label: 'Singaporean' },
+    { key: 'Southern',          label: 'Southern' },
+    { key: 'Spanish',           label: 'Spanish' },
+    { key: 'Thai',              label: 'Thai' },
+    { key: 'Vietnamese',        label: 'Vietnamese' },
   ],
 };
 
-// Maps dietary filter keys → DiscoverMeal field check
-function discoverMatchesDietary(m: { diet_labels: string[]; allergens: string[]; dietary_tags: string[] }, key: string): boolean {
+// Maps dietary filter keys → DiscoverMeal field check (checks all three arrays)
+function discoverMatchesDietary(
+  m: { diet_labels: string[]; allergens: string[]; dietary_tags: string[] },
+  key: string
+): boolean {
   switch (key) {
-    case 'vegan':        return m.diet_labels.includes('vegan')       || m.allergens.includes('vegan')       || m.dietary_tags.includes('Vegan');
-    case 'vegetarian':   return m.diet_labels.includes('vegetarian')  || m.dietary_tags.includes('Vegetarian');
-    case 'gluten_free':  return m.allergens.includes('gluten-free')   || m.diet_labels.includes('gluten-free') || m.dietary_tags.includes('Gluten-Free');
-    case 'dairy_free':   return m.allergens.includes('dairy-free')    || m.diet_labels.includes('dairy-free')  || m.dietary_tags.includes('Dairy-Free');
+    case 'vegan':        return m.diet_labels.includes('vegan')        || m.allergens.includes('vegan')        || m.dietary_tags.includes('Vegan');
+    case 'vegetarian':   return m.diet_labels.includes('vegetarian')   || m.dietary_tags.includes('Vegetarian');
+    case 'gluten_free':  return m.allergens.includes('gluten-free')    || m.diet_labels.includes('gluten-free') || m.dietary_tags.includes('Gluten-Free');
+    case 'dairy_free':   return m.allergens.includes('dairy-free')     || m.diet_labels.includes('dairy-free')  || m.dietary_tags.includes('Dairy-Free');
     case 'high_protein': return m.diet_labels.includes('high-protein');
     case 'low_carb':     return m.diet_labels.includes('low-carb');
+    case 'keto':         return m.diet_labels.includes('keto');
+    case 'paleo':        return m.diet_labels.includes('paleo');
+    case 'whole30':      return m.diet_labels.includes('whole30');
+    case 'nut_free':     return m.allergens.includes('nut-free');
     default:             return true;
   }
 }
@@ -170,22 +202,42 @@ export default function DiscoverScreen() {
 
   const { carousels, recordInteraction, recordView } = useDiscoverRecommendations();
 
-  // Filter carousels by occasion chip and the RecipeFilterSheet state.
+  // Filter carousels using the RecipeFilterSheet state.
   // Drop carousels that end up empty after filtering.
   const filteredCarousels = useMemo(() => {
-    const { cuisines, cookTime, dietary, protein, calories } = discoverFilters;
+    const {
+      mealType, dishTypes, cuisines, protein, cookTime,
+      dietary, intolerances, occasions, spiceLevel, calories,
+    } = discoverFilters;
+
     const hasAdvancedFilter =
-      cuisines.length > 0 || !!cookTime || dietary.length > 0 ||
-      protein.length > 0 || !!calories;
+      !!mealType || dishTypes.length > 0 || cuisines.length > 0 ||
+      protein.length > 0 || !!cookTime || dietary.length > 0 ||
+      intolerances.length > 0 || occasions.length > 0 || !!spiceLevel || !!calories;
 
     return carousels
       .map(carousel => {
         let meals = carousel.meals;
 
         if (hasAdvancedFilter) {
-          // Cuisine (OR logic — match any selected cuisine)
+          // Meal type (single-select)
+          if (mealType) {
+            meals = meals.filter(m => m.meal_type === mealType);
+          }
+          // Dish type (multi-select OR logic)
+          if (dishTypes.length > 0) {
+            meals = meals.filter(m => !!m.dish_category && dishTypes.includes(m.dish_category));
+          }
+          // Cuisine (OR logic — match any selected cuisine; check cuisines[] array)
           if (cuisines.length > 0) {
-            meals = meals.filter(m => m.cuisines.some(c => cuisines.includes(c)));
+            meals = meals.filter(m =>
+              m.cuisines.some(c => cuisines.includes(c)) ||
+              (m.cuisine && cuisines.includes(m.cuisine))
+            );
+          }
+          // Protein source (OR logic)
+          if (protein.length > 0) {
+            meals = meals.filter(m => !!m.protein_source && protein.includes(m.protein_source));
           }
           // Cook time
           if (cookTime) {
@@ -193,18 +245,30 @@ export default function DiscoverScreen() {
           }
           // Dietary (AND logic — meal must satisfy every selected tag)
           if (dietary.length > 0) {
+            meals = meals.filter(m => dietary.every(key => discoverMatchesDietary(m, key)));
+          }
+          // Intolerances (OR logic — meal must be free from ALL selected allergens; each intolerance is AND)
+          if (intolerances.length > 0) {
             meals = meals.filter(m =>
-              dietary.every(key => discoverMatchesDietary(m, key))
+              intolerances.every(intol => (m.allergens ?? []).includes(intol))
             );
           }
-          // Protein source (OR logic)
-          if (protein.length > 0) {
+          // Occasion (OR logic — meal must match at least one selected occasion)
+          if (occasions.length > 0) {
             meals = meals.filter(m =>
-              protein.some(p => {
-                if (p === 'beef_lamb') return m.protein_source === 'beef' || m.protein_source === 'lamb';
-                return m.protein_source === p;
-              })
+              occasions.some(occ => (m.occasions ?? []).includes(occ))
             );
+          }
+          // Spice level (maps taste_spiciness 0-100: mild ≤15, medium 16-35, hot 36+)
+          if (spiceLevel === 'mild') {
+            meals = meals.filter(m => (m.taste_spiciness ?? 0) <= 15);
+          } else if (spiceLevel === 'medium') {
+            meals = meals.filter(m => {
+              const s = m.taste_spiciness ?? 0;
+              return s >= 16 && s <= 35;
+            });
+          } else if (spiceLevel === 'hot') {
+            meals = meals.filter(m => (m.taste_spiciness ?? 0) >= 36);
           }
           // Calories per serving
           if (calories === 'under_400') {

@@ -87,12 +87,16 @@ const IMG_H = Math.round(CARD_H * 0.62);
 const STRIP_H = CARD_H - IMG_H;
 
 const FAVS_FILTER_CONFIG: RecipeFilterConfig = {
-  showSort:     false,  // Sort is owned by the inline Sort pill, not the filter sheet
-  showCuisine:  true,
-  showCookTime: true,
-  showDietary:  true,
-  showProtein:  false,
-  showCalories: false,
+  showSort:        false,   // Sort is owned by the inline Sort pill, not the filter sheet
+  showMealType:    true,
+  showDishType:    true,
+  showCuisine:     true,
+  showProtein:     true,    // dual-presence: also in inline Protein pill
+  showCookTime:    true,
+  showDietary:     true,
+  showCalories:    true,
+  showSource:      true,
+  showRating:      true,
 };
 
 // ─── Inline filter pill option lists ─────────────────────────────────────────
@@ -186,10 +190,11 @@ export default function FavsScreen() {
 
   const allFilteredMeals = useFilteredFavs(search, {
     ...favFilters,
-    mealType:      mealTypeFilter,
-    dishType:      dishTypeFilter,
-    proteinSource: proteinFilter,
-    dietLabel:     dietFilter,
+    // Inline pill overrides (single-select, kept separate from sheet multi-select)
+    inlineMealType:  mealTypeFilter,
+    inlineDishType:  dishTypeFilter,
+    inlineProtein:   proteinFilter,
+    inlineDietLabel: dietFilter,
   });
 
   const filteredMeals = useMemo(() => {

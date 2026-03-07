@@ -236,27 +236,50 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
   };
 });
 
-// Maps RecipeFilterSheet dietary keys → Meal.dietary_tags values
-const DIETARY_TAG_MAP: Record<string, string> = {
-  vegan:        'Vegan',
-  vegetarian:   'Vegetarian',
-  gluten_free:  'Gluten-Free',
-  dairy_free:   'Dairy-Free',
-  high_protein: 'High Protein',
-  low_carb:     'Low Carb',
-};
+import { RecipeFilterState } from '@/components/RecipeFilterSheet';
+
+// ─── Dietary filter helper ───────────────────────────────────────────────────
+
+/**
+ * Checks whether a meal satisfies a single dietary filter key.
+ * Checks dietary_tags (legacy string array), diet_labels (Spoonacular positive labels),
+ * and allergens (free-from list) to cover all data sources.
+ */
+function matchesDietaryKey(
+  m: { dietary_tags?: string[]; diet_labels?: string[]; allergens?: string[] },
+  key: string
+): boolean {
+  const tags      = m.dietary_tags ?? [];
+  const labels    = m.diet_labels  ?? [];
+  const allergens = m.allergens    ?? [];
+
+  switch (key) {
+    case 'vegan':        return tags.includes('Vegan')        || labels.includes('vegan')       || allergens.includes('vegan');
+    case 'vegetarian':   return tags.includes('Vegetarian')   || labels.includes('vegetarian');
+    case 'gluten_free':  return tags.includes('Gluten-Free')  || labels.includes('gluten-free') || allergens.includes('gluten-free');
+    case 'dairy_free':   return tags.includes('Dairy-Free')   || labels.includes('dairy-free')  || allergens.includes('dairy-free');
+    case 'high_protein': return tags.includes('High Protein') || labels.includes('high-protein');
+    case 'low_carb':     return tags.includes('Low Carb')     || labels.includes('low-carb');
+    case 'keto':         return labels.includes('keto');
+    case 'paleo':        return labels.includes('paleo');
+    case 'whole30':      return labels.includes('whole30');
+    case 'nut_free':     return allergens.includes('nut-free');
+    default:             return true;
+  }
+}
 
 export function useFilteredFavs(
   search: string,
-  filters: {
-    sort:           string;
-    cuisines:       string[];
-    cookTime:       string;
-    dietary:        string[];
-    dishType?:      string;
-    mealType?:      string;
-    proteinSource?: string;   // maps to Recipe.protein_source
-    dietLabel?:     string;   // matches against diet_labels[] and allergens[]
+  filters: RecipeFilterState & {
+    /**
+     * Inline pill single-select overrides — kept separate from the sheet's multi-select fields.
+     * Use '' or 'all' to mean "no filter from this pill".
+     * Combined with the corresponding sheet fields using AND logic.
+     */
+    inlineMealType?:  string;   // from mealType pill
+    inlineDishType?:  string;   // from dishType pill
+    inlineProtein?:   string;   // from protein pill
+    inlineDietLabel?: string;   // from diet pill (matches diet_labels[] or allergens[])
   }
 ) {
   const { meals } = useFavs();
@@ -264,6 +287,7 @@ export function useFilteredFavs(
   return useMemo(() => {
     let result = [...meals];
 
+    // ── Text search ─────────────────────────────────────────────────────────
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -274,52 +298,84 @@ export function useFilteredFavs(
       );
     }
 
-    // Multi-select cuisine — OR logic (show if meal matches any selected cuisine)
+    // ── Meal type (sheet single-select + inline pill) ───────────────────────
+    if (filters.mealType) {
+      result = result.filter((m) => m.meal_type === filters.mealType);
+    }
+    const inlineMT = filters.inlineMealType;
+    if (inlineMT && inlineMT !== 'all') {
+      result = result.filter((m) => m.meal_type === inlineMT);
+    }
+
+    // ── Dish type (sheet multi-select + inline pill single-select) ──────────
+    if (filters.dishTypes.length > 0) {
+      result = result.filter((m) => !!m.dish_category && filters.dishTypes.includes(m.dish_category));
+    }
+    const inlineDT = filters.inlineDishType;
+    if (inlineDT && inlineDT !== 'all') {
+      result = result.filter((m) => m.dish_category === inlineDT);
+    }
+
+    // ── Cuisine (multi-select OR logic) ─────────────────────────────────────
     if (filters.cuisines.length > 0) {
       result = result.filter((m) => !!m.cuisine && filters.cuisines.includes(m.cuisine));
     }
 
+    // ── Protein (sheet multi-select OR logic + inline pill single-select) ───
+    if (filters.protein.length > 0) {
+      result = result.filter((m) => !!m.protein_source && filters.protein.includes(m.protein_source));
+    }
+    const inlineP = filters.inlineProtein;
+    if (inlineP && inlineP !== 'all') {
+      result = result.filter((m) => m.protein_source === inlineP);
+    }
+
+    // ── Cook time ───────────────────────────────────────────────────────────
     if (filters.cookTime) {
       result = result.filter((m) => m.cooking_time_band === filters.cookTime);
     }
 
-    // Multi-select dietary — AND logic (meal must satisfy all selected tags)
+    // ── Dietary (sheet multi-select AND logic) ──────────────────────────────
     if (filters.dietary.length > 0) {
+      result = result.filter((m) => filters.dietary.every((key) => matchesDietaryKey(m, key)));
+    }
+    // Inline diet-label pill (single-select, checks diet_labels + allergens)
+    const inlineDL = filters.inlineDietLabel;
+    if (inlineDL && inlineDL !== 'all') {
       result = result.filter((m) => {
-        const tags = m.dietary_tags ?? [];
-        return filters.dietary.every((key) => {
-          const tag = DIETARY_TAG_MAP[key];
-          return tag ? tags.includes(tag) : true;
-        });
-      });
-    }
-
-    const hasDish = !!(filters.dishType && filters.dishType !== 'all');
-    if (hasDish) {
-      result = result.filter((m) => m.dish_category === filters.dishType);
-    }
-
-    const hasMealType = !!(filters.mealType && filters.mealType !== 'all');
-    if (hasMealType) {
-      result = result.filter((m) => m.meal_type === filters.mealType);
-    }
-
-    // Protein source filter — matches Recipe.protein_source directly
-    const hasProtein = !!(filters.proteinSource && filters.proteinSource !== 'all');
-    if (hasProtein) {
-      result = result.filter((m) => m.protein_source === filters.proteinSource);
-    }
-
-    // Diet label filter — checks both diet_labels[] and allergens[] (Spoonacular-compatible)
-    const hasDiet = !!(filters.dietLabel && filters.dietLabel !== 'all');
-    if (hasDiet) {
-      result = result.filter((m) => {
-        const labels   = m.diet_labels  ?? [];
+        const labels    = m.diet_labels ?? [];
         const allergens = m.allergens   ?? [];
-        return labels.includes(filters.dietLabel!) || allergens.includes(filters.dietLabel!);
+        return labels.includes(inlineDL) || allergens.includes(inlineDL);
       });
     }
 
+    // ── Calories ────────────────────────────────────────────────────────────
+    if (filters.calories === 'under_400') {
+      result = result.filter((m) => (m.calories_per_serving ?? 0) < 400);
+    } else if (filters.calories === '400_600') {
+      result = result.filter((m) => {
+        const cal = m.calories_per_serving ?? 0;
+        return cal >= 400 && cal <= 600;
+      });
+    } else if (filters.calories === 'over_600') {
+      result = result.filter((m) => (m.calories_per_serving ?? 0) > 600);
+    }
+
+    // ── Source (family_created vs discover) ─────────────────────────────────
+    if (filters.source) {
+      result = result.filter((m) => m.source === filters.source);
+    }
+
+    // ── Rating ──────────────────────────────────────────────────────────────
+    if (filters.rating === 'loved') {
+      result = result.filter((m) => m.rating === 'loved');
+    } else if (filters.rating === 'liked') {
+      result = result.filter((m) => m.rating === 'liked');
+    } else if (filters.rating === 'unrated') {
+      result = result.filter((m) => !m.rating);
+    }
+
+    // ── Sort ────────────────────────────────────────────────────────────────
     switch (filters.sort) {
       case 'most_used':
         result.sort((a, b) => b.add_to_plan_count - a.add_to_plan_count);
