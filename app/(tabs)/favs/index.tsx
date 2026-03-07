@@ -644,10 +644,18 @@ export default function FavsScreen() {
       {noResults ? FilterEmptyState : (
         <FlatList
           ref={flatListRef}
+          style={{ flex: 1 }}
           data={gridData}
           renderItem={renderGridItem}
           keyExtractor={(item) => item.id}
           numColumns={4}
+          getItemLayout={(_data, index) => ({
+            // All cards share the same fixed height — precomputing positions eliminates
+            // the stale-measurement gap that appears when filter data shrinks.
+            length: CARD_H + 10,                              // card height + row marginBottom
+            offset: 12 + Math.floor(index / 4) * (CARD_H + 10), // paddingTop + rowIndex × rowHeight
+            index,
+          })}
           columnWrapperStyle={{ gap: COL_GAP, paddingHorizontal: H_PAD, marginBottom: 10 }}
           contentContainerStyle={{ paddingTop: 12, paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
