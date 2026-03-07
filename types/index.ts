@@ -93,6 +93,7 @@ export interface Recipe {
   id: string;
   name: string;
   source: 'family_created' | 'discover';
+  is_customized?: boolean;       // true once user has saved edits to a discover-sourced meal
   ingredients: Ingredient[];
   recipe_serving_size: number;
   method_steps: string[];

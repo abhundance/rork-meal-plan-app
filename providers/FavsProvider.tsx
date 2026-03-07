@@ -105,7 +105,12 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
   }, []);
 
   const updateFav = useCallback((mealId: string, partial: Partial<Recipe>) => {
-    const updated = mealsRef.current.map((m) => (m.id === mealId ? { ...m, ...partial } : m));
+    const updated = mealsRef.current.map((m) => {
+      if (m.id !== mealId) return m;
+      // Auto-flag as customized the first time a discover-sourced meal is edited
+      const customizedPatch = m.source === 'discover' && !m.is_customized ? { is_customized: true } : {};
+      return { ...m, ...partial, ...customizedPatch };
+    });
     setMeals(updated);
     saveMutateRef.current(updated);
     console.log('[Favs] Updated:', mealId);

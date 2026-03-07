@@ -335,6 +335,26 @@ export default function MealDetailScreen() {
               <Pencil size={18} color={Colors.text} strokeWidth={2} />
             </TouchableOpacity>
           )}
+          {params.source === 'discover' && discoverData !== null && (
+            <TouchableOpacity
+              style={{ position: 'absolute', top: insets.top + 8, right: 8, backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
+              onPress={() => {
+                const savedMeal = favMeals.find((m) => m.id === meal.id);
+                if (savedMeal) {
+                  // Already saved — go straight to editor
+                  router.push({ pathname: '/add-recipe-manual', params: { editId: savedMeal.id } });
+                } else {
+                  // Save a copy first, then open editor
+                  const newMeal = addFromDiscover(discoverData);
+                  router.push({ pathname: '/add-recipe-manual', params: { editId: newMeal.id } });
+                }
+              }}
+            >
+              <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>
+                {favMeals.find((m) => m.id === meal.id)?.is_customized ? 'Edit my version' : 'Customize'}
+              </Text>
+            </TouchableOpacity>
+          )}
           {params.source === 'plan' && (
             plannedMeal?.delivery_url ? (
               <TouchableOpacity
@@ -399,7 +419,9 @@ export default function MealDetailScreen() {
             ))}
             {meal.source === 'discover' && params.source !== 'plan' && (
               <View style={[styles.tag, styles.sourceTag]}>
-                <Text style={styles.tagText}>From Discover</Text>
+                <Text style={styles.tagText}>
+                  {meal.is_customized ? 'Customised' : 'From Discover'}
+                </Text>
               </View>
             )}
           </View>
