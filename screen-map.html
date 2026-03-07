@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meal Plan App — Screen Map</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d0d10; color: #e5e7eb; overflow: hidden; height: 100vh; }
+
+#header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(13,13,16,0.96); backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding: 10px 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+#header-left h1 { font-size: 14px; font-weight: 700; color: #f9fafb; }
+#header-left p  { font-size: 11px; color: #6b7280; margin-top: 1px; }
+
+.legend { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #9ca3af; white-space: nowrap; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.legend-dashed { border: 1.5px dashed; background: transparent !important; }
+
+#controls { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+#controls button {
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+  color: #d1d5db; border-radius: 6px; padding: 5px 12px; font-size: 11px;
+  cursor: pointer; transition: background 0.15s; white-space: nowrap;
+}
+#controls button:hover { background: rgba(255,255,255,0.13); }
+
+#canvas-container {
+  position: fixed; top: 48px; left: 0; right: 0; bottom: 0;
+  overflow: hidden; cursor: grab; background: #0d0d10;
+}
+#canvas-container.panning { cursor: grabbing; }
+
+#canvas {
+  position: absolute;
+  width: 1700px; height: 1500px;
+  transform-origin: 0 0;
+}
+
+/* Dot grid */
+#canvas::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+svg#connections {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; overflow: visible;
+}
+
+.conn { fill: none; stroke: rgba(255,255,255,0.09); stroke-width: 1.5; }
+.conn.dim    { stroke: rgba(255,255,255,0.03); }
+.conn.active-from { stroke: #38bdf8; stroke-width: 2; }
+.conn.active-to   { stroke: #fbbf24; stroke-width: 2; }
+
+/* Screen card */
+.screen-card {
+  position: absolute;
+  background: rgba(22,22,28,0.97);
+  border: 1.5px solid rgba(255,255,255,0.09);
+  border-radius: 10px;
+  padding: 10px 12px 10px 14px;
+  width: 176px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  user-select: none;
+}
+.screen-card:hover {
+  border-color: rgba(255,255,255,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+}
+.screen-card.selected {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 0 2px rgba(251,191,36,0.25), 0 8px 24px rgba(0,0,0,0.6);
+  transform: translateY(-1px);
+}
+.screen-card.dimmed { opacity: 0.3; }
+
+.card-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 6px;
+}
+.card-label { font-size: 13px; font-weight: 700; color: #f3f4f6; line-height: 1.3; margin-bottom: 5px; }
+.card-file  { font-size: 9.5px; color: #4b5563; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; line-height: 1.5; word-break: break-all; }
+
+/* Group accent stripe */
+.group-tabs        { border-left: 3px solid #7B68CC; }
+.group-tabs        .card-badge { background: rgba(123,104,204,0.2); color: #a78bfa; }
+.group-add-recipe  { border-left: 3px solid #d97706; }
+.group-add-recipe  .card-badge { background: rgba(217,119,6,0.18); color: #fbbf24; }
+.group-discover    { border-left: 3px solid #059669; }
+.group-discover    .card-badge { background: rgba(5,150,105,0.18); color: #34d399; }
+.group-onboarding  { border-left: 3px solid #db2777; }
+.group-onboarding  .card-badge { background: rgba(219,39,119,0.18); color: #f472b6; }
+.group-shared      { border-left: 3px solid #2563eb; }
+.group-shared      .card-badge { background: rgba(37,99,235,0.18); color: #60a5fa; }
+.group-settings    { border-left: 3px solid #6b7280; }
+.group-settings    .card-badge { background: rgba(107,114,128,0.2); color: #9ca3af; }
+.group-sheets      { border-left: 3px dashed #0891b2; }
+.group-sheets      .card-badge { background: rgba(8,145,178,0.18); color: #22d3ee; }
+
+/* Group section labels */
+.group-label {
+  position: absolute; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.2px; pointer-events: none; user-select: none;
+}
+
+/* Info panel */
+#info-panel {
+  position: fixed; right: 16px; bottom: 16px; width: 290px;
+  background: rgba(18,18,22,0.98); backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+  padding: 16px;
+  opacity: 0; transform: translateY(10px); pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  max-height: calc(100vh - 80px); overflow-y: auto;
+}
+#info-panel.visible { opacity: 1; transform: translateY(0); pointer-events: all; }
+
+#info-close {
+  float: right; background: rgba(255,255,255,0.07); border: none; color: #9ca3af;
+  width: 22px; height: 22px; border-radius: 6px; cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+#info-close:hover { background: rgba(255,255,255,0.14); color: #f3f4f6; }
+
+#info-name  { font-size: 15px; font-weight: 700; color: #f9fafb; margin-bottom: 4px; padding-right: 28px; line-height: 1.3; }
+#info-file  { font-size: 10px; font-family: monospace; color: #7B68CC; margin-bottom: 10px; word-break: break-all; line-height: 1.5; }
+#info-desc  { font-size: 12px; color: #9ca3af; line-height: 1.6; margin-bottom: 12px; }
+
+.info-sec   { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.info-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+.info-pill  {
+  font-size: 11px; padding: 3px 8px; border-radius: 6px;
+  background: rgba(255,255,255,0.06); color: #d1d5db; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.08); transition: background 0.12s;
+  white-space: nowrap;
+}
+.info-pill:hover { background: rgba(255,255,255,0.13); color: #f9fafb; }
+.info-pill-label { font-size: 9px; color: #6b7280; margin-left: 3px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="header-left">
+    <h1>Meal Plan — Screen Map</h1>
+    <p>Click any screen to inspect · Drag to pan · Scroll to zoom</p>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#7B68CC"></div>Tab Screens</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Add Recipe Flow</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#059669"></div>Discover Sub-screens</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2563eb"></div>Shared Screens</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#db2777"></div>Onboarding</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#6b7280"></div>Settings</div>
+    <div class="legend-item"><div class="legend-dot legend-dashed" style="border-color:#0891b2; width:12px; height:12px;"></div>Sheets / Modals</div>
+  </div>
+
+  <div id="controls">
+    <button onclick="resetView()">Reset</button>
+    <button onclick="fitAll()">Fit All</button>
+  </div>
+</div>
+
+<div id="canvas-container">
+  <div id="canvas">
+    <svg id="connections">
+      <defs>
+        <marker id="arr-default" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="rgba(255,255,255,0.15)"/>
+        </marker>
+        <marker id="arr-from" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#38bdf8"/>
+        </marker>
+        <marker id="arr-to" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="#fbbf24"/>
+        </marker>
+      </defs>
+    </svg>
+  </div>
+</div>
+
+<div id="info-panel">
+  <button id="info-close" onclick="closeInfo()">✕</button>
+  <div id="info-name"></div>
+  <div id="info-file"></div>
+  <div id="info-desc"></div>
+  <div id="info-from-section"></div>
+  <div id="info-to-section"></div>
+</div>
+
+<script>
+// ─── SCREEN DATA ──────────────────────────────────────────────────────────────
+const SCREENS = [
+  // ── ONBOARDING ──
+  { id:'ob-auth',      label:'Auth',                    file:'app/onboarding/auth.tsx',              group:'onboarding', type:'Screen',  x:80,   y:130,  desc:'Login / create account. Entry gate to onboarding. App redirects here from Meal Plan tab when onboarding is not completed (DEV_SKIP_ONBOARDING=false).' },
+  { id:'ob-fname',     label:'Family Name',             file:'app/onboarding/family-name.tsx',       group:'onboarding', type:'Screen',  x:80,   y:240,  desc:'Enter the family name.' },
+  { id:'ob-hsize',     label:'Household Size',          file:'app/onboarding/household-size.tsx',    group:'onboarding', type:'Screen',  x:80,   y:340,  desc:'Select how many people are in the household.' },
+  { id:'ob-slots',     label:'Meal Slots',              file:'app/onboarding/meal-slots.tsx',        group:'onboarding', type:'Screen',  x:80,   y:440,  desc:'Customise which meal slots to use (Breakfast, Lunch, Dinner, Snacks etc).' },
+  { id:'ob-fdietary',  label:'Family Dietary',          file:'app/onboarding/family-dietary.tsx',    group:'onboarding', type:'Screen',  x:80,   y:540,  desc:'Set dietary preferences for the whole family.' },
+  { id:'ob-invite',    label:'Invite Members',          file:'app/onboarding/invite-members.tsx',    group:'onboarding', type:'Screen',  x:80,   y:640,  desc:'Invite other family members (future feature).' },
+  { id:'ob-pdietary',  label:'Personal Dietary',        file:'app/onboarding/personal-dietary.tsx',  group:'onboarding', type:'Screen',  x:80,   y:740,  desc:'Set dietary preferences for the current user.' },
+  { id:'ob-welcome',   label:'Welcome',                 file:'app/onboarding/welcome.tsx',           group:'onboarding', type:'Screen',  x:80,   y:840,  desc:'Congratulations / completion screen at the end of onboarding.' },
+  { id:'ob-walkthru',  label:'Walkthrough',             file:'app/onboarding/walkthrough.tsx',       group:'onboarding', type:'Screen',  x:80,   y:940,  desc:'Quick feature tour of the app before entering the main tab bar.' },
+
+  // ── TABS ──
+  { id:'tab-mealplan', label:'Meal Plan',               file:'app/(tabs)/(home)/index.tsx',          group:'tabs',       type:'Tab',     x:360,  y:250,  desc:'Weekly/daily calendar grid. Assign meals to Breakfast / Lunch / Dinner / Snack slots across 7 days. Supports serving-size scaling per slot. Entry point to MealPickerSheet.' },
+  { id:'tab-shopping', label:'Shopping',                file:'app/(tabs)/shopping/index.tsx',        group:'tabs',       type:'Tab',     x:360,  y:420,  desc:'Auto-generated shopping list aggregated from all planned meals. Items grouped by ingredient category with check-off functionality.' },
+  { id:'tab-favs',     label:'Favs',                    file:'app/(tabs)/favs/index.tsx',            group:'tabs',       type:'Tab',     x:360,  y:590,  desc:'Two segments — My Recipes (source=family_created, permanent) and Saved (hearted from Discover). 3-pill inline filter bar: Sort · When · Type. FAB navigates to Add a Recipe entry.' },
+  { id:'tab-discover', label:'Discover',                file:'app/(tabs)/discover/index.tsx',        group:'tabs',       type:'Tab',     x:360,  y:760,  desc:'Browse 38+ curated recipes. Search, filter by meal type / cuisine / cook time / dietary. Chef profiles, curated collections, hero banner.' },
+
+  // ── ADD RECIPE FLOW ──
+  { id:'add-entry',    label:'Add a Recipe',            file:'app/add-recipe-entry.tsx',             group:'add-recipe', type:'Screen',  x:640,  y:250,  desc:'Entry hub. Top section: Paste a Link field — auto-detects YouTube, TikTok, web URLs and shows Extract button. Bottom: 6-tile method grid — Paste Text, Manual Entry, Photos, Video Link, Voice, Camera.' },
+  { id:'add-review',   label:'Review Recipe',           file:'app/add-recipe-review.tsx',            group:'add-recipe', type:'Screen',  x:920,  y:120,  desc:'AI-populated review and confirmation form. Sections: Hero image (MealImagePlaceholder), Basics (name + description), Meal Type chips, Cook Time chips, Cuisine text input, Dietary chips, Serves stepper, Ingredients with toggle edit mode, Method with toggle edit mode. CTA: "Save to Favourites" or "Add to Meal Plan" when a pending slot exists.' },
+  { id:'add-manual',   label:'Manual Entry / Edit Meal',file:'app/add-recipe-manual.tsx',            group:'add-recipe', type:'Screen',  x:920,  y:350,  desc:'Full manual form — also doubles as the Edit Meal screen when editId param is present. Fields: meal name, meal type slot (custom slot names), cuisine chips, cooking time band, prep time (min), cook time (min), dietary tags, custom tags, serving size, description/notes, ingredients, method steps, delivery URL. Save label: "Save Meal" (new) or "Save Changes" (edit).' },
+  { id:'add-paste',    label:'Paste Text',              file:'app/add-recipe-paste.tsx',             group:'add-recipe', type:'Screen',  x:920,  y:560,  desc:'Large text area to paste raw recipe text. AI extracts name, ingredients, method, cuisine, cook time via GPT-4o-mini → navigates to Review Recipe with prefilled data.' },
+  { id:'add-video',    label:'Video Link',              file:'app/add-recipe-video.tsx',             group:'add-recipe', type:'Screen',  x:920,  y:680,  desc:'Enter a YouTube or TikTok URL. AI extracts recipe from video description/caption → navigates to Review Recipe with prefilled data.' },
+
+  // ── DISCOVER SUB-SCREENS ──
+  { id:'disc-search',  label:'Discover Search',         file:'app/discover-search.tsx',              group:'discover',   type:'Screen',  x:640,  y:940,  desc:'Full-screen search UI over the 38 curated Discover recipes. Shows recipe rows and collection results. Navigates to Recipe Detail or Collection Detail on tap.' },
+  { id:'disc-col',     label:'Collection Detail',       file:'app/discover-collection.tsx',          group:'discover',   type:'Screen',  x:860,  y:940,  desc:'Recipe grid for a curated collection (e.g. "Quick Weeknight Meals"). Navigates to Recipe Detail on tap.' },
+  { id:'disc-filter',  label:'Filter Results',          file:'app/discover-filter-results.tsx',      group:'discover',   type:'Screen',  x:1080, y:940,  desc:'Filtered recipe grid after RecipeFilterSheet apply. Shows matching recipes from Discover. Navigates to Recipe Detail on tap.' },
+
+  // ── SHARED ──
+  { id:'recipe-detail',label:'Recipe Detail',           file:'app/recipe-detail.tsx',                group:'shared',     type:'Screen',  x:1310, y:380,  desc:'Full recipe view: hero image, name, cuisine, cook time, dietary badges, description, ingredients list, method steps. Edit button → Manual Entry / Edit Meal (editId param). Heart button to toggle Saved. "Add to Plan" opens SlotPickerModal.' },
+
+  // ── SETTINGS ──
+  { id:'family-settings',label:'Family Settings',       file:'app/family-settings.tsx',              group:'settings',   type:'Screen',  x:1310, y:590,  desc:'Family name, household size, meal slot configuration (MealSlotEditor), dietary preferences. Logout button → navigates to Auth (replace).' },
+
+  // ── SHEETS / MODALS ──
+  { id:'sheet-picker', label:'MealPickerSheet',         file:'components/MealPickerSheet.tsx',       group:'sheets',     type:'Sheet',   x:360,  y:1140, desc:'Modal (pageSheet). Three internal modes: (1) Choose — search saved meals, browse cards for Favs/Discover, 3 option rows; (2) Manual — quick name-only add with optional Save to My Meals toggle; (3) Delivery — meal name + delivery URL with platform auto-detection. Triggered by tapping an empty meal slot.' },
+  { id:'sheet-filter', label:'RecipeFilterSheet',       file:'components/RecipeFilterSheet.tsx',     group:'sheets',     type:'Sheet',   x:595,  y:1140, desc:'Bottom sheet for Discover filters. Sections: Meal Type chips, Cook Time chips, Dietary chips, Cuisine chips. Clear All / Apply footer. Navigates to Filter Results on Apply.' },
+  { id:'sheet-slot',   label:'SlotPickerModal',         file:'components/SlotPickerModal.tsx',       group:'sheets',     type:'Modal',   x:830,  y:1140, desc:'Modal for selecting which meal slot (Breakfast / Lunch / Dinner / Snack) to add a recipe to from Recipe Detail.' },
+  { id:'sheet-voice',  label:'VoiceRecordSheet',        file:'components/VoiceRecordSheet.tsx',      group:'sheets',     type:'Sheet',   x:1065, y:1140, desc:'Microphone recording sheet. Records voice → transcribes → extracts recipe via AI → navigates to Review Recipe with prefilled data.' },
+  { id:'sheet-repweek',label:'RepeatWeekSheet',         file:'components/RepeatWeekSheet.tsx',       group:'sheets',     type:'Sheet',   x:360,  y:1300, desc:'Slide-up sheet to pick a previous week and copy all its meals to the current week.' },
+  { id:'sheet-repday', label:'RepeatDaySheet',          file:'components/RepeatDaySheet.tsx',        group:'sheets',     type:'Sheet',   x:595,  y:1300, desc:'Slide-up sheet to pick a previous day and copy its meals to the current day slot.' },
+];
+
+// ─── CONNECTIONS ──────────────────────────────────────────────────────────────
+// [fromId, toId, edgeLabel]
+const CONNECTIONS = [
+  // Onboarding chain
+  ['ob-auth',        'ob-fname',          ''],
+  ['ob-fname',       'ob-hsize',          ''],
+  ['ob-hsize',       'ob-slots',          ''],
+  ['ob-slots',       'ob-fdietary',       ''],
+  ['ob-fdietary',    'ob-invite',         ''],
+  ['ob-invite',      'ob-pdietary',       ''],
+  ['ob-pdietary',    'ob-welcome',        ''],
+  ['ob-welcome',     'ob-walkthru',       ''],
+  ['ob-walkthru',    'tab-mealplan',      'replace'],
+
+  // Meal Plan tab
+  ['tab-mealplan',   'ob-auth',           'if not completed'],
+  ['tab-mealplan',   'add-entry',         '+ FAB'],
+  ['tab-mealplan',   'sheet-picker',      'tap empty slot'],
+  ['tab-mealplan',   'recipe-detail',     'tap planned meal'],
+  ['tab-mealplan',   'family-settings',   'header icon'],
+  ['tab-mealplan',   'sheet-repweek',     'Repeat a week'],
+  ['tab-mealplan',   'sheet-repday',      'Repeat a day'],
+
+  // Shopping tab
+  ['tab-shopping',   'tab-mealplan',      'empty state CTA'],
+
+  // Favs tab
+  ['tab-favs',       'add-entry',         '+ FAB / Add card'],
+  ['tab-favs',       'recipe-detail',     'tap recipe'],
+
+  // Discover tab
+  ['tab-discover',   'disc-search',       'search bar'],
+  ['tab-discover',   'disc-col',          'tap collection'],
+  ['tab-discover',   'disc-filter',       'apply filters'],
+  ['tab-discover',   'sheet-filter',      'filter button'],
+  ['tab-discover',   'recipe-detail',     'tap recipe'],
+  ['tab-discover',   'family-settings',   'header icon'],
+
+  // Discover sub-screens
+  ['disc-search',    'recipe-detail',     'tap recipe'],
+  ['disc-col',       'recipe-detail',     'tap recipe'],
+  ['disc-filter',    'recipe-detail',     'tap recipe'],
+
+  // Add Recipe flow
+  ['add-entry',      'add-review',        'URL / camera / photos'],
+  ['add-entry',      'add-manual',        'Manual Entry'],
+  ['add-entry',      'add-paste',         'Paste Text'],
+  ['add-entry',      'add-video',         'Video Link'],
+  ['add-entry',      'sheet-voice',       'Voice'],
+  ['add-paste',      'add-review',        'extracted'],
+  ['add-video',      'add-review',        'extracted'],
+  ['sheet-voice',    'add-review',        'extracted'],
+  ['add-review',     'add-manual',        'extraction failed fallback'],
+  ['add-review',     'tab-mealplan',      'save + pending slot'],
+  ['add-review',     'tab-favs',          'save to favourites'],
+  ['add-manual',     'tab-mealplan',      'save + pending slot'],
+  ['add-manual',     'tab-favs',          'save to favourites'],
+
+  // Recipe Detail
+  ['recipe-detail',  'add-manual',        'Edit button (editId)'],
+  ['recipe-detail',  'sheet-slot',        'Add to Plan'],
+
+  // MealPickerSheet
+  ['sheet-picker',   'add-entry',         'Add with Recipe'],
+  ['sheet-picker',   'tab-favs',          'Browse Favs'],
+  ['sheet-picker',   'tab-discover',      'Browse Discover'],
+
+  // Family Settings
+  ['family-settings','ob-auth',           'Logout (replace)'],
+];
+
+// ─── BUILD LOOKUP ─────────────────────────────────────────────────────────────
+const byId = {};
+SCREENS.forEach(s => { byId[s.id] = s; });
+
+const linksFrom = {}; // id → [{toId, label}]
+const linksTo   = {}; // id → [{fromId, label}]
+SCREENS.forEach(s => { linksFrom[s.id] = []; linksTo[s.id] = []; });
+CONNECTIONS.forEach(([f, t, l]) => {
+  if (linksFrom[f]) linksFrom[f].push({ id: t, label: l });
+  if (linksTo[t])   linksTo[t].push({ id: f, label: l });
+});
+
+// ─── GROUP HEADERS ────────────────────────────────────────────────────────────
+const GROUP_HEADERS = [
+  { label: 'ONBOARDING FLOW',      x: 60,   y: 90,   color: '#db2777' },
+  { label: 'TAB SCREENS',          x: 340,  y: 210,  color: '#7B68CC' },
+  { label: 'ADD A RECIPE FLOW',    x: 625,  y: 210,  color: '#d97706' },
+  { label: 'DISCOVER SUB-SCREENS', x: 625,  y: 900,  color: '#059669' },
+  { label: 'SHARED SCREENS',       x: 1290, y: 340,  color: '#2563eb' },
+  { label: 'SETTINGS',             x: 1290, y: 550,  color: '#6b7280' },
+  { label: 'SHEETS & MODALS',      x: 340,  y: 1100, color: '#0891b2' },
+];
+
+const canvas = document.getElementById('canvas');
+GROUP_HEADERS.forEach(h => {
+  const el = document.createElement('div');
+  el.className = 'group-label';
+  el.style.cssText = `left:${h.x}px; top:${h.y}px; color:${h.color}99;`;
+  el.textContent = h.label;
+  canvas.appendChild(el);
+});
+
+// ─── RENDER CARDS ─────────────────────────────────────────────────────────────
+SCREENS.forEach(s => {
+  const card = document.createElement('div');
+  card.id = 'card-' + s.id;
+  card.className = `screen-card group-${s.group}`;
+  card.style.cssText = `left:${s.x}px; top:${s.y}px;`;
+  card.innerHTML = `
+    <div class="card-badge">${s.type}</div>
+    <div class="card-label">${s.label}</div>
+    <div class="card-file">${s.file}</div>
+  `;
+  card.addEventListener('click', e => { e.stopPropagation(); selectScreen(s.id); });
+  canvas.appendChild(card);
+});
+
+// ─── DRAW CONNECTIONS ─────────────────────────────────────────────────────────
+const svg = document.getElementById('connections');
+const CARD_W = 176, CARD_H = 78; // approx
+
+function cardCenter(id) {
+  const s = byId[id];
+  return s ? { x: s.x + CARD_W / 2, y: s.y + CARD_H / 2 } : null;
+}
+
+function edgePoints(fromId, toId) {
+  const f = byId[fromId], t = byId[toId];
+  if (!f || !t) return null;
+  const fx = f.x + CARD_W / 2, fy = f.y + CARD_H / 2;
+  const tx = t.x + CARD_W / 2, ty = t.y + CARD_H / 2;
+  const angle = Math.atan2(ty - fy, tx - fx);
+  const hw = CARD_W / 2 + 2, hh = CARD_H / 2 + 2;
+  // Clamp to card edge
+  const absCos = Math.abs(Math.cos(angle)), absSin = Math.abs(Math.sin(angle));
+  const fromDist = (absCos * hw > absSin * hh) ? hw / absCos : hh / absSin;
+  const toDist   = (absCos * hw > absSin * hh) ? hw / absCos : hh / absSin;
+  return {
+    x1: fx + Math.cos(angle) * fromDist,
+    y1: fy + Math.sin(angle) * fromDist,
+    x2: tx - Math.cos(angle) * toDist,
+    y2: ty - Math.sin(angle) * toDist,
+  };
+}
+
+const pathEls = {}; // connKey → SVGPathElement
+
+function connKey(f, t) { return f + '→' + t; }
+
+CONNECTIONS.forEach(([fromId, toId]) => {
+  const pts = edgePoints(fromId, toId);
+  if (!pts) return;
+  const { x1, y1, x2, y2 } = pts;
+  const dx = x2 - x1, dy = y2 - y1;
+  // Gentle cubic bezier
+  const cx1 = x1 + dx * 0.45, cy1 = y1;
+  const cx2 = x1 + dx * 0.55, cy2 = y2;
+  const d = `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${cx1.toFixed(1)} ${cy1.toFixed(1)}, ${cx2.toFixed(1)} ${cy2.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', d);
+  path.setAttribute('class', 'conn');
+  path.setAttribute('marker-end', 'url(#arr-default)');
+  path.dataset.from = fromId;
+  path.dataset.to   = toId;
+  svg.appendChild(path);
+  pathEls[connKey(fromId, toId)] = path;
+});
+
+// ─── SELECTION ────────────────────────────────────────────────────────────────
+let selectedId = null;
+
+function selectScreen(id) {
+  if (selectedId === id) { clearSelection(); return; }
+  clearSelection();
+  selectedId = id;
+
+  const card = document.getElementById('card-' + id);
+  if (card) card.classList.add('selected');
+
+  const fromIds = new Set(linksFrom[id].map(l => l.id));
+  const toIds   = new Set(linksTo[id].map(l => l.id));
+
+  // Dim all cards except neighbours
+  SCREENS.forEach(s => {
+    if (s.id === id || fromIds.has(s.id) || toIds.has(s.id)) return;
+    document.getElementById('card-' + s.id)?.classList.add('dimmed');
+  });
+
+  // Style connections
+  svg.querySelectorAll('.conn').forEach(p => {
+    const f = p.dataset.from, t = p.dataset.to;
+    if (f === id) {
+      p.classList.add('active-from');
+      p.setAttribute('marker-end', 'url(#arr-from)');
+    } else if (t === id) {
+      p.classList.add('active-to');
+      p.setAttribute('marker-end', 'url(#arr-to)');
+    } else {
+      p.classList.add('dim');
+    }
+  });
+
+  showInfoPanel(id);
+}
+
+function clearSelection() {
+  if (!selectedId) return;
+  selectedId = null;
+  document.querySelectorAll('.screen-card.selected').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.screen-card.dimmed').forEach(el => el.classList.remove('dimmed'));
+  svg.querySelectorAll('.conn').forEach(p => {
+    p.classList.remove('active-from', 'active-to', 'dim');
+    p.setAttribute('marker-end', 'url(#arr-default)');
+  });
+  document.getElementById('info-panel').classList.remove('visible');
+}
+
+canvas.addEventListener('click', clearSelection);
+
+// ─── INFO PANEL ───────────────────────────────────────────────────────────────
+function showInfoPanel(id) {
+  const s = byId[id];
+  if (!s) return;
+  document.getElementById('info-name').textContent = s.label;
+  document.getElementById('info-file').textContent = s.file;
+  document.getElementById('info-desc').textContent = s.desc;
+
+  const toLinks   = linksFrom[id] || [];
+  const fromLinks = linksTo[id]   || [];
+
+  const toSec = document.getElementById('info-to-section');
+  const frSec = document.getElementById('info-from-section');
+
+  if (toLinks.length) {
+    toSec.innerHTML = `<div class="info-sec" style="color:#38bdf8">→ Navigates to</div><div class="info-pills">${
+      toLinks.map(l => `<span class="info-pill" onclick="selectScreen('${l.id}')">${byId[l.id]?.label || l.id}${l.label ? `<span class="info-pill-label">(${l.label})</span>` : ''}</span>`).join('')
+    }</div>`;
+  } else { toSec.innerHTML = ''; }
+
+  if (fromLinks.length) {
+    frSec.innerHTML = `<div class="info-sec" style="color:#fbbf24">← Reached from</div><div class="info-pills">${
+      fromLinks.map(l => `<span class="info-pill" onclick="selectScreen('${l.id}')">${byId[l.id]?.label || l.id}${l.label ? `<span class="info-pill-label">(${l.label})</span>` : ''}</span>`).join('')
+    }</div>`;
+  } else { frSec.innerHTML = ''; }
+
+  document.getElementById('info-panel').classList.add('visible');
+}
+
+function closeInfo() { clearSelection(); }
+
+// ─── PAN & ZOOM ───────────────────────────────────────────────────────────────
+let scale = 1, panX = 0, panY = 0;
+let panning = false, startX, startY, startPX, startPY;
+const container = document.getElementById('canvas-container');
+
+function applyTransform() {
+  canvas.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
+}
+
+container.addEventListener('mousedown', e => {
+  if (e.target.closest('.screen-card')) return;
+  panning = true; startX = e.clientX; startY = e.clientY; startPX = panX; startPY = panY;
+  container.classList.add('panning');
+});
+document.addEventListener('mousemove', e => {
+  if (!panning) return;
+  panX = startPX + (e.clientX - startX);
+  panY = startPY + (e.clientY - startY);
+  applyTransform();
+});
+document.addEventListener('mouseup', () => { panning = false; container.classList.remove('panning'); });
+
+container.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = container.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const factor = e.deltaY < 0 ? 1.1 : 0.91;
+  const newScale = Math.min(Math.max(scale * factor, 0.18), 2.5);
+  panX = mx - (mx - panX) * (newScale / scale);
+  panY = my - (my - panY) * (newScale / scale);
+  scale = newScale;
+  applyTransform();
+}, { passive: false });
+
+function resetView() { scale = 0.72; panX = 20; panY = 10; applyTransform(); }
+
+function fitAll() {
+  const cw = container.clientWidth, ch = container.clientHeight;
+  const contentW = 1520, contentH = 1410;
+  scale = Math.min(cw / contentW, ch / contentH) * 0.94;
+  panX = (cw - contentW * scale) / 2;
+  panY = (ch - contentH * scale) / 2;
+  applyTransform();
+}
+
+fitAll();
+</script>
+</body>
+</html>

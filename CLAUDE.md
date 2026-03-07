@@ -160,6 +160,40 @@ Always submit prompts as a **single message** — no newlines in the submitted t
 
 ---
 
+## Screen Map
+
+A visual reference of every screen, its exact file path, and all navigation connections is maintained at **`screen-map.html`** in the repository root. Open it in any browser — it is pannable, zoomable, and click-to-inspect.
+
+> **Rule — keep the screen map current at all times.**
+> After any change that does one of the following, update `screen-map.html` before committing:
+> - Adds a new screen or sheet/modal component
+> - Removes or renames an existing screen file
+> - Adds, removes, or changes a `router.push` / `router.replace` navigation call
+>
+> **What to edit:** Only the `SCREENS` array and the `CONNECTIONS` array inside the `<script>` block at the bottom of `screen-map.html`. The HTML, CSS, and rendering logic must never be changed.
+>
+> **`SCREENS` entry shape:**
+> ```js
+> { id:'unique-id', label:'Display Name', file:'app/path/to/file.tsx',
+>   group:'tabs|add-recipe|discover|onboarding|shared|settings|sheets',
+>   type:'Tab|Screen|Sheet|Modal', x: 000, y: 000,
+>   desc:'One sentence describing this screen and its purpose.' }
+> ```
+> **`CONNECTIONS` entry shape:** `['fromId', 'toId', 'short edge label']`
+>
+> **Groups and their left-border colours:**
+> | group | colour | use for |
+> |---|---|---|
+> | `tabs` | #7B68CC purple | The four main tab screens |
+> | `add-recipe` | #d97706 orange | add-recipe-entry, review, manual, paste, video |
+> | `discover` | #059669 green | discover sub-screens |
+> | `onboarding` | #db2777 pink | onboarding flow screens |
+> | `shared` | #2563eb blue | screens reached from multiple tabs (recipe-detail) |
+> | `settings` | #6b7280 grey | family-settings |
+> | `sheets` | #0891b2 teal dashed | any component-level sheet or modal |
+
+---
+
 ## Architectural Rules
 
 These patterns were established through development and must be followed:
