@@ -11,6 +11,8 @@ import {
   Modal,
   ScrollView,
   Animated,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, Copy, Share2, ChevronDown, ChevronRight, Check, Trash2, ShoppingBasket } from 'lucide-react-native';
@@ -205,15 +207,6 @@ function AddItemSheet({ visible, onClose, onAdd }: AddItemSheetProps) {
   const [unit, setUnit] = useState('');
   const [category, setCategory] = useState('Other');
   const insets = useSafeAreaInsets();
-  const nameInputRef = useRef<TextInput>(null);
-
-  // Focus the input after the sheet slide-up animation finishes (~350ms)
-  useEffect(() => {
-    if (visible) {
-      const timer = setTimeout(() => nameInputRef.current?.focus(), 350);
-      return () => clearTimeout(timer);
-    }
-  }, [visible]);
 
   const reset = () => { setName(''); setQty(''); setUnit(''); setCategory('Other'); };
 
@@ -232,21 +225,26 @@ function AddItemSheet({ visible, onClose, onAdd }: AddItemSheetProps) {
       presentationStyle="overFullScreen"
       onRequestClose={onClose}
     >
-      <TouchableOpacity style={sheetStyles.overlay} activeOpacity={1} onPress={onClose} />
-      <View style={[sheetStyles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-        <View style={sheetStyles.handle} />
-        <View style={sheetStyles.inner}>
-          <Text style={sheetStyles.title}>Add item</Text>
+      <KeyboardAvoidingView
+        style={sheetStyles.kavRoot}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* Tap-to-dismiss overlay — absoluteFill so it sits behind the sheet */}
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} />
+        <View style={[sheetStyles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+          <View style={sheetStyles.handle} />
+          <View style={sheetStyles.inner}>
+            <Text style={sheetStyles.title}>Add item</Text>
 
-          <TextInput
-            ref={nameInputRef}
-            style={sheetStyles.input}
-            placeholder="Item name"
-            placeholderTextColor={Colors.textSecondary}
-            value={name}
-            onChangeText={setName}
-            returnKeyType="next"
-          />
+            <TextInput
+              autoFocus
+              style={sheetStyles.input}
+              placeholder="Item name"
+              placeholderTextColor={Colors.textSecondary}
+              value={name}
+              onChangeText={setName}
+              returnKeyType="next"
+            />
 
           <View style={sheetStyles.qtyRow}>
             <TextInput
@@ -301,12 +299,18 @@ function AddItemSheet({ visible, onClose, onAdd }: AddItemSheetProps) {
           </TouchableOpacity>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const sheetStyles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  // KeyboardAvoidingView root: fills screen, pushes sheet up with keyboard
+  kavRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
   sheet: {
     backgroundColor: Colors.white,
     borderTopLeftRadius: 24,
