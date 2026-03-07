@@ -34,6 +34,8 @@ function getSlotCategory(slotName: string): 'breakfast' | 'lunch_dinner' | 'ligh
   return 'light_bites';
 }
 
+// Fallback name-based classifier — only used when a meal has no meal_type field set.
+// Prefer the meal_type field directly wherever available.
 function getMealCategoryByName(name: string): 'breakfast' | 'lunch_dinner' | 'light_bites' {
   const lower = name.toLowerCase();
   if (
@@ -51,6 +53,87 @@ function getMealCategoryByName(name: string): 'breakfast' | 'lunch_dinner' | 'li
     return 'light_bites';
   }
   return 'lunch_dinner';
+}
+
+// ─── Smart Fill — shared types & pure scoring functions ──────────────────────
+
+type PoolEntry = {
+  id?: string;
+  name: string;
+  image_url?: string;
+  ingredients: PlannedMeal['ingredients'];
+  recipe_serving_size: number;
+  isNew: boolean;
+  // Rich fields used for scoring and slot matching
+  meal_type?: 'breakfast' | 'lunch_dinner' | 'light_bites';
+  protein_source?: string;
+  cuisines?: string[];
+  rating?: string;             // 'disliked' | 'liked' | 'loved'
+  add_to_plan_count?: number;
+  last_cooked_at?: string;
+};
+
+type ScoringContext = {
+  proteinsUsedToday: Set<string>;
+  cuisinesUsedToday: Set<string>;
+  proteinCountsThisWeek: Map<string, number>;
+};
+
+/**
+ * Score a pool entry given the current pick context.
+ * Higher = more likely to be picked. Can be negative (shifted up in weightedPick).
+ *
+ * Signals:
+ *   Rating:          loved +60 / liked +30 / fav no-rating +15 / discover no-rating +5
+ *   Planned before:  add_to_plan_count > 0 → +10
+ *   Recency:         cooked ≤7 days ago → −30 / ≤14 days → −15
+ *   Protein today:   same protein already used today → −40
+ *   Protein week:    same protein used 3+ times this week → −20
+ *   Cuisine today:   same cuisine already used today → −20
+ */
+function scoreCandidate(entry: PoolEntry, ctx: ScoringContext): number {
+  let score = entry.rating === 'loved' ? 60
+            : entry.rating === 'liked' ? 30
+            : !entry.isNew ? 15    // fav, unrated — family has seen it before
+            : 5;                   // discover-only, unrated
+
+  if ((entry.add_to_plan_count ?? 0) > 0) score += 10;
+
+  if (entry.last_cooked_at) {
+    const daysSince = Math.floor(
+      (Date.now() - new Date(entry.last_cooked_at).getTime()) / 86_400_000
+    );
+    if (daysSince <= 7) score -= 30;
+    else if (daysSince <= 14) score -= 15;
+  }
+
+  if (entry.protein_source) {
+    if (ctx.proteinsUsedToday.has(entry.protein_source)) score -= 40;
+    else if ((ctx.proteinCountsThisWeek.get(entry.protein_source) ?? 0) >= 3) score -= 20;
+  }
+
+  if (entry.cuisines?.length) {
+    if (entry.cuisines.some((c) => ctx.cuisinesUsedToday.has(c.toLowerCase()))) score -= 20;
+  }
+
+  return score;
+}
+
+/**
+ * Probability-weighted random pick.
+ * Scores are shifted so the minimum becomes 1 — no zero/negative weights —
+ * then items are drawn proportionally to their shifted score.
+ */
+function weightedPick<T>(items: T[], scores: number[]): T {
+  const min = Math.min(...scores);
+  const shifted = scores.map((s) => s - min + 1);
+  const total = shifted.reduce((a, b) => a + b, 0);
+  let rand = Math.random() * total;
+  for (let i = 0; i < items.length; i++) {
+    rand -= shifted[i];
+    if (rand <= 0) return items[i];
+  }
+  return items[items.length - 1];
 }
 
 export default function MealPlanScreen() {
@@ -215,16 +298,8 @@ export default function MealPlanScreen() {
       sortedSlots.every((slot) => getMealsForSlot(formatDateKey(date), slot.slot_id).length === 0)
     );
 
-    type PoolEntry = {
-      id?: string;
-      name: string;
-      image_url?: string;
-      ingredients: PlannedMeal['ingredients'];
-      recipe_serving_size: number;
-      isNew: boolean;  // true = discover-only (not in favs)
-    };
-
-    // familiarPool = meals the family already knows (from Favs)
+    // ── Build pools ──────────────────────────────────────────────────────────
+    // familiarPool = meals the family already knows (Favs), with full rich fields
     const familiarPool: PoolEntry[] = favMeals.map((f) => ({
       id: f.id,
       name: f.name,
@@ -232,6 +307,12 @@ export default function MealPlanScreen() {
       ingredients: f.ingredients,
       recipe_serving_size: f.recipe_serving_size,
       isNew: false,
+      meal_type: f.meal_type,
+      protein_source: f.protein_source,
+      cuisines: f.cuisines ?? (f.cuisine ? [f.cuisine.toLowerCase()] : undefined),
+      rating: f.rating,
+      add_to_plan_count: f.add_to_plan_count,
+      last_cooked_at: f.last_cooked_at,
     }));
 
     // newPool = discover meals not already in Favs
@@ -243,6 +324,10 @@ export default function MealPlanScreen() {
         ingredients: d.ingredients,
         recipe_serving_size: d.recipe_serving_size,
         isNew: true,
+        meal_type: d.meal_type,
+        protein_source: d.protein_source,
+        cuisines: d.cuisines,
+        add_to_plan_count: d.add_to_plan_count,
       }));
 
     const fullPool = [...familiarPool, ...newPool];
@@ -252,7 +337,7 @@ export default function MealPlanScreen() {
       return;
     }
 
-    // Count how many slots we'll be filling to calculate the novelty quota
+    // ── Novelty quota ────────────────────────────────────────────────────────
     const totalSlotsToFill = weekDates.reduce((acc, date) => {
       const dateKey = formatDateKey(date);
       return acc + sortedSlots.filter((slot) => {
@@ -262,49 +347,80 @@ export default function MealPlanScreen() {
     }, 0);
     const targetNewCount = Math.round(totalSlotsToFill * noveltyPct / 100);
 
+    // ── Eligibility helper ───────────────────────────────────────────────────
+    // Hard filter: disliked meals and already-used meals never appear as candidates.
+    const eligible = (pool: PoolEntry[], usedSet: Set<string>) =>
+      pool.filter((m) => m.rating !== 'disliked' && !usedSet.has(m.name.toLowerCase()));
+
+    // Slot matcher: prefer meal_type field; fall back to name heuristic for older meals.
+    const matchesSlot = (m: PoolEntry, slotCat: string) =>
+      (m.meal_type ?? getMealCategoryByName(m.name)) === slotCat;
+
+    // ── Scoring context ──────────────────────────────────────────────────────
+    // proteinCountsThisWeek accumulates across all days; proteinsUsedToday and
+    // cuisinesUsedToday reset for each new day so diversity is enforced per-day.
+    const proteinCountsThisWeek = new Map<string, number>();
+
     const used = new Set<string>();
     const newMeals: PlannedMeal[] = [];
     let newPicksCount = 0;
 
     for (const date of weekDates) {
       const dateKey = formatDateKey(date);
+      const proteinsUsedToday = new Set<string>();
+      const cuisinesUsedToday = new Set<string>();
+
       for (const slot of sortedSlots) {
         const existing = getMealsForSlot(dateKey, slot.slot_id);
-        // In Smart Fill mode: skip slots that already have meals.
-        // In Reshuffle mode: overwrite every slot with a fresh pick.
+        // Smart Fill: skip occupied slots. Reshuffle: overwrite all.
         if (weekWasEmpty && existing.length > 0) continue;
         const slotCat = getSlotCategory(slot.name);
         const serving = slot.serving_size_override ?? defaultServing;
 
-        // Determine which sub-pool to prefer based on novelty quota
+        // ── Novelty split ──────────────────────────────────────────────────
         const needsNewPick = newPicksCount < targetNewCount;
         const preferredPool = needsNewPick
           ? (newPool.length > 0 ? newPool : familiarPool)
           : (familiarPool.length > 0 ? familiarPool : newPool);
         const fallbackPool = needsNewPick ? familiarPool : newPool;
 
-        const preferredCatMatches = preferredPool.filter(
-          (m) => getMealCategoryByName(m.name) === slotCat && !used.has(m.name.toLowerCase())
-        );
-        const preferredUnused = preferredPool.filter((m) => !used.has(m.name.toLowerCase()));
-        const fallbackCatMatches = fallbackPool.filter(
-          (m) => getMealCategoryByName(m.name) === slotCat && !used.has(m.name.toLowerCase())
-        );
-        const fallbackUnused = fallbackPool.filter((m) => !used.has(m.name.toLowerCase()));
+        const prefEligible  = eligible(preferredPool, used);
+        const fallEligible  = eligible(fallbackPool, used);
+        const fullEligible  = eligible(fullPool, used);
 
-        // Priority: preferred cat match → preferred any → fallback cat → fallback any → full pool
+        // Priority: preferred slot-match → preferred any → fallback slot-match → fallback any → anything
         const candidates =
-          preferredCatMatches.length > 0 ? preferredCatMatches :
-          preferredUnused.length > 0 ? preferredUnused :
-          fallbackCatMatches.length > 0 ? fallbackCatMatches :
-          fallbackUnused.length > 0 ? fallbackUnused :
-          fullPool.filter((m) => !used.has(m.name.toLowerCase()));
+          prefEligible.filter((m) => matchesSlot(m, slotCat)).length > 0
+            ? prefEligible.filter((m) => matchesSlot(m, slotCat))
+          : prefEligible.length > 0
+            ? prefEligible
+          : fallEligible.filter((m) => matchesSlot(m, slotCat)).length > 0
+            ? fallEligible.filter((m) => matchesSlot(m, slotCat))
+          : fallEligible.length > 0
+            ? fallEligible
+          : fullEligible;
 
         if (candidates.length === 0) continue;
 
-        const picked = candidates[Math.floor(Math.random() * candidates.length)];
+        // ── Score + weighted pick ──────────────────────────────────────────
+        const ctx: ScoringContext = { proteinsUsedToday, cuisinesUsedToday, proteinCountsThisWeek };
+        const scores = candidates.map((m) => scoreCandidate(m, ctx));
+        const picked = weightedPick(candidates, scores);
+
         used.add(picked.name.toLowerCase());
         if (picked.isNew) newPicksCount++;
+
+        // Update diversity context for subsequent picks
+        if (picked.protein_source) {
+          proteinsUsedToday.add(picked.protein_source);
+          proteinCountsThisWeek.set(
+            picked.protein_source,
+            (proteinCountsThisWeek.get(picked.protein_source) ?? 0) + 1
+          );
+        }
+        if (picked.cuisines?.length) {
+          picked.cuisines.forEach((c) => cuisinesUsedToday.add(c.toLowerCase()));
+        }
 
         newMeals.push({
           id: `meal_${Date.now()}_${newMeals.length}_${Math.random().toString(36).slice(2, 7)}`,
@@ -368,16 +484,7 @@ export default function MealPlanScreen() {
     const dateKey = formatDateKey(currentDate);
     const dayWasEmpty = sortedSlots.every((slot) => getMealsForSlot(dateKey, slot.slot_id).length === 0);
 
-    type PoolEntry = {
-      id?: string;
-      name: string;
-      image_url?: string;
-      ingredients: PlannedMeal['ingredients'];
-      recipe_serving_size: number;
-      isNew: boolean;
-    };
-
-    // familiarPool = meals the family already knows (from Favs)
+    // ── Build pools ──────────────────────────────────────────────────────────
     const familiarPool: PoolEntry[] = favMeals.map((f) => ({
       id: f.id,
       name: f.name,
@@ -385,9 +492,14 @@ export default function MealPlanScreen() {
       ingredients: f.ingredients,
       recipe_serving_size: f.recipe_serving_size,
       isNew: false,
+      meal_type: f.meal_type,
+      protein_source: f.protein_source,
+      cuisines: f.cuisines ?? (f.cuisine ? [f.cuisine.toLowerCase()] : undefined),
+      rating: f.rating,
+      add_to_plan_count: f.add_to_plan_count,
+      last_cooked_at: f.last_cooked_at,
     }));
 
-    // newPool = discover meals not already in Favs
     const newPool: PoolEntry[] = DISCOVER_MEALS
       .filter((d) => !favNames.has(d.name.toLowerCase()))
       .map((d) => ({
@@ -396,6 +508,10 @@ export default function MealPlanScreen() {
         ingredients: d.ingredients,
         recipe_serving_size: d.recipe_serving_size,
         isNew: true,
+        meal_type: d.meal_type,
+        protein_source: d.protein_source,
+        cuisines: d.cuisines,
+        add_to_plan_count: d.add_to_plan_count,
       }));
 
     const fullPool = [...familiarPool, ...newPool];
@@ -405,12 +521,24 @@ export default function MealPlanScreen() {
       return;
     }
 
-    // Count how many slots we'll be filling to calculate the novelty quota
+    // ── Novelty quota ────────────────────────────────────────────────────────
     const totalSlotsToFill = sortedSlots.filter((slot) => {
       const existing = getMealsForSlot(dateKey, slot.slot_id);
       return dayWasEmpty ? existing.length === 0 : true;
     }).length;
     const targetNewCount = Math.round(totalSlotsToFill * noveltyPct / 100);
+
+    // ── Eligibility + slot match helpers ────────────────────────────────────
+    const eligible = (pool: PoolEntry[], usedSet: Set<string>) =>
+      pool.filter((m) => m.rating !== 'disliked' && !usedSet.has(m.name.toLowerCase()));
+
+    const matchesSlot = (m: PoolEntry, slotCat: string) =>
+      (m.meal_type ?? getMealCategoryByName(m.name)) === slotCat;
+
+    // ── Scoring context (single day — no week-level counters needed here) ────
+    const proteinsUsedToday = new Set<string>();
+    const cuisinesUsedToday = new Set<string>();
+    const proteinCountsThisWeek = new Map<string, number>(); // empty for single-day fill
 
     const used = new Set<string>();
     const newMeals: PlannedMeal[] = [];
@@ -418,40 +546,53 @@ export default function MealPlanScreen() {
 
     for (const slot of sortedSlots) {
       const existing = getMealsForSlot(dateKey, slot.slot_id);
-      // In Smart Fill mode: skip slots that already have meals.
-      // In Reshuffle mode: overwrite every slot with a fresh pick.
+      // Smart Fill: skip occupied slots. Reshuffle: overwrite all.
       if (dayWasEmpty && existing.length > 0) continue;
       const slotCat = getSlotCategory(slot.name);
       const serving = slot.serving_size_override ?? defaultServing;
 
-      // Determine which sub-pool to prefer based on novelty quota
+      // ── Novelty split ────────────────────────────────────────────────────
       const needsNewPick = newPicksCount < targetNewCount;
       const preferredPool = needsNewPick
         ? (newPool.length > 0 ? newPool : familiarPool)
         : (familiarPool.length > 0 ? familiarPool : newPool);
       const fallbackPool = needsNewPick ? familiarPool : newPool;
 
-      const preferredCatMatches = preferredPool.filter(
-        (m) => getMealCategoryByName(m.name) === slotCat && !used.has(m.name.toLowerCase())
-      );
-      const preferredUnused = preferredPool.filter((m) => !used.has(m.name.toLowerCase()));
-      const fallbackCatMatches = fallbackPool.filter(
-        (m) => getMealCategoryByName(m.name) === slotCat && !used.has(m.name.toLowerCase())
-      );
-      const fallbackUnused = fallbackPool.filter((m) => !used.has(m.name.toLowerCase()));
+      const prefEligible = eligible(preferredPool, used);
+      const fallEligible = eligible(fallbackPool, used);
+      const fullEligible = eligible(fullPool, used);
 
       const candidates =
-        preferredCatMatches.length > 0 ? preferredCatMatches :
-        preferredUnused.length > 0 ? preferredUnused :
-        fallbackCatMatches.length > 0 ? fallbackCatMatches :
-        fallbackUnused.length > 0 ? fallbackUnused :
-        fullPool.filter((m) => !used.has(m.name.toLowerCase()));
+        prefEligible.filter((m) => matchesSlot(m, slotCat)).length > 0
+          ? prefEligible.filter((m) => matchesSlot(m, slotCat))
+        : prefEligible.length > 0
+          ? prefEligible
+        : fallEligible.filter((m) => matchesSlot(m, slotCat)).length > 0
+          ? fallEligible.filter((m) => matchesSlot(m, slotCat))
+        : fallEligible.length > 0
+          ? fallEligible
+        : fullEligible;
 
       if (candidates.length === 0) continue;
 
-      const picked = candidates[Math.floor(Math.random() * candidates.length)];
+      // ── Score + weighted pick ────────────────────────────────────────────
+      const ctx: ScoringContext = { proteinsUsedToday, cuisinesUsedToday, proteinCountsThisWeek };
+      const scores = candidates.map((m) => scoreCandidate(m, ctx));
+      const picked = weightedPick(candidates, scores);
+
       used.add(picked.name.toLowerCase());
       if (picked.isNew) newPicksCount++;
+
+      if (picked.protein_source) {
+        proteinsUsedToday.add(picked.protein_source);
+        proteinCountsThisWeek.set(
+          picked.protein_source,
+          (proteinCountsThisWeek.get(picked.protein_source) ?? 0) + 1
+        );
+      }
+      if (picked.cuisines?.length) {
+        picked.cuisines.forEach((c) => cuisinesUsedToday.add(c.toLowerCase()));
+      }
 
       newMeals.push({
         id: `meal_${Date.now()}_${newMeals.length}_${Math.random().toString(36).slice(2, 7)}`,
