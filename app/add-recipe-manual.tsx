@@ -134,6 +134,16 @@ export default function AddMealScreen() {
           unit: i.unit.trim() || 'pc',
         }));
       const result = await extractRecipeMetadata(name.trim(), validIngredients);
+      if (result.cuisine) setCuisine(result.cuisine);
+      if (result.meal_type) {
+        const normalised = result.meal_type.toLowerCase();
+        const match = sortedSlots.find(
+          (slot) =>
+            slot.name.toLowerCase().includes(normalised) ||
+            normalised.includes(slot.name.toLowerCase())
+        );
+        if (match) setMealTypeSlotId(match.slot_id);
+      }
       if (result.dish_category) setDishCategory(result.dish_category);
       if (result.protein_source) setProteinSource(result.protein_source);
       if (result.diet_labels?.length) setDietLabels(result.diet_labels);
@@ -149,7 +159,7 @@ export default function AddMealScreen() {
     } finally {
       setIsAiFillingMetadata(false);
     }
-  }, [name, ingredients]);
+  }, [name, ingredients, sortedSlots]);
 
   // Opening the accordion on a NEW meal auto-triggers AI fill on first open.
   // On edit mode the accordion just opens normally — details are already filled.

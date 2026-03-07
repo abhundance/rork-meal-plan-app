@@ -319,6 +319,8 @@ export async function transcribeAndExtract(audioUri: string): Promise<ExtractedR
 // nutrition metadata without re-extracting the full recipe content.
 
 export interface ExtractedMetadata {
+  cuisine?: string;           // e.g. "Italian", "Mexican", "Asian"
+  meal_type?: string;         // "breakfast" | "lunch" | "dinner" | "snack" | "dessert"
   dish_category?: string;
   protein_source?: string;
   allergens?: string[];
@@ -331,6 +333,8 @@ export interface ExtractedMetadata {
 
 const METADATA_PROMPT = `You are a recipe metadata assistant. Given a recipe name and ingredient list, infer the classification and nutritional metadata. Return ONLY a valid JSON object — no markdown, no explanation:
 {
+  "cuisine": the primary cuisine style as a plain string (e.g. "Italian", "Mexican", "Asian", "British", "Indian"), or null if unclear,
+  "meal_type": one of "breakfast"|"lunch"|"dinner"|"snack"|"dessert" — which meal this recipe best suits,
   "dish_category": one of "main"|"salad"|"soup"|"appetizer"|"side"|"dessert"|"drink"|"bread"|"sandwich"|"sauce"|"other",
   "protein_source": one of "chicken"|"beef"|"pork"|"lamb"|"turkey"|"seafood"|"egg"|"dairy"|"plant"|"none",
   "allergens": array of values this recipe is genuinely FREE FROM, chosen from ["gluten-free","dairy-free","egg-free","nut-free","peanut-free","soy-free","shellfish-free","wheat-free","sesame-free"],
@@ -340,7 +344,7 @@ const METADATA_PROMPT = `You are a recipe metadata assistant. Given a recipe nam
   "protein_per_serving_g": number or null if not determinable,
   "carbs_per_serving_g": number or null if not determinable
 }
-Rules: only include allergens the recipe is genuinely free from. Only include diet_labels that clearly apply. Estimate nutrition from ingredients if possible; use null otherwise.`;
+Rules: cuisine should match one of the standard cuisine names from CUISINE_OPTIONS where possible. meal_type should reflect when this dish is typically eaten. Only include allergens the recipe is genuinely free from. Only include diet_labels that clearly apply. Estimate nutrition from ingredients if possible; use null otherwise.`;
 
 export async function extractRecipeMetadata(
   name: string,
