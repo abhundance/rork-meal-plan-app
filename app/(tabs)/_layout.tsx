@@ -41,7 +41,7 @@ function DiscoverIcon({ color }: { color: string }) {
 }
 
 const homeOptions = {
-  title: 'Meal Plan',
+  title: 'Plan',
   tabBarIcon: MealPlanIcon,
 };
 

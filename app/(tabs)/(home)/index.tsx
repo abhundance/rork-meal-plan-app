@@ -380,7 +380,7 @@ export default function MealPlanScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <AppHeader title="Meal Plan" />
+        <AppHeader title="Plan" />
         <View style={styles.skeletonWrap}>
           <SkeletonLoader height={36} borderRadius={20} style={{ marginBottom: 16 }} />
           <SkeletonLoader height={200} borderRadius={12} style={{ marginBottom: 12 }} />
@@ -392,7 +392,7 @@ export default function MealPlanScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <AppHeader title="Meal Plan" />
+      <AppHeader title="Plan" />
 
       <View style={styles.controlWrap}>
         <SegmentedControl
