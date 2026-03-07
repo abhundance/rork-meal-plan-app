@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -171,6 +171,7 @@ export default function FavsScreen() {
 
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastAnim = useRef(new Animated.Value(0)).current;
+  const flatListRef = useRef<FlatList>(null);
 
   const showToast = useCallback((message: string) => {
     setToastMsg(message);
@@ -231,6 +232,12 @@ export default function FavsScreen() {
     setProteinFilter('all');
     setDietFilter('all');
   }, []);
+
+  // Scroll back to top whenever any filter/sort/search changes so the grid
+  // never shows a phantom blank gap caused by a stale scroll offset.
+  useEffect(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [search, mealTypeFilter, dishTypeFilter, proteinFilter, dietFilter, favFilters.sort]);
 
   // Cycles to the next sort option on each tap — no sheet needed
   const cycleSortOption = useCallback(() => {
@@ -495,6 +502,7 @@ export default function FavsScreen() {
           value={search}
           onChangeText={handleSearch}
           onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
           onSubmitEditing={handleSearchSubmit}
           returnKeyType="search"
           testID="favs-search"
@@ -599,6 +607,7 @@ export default function FavsScreen() {
       )}
 
       <FlatList
+        ref={flatListRef}
         data={gridData}
         renderItem={renderGridItem}
         keyExtractor={(item) => item.id}
