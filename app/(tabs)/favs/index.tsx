@@ -537,6 +537,14 @@ export default function FavsScreen() {
         const proteinActive = proteinFilter !== 'all';
         const dietLabel    = DIET_OPTIONS.find(o => o.value === dietFilter)?.label ?? 'Diet';
         const dietActive   = dietFilter !== 'all';
+        // For filter pills (When/Type/Protein/Diet):
+        //   inactive → tap opens ActionSheet to pick a value
+        //   active   → tap clears the filter instantly (no sheet), shows ✕ instead of ▾
+        const handleWhenPress    = whenActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMealTypeFilter('all'); } : openMealTypeSheet;
+        const handleTypePress    = typeActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setDishTypeFilter('all'); } : openDishTypeSheet;
+        const handleProteinPress = proteinActive ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setProteinFilter('all');  } : openProteinSheet;
+        const handleDietPress    = dietActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setDietFilter('all');     } : openDietSheet;
+
         return (
           <ScrollView
             horizontal
@@ -544,20 +552,33 @@ export default function FavsScreen() {
             style={{ height: 46 }}
             contentContainerStyle={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 7 }}
           >
+            {/* Sort — always opens sheet, no clear behaviour */}
             <TouchableOpacity onPress={openSortSheet} activeOpacity={0.75} style={[styles.filterPill, sortActive && styles.filterPillActive]}>
               <Text style={[styles.filterPillText, sortActive && styles.filterPillTextActive]}>{sortLabel} ▾</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={openMealTypeSheet} activeOpacity={0.75} style={[styles.filterPill, whenActive && styles.filterPillActive]}>
-              <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}>{whenActive ? whenLabel : 'When'} ▾</Text>
+
+            {/* When */}
+            <TouchableOpacity onPress={handleWhenPress} activeOpacity={0.75} style={[styles.filterPill, whenActive && styles.filterPillActive]}>
+              <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}>{whenActive ? whenLabel : 'When'}</Text>
+              <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}> {whenActive ? '✕' : '▾'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={openDishTypeSheet} activeOpacity={0.75} style={[styles.filterPill, typeActive && styles.filterPillActive]}>
-              <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}>{typeActive ? typeLabel : 'Type'} ▾</Text>
+
+            {/* Type */}
+            <TouchableOpacity onPress={handleTypePress} activeOpacity={0.75} style={[styles.filterPill, typeActive && styles.filterPillActive]}>
+              <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}>{typeActive ? typeLabel : 'Type'}</Text>
+              <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}> {typeActive ? '✕' : '▾'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={openProteinSheet} activeOpacity={0.75} style={[styles.filterPill, proteinActive && styles.filterPillActive]}>
-              <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}>{proteinActive ? proteinLabel : 'Protein'} ▾</Text>
+
+            {/* Protein */}
+            <TouchableOpacity onPress={handleProteinPress} activeOpacity={0.75} style={[styles.filterPill, proteinActive && styles.filterPillActive]}>
+              <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}>{proteinActive ? proteinLabel : 'Protein'}</Text>
+              <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}> {proteinActive ? '✕' : '▾'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={openDietSheet} activeOpacity={0.75} style={[styles.filterPill, dietActive && styles.filterPillActive]}>
-              <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}>{dietActive ? dietLabel : 'Diet'} ▾</Text>
+
+            {/* Diet */}
+            <TouchableOpacity onPress={handleDietPress} activeOpacity={0.75} style={[styles.filterPill, dietActive && styles.filterPillActive]}>
+              <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}>{dietActive ? dietLabel : 'Diet'}</Text>
+              <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}> {dietActive ? '✕' : '▾'}</Text>
             </TouchableOpacity>
           </ScrollView>
         );
@@ -1200,6 +1221,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 999,
     backgroundColor: Colors.surface,
+    flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
