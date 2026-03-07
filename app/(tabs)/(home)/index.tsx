@@ -250,7 +250,9 @@ export default function MealPlanScreen() {
       const dateKey = formatDateKey(date);
       for (const slot of sortedSlots) {
         const existing = getMealsForSlot(dateKey, slot.slot_id);
-        if (existing.length > 0) continue;
+        // In Smart Fill mode: skip slots that already have meals.
+        // In Reshuffle mode: overwrite every slot with a fresh pick.
+        if (weekWasEmpty && existing.length > 0) continue;
         const slotCat = getSlotCategory(slot.name);
         const serving = slot.serving_size_override ?? defaultServing;
 
@@ -362,7 +364,9 @@ export default function MealPlanScreen() {
       const dateKey = formatDateKey(date);
       for (const slot of sortedSlots) {
         const existing = getMealsForSlot(dateKey, slot.slot_id);
-        if (existing.length > 0) continue;
+        // In Smart Fill mode: skip slots that already have meals.
+        // In Reshuffle mode: overwrite every slot with a fresh pick.
+        if (dayWasEmpty && existing.length > 0) continue;
         const slotCat = getSlotCategory(slot.name);
         const serving = slot.serving_size_override ?? defaultServing;
 
