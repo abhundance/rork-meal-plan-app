@@ -53,7 +53,7 @@ const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Extract the re
   "cook_time": number (minutes),
   "recipe_serving_size": number,
   "dietary_tags": array of applicable values from ["Vegan","Vegetarian","Gluten-Free","Dairy-Free","High Protein"],
-  "ingredients": [{"name": "string", "quantity": number, "unit": "string"}],
+  "ingredients": [{"name": "string", "quantity": number, "unit": "string", "category": "one of: Produce|Meat & Fish|Dairy & Eggs|Pantry|Bread & Bakery|Frozen|Drinks|Condiments & Sauces|Herbs & Spices|Other"}],
   "method_steps": ["Step 1 text", "Step 2 text"],
   "dish_category": one of "main"|"salad"|"soup"|"appetizer"|"side"|"dessert"|"drink"|"bread"|"sandwich"|"sauce"|"other",
   "protein_source": one of "chicken"|"beef"|"pork"|"lamb"|"turkey"|"seafood"|"egg"|"dairy"|"plant"|"none",
@@ -68,7 +68,9 @@ meal_type rules: use "breakfast" for morning meals, "lunch_dinner" for main meal
 cooking_time_band rules: total of prep+cook time: <30min = "Under 30", 30-60min = "30-60", >60min = "Over 60".
 allergens rules: only include values the recipe is genuinely free from — do NOT add speculatively.
 diet_labels rules: only include labels that clearly apply based on the ingredients.
-nutrition rules: estimate per serving if ingredients are known; use null if not determinable.`;
+nutrition rules: estimate per serving if ingredients are known; use null if not determinable.
+ingredient unit rules: ALWAYS use metric units (g, ml, kg, L). Use singular unit names (clove not cloves, tablespoon not tablespoons, cup not cups). Never use fractions — convert to decimals (0.5 not 1/2). If the source uses imperial, convert to metric.
+ingredient category rules: assign each ingredient to exactly one category from the list. Examples: vegetables/fruit/herbs used fresh → Produce; raw meat/fish/seafood → Meat & Fish; milk/cheese/eggs/butter/cream → Dairy & Eggs; flour/sugar/rice/pasta/canned goods/oil → Pantry; bread/wraps/rolls → Bread & Bakery; frozen items → Frozen; water/juice/stock/wine/spirits → Drinks; ketchup/soy sauce/vinegar/hot sauce/mustard/mayonnaise → Condiments & Sauces; dried spices/dried herbs → Herbs & Spices.`;
 
 export async function extractRecipeFromImage(base64Image: string): Promise<ExtractedRecipe> {
   const response = await fetch(OPENAI_URL, {
@@ -344,7 +346,8 @@ const METADATA_PROMPT = `You are a recipe metadata assistant. Given a recipe nam
   "protein_per_serving_g": number or null if not determinable,
   "carbs_per_serving_g": number or null if not determinable
 }
-Rules: cuisine should match one of the standard cuisine names from CUISINE_OPTIONS where possible. meal_type should reflect when this dish is typically eaten. Only include allergens the recipe is genuinely free from. Only include diet_labels that clearly apply. Estimate nutrition from ingredients if possible; use null otherwise.`;
+Rules: cuisine should match one of the standard cuisine names from CUISINE_OPTIONS where possible. meal_type should reflect when this dish is typically eaten. Only include allergens the recipe is genuinely free from. Only include diet_labels that clearly apply. Estimate nutrition from ingredients if possible; use null otherwise.
+Unit rules: when reading ingredient quantities, always interpret and normalise to metric (g, ml, kg, L), singular unit names, no fractions.`;
 
 export async function extractRecipeMetadata(
   name: string,

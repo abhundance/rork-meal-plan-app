@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,46 +7,446 @@ import {
   SectionList,
   StyleSheet,
   Alert,
-  RefreshControl,
-  Animated,
   Share,
-  Platform,
+  Modal,
+  ScrollView,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  ShoppingBasket,
-  Plus,
-  Trash2,
-  Check,
-  Square,
-  CheckSquare,
-  Info,
-  Share2,
-  ChevronDown,
-  ChevronRight,
-  Package,
-} from 'lucide-react-native';
+import { Plus, Copy, Share2, ChevronDown, ChevronRight, Check, Trash2, ShoppingBasket } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
-import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
-import AppHeader from '@/components/AppHeader';
-import SegmentedControl from '@/components/SegmentedControl';
+import { BorderRadius, Shadows } from '@/constants/theme';
 import EmptyState from '@/components/EmptyState';
 import SkeletonLoader from '@/components/SkeletonLoader';
-import PrimaryButton from '@/components/PrimaryButton';
-import FilterPill from '@/components/FilterPill';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { useFavs } from '@/providers/FavsProvider';
 import { useShopping } from '@/providers/ShoppingProvider';
 import { ShoppingItem, INGREDIENT_CATEGORIES } from '@/types';
+import { getWeekDates } from '@/utils/dates';
 import { router, Href } from 'expo-router';
+
+// ─── Category emoji icons ─────────────────────────────────────────────────────
+const CATEGORY_ICONS: Record<string, string> = {
+  'Produce':             '🥦',
+  'Meat & Fish':         '🥩',
+  'Dairy & Eggs':        '🥛',
+  'Pantry':              '🫙',
+  'Bread & Bakery':      '🍞',
+  'Frozen':              '❄️',
+  'Drinks':              '🥤',
+  'Condiments & Sauces': '🧴',
+  'Herbs & Spices':      '🌿',
+  'Other':               '🛒',
+  // legacy category names — so old items still display with an icon
+  'Dairy':               '🥛',
+  'Bakery':              '🍞',
+  'Pantry Staples':      '🫙',
+  'Household':           '🏠',
+};
 
 interface SectionData {
   title: string;
   data: ShoppingItem[];
-  collapsed?: boolean;
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function buildDateLabel(weekMode: 'current' | 'next'): string {
+  if (weekMode === 'next') return 'Mon → Sun';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const todayName = days[today.getDay()];
+  const weekDates = getWeekDates(0);
+  const lastDay = weekDates[weekDates.length - 1];
+  const lastDayName = days[lastDay.getDay()];
+  if (todayName === lastDayName) return lastDayName;
+  return `${todayName} → ${lastDayName}`;
+}
+
+function buildShareText(
+  items: ShoppingItem[],
+  dateLabel: string,
+): string {
+  const grouped = new Map<string, ShoppingItem[]>();
+  const order = [...(INGREDIENT_CATEGORIES as readonly string[])];
+
+  for (const item of items) {
+    const cat = item.category || 'Other';
+    if (!grouped.has(cat)) grouped.set(cat, []);
+    grouped.get(cat)!.push(item);
+  }
+
+  const lines: string[] = [`🛒 Shopping List — ${dateLabel}\n`];
+  const seen = new Set<string>();
+
+  const emit = (cat: string) => {
+    if (seen.has(cat)) return;
+    const catItems = grouped.get(cat);
+    if (!catItems || catItems.length === 0) return;
+    seen.add(cat);
+    lines.push(`${CATEGORY_ICONS[cat] ?? '•'} ${cat}`);
+    catItems.forEach((i) => {
+      const qty =
+        i.quantity > 0 || i.unit
+          ? ` — ${i.quantity > 0 ? (i.quantity % 1 === 0 ? i.quantity : i.quantity.toFixed(1)) : ''}${i.unit ? ` ${i.unit}` : ''}`.trimEnd()
+          : '';
+      lines.push(`  ${i.checked ? '✓' : '□'} ${i.name}${qty}`);
+    });
+    lines.push('');
+  };
+
+  order.forEach(emit);
+  grouped.forEach((_, cat) => emit(cat));
+  lines.push('Sent from Meal Plan 🍽️');
+  return lines.join('\n');
+}
+
+// ─── Progress bar ─────────────────────────────────────────────────────────────
+
+function ProgressBar({ checked, total }: { checked: number; total: number }) {
+  const pct = total === 0 ? 0 : Math.round((checked / total) * 100);
+  const widthAnim = useRef(new Animated.Value(pct)).current;
+
+  useEffect(() => {
+    Animated.timing(widthAnim, {
+      toValue: pct,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [pct]);
+
+  return (
+    <View style={pbStyles.wrap}>
+      <View style={pbStyles.row}>
+        <Text style={pbStyles.label}>{checked} of {total} items</Text>
+        <Text style={[pbStyles.pct, pct === 100 && pbStyles.pctDone]}>{pct}%</Text>
+      </View>
+      <View style={pbStyles.track}>
+        <Animated.View
+          style={[
+            pbStyles.fill,
+            pct === 100 && pbStyles.fillDone,
+            {
+              width: widthAnim.interpolate({
+                inputRange: [0, 100],
+                outputRange: ['0%', '100%'],
+              }),
+            },
+          ]}
+        />
+      </View>
+    </View>
+  );
+}
+
+const pbStyles = StyleSheet.create({
+  wrap: { paddingHorizontal: 14, paddingVertical: 12 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '500' as const, color: Colors.textSecondary },
+  pct: { fontSize: 13, fontWeight: '600' as const, color: Colors.primary },
+  pctDone: { color: Colors.success },
+  track: { height: 6, borderRadius: 99, backgroundColor: Colors.surface, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: 99, backgroundColor: Colors.primary },
+  fillDone: { backgroundColor: Colors.success },
+});
+
+// ─── All done state ───────────────────────────────────────────────────────────
+
+function AllDoneState({ onClearAll }: { onClearAll: () => void }) {
+  return (
+    <View style={adStyles.wrap}>
+      <Text style={adStyles.emoji}>🎉</Text>
+      <Text style={adStyles.title}>Shopping done!</Text>
+      <Text style={adStyles.sub}>Everything's ticked off. Time to cook something great.</Text>
+      <TouchableOpacity style={adStyles.btn} onPress={onClearAll} activeOpacity={0.7}>
+        <Text style={adStyles.btnText}>Clear & start fresh</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const adStyles = StyleSheet.create({
+  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
+  emoji: { fontSize: 64, marginBottom: 12 },
+  title: { fontSize: 22, fontWeight: '700' as const, color: Colors.text, marginBottom: 8 },
+  sub: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  btn: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.button,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  btnText: { fontSize: 14, fontWeight: '600' as const, color: Colors.textSecondary },
+});
+
+// ─── Add item sheet ───────────────────────────────────────────────────────────
+
+interface AddItemSheetProps {
+  visible: boolean;
+  onClose: () => void;
+  onAdd: (name: string, qty: string, unit: string, category: string) => void;
+}
+
+function AddItemSheet({ visible, onClose, onAdd }: AddItemSheetProps) {
+  const [name, setName] = useState('');
+  const [qty, setQty] = useState('');
+  const [unit, setUnit] = useState('');
+  const [category, setCategory] = useState('Other');
+  const insets = useSafeAreaInsets();
+
+  const reset = () => { setName(''); setQty(''); setUnit(''); setCategory('Other'); };
+
+  const handleAdd = () => {
+    if (!name.trim()) return;
+    onAdd(name.trim(), qty.trim(), unit.trim(), category);
+    reset();
+    onClose();
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      presentationStyle="overFullScreen"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity style={sheetStyles.overlay} activeOpacity={1} onPress={onClose} />
+      <View style={[sheetStyles.sheet, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+        <View style={sheetStyles.handle} />
+        <View style={sheetStyles.inner}>
+          <Text style={sheetStyles.title}>Add item</Text>
+
+          <TextInput
+            style={sheetStyles.input}
+            placeholder="Item name"
+            placeholderTextColor={Colors.textSecondary}
+            value={name}
+            onChangeText={setName}
+            autoFocus
+            returnKeyType="next"
+          />
+
+          <View style={sheetStyles.qtyRow}>
+            <TextInput
+              style={[sheetStyles.input, sheetStyles.inputHalf]}
+              placeholder="Qty (e.g. 200)"
+              placeholderTextColor={Colors.textSecondary}
+              value={qty}
+              onChangeText={setQty}
+              keyboardType="decimal-pad"
+              returnKeyType="next"
+            />
+            <TextInput
+              style={[sheetStyles.input, sheetStyles.inputHalf]}
+              placeholder="Unit (e.g. g, ml)"
+              placeholderTextColor={Colors.textSecondary}
+              value={unit}
+              onChangeText={setUnit}
+              returnKeyType="done"
+            />
+          </View>
+
+          <Text style={sheetStyles.aisleLabel}>Aisle</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={sheetStyles.chipScroll}
+            contentContainerStyle={{ paddingBottom: 4 }}
+          >
+            {(INGREDIENT_CATEGORIES as readonly string[]).map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={[sheetStyles.chip, category === cat && sheetStyles.chipActive]}
+                onPress={() => setCategory(cat)}
+                activeOpacity={0.7}
+              >
+                <Text style={[sheetStyles.chipText, category === cat && sheetStyles.chipTextActive]}>
+                  {CATEGORY_ICONS[cat] ?? '•'} {cat}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <TouchableOpacity
+            style={[sheetStyles.addBtn, !name.trim() && sheetStyles.addBtnDisabled]}
+            onPress={handleAdd}
+            disabled={!name.trim()}
+            activeOpacity={0.8}
+          >
+            <Text style={[sheetStyles.addBtnText, !name.trim() && sheetStyles.addBtnTextDisabled]}>
+              Add to list
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const sheetStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    ...Shadows.header,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 99,
+    backgroundColor: Colors.border,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  inner: { paddingHorizontal: 16, paddingTop: 8 },
+  title: { fontSize: 18, fontWeight: '700' as const, color: Colors.text, marginBottom: 16 },
+  input: {
+    height: 46,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.input,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: Colors.text,
+    marginBottom: 10,
+  },
+  qtyRow: { flexDirection: 'row', gap: 10 },
+  inputHalf: { flex: 1 },
+  aisleLabel: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase' as const,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  chipScroll: { marginBottom: 20, height: 46 },
+  chip: {
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  chipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
+  chipText: { fontSize: 13, color: Colors.textSecondary },
+  chipTextActive: { color: Colors.primary, fontWeight: '600' as const },
+  addBtn: {
+    height: 50,
+    borderRadius: BorderRadius.button,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addBtnDisabled: { backgroundColor: Colors.surface },
+  addBtnText: { fontSize: 15, fontWeight: '600' as const, color: Colors.white },
+  addBtnTextDisabled: { color: Colors.inactive },
+});
+
+// ─── Shopping item row ────────────────────────────────────────────────────────
+
+interface RowProps {
+  item: ShoppingItem;
+  onToggle: (id: string) => void;
+  onRemove: (id: string) => void;
+}
+
+const ShoppingItemRow = React.memo(function ShoppingItemRow({ item, onToggle, onRemove }: RowProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () =>
+    Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 2 }).start();
+  const onPressOut = () =>
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 2 }).start();
+
+  return (
+    <Animated.View style={[rowStyles.wrap, { transform: [{ scale: scaleAnim }] }]}>
+      <TouchableOpacity
+        style={rowStyles.checkArea}
+        onPress={() => onToggle(item.id)}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        activeOpacity={0.7}
+      >
+        <View style={[rowStyles.circle, item.checked && rowStyles.circleChecked]}>
+          {item.checked && <Check size={12} color={Colors.white} strokeWidth={3} />}
+        </View>
+
+        <View style={rowStyles.textWrap}>
+          <Text style={[rowStyles.name, item.checked && rowStyles.nameChecked]} numberOfLines={1}>
+            {item.name}
+          </Text>
+          {(item.quantity > 0 || item.unit) && (
+            <Text style={[rowStyles.qty, item.checked && rowStyles.qtyChecked]}>
+              {item.quantity > 0
+                ? `${item.quantity % 1 === 0 ? item.quantity : item.quantity.toFixed(1)}${item.unit ? ` ${item.unit}` : ''}`
+                : item.unit}
+              {item.manually_added ? '  ·  added manually' : ''}
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => onRemove(item.id)}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Trash2 size={15} color={Colors.inactive} strokeWidth={2} />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
+
+const rowStyles = StyleSheet.create({
+  wrap: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.button,
+    marginBottom: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...Shadows.card,
+  },
+  checkArea: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  circle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  circleChecked: { borderColor: Colors.success, backgroundColor: Colors.success },
+  textWrap: { flex: 1 },
+  name: { fontSize: 15, fontWeight: '400' as const, color: Colors.text },
+  nameChecked: { textDecorationLine: 'line-through' as const, color: Colors.inactive },
+  qty: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  qtyChecked: { color: Colors.inactive },
+});
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ShoppingScreen() {
   const insets = useSafeAreaInsets();
@@ -54,54 +454,75 @@ export default function ShoppingScreen() {
   const { getIngredientsForWeek, meals } = useMealPlan();
   const { meals: favMeals } = useFavs();
   const shopping = useShopping();
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [addText, setAddText] = useState<string>('');
+
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-  const [showBreakdown, setShowBreakdown] = useState<string | null>(null);
+  const [showAddSheet, setShowAddSheet] = useState(false);
+  const [copyToast, setCopyToast] = useState(false);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const weekOffset = shopping.weekMode === 'current' ? 0 : 1;
+  const fromTodayOnly = shopping.weekMode === 'current';
 
-  const handleGenerate = useCallback(() => {
-    const { ingredients } = getIngredientsForWeek(weekOffset, !shopping.fullWeek, favMeals);
+  // ── Auto-generate whenever meals or week selection changes ──────────────────
+  useEffect(() => {
+    const { ingredients } = getIngredientsForWeek(weekOffset, fromTodayOnly, favMeals);
     const pantryNames = familySettings.pantry_items.map((p) => p.name);
     shopping.generateList(ingredients, pantryNames);
-    console.log('[Shopping] Generated list from meal plan');
-  }, [weekOffset, shopping.fullWeek, getIngredientsForWeek, familySettings.pantry_items, shopping]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meals, weekOffset]);
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    handleGenerate();
-    setTimeout(() => setRefreshing(false), 600);
-  }, [handleGenerate]);
+  // ── Derived state ───────────────────────────────────────────────────────────
+  const dateLabel = useMemo(() => buildDateLabel(shopping.weekMode), [shopping.weekMode]);
 
-  const handleAddManual = useCallback(() => {
-    const trimmed = addText.trim();
-    if (!trimmed) return;
-    shopping.addManualItem(trimmed);
-    setAddText('');
+  const mealCount = useMemo(() => {
+    const { mealCount } = getIngredientsForWeek(weekOffset, fromTodayOnly, favMeals);
+    return mealCount;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meals, weekOffset]);
+
+  const allDone = shopping.totalCount > 0 && shopping.checkedCount === shopping.totalCount;
+
+  // ── Sections ────────────────────────────────────────────────────────────────
+  const sections = useMemo((): SectionData[] => {
+    const grouped = new Map<string, ShoppingItem[]>();
+    for (const item of shopping.items) {
+      const cat = item.category || 'Other';
+      if (!grouped.has(cat)) grouped.set(cat, []);
+      grouped.get(cat)!.push(item);
+    }
+
+    const order = [...(INGREDIENT_CATEGORIES as readonly string[])];
+    const result: SectionData[] = [];
+    const seen = new Set<string>();
+
+    const addSection = (cat: string) => {
+      if (seen.has(cat) || !grouped.has(cat)) return;
+      seen.add(cat);
+      const raw = grouped.get(cat)!;
+      const sorted = [...raw].sort((a, b) => Number(a.checked) - Number(b.checked));
+      result.push({ title: cat, data: collapsedSections.has(cat) ? [] : sorted });
+    };
+
+    order.forEach(addSection);
+    grouped.forEach((_, cat) => addSection(cat));
+    return result;
+  }, [shopping.items, collapsedSections]);
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+  const handleToggle = useCallback((id: string) => {
+    shopping.toggleChecked(id);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [addText, shopping]);
+  }, [shopping]);
 
-  const handleToggleCheck = useCallback(
-    (itemId: string) => {
-      shopping.toggleChecked(itemId);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    },
-    [shopping]
-  );
-
-  const handleRemoveItem = useCallback(
-    (itemId: string) => {
-      shopping.removeItem(itemId);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    },
-    [shopping]
-  );
+  const handleRemove = useCallback((id: string) => {
+    shopping.removeItem(id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, [shopping]);
 
   const handleClearChecked = useCallback(() => {
     Alert.alert(
-      'Clear Checked Items',
-      `Clear all ${shopping.checkedCount} checked items? This cannot be undone.`,
+      'Clear checked items',
+      `Remove all ${shopping.checkedCount} ticked items?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -116,86 +537,61 @@ export default function ShoppingScreen() {
     );
   }, [shopping]);
 
-  const handleShareList = useCallback(async () => {
-    const activeItems = shopping.items.filter((i) => !i.checked);
-    const text = activeItems
-      .map((i) => `☐ ${i.name}${i.quantity > 1 ? ` × ${i.quantity} ${i.unit}` : ''}`)
-      .join('\n');
+  const handleClearAll = useCallback(() => {
+    shopping.clearChecked();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [shopping]);
 
+  const handleCopy = useCallback(async () => {
+    const text = buildShareText(shopping.items, dateLabel);
+    await Clipboard.setStringAsync(text);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setCopyToast(true);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setCopyToast(false), 2500);
+  }, [shopping.items, dateLabel]);
+
+  const handleShare = useCallback(async () => {
+    const text = buildShareText(shopping.items, dateLabel);
     try {
-      await Share.share({ message: `Shopping List\n\n${text}` });
+      await Share.share({ message: text, title: 'Shopping List' });
     } catch (e) {
       console.log('[Shopping] Share error:', e);
     }
-  }, [shopping.items]);
+  }, [shopping.items, dateLabel]);
+
+  const handleAddItem = useCallback(
+    (name: string, qty: string, unit: string, category: string) => {
+      const parsedQty = parseFloat(qty) || 0;
+      shopping.addManualItem(name, category, parsedQty, unit);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+    [shopping]
+  );
 
   const toggleSection = useCallback((title: string) => {
     setCollapsedSections((prev) => {
       const next = new Set(prev);
-      if (next.has(title)) next.delete(title);
-      else next.add(title);
+      next.has(title) ? next.delete(title) : next.add(title);
       return next;
     });
   }, []);
 
-  const sections = useMemo((): SectionData[] => {
-    const grouped = new Map<string, ShoppingItem[]>();
-
-    for (const item of shopping.items) {
-      const key = shopping.groupBy === 'category' ? item.category : (item.where_to_buy ?? 'Unassigned');
-      if (!grouped.has(key)) grouped.set(key, []);
-      grouped.get(key)!.push(item);
-    }
-
-    const categoryOrder = INGREDIENT_CATEGORIES as readonly string[];
-    const entries = Array.from(grouped.entries());
-
-    if (shopping.groupBy === 'category') {
-      entries.sort((a, b) => {
-        const aIdx = categoryOrder.indexOf(a[0]);
-        const bIdx = categoryOrder.indexOf(b[0]);
-        return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
-      });
-    } else {
-      entries.sort((a, b) => a[0].localeCompare(b[0]));
-    }
-
-    return entries.map(([title, data]) => {
-      const sorted = [...data].sort((a, b) => {
-        if (a.checked !== b.checked) return a.checked ? 1 : -1;
-        if (a.is_pantry !== b.is_pantry) return a.is_pantry ? 1 : -1;
-        return a.name.localeCompare(b.name);
-      });
-      return { title, data: collapsedSections.has(title) ? [] : sorted };
-    });
-  }, [shopping.items, shopping.groupBy, collapsedSections]);
-
-  const weekMeals = useMemo(() => {
-    const { mealCount, totalDays } = getIngredientsForWeek(weekOffset, !shopping.fullWeek, favMeals);
-    return { mealCount, totalDays };
-  }, [weekOffset, shopping.fullWeek, getIngredientsForWeek]);
-
+  // ── Render helpers ───────────────────────────────────────────────────────────
   const renderItem = useCallback(
     ({ item }: { item: ShoppingItem }) => (
-      <ShoppingListRow
-        item={item}
-        onToggle={handleToggleCheck}
-        onRemove={handleRemoveItem}
-        showBreakdown={showBreakdown === item.id}
-        onToggleBreakdown={() => setShowBreakdown((p) => (p === item.id ? null : item.id))}
-      />
+      <ShoppingItemRow item={item} onToggle={handleToggle} onRemove={handleRemove} />
     ),
-    [handleToggleCheck, handleRemoveItem, showBreakdown]
+    [handleToggle, handleRemove]
   );
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: SectionData }) => {
       const isCollapsed = collapsedSections.has(section.title);
-      const originalData = shopping.items.filter((i) => {
-        const key = shopping.groupBy === 'category' ? i.category : (i.where_to_buy ?? 'Unassigned');
-        return key === section.title;
-      });
-      const checkedInSection = originalData.filter((i) => i.checked).length;
+      const all = shopping.items.filter((i) => (i.category || 'Other') === section.title);
+      const checkedInSection = all.filter((i) => i.checked).length;
+      const allChecked = all.length > 0 && checkedInSection === all.length;
+      const icon = CATEGORY_ICONS[section.title] ?? '🛒';
 
       return (
         <TouchableOpacity
@@ -203,32 +599,97 @@ export default function ShoppingScreen() {
           onPress={() => toggleSection(section.title)}
           activeOpacity={0.7}
         >
-          <View style={styles.sectionTitleRow}>
-            {isCollapsed ? (
-              <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
-            ) : (
-              <ChevronDown size={16} color={Colors.textSecondary} strokeWidth={2} />
-            )}
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.sectionBadge}>
-              <Text style={styles.sectionBadgeText}>
-                {checkedInSection}/{originalData.length}
-              </Text>
-            </View>
-          </View>
+          <Text style={styles.sectionIcon}>{icon}</Text>
+          <Text style={[styles.sectionTitle, allChecked && styles.sectionTitleDone]}>
+            {section.title}
+          </Text>
+          <Text style={[styles.sectionCount, allChecked && styles.sectionCountDone]}>
+            {checkedInSection}/{all.length}
+          </Text>
+          {isCollapsed
+            ? <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
+            : <ChevronDown size={16} color={Colors.textSecondary} strokeWidth={2} />
+          }
         </TouchableOpacity>
       );
     },
-    [collapsedSections, shopping.items, shopping.groupBy, toggleSection]
+    [collapsedSections, shopping.items, toggleSection]
   );
 
+  // ── List header (lives inside SectionList so it scrolls with items) ──────────
+  const ListHeader = (
+    <View>
+      {/* Title row */}
+      <View style={styles.titleRow}>
+        <Text style={styles.screenTitle}>Shopping</Text>
+        <View style={styles.titleActions}>
+          {shopping.checkedCount > 0 && !allDone && (
+            <TouchableOpacity
+              style={styles.clearCheckedBtn}
+              onPress={handleClearChecked}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.clearCheckedText}>Clear checked</Text>
+            </TouchableOpacity>
+          )}
+          {shopping.totalCount > 0 && (
+            <>
+              <TouchableOpacity
+                style={[styles.iconBtn, copyToast && styles.iconBtnSuccess]}
+                onPress={handleCopy}
+                activeOpacity={0.7}
+              >
+                {copyToast
+                  ? <Check size={16} color={Colors.success} strokeWidth={3} />
+                  : <Copy size={16} color={Colors.textSecondary} strokeWidth={2} />
+                }
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconBtn} onPress={handleShare} activeOpacity={0.7}>
+                <Share2 size={16} color={Colors.textSecondary} strokeWidth={2} />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
+
+      {/* Week pills */}
+      <View style={styles.weekRow}>
+        {(['current', 'next'] as const).map((mode) => (
+          <TouchableOpacity
+            key={mode}
+            style={[styles.weekPill, shopping.weekMode === mode && styles.weekPillActive]}
+            onPress={() => shopping.setWeekMode(mode)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.weekPillText, shopping.weekMode === mode && styles.weekPillTextActive]}>
+              {mode === 'current' ? 'This week' : 'Next week'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Timestamp */}
+      <Text style={styles.timestamp}>
+        {dateLabel} · {mealCount} meal{mealCount !== 1 ? 's' : ''} planned
+      </Text>
+
+      {/* Progress bar */}
+      {shopping.totalCount > 0 && !allDone && (
+        <View style={styles.progressWrap}>
+          <ProgressBar checked={shopping.checkedCount} total={shopping.totalCount} />
+        </View>
+      )}
+
+      <View style={{ height: 4 }} />
+    </View>
+  );
+
+  // ── Loading ──────────────────────────────────────────────────────────────────
   if (shopping.isLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <AppHeader title="Shopping" />
         <View style={styles.skeletonWrap}>
           <SkeletonLoader height={36} borderRadius={20} style={{ marginBottom: 16 }} />
-          <SkeletonLoader height={50} borderRadius={12} style={{ marginBottom: 12 }} />
           <SkeletonLoader height={50} borderRadius={12} style={{ marginBottom: 12 }} />
           <SkeletonLoader height={50} borderRadius={12} />
         </View>
@@ -236,477 +697,183 @@ export default function ShoppingScreen() {
     );
   }
 
-  const hasItems = shopping.items.length > 0;
+  const hasItems = shopping.totalCount > 0;
   const hasMeals = meals.length > 0;
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <AppHeader title="Shopping" />
-
-      <View style={styles.topBar}>
-        <View style={styles.weekToggle}>
-          <FilterPill
-            label="This Week"
-            active={shopping.weekMode === 'current'}
-            onPress={() => shopping.setWeekMode('current')}
-          />
-          <FilterPill
-            label="Next Week"
-            active={shopping.weekMode === 'next'}
-            onPress={() => shopping.setWeekMode('next')}
-          />
-        </View>
-
-        <View style={styles.actionRow}>
-          <View style={styles.modeToggle}>
-            <FilterPill
-              label={shopping.fullWeek ? 'Full Week' : 'Remaining'}
-              active={true}
-              onPress={() => shopping.setFullWeek(!shopping.fullWeek)}
+  // ── Empty state ──────────────────────────────────────────────────────────────
+  if (!hasItems) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        {ListHeader}
+        <View style={styles.emptyWrap}>
+          {!hasMeals ? (
+            <EmptyState
+              icon={<ShoppingBasket size={36} color={Colors.primary} strokeWidth={1.5} />}
+              title="Nothing to shop for yet"
+              description="Plan some meals and your shopping list will appear here automatically."
+              actionLabel="Plan a meal"
+              onAction={() => router.push('/' as Href)}
             />
-          </View>
-
-          {hasItems && (
-            <TouchableOpacity onPress={handleShareList} style={styles.shareBtn}>
-              <Share2 size={18} color={Colors.primary} strokeWidth={2} />
-            </TouchableOpacity>
+          ) : (
+            <EmptyState
+              icon={<ShoppingBasket size={36} color={Colors.primary} strokeWidth={1.5} />}
+              title="List is generating…"
+              description={`${mealCount} meal${mealCount !== 1 ? 's' : ''} planned for ${dateLabel}.`}
+            />
           )}
         </View>
-
-        {hasMeals && (
-          <TouchableOpacity style={styles.generateBtn} onPress={handleGenerate} activeOpacity={0.7}>
-            <ShoppingBasket size={16} color={Colors.primary} strokeWidth={2} />
-            <Text style={styles.generateBtnText}>
-              {hasItems ? 'Regenerate from meal plan' : 'Generate shopping list'}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {hasItems && (
-          <View style={styles.groupToggleWrap}>
-            <SegmentedControl
-              segments={['By Category', 'By Source']}
-              activeIndex={shopping.groupBy === 'category' ? 0 : 1}
-              onChange={(idx) => shopping.setGroupBy(idx === 0 ? 'category' : 'source')}
-            />
-          </View>
-        )}
-      </View>
-
-      <View style={styles.quickAddWrap}>
-        <TextInput
-          style={styles.quickAddInput}
-          placeholder="Add an item..."
-          placeholderTextColor={Colors.textSecondary}
-          value={addText}
-          onChangeText={setAddText}
-          onSubmitEditing={handleAddManual}
-          returnKeyType="done"
-          testID="quick-add-input"
-        />
         <TouchableOpacity
-          style={[styles.quickAddBtn, !addText.trim() && styles.quickAddBtnDisabled]}
-          onPress={handleAddManual}
-          disabled={!addText.trim()}
+          style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 72 }]}
+          onPress={() => setShowAddSheet(true)}
+          activeOpacity={0.85}
         >
-          <Plus size={18} color={addText.trim() ? Colors.white : Colors.inactive} strokeWidth={2.5} />
+          <Plus size={26} color={Colors.white} strokeWidth={2.5} />
         </TouchableOpacity>
+        <AddItemSheet visible={showAddSheet} onClose={() => setShowAddSheet(false)} onAdd={handleAddItem} />
       </View>
+    );
+  }
 
-      {!hasItems && !hasMeals ? (
-        <View style={styles.emptyWrap}>
-          <EmptyState
-            icon={<ShoppingBasket size={36} color={Colors.primary} strokeWidth={1.5} />}
-            title="Your shopping list is empty"
-            description="Plan some meals first, then generate your shopping list automatically."
-            actionLabel="Go to Meal Plan"
-            onAction={() => router.push('/' as Href)}
-          />
-        </View>
-      ) : !hasItems ? (
-        <View style={styles.emptyWrap}>
-          <EmptyState
-            icon={<Package size={36} color={Colors.primary} strokeWidth={1.5} />}
-            title="Ready to generate"
-            description={`You have ${weekMeals.mealCount} meals planned across ${weekMeals.totalDays} days. Tap generate to build your shopping list.`}
-            actionLabel="Generate List"
-            onAction={handleGenerate}
-          />
-        </View>
-      ) : (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          renderSectionHeader={renderSectionHeader}
-          contentContainerStyle={styles.listContent}
-          stickySectionHeadersEnabled={false}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
-          }
-          ListFooterComponent={
-            shopping.checkedCount > 0 ? (
-              <View style={styles.clearWrap}>
-                <PrimaryButton
-                  label={`Clear ${shopping.checkedCount} checked item${shopping.checkedCount > 1 ? 's' : ''}`}
-                  onPress={handleClearChecked}
-                  variant="secondary"
-                />
-              </View>
-            ) : null
-          }
-          testID="shopping-list"
-        />
-      )}
+  // ── All done ─────────────────────────────────────────────────────────────────
+  if (allDone) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        {ListHeader}
+        <AllDoneState onClearAll={handleClearAll} />
+      </View>
+    );
+  }
 
-      {hasItems && (
-        <View style={[styles.statusBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-          <Text style={styles.statusText}>
-            {shopping.checkedCount} of {shopping.totalCount} items checked
-          </Text>
-        </View>
-      )}
+  // ── Main list ────────────────────────────────────────────────────────────────
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
+        ListHeaderComponent={ListHeader}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: Math.max(insets.bottom, 16) + 80 },
+        ]}
+        stickySectionHeadersEnabled={false}
+        showsVerticalScrollIndicator={false}
+      />
+
+      <TouchableOpacity
+        style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 72 }]}
+        onPress={() => setShowAddSheet(true)}
+        activeOpacity={0.85}
+      >
+        <Plus size={26} color={Colors.white} strokeWidth={2.5} />
+      </TouchableOpacity>
+
+      <AddItemSheet visible={showAddSheet} onClose={() => setShowAddSheet(false)} onAdd={handleAddItem} />
     </View>
   );
 }
 
-interface ShoppingListRowProps {
-  item: ShoppingItem;
-  onToggle: (id: string) => void;
-  onRemove: (id: string) => void;
-  showBreakdown: boolean;
-  onToggleBreakdown: () => void;
-}
-
-const ShoppingListRow = React.memo(function ShoppingListRow({
-  item,
-  onToggle,
-  onRemove,
-  showBreakdown,
-  onToggleBreakdown,
-}: ShoppingListRowProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = useCallback(() => {
-    Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
-  }, [scaleAnim]);
-
-  const handlePressOut = useCallback(() => {
-    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
-  }, [scaleAnim]);
-
-  return (
-    <Animated.View style={[styles.itemRow, { transform: [{ scale: scaleAnim }] }]}>
-      <TouchableOpacity
-        style={styles.itemCheckArea}
-        onPress={() => onToggle(item.id)}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.7}
-      >
-        {item.checked ? (
-          <CheckSquare size={20} color={Colors.success} strokeWidth={2} />
-        ) : item.is_pantry ? (
-          <CheckSquare size={20} color={Colors.inactive} strokeWidth={2} />
-        ) : (
-          <Square size={20} color={Colors.textSecondary} strokeWidth={1.5} />
-        )}
-
-        <View style={styles.itemTextWrap}>
-          <Text
-            style={[
-              styles.itemName,
-              item.checked && styles.itemNameChecked,
-              item.is_pantry && !item.checked && styles.itemNamePantry,
-            ]}
-            numberOfLines={1}
-          >
-            {item.name}
-          </Text>
-          <View style={styles.itemMetaRow}>
-            <Text style={styles.itemQty}>
-              {item.quantity % 1 === 0 ? item.quantity : item.quantity.toFixed(1)} {item.unit}
-            </Text>
-            {item.is_pantry && !item.checked && (
-              <View style={styles.pantryTag}>
-                <Text style={styles.pantryTagText}>Already have this</Text>
-              </View>
-            )}
-            {item.manually_added && (
-              <View style={styles.manualTag}>
-                <Text style={styles.manualTagText}>Added manually</Text>
-              </View>
-            )}
-            {item.where_to_buy && (
-              <View style={styles.sourceTag}>
-                <Text style={styles.sourceTagText}>{item.where_to_buy}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </TouchableOpacity>
-
-      <View style={styles.itemActions}>
-        {item.meal_breakdown.length > 0 && (
-          <TouchableOpacity
-            onPress={onToggleBreakdown}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Info size={16} color={Colors.textSecondary} strokeWidth={2} />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          onPress={() => onRemove(item.id)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Trash2 size={16} color={Colors.inactive} strokeWidth={2} />
-        </TouchableOpacity>
-      </View>
-
-      {showBreakdown && item.meal_breakdown.length > 0 && (
-        <View style={styles.breakdownWrap}>
-          {item.meal_breakdown.map((b, idx) => (
-            <Text key={idx} style={styles.breakdownText}>
-              {b.meal_name}: {b.quantity % 1 === 0 ? b.quantity : b.quantity.toFixed(1)} {item.unit}
-            </Text>
-          ))}
-        </View>
-      )}
-    </Animated.View>
-  );
-});
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  topBar: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    gap: 8,
-  },
-  weekToggle: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionRow: {
+  container: { flex: 1, backgroundColor: Colors.background },
+  skeletonWrap: { padding: 16 },
+  emptyWrap: { flex: 1 },
+
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
   },
-  modeToggle: {
-    flexDirection: 'row',
+  screenTitle: { fontSize: 28, fontWeight: '700' as const, color: Colors.text },
+  titleActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+
+  clearCheckedBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
   },
-  shareBtn: {
+  clearCheckedText: { fontSize: 12, fontWeight: '500' as const, color: Colors.textSecondary },
+
+  iconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  generateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: BorderRadius.button,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  generateBtnText: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-  },
-  groupToggleWrap: {
-    marginTop: 2,
-  },
-  quickAddWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  quickAddInput: {
-    flex: 1,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.button,
-    borderWidth: 1,
-    borderColor: Colors.surface,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: Colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  quickAddBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  iconBtnSuccess: { borderColor: Colors.success, backgroundColor: Colors.primaryLight },
+
+  weekRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 6 },
+  weekPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  weekPillActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
+  weekPillText: { fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary },
+  weekPillTextActive: { color: Colors.primary, fontWeight: '600' as const },
+
+  timestamp: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    paddingHorizontal: 16,
+    marginBottom: 4,
+  },
+
+  progressWrap: {
+    backgroundColor: Colors.white,
+    marginHorizontal: 16,
+    borderRadius: BorderRadius.card,
+    marginTop: 8,
+    ...Shadows.card,
+  },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 10,
+    paddingTop: 16,
+    gap: 6,
+  },
+  sectionIcon: { fontSize: 18 },
+  sectionTitle: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: Colors.textSecondary,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.6,
+  },
+  sectionTitleDone: { color: Colors.success },
+  sectionCount: { fontSize: 11, color: Colors.textSecondary, marginRight: 2 },
+  sectionCountDone: { color: Colors.success },
+
+  listContent: { paddingHorizontal: 16 },
+
+  fab: {
+    position: 'absolute' as const,
+    right: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  quickAddBtnDisabled: {
-    backgroundColor: Colors.surface,
-  },
-  emptyWrap: {
-    flex: 1,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 80,
-  },
-  sectionHeader: {
-    paddingVertical: 10,
-    paddingTop: 16,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.5,
-    flex: 1,
-  },
-  sectionBadge: {
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  sectionBadgeText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  itemRow: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.button,
-    marginBottom: 6,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...Shadows.card,
-  },
-  itemCheckArea: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  itemTextWrap: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 15,
-    fontWeight: '500' as const,
-    color: Colors.text,
-  },
-  itemNameChecked: {
-    textDecorationLine: 'line-through' as const,
-    color: Colors.inactive,
-  },
-  itemNamePantry: {
-    color: Colors.inactive,
-  },
-  itemMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 3,
-    flexWrap: 'wrap',
-  },
-  itemQty: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  pantryTag: {
-    backgroundColor: Colors.surface,
-    borderRadius: 6,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-  },
-  pantryTagText: {
-    fontSize: 10,
-    fontWeight: '500' as const,
-    color: Colors.textSecondary,
-  },
-  manualTag: {
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 6,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-  },
-  manualTagText: {
-    fontSize: 10,
-    fontWeight: '500' as const,
-    color: Colors.primary,
-  },
-  sourceTag: {
-    backgroundColor: Colors.surface,
-    borderRadius: 6,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-  },
-  sourceTagText: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-  },
-  itemActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginLeft: 8,
-  },
-  breakdownWrap: {
-    position: 'absolute' as const,
-    bottom: -4,
-    left: 44,
-    right: 44,
-    backgroundColor: Colors.white,
-    borderRadius: 8,
-    padding: 8,
-    ...Shadows.card,
-    zIndex: 10,
-  },
-  breakdownText: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  clearWrap: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  statusBar: {
-    position: 'absolute' as const,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.divider,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    alignItems: 'center',
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  skeletonWrap: {
-    padding: 16,
+    ...Shadows.header,
   },
 });

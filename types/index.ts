@@ -318,11 +318,13 @@ export const PANTRY_CATEGORIES = [
 export const INGREDIENT_CATEGORIES = [
   'Produce',
   'Meat & Fish',
-  'Dairy',
-  'Bakery',
-  'Pantry Staples',
+  'Dairy & Eggs',
+  'Pantry',
+  'Bread & Bakery',
   'Frozen',
-  'Household',
+  'Drinks',
+  'Condiments & Sauces',
+  'Herbs & Spices',
   'Other',
 ] as const;
 

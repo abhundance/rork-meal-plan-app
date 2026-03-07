@@ -12,8 +12,6 @@ export const [ShoppingProvider, useShopping] = createContextHook(() => {
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [sources, setSources] = useState<Record<string, string>>({});
   const [weekMode, setWeekMode] = useState<'current' | 'next'>('current');
-  const [fullWeek, setFullWeek] = useState<boolean>(false);
-  const [groupBy, setGroupBy] = useState<'category' | 'source'>('category');
   const [lastGeneratedAt, setLastGeneratedAt] = useState<string | null>(null);
 
   const shoppingQuery = useQuery({
@@ -127,12 +125,12 @@ export const [ShoppingProvider, useShopping] = createContextHook(() => {
   );
 
   const addManualItem = useCallback(
-    (name: string, category = 'Other') => {
+    (name: string, category = 'Other', quantity = 1, unit = '') => {
       const newItem: ShoppingItem = {
         id: `manual_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         name,
-        quantity: 1,
-        unit: 'pc',
+        quantity,
+        unit,
         category,
         checked: false,
         is_pantry: false,
@@ -211,15 +209,11 @@ export const [ShoppingProvider, useShopping] = createContextHook(() => {
     items,
     sources,
     weekMode,
-    fullWeek,
-    groupBy,
     lastGeneratedAt,
     checkedCount,
     totalCount,
     isLoading,
     setWeekMode,
-    setFullWeek,
-    setGroupBy,
     generateList,
     addManualItem,
     toggleChecked,
