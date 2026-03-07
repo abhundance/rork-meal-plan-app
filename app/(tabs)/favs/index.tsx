@@ -55,6 +55,7 @@ import {
   Plus,
   Check,
   SlidersHorizontal,
+  ArrowUpDown,
 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
@@ -231,12 +232,14 @@ export default function FavsScreen() {
     setDietFilter('all');
   }, []);
 
-  const openSortSheet = useCallback(() => {
+  // Cycles to the next sort option on each tap — no sheet needed
+  const cycleSortOption = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    showSheet(
-      { options: [...SORT_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: SORT_OPTIONS.length },
-      (i) => { if (i < SORT_OPTIONS.length) setFavFilters(f => ({ ...f, sort: SORT_OPTIONS[i].value })); }
-    );
+    setFavFilters(f => {
+      const currentIndex = SORT_OPTIONS.findIndex(o => o.value === f.sort);
+      const nextIndex = (currentIndex + 1) % SORT_OPTIONS.length;
+      return { ...f, sort: SORT_OPTIONS[nextIndex].value };
+    });
   }, []);
 
   const openMealTypeSheet = useCallback(() => {
@@ -552,9 +555,10 @@ export default function FavsScreen() {
             style={{ height: 46 }}
             contentContainerStyle={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 7 }}
           >
-            {/* Sort — always opens sheet, no clear behaviour */}
-            <TouchableOpacity onPress={openSortSheet} activeOpacity={0.75} style={[styles.filterPill, sortActive && styles.filterPillActive]}>
-              <Text style={[styles.filterPillText, sortActive && styles.filterPillTextActive]}>{sortLabel} ▾</Text>
+            {/* Sort — cycles through options on each tap, no sheet */}
+            <TouchableOpacity onPress={cycleSortOption} activeOpacity={0.75} style={[styles.filterPill, sortActive && styles.filterPillActive]}>
+              <ArrowUpDown size={13} color={sortActive ? Colors.white : Colors.text} strokeWidth={2.5} />
+              <Text style={[styles.filterPillText, sortActive && styles.filterPillTextActive, { marginLeft: 5 }]}>{sortLabel}</Text>
             </TouchableOpacity>
 
             {/* When */}
