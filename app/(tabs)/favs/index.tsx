@@ -643,20 +643,13 @@ export default function FavsScreen() {
 
       {noResults ? FilterEmptyState : (
         <FlatList
+          key={`favs-${mealTypeFilter}-${dishTypeFilter}-${proteinFilter}-${dietFilter}-${sortOption}`}
           ref={flatListRef}
           style={{ flex: 1 }}
           data={gridData}
           renderItem={renderGridItem}
           keyExtractor={(item) => item.id}
           numColumns={4}
-          getItemLayout={(_data, index) => ({
-            // With numColumns, React Native passes the ROW index to getItemLayout
-            // (not the individual item index), so the formula is simply:
-            //   paddingTop + rowIndex × rowHeight
-            length: CARD_H + 10,                   // card height + row marginBottom
-            offset: 12 + index * (CARD_H + 10),    // paddingTop + rowIndex × rowHeight
-            index,
-          })}
           columnWrapperStyle={{ gap: COL_GAP, paddingHorizontal: H_PAD, marginBottom: 10 }}
           contentContainerStyle={{ paddingTop: 12, paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
