@@ -859,7 +859,13 @@ export default function AddMealScreen() {
 
         <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}>
           <PrimaryButton
-            label={isEditing ? 'Save Changes' : 'Save Meal'}
+            label={
+              !isEditing
+                ? 'Save Meal'
+                : (editMeal?.source === 'discover' && !editMeal?.is_customized)
+                  ? 'Save to Favourites'
+                  : 'Save Changes'
+            }
             onPress={handleSave}
             disabled={!name.trim()}
           />
