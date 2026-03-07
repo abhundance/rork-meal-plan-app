@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '@/constants/colors';
+import EmptyState from '@/components/EmptyState';
 import { getWeekDates, formatDateKey, getWeekLabel } from '@/utils/dates';
 
 interface RepeatWeekSheetProps {
@@ -69,10 +70,11 @@ export default function RepeatWeekSheet({
         </View>
 
         {items.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="calendar-outline" size={48} color={Colors.textSecondary} />
-            <Text style={styles.emptyText}>No previous plans found</Text>
-          </View>
+          <EmptyState
+            icon={<Ionicons name="calendar-outline" size={40} color={Colors.textSecondary} />}
+            title="No previous plans found"
+            description="Meals planned in the last 8 weeks will appear here to copy."
+          />
         ) : (
           <ScrollView
             style={styles.scrollView}
@@ -204,16 +206,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Colors.primary,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: 60,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: Colors.textSecondary,
-    marginTop: 12,
   },
 });

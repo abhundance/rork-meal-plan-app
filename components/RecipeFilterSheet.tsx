@@ -39,6 +39,7 @@ import {
 } from 'react-native';
 import { X } from 'lucide-react-native';
 import FilterPill from '@/components/FilterPill';
+import PrimaryButton from '@/components/PrimaryButton';
 import Colors from '@/constants/colors';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -529,9 +530,7 @@ export default function RecipeFilterSheet({
           <TouchableOpacity style={styles.clearBtn} onPress={handleClear}>
             <Text style={styles.clearText}>Clear All</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.applyBtn} onPress={handleApply}>
-            <Text style={styles.applyText}>Apply</Text>
-          </TouchableOpacity>
+          <PrimaryButton label="Apply" onPress={handleApply} style={{ flex: 2 }} />
         </View>
 
       </View>
@@ -598,7 +597,7 @@ const styles = StyleSheet.create({
   },
   clearBtn: {
     flex: 1,
-    height: 50,
+    height: 48,
     borderRadius: 12,
     backgroundColor: Colors.surface,
     alignItems: 'center',
@@ -608,18 +607,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: Colors.text,
-  },
-  applyBtn: {
-    flex: 2,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  applyText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.white,
   },
 });

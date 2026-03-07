@@ -265,17 +265,13 @@ export default function MealPickerSheet({
               </View>
             )}
 
-            <TouchableOpacity
-              style={[
-                styles.deliverySaveBtn,
-                { opacity: deliveryName.trim().length === 0 ? 0.4 : 1 },
-              ]}
+            <PrimaryButton
+              label="Save to Meal Plan"
               onPress={handleDeliverySave}
               disabled={deliveryName.trim().length === 0}
+              style={{ marginTop: 24 }}
               testID="delivery-save-btn"
-            >
-              <Text style={styles.deliverySaveBtnText}>Save to Meal Plan</Text>
-            </TouchableOpacity>
+            />
           </ScrollView>
         ) : mode === 'choose' ? (
           <>
@@ -748,18 +744,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500' as const,
     color: Colors.primary,
-  },
-  deliverySaveBtn: {
-    marginTop: 24,
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  deliverySaveBtnText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.white,
   },
   searchBar: {
     flexDirection: 'row',
