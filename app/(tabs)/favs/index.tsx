@@ -650,10 +650,11 @@ export default function FavsScreen() {
           keyExtractor={(item) => item.id}
           numColumns={4}
           getItemLayout={(_data, index) => ({
-            // All cards share the same fixed height — precomputing positions eliminates
-            // the stale-measurement gap that appears when filter data shrinks.
-            length: CARD_H + 10,                              // card height + row marginBottom
-            offset: 12 + Math.floor(index / 4) * (CARD_H + 10), // paddingTop + rowIndex × rowHeight
+            // With numColumns, React Native passes the ROW index to getItemLayout
+            // (not the individual item index), so the formula is simply:
+            //   paddingTop + rowIndex × rowHeight
+            length: CARD_H + 10,                   // card height + row marginBottom
+            offset: 12 + index * (CARD_H + 10),    // paddingTop + rowIndex × rowHeight
             index,
           })}
           columnWrapperStyle={{ gap: COL_GAP, paddingHorizontal: H_PAD, marginBottom: 10 }}
