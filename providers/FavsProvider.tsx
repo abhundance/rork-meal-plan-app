@@ -244,12 +244,14 @@ const DIETARY_TAG_MAP: Record<string, string> = {
 export function useFilteredFavs(
   search: string,
   filters: {
-    sort:        string;
-    cuisines:    string[];
-    cookTime:    string;
-    dietary:     string[];
-    dishType?:   string;
-    mealType?:   string;
+    sort:           string;
+    cuisines:       string[];
+    cookTime:       string;
+    dietary:        string[];
+    dishType?:      string;
+    mealType?:      string;
+    proteinSource?: string;   // maps to Recipe.protein_source
+    dietLabel?:     string;   // matches against diet_labels[] and allergens[]
   }
 ) {
   const { meals } = useFavs();
@@ -295,6 +297,22 @@ export function useFilteredFavs(
     const hasMealType = !!(filters.mealType && filters.mealType !== 'all');
     if (hasMealType) {
       result = result.filter((m) => m.meal_type === filters.mealType);
+    }
+
+    // Protein source filter — matches Recipe.protein_source directly
+    const hasProtein = !!(filters.proteinSource && filters.proteinSource !== 'all');
+    if (hasProtein) {
+      result = result.filter((m) => m.protein_source === filters.proteinSource);
+    }
+
+    // Diet label filter — checks both diet_labels[] and allergens[] (Spoonacular-compatible)
+    const hasDiet = !!(filters.dietLabel && filters.dietLabel !== 'all');
+    if (hasDiet) {
+      result = result.filter((m) => {
+        const labels   = m.diet_labels  ?? [];
+        const allergens = m.allergens   ?? [];
+        return labels.includes(filters.dietLabel!) || allergens.includes(filters.dietLabel!);
+      });
     }
 
     switch (filters.sort) {

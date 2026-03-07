@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  ScrollView,
   FlatList,
   StyleSheet,
   RefreshControl,
@@ -113,6 +114,28 @@ const DISH_TYPE_OPTIONS = [
   { label: 'Sides',    value: 'side'    },
   { label: 'Drinks',   value: 'drink'   },
 ];
+const PROTEIN_OPTIONS = [
+  { label: 'Any',          value: 'all'      },
+  { label: 'Chicken',      value: 'chicken'  },
+  { label: 'Beef',         value: 'beef'     },
+  { label: 'Pork',         value: 'pork'     },
+  { label: 'Lamb',         value: 'lamb'     },
+  { label: 'Turkey',       value: 'turkey'   },
+  { label: 'Seafood',      value: 'seafood'  },
+  { label: 'Eggs',         value: 'egg'      },
+  { label: 'Plant-Based',  value: 'plant'    },
+  { label: 'Dairy',        value: 'dairy'    },
+];
+const DIET_OPTIONS = [
+  { label: 'Any',          value: 'all'         },
+  { label: 'Vegan',        value: 'vegan'        },
+  { label: 'Vegetarian',   value: 'vegetarian'   },
+  { label: 'High-Protein', value: 'high-protein' },
+  { label: 'Gluten-Free',  value: 'gluten-free'  },
+  { label: 'Dairy-Free',   value: 'dairy-free'   },
+  { label: 'Keto',         value: 'keto'         },
+  { label: 'Low-Carb',     value: 'low-carb'     },
+];
 
 export default function FavsScreen() {
   const insets = useSafeAreaInsets();
@@ -126,6 +149,8 @@ export default function FavsScreen() {
   const [favFilters, setFavFilters] = useState<RecipeFilterState>({ ...DEFAULT_FILTER_STATE, sort: 'most_used' });
   const [mealTypeFilter, setMealTypeFilter] = useState<string>('all');
   const [dishTypeFilter, setDishTypeFilter] = useState<string>('all');
+  const [proteinFilter,  setProteinFilter]  = useState<string>('all');
+  const [dietFilter,     setDietFilter]     = useState<string>('all');
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<Recipe | null>(null);
 
@@ -157,8 +182,10 @@ export default function FavsScreen() {
 
   const allFilteredMeals = useFilteredFavs(search, {
     ...favFilters,
-    mealType: mealTypeFilter,
-    dishType:  dishTypeFilter,
+    mealType:      mealTypeFilter,
+    dishType:      dishTypeFilter,
+    proteinSource: proteinFilter,
+    dietLabel:     dietFilter,
   });
 
   const filteredMeals = useMemo(() => {
@@ -200,6 +227,8 @@ export default function FavsScreen() {
     setSearch('');
     setMealTypeFilter('all');
     setDishTypeFilter('all');
+    setProteinFilter('all');
+    setDietFilter('all');
   }, []);
 
   const openSortSheet = useCallback(() => {
@@ -223,6 +252,22 @@ export default function FavsScreen() {
     showSheet(
       { options: [...DISH_TYPE_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: DISH_TYPE_OPTIONS.length },
       (i) => { if (i < DISH_TYPE_OPTIONS.length) setDishTypeFilter(DISH_TYPE_OPTIONS[i].value); }
+    );
+  }, []);
+
+  const openProteinSheet = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    showSheet(
+      { options: [...PROTEIN_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: PROTEIN_OPTIONS.length },
+      (i) => { if (i < PROTEIN_OPTIONS.length) setProteinFilter(PROTEIN_OPTIONS[i].value); }
+    );
+  }, []);
+
+  const openDietSheet = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    showSheet(
+      { options: [...DIET_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: DIET_OPTIONS.length },
+      (i) => { if (i < DIET_OPTIONS.length) setDietFilter(DIET_OPTIONS[i].value); }
     );
   }, []);
 
@@ -338,7 +383,7 @@ export default function FavsScreen() {
   }, []);
 
   const filterCount = countActiveFilters(favFilters, FAVS_FILTER_CONFIG);
-  const hasFilters = filterCount > 0 || search.trim().length > 0 || mealTypeFilter !== 'all' || dishTypeFilter !== 'all';
+  const hasFilters = filterCount > 0 || search.trim().length > 0 || mealTypeFilter !== 'all' || dishTypeFilter !== 'all' || proteinFilter !== 'all' || dietFilter !== 'all';
 
   const renderGridItem = useCallback(({ item }: { item: Recipe }) => {
     if ((item as any)._isAddTile) {
@@ -482,14 +527,23 @@ export default function FavsScreen() {
 
       {/* ── Inline filter pill row ─────────────────────────────── */}
       {(() => {
-        const sortLabel  = SORT_OPTIONS.find(o => o.value === favFilters.sort)?.label ?? 'Sort';
-        const sortActive = favFilters.sort !== 'most_used';
-        const whenLabel  = MEAL_TYPE_OPTIONS.find(o => o.value === mealTypeFilter)?.label ?? 'When';
-        const whenActive = mealTypeFilter !== 'all';
-        const typeLabel  = DISH_TYPE_OPTIONS.find(o => o.value === dishTypeFilter)?.label ?? 'Type';
-        const typeActive = dishTypeFilter !== 'all';
+        const sortLabel    = SORT_OPTIONS.find(o => o.value === favFilters.sort)?.label ?? 'Sort';
+        const sortActive   = favFilters.sort !== 'most_used';
+        const whenLabel    = MEAL_TYPE_OPTIONS.find(o => o.value === mealTypeFilter)?.label ?? 'When';
+        const whenActive   = mealTypeFilter !== 'all';
+        const typeLabel    = DISH_TYPE_OPTIONS.find(o => o.value === dishTypeFilter)?.label ?? 'Type';
+        const typeActive   = dishTypeFilter !== 'all';
+        const proteinLabel = PROTEIN_OPTIONS.find(o => o.value === proteinFilter)?.label ?? 'Protein';
+        const proteinActive = proteinFilter !== 'all';
+        const dietLabel    = DIET_OPTIONS.find(o => o.value === dietFilter)?.label ?? 'Diet';
+        const dietActive   = dietFilter !== 'all';
         return (
-          <View style={styles.pillRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ height: 46 }}
+            contentContainerStyle={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 7 }}
+          >
             <TouchableOpacity onPress={openSortSheet} activeOpacity={0.75} style={[styles.filterPill, sortActive && styles.filterPillActive]}>
               <Text style={[styles.filterPillText, sortActive && styles.filterPillTextActive]}>{sortLabel} ▾</Text>
             </TouchableOpacity>
@@ -499,7 +553,13 @@ export default function FavsScreen() {
             <TouchableOpacity onPress={openDishTypeSheet} activeOpacity={0.75} style={[styles.filterPill, typeActive && styles.filterPillActive]}>
               <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}>{typeActive ? typeLabel : 'Type'} ▾</Text>
             </TouchableOpacity>
-          </View>
+            <TouchableOpacity onPress={openProteinSheet} activeOpacity={0.75} style={[styles.filterPill, proteinActive && styles.filterPillActive]}>
+              <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}>{proteinActive ? proteinLabel : 'Protein'} ▾</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={openDietSheet} activeOpacity={0.75} style={[styles.filterPill, dietActive && styles.filterPillActive]}>
+              <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}>{dietActive ? dietLabel : 'Diet'} ▾</Text>
+            </TouchableOpacity>
+          </ScrollView>
         );
       })()}
 
