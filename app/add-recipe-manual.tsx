@@ -1084,16 +1084,17 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chip: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.button,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#DDD9F5',
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   chipActive: {
     backgroundColor: Colors.primaryLight,
     borderColor: Colors.primary,
+    borderWidth: 1.5,
   },
   chipText: {
     fontSize: 13,
@@ -1102,6 +1103,7 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: Colors.primary,
+    fontWeight: '600' as const,
   },
   // ── Nutrition row ─────────────────────────────────────────────────────────────
   nutritionRow: {
