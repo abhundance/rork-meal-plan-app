@@ -539,29 +539,41 @@ export default function AddMealScreen() {
 
               {/* Meal Slot */}
               <Text style={styles.accordionFieldLabel}>Meal type</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow} contentContainerStyle={styles.pillRowContent}>
-                {sortedSlots.map((slot) => (
-                  <FilterPill
-                    key={slot.slot_id}
-                    label={slot.name}
-                    active={mealTypeSlotId === slot.slot_id}
-                    onPress={() => setMealTypeSlotId(mealTypeSlotId === slot.slot_id ? '' : slot.slot_id)}
-                  />
-                ))}
-              </ScrollView>
+              <View style={styles.chipWrap}>
+                {sortedSlots.map((slot) => {
+                  const active = mealTypeSlotId === slot.slot_id;
+                  return (
+                    <TouchableOpacity
+                      key={slot.slot_id}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setMealTypeSlotId(active ? '' : slot.slot_id)}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                        {slot.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
               {/* Cuisine */}
               <Text style={styles.accordionFieldLabel}>Cuisine</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow} contentContainerStyle={styles.pillRowContent}>
-                {CUISINE_OPTIONS.map((c) => (
-                  <FilterPill
-                    key={c}
-                    label={c}
-                    active={cuisine === c}
-                    onPress={() => setCuisine(cuisine === c ? '' : c)}
-                  />
-                ))}
-              </ScrollView>
+              <View style={styles.chipWrap}>
+                {CUISINE_OPTIONS.map((c) => {
+                  const active = cuisine === c;
+                  return (
+                    <TouchableOpacity
+                      key={c}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setCuisine(active ? '' : c)}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                        {c}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
               {/* Dish Type */}
               <Text style={styles.accordionFieldLabel}>Dish Type</Text>
