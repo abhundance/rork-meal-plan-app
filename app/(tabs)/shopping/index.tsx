@@ -20,6 +20,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { BorderRadius, Shadows } from '@/constants/theme';
+import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
@@ -629,42 +630,28 @@ export default function ShoppingScreen() {
     [collapsedSections, shopping.items, toggleSection]
   );
 
+  // ── AppHeader right element — Copy + Share icon buttons ─────────────────────
+  const headerRight = shopping.totalCount > 0 ? (
+    <View style={styles.headerActions}>
+      <TouchableOpacity
+        style={[styles.iconBtn, copyToast && styles.iconBtnSuccess]}
+        onPress={handleCopy}
+        activeOpacity={0.7}
+      >
+        {copyToast
+          ? <Check size={16} color={Colors.success} strokeWidth={3} />
+          : <Copy size={16} color={Colors.textSecondary} strokeWidth={2} />
+        }
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.iconBtn} onPress={handleShare} activeOpacity={0.7}>
+        <Share2 size={16} color={Colors.textSecondary} strokeWidth={2} />
+      </TouchableOpacity>
+    </View>
+  ) : undefined;
+
   // ── List header (lives inside SectionList so it scrolls with items) ──────────
   const ListHeader = (
     <View>
-      {/* Title row */}
-      <View style={styles.titleRow}>
-        <Text style={styles.screenTitle}>Shopping</Text>
-        <View style={styles.titleActions}>
-          {shopping.checkedCount > 0 && !allDone && (
-            <TouchableOpacity
-              style={styles.clearCheckedBtn}
-              onPress={handleClearChecked}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.clearCheckedText}>Clear checked</Text>
-            </TouchableOpacity>
-          )}
-          {shopping.totalCount > 0 && (
-            <>
-              <TouchableOpacity
-                style={[styles.iconBtn, copyToast && styles.iconBtnSuccess]}
-                onPress={handleCopy}
-                activeOpacity={0.7}
-              >
-                {copyToast
-                  ? <Check size={16} color={Colors.success} strokeWidth={3} />
-                  : <Copy size={16} color={Colors.textSecondary} strokeWidth={2} />
-                }
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.iconBtn} onPress={handleShare} activeOpacity={0.7}>
-                <Share2 size={16} color={Colors.textSecondary} strokeWidth={2} />
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </View>
-
       {/* Week pills */}
       <View style={styles.weekRow}>
         {(['current', 'next'] as const).map((mode) => (
@@ -681,10 +668,21 @@ export default function ShoppingScreen() {
         ))}
       </View>
 
-      {/* Timestamp */}
-      <Text style={styles.timestamp}>
-        {dateLabel} · {mealCount} meal{mealCount !== 1 ? 's' : ''} planned
-      </Text>
+      {/* Timestamp + Clear checked row */}
+      <View style={styles.timestampRow}>
+        <Text style={styles.timestamp}>
+          {dateLabel} · {mealCount} meal{mealCount !== 1 ? 's' : ''} planned
+        </Text>
+        {shopping.checkedCount > 0 && !allDone && (
+          <TouchableOpacity
+            style={styles.clearCheckedBtn}
+            onPress={handleClearChecked}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.clearCheckedText}>Clear checked</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Progress bar */}
       {shopping.totalCount > 0 && !allDone && (
@@ -701,6 +699,7 @@ export default function ShoppingScreen() {
   if (shopping.isLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <AppHeader title="Shopping" />
         <View style={styles.skeletonWrap}>
           <SkeletonLoader height={36} borderRadius={20} style={{ marginBottom: 16 }} />
           <SkeletonLoader height={50} borderRadius={12} style={{ marginBottom: 12 }} />
@@ -717,6 +716,7 @@ export default function ShoppingScreen() {
   if (!hasItems) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <AppHeader title="Shopping" />
         {ListHeader}
         <View style={styles.emptyWrap}>
           {!hasMeals ? (
@@ -751,6 +751,7 @@ export default function ShoppingScreen() {
   if (allDone) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        <AppHeader title="Shopping" rightElement={headerRight} />
         {ListHeader}
         <AllDoneState onClearAll={handleClearAll} />
       </View>
@@ -760,6 +761,7 @@ export default function ShoppingScreen() {
   // ── Main list ────────────────────────────────────────────────────────────────
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <AppHeader title="Shopping" rightElement={headerRight} />
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -794,26 +796,8 @@ const styles = StyleSheet.create({
   skeletonWrap: { padding: 16 },
   emptyWrap: { flex: 1 },
 
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
-  screenTitle: { fontSize: 28, fontWeight: '700' as const, color: Colors.text },
-  titleActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-
-  clearCheckedBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
-  },
-  clearCheckedText: { fontSize: 12, fontWeight: '500' as const, color: Colors.textSecondary },
+  // Header action buttons (passed as AppHeader rightElement)
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 
   iconBtn: {
     width: 36,
@@ -827,7 +811,26 @@ const styles = StyleSheet.create({
   },
   iconBtnSuccess: { borderColor: Colors.success, backgroundColor: Colors.primaryLight },
 
-  weekRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 6 },
+  // Timestamp row — date label on left, Clear checked on right
+  timestampRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginBottom: 4,
+  },
+
+  clearCheckedBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  clearCheckedText: { fontSize: 12, fontWeight: '500' as const, color: Colors.textSecondary },
+
+  weekRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, marginBottom: 6 },
   weekPill: {
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -843,8 +846,6 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 12,
     color: Colors.textSecondary,
-    paddingHorizontal: 16,
-    marginBottom: 4,
   },
 
   progressWrap: {
