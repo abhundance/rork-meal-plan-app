@@ -44,10 +44,10 @@ Safe checkpoints tagged on GitHub. To restore: `git checkout pre-recipe-type-uni
 
 | Tab | Purpose |
 |-----|---------|
-| **Meal Plan** | Weekly calendar grid. Assign meals to Breakfast / Lunch / Dinner / Snack slots across 7 days. Supports serving-size scaling per slot. |
+| **Plan** | Weekly calendar grid. Assign meals to Breakfast / Lunch / Dinner / Snack slots across 7 days. Supports serving-size scaling per slot. |
 | **Shopping** | Auto-generated shopping list aggregated from all planned meals. Items grouped by ingredient category with check-off functionality. |
-| **Favs** | Two segments — **My Recipes** (family-created meals, permanent library) and **Saved** (meals hearted from Discover). Searchable and filterable. |
-| **Discover** | Browse 38+ curated recipes. Filter by meal type, cuisine, cook time, and dietary needs. Includes chef profiles and curated collections. |
+| **Favs** | Single unified grid of all saved meals (family-created + hearted from Discover). Searchable. Inline filter pills: Sort, Meal Type, Dish Type, Protein, Diet. Filter sheet: 9 sections (Meal Type, Dish Type, Cuisine, Protein, Cook Time, Dietary, Calories, Source, Rating). Recipe cards have a ghost `CalendarPlus` icon to add directly to plan. |
+| **Discover** | Browse 38+ curated recipes. Filter sheet: 10 sections (Meal Type, Dish Type, Cuisine, Protein, Cook Time, Dietary, Intolerances, Occasion, Spice Level, Calories). Includes chef profiles and curated collections. |
 
 ---
 
@@ -64,8 +64,8 @@ AI-powered extraction from YouTube URLs, TikTok URLs, pasted text, and images. H
 ### Meal Image Handling
 Auto-suggests food images from Unsplash after meal name entry. Users can also pick from camera or photo library. Base64 images passed between screens via `services/imageStore.ts` (never via route params). Handled by `services/imageSearch.ts`.
 
-### My Recipes vs Saved (Favs Tab)
-Family-created meals (`source === 'family_created'`) are stored permanently in **My Recipes** and can only be deleted via explicit confirmation — never accidentally removed by tapping a heart. Discovered/saved meals live in the **Saved** segment and can be removed via the heart button.
+### Favs Tab — Unified Grid
+Family-created meals (`source === 'family_created'`) are stored permanently and can only be deleted via explicit long-press confirmation — never accidentally removed by tapping a heart. Discovered/saved meals can be removed via the heart button. Both types appear in **one unified grid** — there is no SegmentedControl separating them. Each card shows a ghost `CalendarPlus` icon (bare, no border, `Colors.primary`, size 15) in the white strip next to the title — this triggers the slot picker to add the meal to the plan. This button is distinct from the floating `+` FAB which opens the Add a Recipe flow.
 
 ### Onboarding & Auth
 Onboarding flow exists at `app/onboarding/`. The home screen redirects to `/onboarding/auth` when `onboardingData.completed === false`.
@@ -128,13 +128,14 @@ Shadows.card / header / tabBar
 ### Existing Components (reuse, never recreate)
 - `AppHeader` — top navigation bar with title and optional right element
 - `FilterPill` — horizontal chip for filter rows
+- `RecipeFilterSheet` — shared bottom sheet filter component used by both Favs and Discover tabs. Configured via `RecipeFilterConfig` prop (13 possible sections). Exports `RecipeFilterState`, `DEFAULT_FILTER_STATE`, `countActiveFilters`. See `components/RecipeFilterSheet.tsx`.
 - `SlotPickerModal` — meal slot selection modal
 - `MealPickerSheet` — slide-up sheet for adding meals to a slot (search, manual, delivery modes)
 - `MealSlotEditor` — add/remove/rename meal slots in settings
 - `WeeklyPlanView` — 7-day grid with meal pills, week navigation, Smart Fill
 - `DailyPlanView` — day-level meal slots with serving stepper and meal rows
 - `RepeatWeekSheet` / `RepeatDaySheet` — copy meals from a previous week/day
-- `SegmentedControl` — two-option toggle (e.g. My Recipes / Saved, Week / Day)
+- `SegmentedControl` — two-option toggle (e.g. Week / Day view)
 - `EmptyState` — standardised empty screen with icon, title, and CTA
 - `SkeletonLoader` — loading placeholder
 - `ServingStepper` — +/– control for adjusting serving sizes
@@ -213,6 +214,40 @@ These patterns were established through development and must be followed:
 
 4. **Horizontal ScrollView height** — Always set an explicit `height` on horizontal `ScrollView` containers (e.g., `height: 46`). Without it, they collapse to zero height on iOS native. Use `paddingVertical` in `contentContainerStyle` (not `alignItems: 'center'`) to centre chips within the container.
 
+5. **Single-scroll-container for filter-pill + grid screens** — Any screen that has a filter pill row above a scrollable content grid **must** put both inside the same scroll container. Never split them across a fixed-above-ScrollView architecture.
+
+   **Why:** iOS's `UIScrollView` preserves its `contentOffset` when the user scrolls down and then switches tabs. On return, the grid's scroll container is at its old position — creating a phantom blank gap at the top equal to how far the user had scrolled. This gap is invisible to the layout inspector (it shows as the screen's background colour with no element owning it).
+
+   **The fix:** Use a `FlatList` that owns the entire scroll area. Put the search bar and filter pill row inside `ListHeaderComponent`. The grid items are the FlatList data.
+
+   ```tsx
+   // ✅ Correct — single FlatList owns everything
+   <FlatList
+     ref={flatListRef}
+     data={gridData}
+     numColumns={COLS}
+     ListHeaderComponent={
+       <View>
+         {/* search bar */}
+         {/* filter pill horizontal ScrollView */}
+         <View style={{ height: 12 }} />
+       </View>
+     }
+     ListEmptyComponent={emptyState}
+     contentContainerStyle={{ paddingBottom: 100 }}
+   />
+
+   // ❌ Wrong — fixed siblings above a separate grid ScrollView
+   <View style={styles.searchWrap} />
+   <ScrollView horizontal style={{ height: 46 }}>{/* filter pills */}</ScrollView>
+   <ScrollView style={{ flex: 1 }}>{/* grid */}</ScrollView>
+   ```
+
+   Also add a `useFocusEffect` that calls `flatListRef.current?.scrollToOffset({ offset: 0, animated: false })` whenever the tab is focused as a belt-and-suspenders safety net.
+
+   > **Screens using this pattern:** `app/(tabs)/favs/index.tsx`
+   > **Reference implementation:** Commit `6ac4db6` — `fix(favs): merge all content into single FlatList`
+
 ---
 
 ## Pre-Production Checklist
@@ -229,22 +264,67 @@ Items intentionally deferred — must be completed before public launch:
 ## Data Model (Key Fields)
 
 ```ts
-// FavMeal — core meal object used across Favs, Meal Plan, and Add a Meal
+// Recipe — unified type used across Favs, Plan tab, and Add a Recipe flow
+// (also DiscoverMeal for the Discover tab — nearly identical shape)
 {
   id: string
   name: string
+  source: 'family_created' | 'discover' | string  // CRITICAL: determines card delete behaviour
   image_url?: string
-  source: 'family_created' | 'discover' | string  // CRITICAL: determines My Recipes vs Saved
-  cuisine?: string
-  meal_type?: string
-  prep_time?: number
-  cook_time?: number
+
+  // Classification (used by filter sheet)
+  meal_type?: 'breakfast' | 'lunch_dinner' | 'light_bites'
+  dish_category?: 'main' | 'salad' | 'soup' | 'appetizer' | 'side' | 'dessert' | 'drink' | 'bread' | 'sandwich' | 'sauce' | 'other'
+  cuisine?: string               // single primary cuisine (e.g. 'Italian')
+  cuisines?: string[]            // multi-cuisine array (Spoonacular-compatible)
+  protein_source?: 'chicken' | 'beef' | 'pork' | 'lamb' | 'turkey' | 'seafood' | 'egg' | 'dairy' | 'plant' | 'none'
+  cooking_time_band?: 'Under 30' | '30-60' | 'Over 60'
+  prep_time?: number             // minutes
+  cook_time?: number             // minutes
+
+  // Dietary (multiple overlapping arrays — check all three in filter logic)
+  dietary_tags?: string[]        // e.g. ['Vegan', 'Gluten-Free']
+  diet_labels?: string[]         // Spoonacular positive labels e.g. ['keto', 'paleo']
+  allergens?: string[]           // free-from list e.g. ['gluten-free', 'nut-free']
+  occasions?: string[]           // e.g. ['weeknight', 'meal-prep']
+
+  // Nutrition (used by Calories filter)
+  calories_per_serving?: number
+  protein_per_serving_g?: number
+  carbs_per_serving_g?: number
+
+  // Taste profile (used by Spice Level filter: 0–100; mild ≤15, medium 16–35, hot ≥36)
+  taste_spiciness?: number
+
+  // Family interaction (used by Rating filter)
+  rating?: 'loved' | 'liked' | undefined
+  add_to_plan_count: number      // used by 'Most Used' sort
+  last_planned_date?: string
+  created_at: string
+
+  // Recipe content
   ingredients: { name: string; quantity: number; unit: string }[]
   method_steps?: string[]
   recipe_serving_size?: number
-  is_vegan?: boolean
-  is_vegetarian?: boolean
-  is_gluten_free?: boolean
-  is_dairy_free?: boolean
+}
+```
+
+### RecipeFilterState (from `components/RecipeFilterSheet.tsx`)
+All 13 filter fields. Both tabs share this type; each tab enables a subset via `RecipeFilterConfig`.
+```ts
+{
+  sort:         string    // 'recently_added' | 'most_used' | 'recently_planned' | 'cooking_time' | 'a_to_z'
+  mealType:     string    // '' | 'breakfast' | 'lunch_dinner' | 'light_bites'
+  dishTypes:    string[]  // multi-select DishCategory values
+  cuisines:     string[]  // multi-select cuisine keys
+  protein:      string[]  // multi-select ProteinSource keys
+  cookTime:     string    // '' | 'Under 30' | '30-60' | 'Over 60'
+  dietary:      string[]  // multi-select: vegan | vegetarian | gluten_free | dairy_free | high_protein | low_carb | keto | paleo | whole30 | nut_free
+  intolerances: string[]  // multi-select allergen-free keys (Discover only)
+  occasions:    string[]  // multi-select (Discover only)
+  spiceLevel:   string    // '' | 'mild' | 'medium' | 'hot' (Discover only)
+  calories:     string    // '' | 'under_400' | '400_600' | 'over_600'
+  source:       string    // '' | 'family_created' | 'discover' (Favs only)
+  rating:       string    // '' | 'loved' | 'liked' | 'unrated' (Favs only)
 }
 ```

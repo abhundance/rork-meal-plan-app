@@ -205,7 +205,7 @@ svg#connections {
 // ─── SCREEN DATA ──────────────────────────────────────────────────────────────
 const SCREENS = [
   // ── ONBOARDING ──
-  { id:'ob-auth',      label:'Auth',                    file:'app/onboarding/auth.tsx',              group:'onboarding', type:'Screen',  x:80,   y:130,  desc:'Login / create account. Entry gate to onboarding. App redirects here from Meal Plan tab when onboarding is not completed (DEV_SKIP_ONBOARDING=false).' },
+  { id:'ob-auth',      label:'Auth',                    file:'app/onboarding/auth.tsx',              group:'onboarding', type:'Screen',  x:80,   y:130,  desc:'Login / create account. Entry gate to onboarding. App redirects here from the Plan tab when onboarding is not completed (DEV_SKIP_ONBOARDING=false).' },
   { id:'ob-fname',     label:'Family Name',             file:'app/onboarding/family-name.tsx',       group:'onboarding', type:'Screen',  x:80,   y:240,  desc:'Enter the family name.' },
   { id:'ob-hsize',     label:'Household Size',          file:'app/onboarding/household-size.tsx',    group:'onboarding', type:'Screen',  x:80,   y:340,  desc:'Select how many people are in the household.' },
   { id:'ob-slots',     label:'Meal Slots',              file:'app/onboarding/meal-slots.tsx',        group:'onboarding', type:'Screen',  x:80,   y:440,  desc:'Customise which meal slots to use (Breakfast, Lunch, Dinner, Snacks etc).' },
@@ -216,10 +216,10 @@ const SCREENS = [
   { id:'ob-walkthru',  label:'Walkthrough',             file:'app/onboarding/walkthrough.tsx',       group:'onboarding', type:'Screen',  x:80,   y:940,  desc:'Quick feature tour of the app before entering the main tab bar.' },
 
   // ── TABS ──
-  { id:'tab-mealplan', label:'Meal Plan',               file:'app/(tabs)/(home)/index.tsx',          group:'tabs',       type:'Tab',     x:360,  y:250,  desc:'Weekly/daily calendar grid. Assign meals to Breakfast / Lunch / Dinner / Snack slots across 7 days. Supports serving-size scaling per slot. Entry point to MealPickerSheet.' },
+  { id:'tab-mealplan', label:'Plan',                    file:'app/(tabs)/(home)/index.tsx',          group:'tabs',       type:'Tab',     x:360,  y:250,  desc:'Weekly/daily calendar grid. Assign meals to Breakfast / Lunch / Dinner / Snack slots across 7 days. Supports serving-size scaling per slot. Entry point to MealPickerSheet.' },
   { id:'tab-shopping', label:'Shopping',                file:'app/(tabs)/shopping/index.tsx',        group:'tabs',       type:'Tab',     x:360,  y:420,  desc:'Auto-generated shopping list aggregated from all planned meals. Items grouped by ingredient category with check-off functionality.' },
-  { id:'tab-favs',     label:'Favs',                    file:'app/(tabs)/favs/index.tsx',            group:'tabs',       type:'Tab',     x:360,  y:590,  desc:'Two segments — My Recipes (source=family_created, permanent) and Saved (hearted from Discover). 3-pill inline filter bar: Sort · When · Type. FAB navigates to Add a Recipe entry.' },
-  { id:'tab-discover', label:'Discover',                file:'app/(tabs)/discover/index.tsx',        group:'tabs',       type:'Tab',     x:360,  y:760,  desc:'Browse 38+ curated recipes. Search, filter by meal type / cuisine / cook time / dietary. Chef profiles, curated collections, hero banner.' },
+  { id:'tab-favs',     label:'Favs',                    file:'app/(tabs)/favs/index.tsx',            group:'tabs',       type:'Tab',     x:360,  y:590,  desc:'Single unified grid of all saved meals (family_created + hearted from Discover). No SegmentedControl. Inline filter pills: Sort · Meal Type · Dish Type · Protein · Diet. Filter sheet (RecipeFilterSheet) with 9 sections: Meal Type, Dish Type, Cuisine, Protein, Cook Time, Dietary, Calories, Source, Rating. Each recipe card shows a ghost CalendarPlus icon to add directly to the Plan. FAB navigates to Add a Recipe entry.' },
+  { id:'tab-discover', label:'Discover',                file:'app/(tabs)/discover/index.tsx',        group:'tabs',       type:'Tab',     x:360,  y:760,  desc:'Browse 38+ curated recipes. Search, chef profiles, curated collections, hero banner. Filter sheet (RecipeFilterSheet) with 10 sections: Meal Type, Dish Type, Cuisine, Protein, Cook Time, Dietary, Intolerances, Occasion, Spice Level, Calories.' },
 
   // ── ADD RECIPE FLOW ──
   { id:'add-entry',    label:'Add a Recipe',            file:'app/add-recipe-entry.tsx',             group:'add-recipe', type:'Screen',  x:640,  y:250,  desc:'Entry hub. Top section: Paste a Link field — auto-detects YouTube, TikTok, web URLs and shows Extract button. Bottom: 6-tile method grid — Paste Text, Manual Entry, Photos, Video Link, Voice, Camera.' },
@@ -241,7 +241,7 @@ const SCREENS = [
 
   // ── SHEETS / MODALS ──
   { id:'sheet-picker', label:'MealPickerSheet',         file:'components/MealPickerSheet.tsx',       group:'sheets',     type:'Sheet',   x:360,  y:1140, desc:'Modal (pageSheet). Three internal modes: (1) Choose — search saved meals, browse cards for Favs/Discover, 3 option rows; (2) Manual — quick name-only add with optional Save to My Meals toggle; (3) Delivery — meal name + delivery URL with platform auto-detection. Triggered by tapping an empty meal slot.' },
-  { id:'sheet-filter', label:'RecipeFilterSheet',       file:'components/RecipeFilterSheet.tsx',     group:'sheets',     type:'Sheet',   x:595,  y:1140, desc:'Bottom sheet for Discover filters. Sections: Meal Type chips, Cook Time chips, Dietary chips, Cuisine chips. Clear All / Apply footer. Navigates to Filter Results on Apply.' },
+  { id:'sheet-filter', label:'RecipeFilterSheet',       file:'components/RecipeFilterSheet.tsx',     group:'sheets',     type:'Sheet',   x:595,  y:1140, desc:'Shared bottom sheet filter component used by both Favs and Discover tabs. 13 configurable sections (shown/hidden via RecipeFilterConfig): Meal Type, Dish Type, Cuisine, Protein, Cook Time, Dietary, Intolerances, Occasion, Spice Level, Calories, Source, Rating, Sort. Clear All / Apply footer. Favs enables 9 sections; Discover enables 10 sections.' },
   { id:'sheet-slot',   label:'SlotPickerModal',         file:'components/SlotPickerModal.tsx',       group:'sheets',     type:'Modal',   x:830,  y:1140, desc:'Modal for selecting which meal slot (Breakfast / Lunch / Dinner / Snack) to add a recipe to from Recipe Detail.' },
   { id:'sheet-voice',  label:'VoiceRecordSheet',        file:'components/VoiceRecordSheet.tsx',      group:'sheets',     type:'Sheet',   x:1065, y:1140, desc:'Microphone recording sheet. Records voice → transcribes → extracts recipe via AI → navigates to Review Recipe with prefilled data.' },
   { id:'sheet-repweek',label:'RepeatWeekSheet',         file:'components/RepeatWeekSheet.tsx',       group:'sheets',     type:'Sheet',   x:360,  y:1300, desc:'Slide-up sheet to pick a previous week and copy all its meals to the current week.' },
@@ -262,7 +262,7 @@ const CONNECTIONS = [
   ['ob-welcome',     'ob-walkthru',       ''],
   ['ob-walkthru',    'tab-mealplan',      'replace'],
 
-  // Meal Plan tab
+  // Plan tab
   ['tab-mealplan',   'ob-auth',           'if not completed'],
   ['tab-mealplan',   'add-entry',         '+ FAB'],
   ['tab-mealplan',   'sheet-picker',      'tap empty slot'],
@@ -277,6 +277,8 @@ const CONNECTIONS = [
   // Favs tab
   ['tab-favs',       'add-entry',         '+ FAB / Add card'],
   ['tab-favs',       'recipe-detail',     'tap recipe'],
+  ['tab-favs',       'sheet-filter',      'filter button'],
+  ['tab-favs',       'sheet-slot',        'CalendarPlus tap'],
 
   // Discover tab
   ['tab-discover',   'disc-search',       'search bar'],
