@@ -200,14 +200,14 @@ const styles = StyleSheet.create({
   noResultsPrimary: {
     fontSize: 17,
     fontWeight: '600' as const,
-    color: '#111827',
+    color: Colors.text,
     textAlign: 'center' as const,
     marginTop: 8,
   },
   noResultsSecondary: {
     fontSize: 16,
     fontWeight: '400' as const,
-    color: '#6B7280',
+    color: Colors.textSecondary,
     textAlign: 'center' as const,
     maxWidth: 240,
     marginTop: 8,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   resultsCountText: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#6B7280',
+    color: Colors.textSecondary,
   },
   listContent: {
     paddingBottom: 40,

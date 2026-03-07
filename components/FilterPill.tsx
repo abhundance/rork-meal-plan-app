@@ -32,9 +32,9 @@ export default function FilterPill({ label, active, onPress, testID }: FilterPil
 
 const styles = StyleSheet.create({
   pill: {
-    height: 36,
-    paddingHorizontal: 16,
-    borderRadius: 18,
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 999,
     backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
@@ -45,9 +45,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   label: {
-    fontSize: 14,
-    lineHeight: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    lineHeight: 13,
+    fontWeight: '600',
     color: Colors.text,
   },
   labelActive: {

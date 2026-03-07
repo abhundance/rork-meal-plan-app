@@ -18,6 +18,7 @@ import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Check, SlidersHorizontal, X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { BorderRadius } from '@/constants/theme';
 import RecipeFilterSheet, {
   RecipeFilterState,
   RecipeFilterConfig,
@@ -411,7 +412,7 @@ export default function DiscoverScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             backgroundColor: Colors.white,
-            borderRadius: 12,
+            borderRadius: BorderRadius.button,
             borderWidth: 1,
             borderColor: Colors.surface,
             height: 44,
@@ -629,7 +630,7 @@ export default function DiscoverScreen() {
             alignItems: 'center',
             gap: 8,
             maxWidth: 320,
-            shadowColor: '#000',
+            shadowColor: Colors.shadow,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.18,
             shadowRadius: 12,

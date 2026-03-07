@@ -865,12 +865,12 @@ const styles = StyleSheet.create({
   nutritionTitle: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: '#111827',
+    color: Colors.text,
   },
   nutritionSubtitle: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: '#6B7280',
+    color: Colors.textSecondary,
   },
   nutritionRow: {
     flexDirection: 'row' as const,
@@ -879,7 +879,7 @@ const styles = StyleSheet.create({
   nutritionBox: {
     flex: 1,
     alignItems: 'center' as const,
-    backgroundColor: '#F5F3FF',
+    backgroundColor: Colors.surface,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 4,
@@ -892,18 +892,18 @@ const styles = StyleSheet.create({
   nutritionValue: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: '#111827',
+    color: Colors.text,
   },
   nutritionUnit: {
     fontSize: 11,
     fontWeight: '400' as const,
-    color: '#6B7280',
+    color: Colors.textSecondary,
     marginBottom: 2,
   },
   nutritionLabel: {
     fontSize: 12,
     fontWeight: '500' as const,
-    color: '#6B7280',
+    color: Colors.textSecondary,
     marginTop: 4,
   },
   backLink: {
