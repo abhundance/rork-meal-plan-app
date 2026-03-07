@@ -209,6 +209,7 @@ export default function MealPlanScreen() {
   const handleSmartPlan = useCallback(() => {
     const weekDates = getWeekDates(weekOffset);
     const defaultServing = familySettings.default_serving_size;
+    const noveltyPct = familySettings.smart_fill_novelty_pct ?? 30;
     const favNames = new Set(favMeals.map((f) => f.name.toLowerCase()));
     const weekWasEmpty = weekDates.every((date) =>
       sortedSlots.every((slot) => getMealsForSlot(formatDateKey(date), slot.slot_id).length === 0)
@@ -220,31 +221,50 @@ export default function MealPlanScreen() {
       image_url?: string;
       ingredients: PlannedMeal['ingredients'];
       recipe_serving_size: number;
+      isNew: boolean;  // true = discover-only (not in favs)
     };
 
-    const pool: PoolEntry[] = [
-      ...favMeals.map((f) => ({
-        id: f.id,
-        name: f.name,
-        image_url: f.image_url,
-        ingredients: f.ingredients,
-        recipe_serving_size: f.recipe_serving_size,
-      })),
-      ...DISCOVER_MEALS.filter((d) => !favNames.has(d.name.toLowerCase())).map((d) => ({
+    // familiarPool = meals the family already knows (from Favs)
+    const familiarPool: PoolEntry[] = favMeals.map((f) => ({
+      id: f.id,
+      name: f.name,
+      image_url: f.image_url,
+      ingredients: f.ingredients,
+      recipe_serving_size: f.recipe_serving_size,
+      isNew: false,
+    }));
+
+    // newPool = discover meals not already in Favs
+    const newPool: PoolEntry[] = DISCOVER_MEALS
+      .filter((d) => !favNames.has(d.name.toLowerCase()))
+      .map((d) => ({
         name: d.name,
         image_url: d.image_url,
         ingredients: d.ingredients,
         recipe_serving_size: d.recipe_serving_size,
-      })),
-    ];
+        isNew: true,
+      }));
 
-    if (pool.length === 0) {
+    const fullPool = [...familiarPool, ...newPool];
+
+    if (fullPool.length === 0) {
       Alert.alert('No meals available', 'Add meals to your Favourites or explore Discover to use Smart Plan.');
       return;
     }
 
+    // Count how many slots we'll be filling to calculate the novelty quota
+    const totalSlotsToFill = weekDates.reduce((acc, date) => {
+      const dateKey = formatDateKey(date);
+      return acc + sortedSlots.filter((slot) => {
+        const existing = getMealsForSlot(dateKey, slot.slot_id);
+        return weekWasEmpty ? existing.length === 0 : true;
+      }).length;
+    }, 0);
+    const targetNewCount = Math.round(totalSlotsToFill * noveltyPct / 100);
+
     const used = new Set<string>();
     const newMeals: PlannedMeal[] = [];
+    let newPicksCount = 0;
 
     for (const date of weekDates) {
       const dateKey = formatDateKey(date);
@@ -256,16 +276,35 @@ export default function MealPlanScreen() {
         const slotCat = getSlotCategory(slot.name);
         const serving = slot.serving_size_override ?? defaultServing;
 
-        const catMatches = pool.filter(
+        // Determine which sub-pool to prefer based on novelty quota
+        const needsNewPick = newPicksCount < targetNewCount;
+        const preferredPool = needsNewPick
+          ? (newPool.length > 0 ? newPool : familiarPool)
+          : (familiarPool.length > 0 ? familiarPool : newPool);
+        const fallbackPool = needsNewPick ? familiarPool : newPool;
+
+        const preferredCatMatches = preferredPool.filter(
           (m) => getMealCategoryByName(m.name) === slotCat && !used.has(m.name.toLowerCase())
         );
-        const fallback = pool.filter((m) => !used.has(m.name.toLowerCase()));
-        const candidates = catMatches.length > 0 ? catMatches : fallback;
+        const preferredUnused = preferredPool.filter((m) => !used.has(m.name.toLowerCase()));
+        const fallbackCatMatches = fallbackPool.filter(
+          (m) => getMealCategoryByName(m.name) === slotCat && !used.has(m.name.toLowerCase())
+        );
+        const fallbackUnused = fallbackPool.filter((m) => !used.has(m.name.toLowerCase()));
+
+        // Priority: preferred cat match → preferred any → fallback cat → fallback any → full pool
+        const candidates =
+          preferredCatMatches.length > 0 ? preferredCatMatches :
+          preferredUnused.length > 0 ? preferredUnused :
+          fallbackCatMatches.length > 0 ? fallbackCatMatches :
+          fallbackUnused.length > 0 ? fallbackUnused :
+          fullPool.filter((m) => !used.has(m.name.toLowerCase()));
 
         if (candidates.length === 0) continue;
 
         const picked = candidates[Math.floor(Math.random() * candidates.length)];
         used.add(picked.name.toLowerCase());
+        if (picked.isNew) newPicksCount++;
 
         newMeals.push({
           id: `meal_${Date.now()}_${newMeals.length}_${Math.random().toString(36).slice(2, 7)}`,
@@ -284,14 +323,14 @@ export default function MealPlanScreen() {
     if (newMeals.length > 0) {
       addMeals(newMeals);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      console.log('[MealPlan] Smart plan generated', newMeals.length, 'meals');
+      console.log('[MealPlan] Smart plan generated', newMeals.length, 'meals,', newPicksCount, 'new picks');
       showSmartPlanToast(weekWasEmpty
         ? `✨ Week planned! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} added`
         : `🔀 Reshuffled! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} swapped in`);
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for this week already have meals. Clear some first to use Smart Fill.');
     }
-  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, addMeals, getMealsForSlot, showSmartPlanToast]);
+  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   const handleClearWeek = useCallback(() => {
     Alert.alert('Clear this week?', 'All meals for this week will be removed.', [
@@ -324,6 +363,7 @@ export default function MealPlanScreen() {
 
   const handleSmartPlanDay = useCallback(() => {
     const defaultServing = familySettings.default_serving_size;
+    const noveltyPct = familySettings.smart_fill_novelty_pct ?? 30;
     const favNames = new Set(favMeals.map((f) => f.name.toLowerCase()));
     const dateKey = formatDateKey(currentDate);
     const dayWasEmpty = sortedSlots.every((slot) => getMealsForSlot(dateKey, slot.slot_id).length === 0);
@@ -334,78 +374,109 @@ export default function MealPlanScreen() {
       image_url?: string;
       ingredients: PlannedMeal['ingredients'];
       recipe_serving_size: number;
+      isNew: boolean;
     };
 
-    const pool: PoolEntry[] = [
-      ...favMeals.map((f) => ({
-        id: f.id,
-        name: f.name,
-        image_url: f.image_url,
-        ingredients: f.ingredients,
-        recipe_serving_size: f.recipe_serving_size,
-      })),
-      ...DISCOVER_MEALS.filter((d) => !favNames.has(d.name.toLowerCase())).map((d) => ({
+    // familiarPool = meals the family already knows (from Favs)
+    const familiarPool: PoolEntry[] = favMeals.map((f) => ({
+      id: f.id,
+      name: f.name,
+      image_url: f.image_url,
+      ingredients: f.ingredients,
+      recipe_serving_size: f.recipe_serving_size,
+      isNew: false,
+    }));
+
+    // newPool = discover meals not already in Favs
+    const newPool: PoolEntry[] = DISCOVER_MEALS
+      .filter((d) => !favNames.has(d.name.toLowerCase()))
+      .map((d) => ({
         name: d.name,
         image_url: d.image_url,
         ingredients: d.ingredients,
         recipe_serving_size: d.recipe_serving_size,
-      })),
-    ];
+        isNew: true,
+      }));
 
-    if (pool.length === 0) {
+    const fullPool = [...familiarPool, ...newPool];
+
+    if (fullPool.length === 0) {
       Alert.alert('No meals available', 'Add meals to your Favourites or explore Discover to use Smart Plan.');
       return;
     }
 
+    // Count how many slots we'll be filling to calculate the novelty quota
+    const totalSlotsToFill = sortedSlots.filter((slot) => {
+      const existing = getMealsForSlot(dateKey, slot.slot_id);
+      return dayWasEmpty ? existing.length === 0 : true;
+    }).length;
+    const targetNewCount = Math.round(totalSlotsToFill * noveltyPct / 100);
+
     const used = new Set<string>();
     const newMeals: PlannedMeal[] = [];
+    let newPicksCount = 0;
 
-    for (const date of [currentDate]) {
-      const dateKey = formatDateKey(date);
-      for (const slot of sortedSlots) {
-        const existing = getMealsForSlot(dateKey, slot.slot_id);
-        // In Smart Fill mode: skip slots that already have meals.
-        // In Reshuffle mode: overwrite every slot with a fresh pick.
-        if (dayWasEmpty && existing.length > 0) continue;
-        const slotCat = getSlotCategory(slot.name);
-        const serving = slot.serving_size_override ?? defaultServing;
+    for (const slot of sortedSlots) {
+      const existing = getMealsForSlot(dateKey, slot.slot_id);
+      // In Smart Fill mode: skip slots that already have meals.
+      // In Reshuffle mode: overwrite every slot with a fresh pick.
+      if (dayWasEmpty && existing.length > 0) continue;
+      const slotCat = getSlotCategory(slot.name);
+      const serving = slot.serving_size_override ?? defaultServing;
 
-        const catMatches = pool.filter(
-          (m) => getMealCategoryByName(m.name) === slotCat && !used.has(m.name.toLowerCase())
-        );
-        const fallback = pool.filter((m) => !used.has(m.name.toLowerCase()));
-        const candidates = catMatches.length > 0 ? catMatches : fallback;
+      // Determine which sub-pool to prefer based on novelty quota
+      const needsNewPick = newPicksCount < targetNewCount;
+      const preferredPool = needsNewPick
+        ? (newPool.length > 0 ? newPool : familiarPool)
+        : (familiarPool.length > 0 ? familiarPool : newPool);
+      const fallbackPool = needsNewPick ? familiarPool : newPool;
 
-        if (candidates.length === 0) continue;
+      const preferredCatMatches = preferredPool.filter(
+        (m) => getMealCategoryByName(m.name) === slotCat && !used.has(m.name.toLowerCase())
+      );
+      const preferredUnused = preferredPool.filter((m) => !used.has(m.name.toLowerCase()));
+      const fallbackCatMatches = fallbackPool.filter(
+        (m) => getMealCategoryByName(m.name) === slotCat && !used.has(m.name.toLowerCase())
+      );
+      const fallbackUnused = fallbackPool.filter((m) => !used.has(m.name.toLowerCase()));
 
-        const picked = candidates[Math.floor(Math.random() * candidates.length)];
-        used.add(picked.name.toLowerCase());
+      const candidates =
+        preferredCatMatches.length > 0 ? preferredCatMatches :
+        preferredUnused.length > 0 ? preferredUnused :
+        fallbackCatMatches.length > 0 ? fallbackCatMatches :
+        fallbackUnused.length > 0 ? fallbackUnused :
+        fullPool.filter((m) => !used.has(m.name.toLowerCase()));
 
-        newMeals.push({
-          id: `meal_${Date.now()}_${newMeals.length}_${Math.random().toString(36).slice(2, 7)}`,
-          slot_id: slot.slot_id,
-          date: dateKey,
-          meal_name: picked.name,
-          meal_image_url: picked.image_url,
-          serving_size: serving,
-          ingredients: picked.ingredients,
-          recipe_serving_size: picked.recipe_serving_size,
-          ...(picked.id ? { meal_id: picked.id } : {}),
-        });
-      }
+      if (candidates.length === 0) continue;
+
+      const picked = candidates[Math.floor(Math.random() * candidates.length)];
+      used.add(picked.name.toLowerCase());
+      if (picked.isNew) newPicksCount++;
+
+      newMeals.push({
+        id: `meal_${Date.now()}_${newMeals.length}_${Math.random().toString(36).slice(2, 7)}`,
+        slot_id: slot.slot_id,
+        date: dateKey,
+        meal_name: picked.name,
+        meal_image_url: picked.image_url,
+        serving_size: serving,
+        ingredients: picked.ingredients,
+        recipe_serving_size: picked.recipe_serving_size,
+        ...(picked.id ? { meal_id: picked.id } : {}),
+      });
     }
 
     if (newMeals.length > 0) {
       addMeals(newMeals);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      console.log('[MealPlan] Smart plan day generated', newMeals.length, 'meals');
+      console.log('[MealPlan] Smart plan day generated', newMeals.length, 'meals,', newPicksCount, 'new picks');
       showSmartPlanToast(dayWasEmpty
         ? `✨ Day planned! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} added`
         : `🔀 Reshuffled! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} swapped in`);
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for today already have meals. Clear some first to use Smart Fill.');
     }
-  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, addMeals, getMealsForSlot, showSmartPlanToast]);
+  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   if (isLoading) {
     return (

@@ -15,6 +15,7 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   measurement_units: 'metric',
   language: 'English',
   region: 'US',
+  smart_fill_novelty_pct: 30,  // 30% new meals by default (Balanced)
 };
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {

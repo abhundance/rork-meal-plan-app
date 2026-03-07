@@ -8,7 +8,7 @@ import { router, Href } from 'expo-router';
 import {
   ChevronLeft, Lock, Users, UtensilsCrossed, Ruler, Leaf,
   ShoppingBasket, Bell, Globe, LogOut, Trash2, Shield,
-  UserPlus, Plus, X, ChevronRight,
+  UserPlus, Plus, X, ChevronRight, Sparkles,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
@@ -563,6 +563,43 @@ export default function FamilySettingsScreen() {
           </Card>
         )}
 
+        {/* Smart Fill */}
+        <SectionHeader
+          title="Smart Fill"
+          icon={<Sparkles size={16} color={Colors.textSecondary} />}
+        />
+        <Card>
+          <View style={styles.smartFillRow}>
+            <Text style={styles.smartFillLabel}>How adventurous should Smart Fill be?</Text>
+            <Text style={styles.smartFillSub}>
+              Controls how many new meals are mixed in vs. meals you already know and love.
+            </Text>
+          </View>
+          <View style={styles.noveltyToggle}>
+            {([
+              { label: '🏠 Familiar', sub: 'Mostly meals you know', pct: 10 },
+              { label: '⚖️ Balanced', sub: 'Mix of new & familiar', pct: 30 },
+              { label: '🌍 Adventurous', sub: 'Lots of new meals', pct: 50 },
+            ] as const).map((opt) => {
+              const active = (familySettings.smart_fill_novelty_pct ?? 30) === opt.pct;
+              return (
+                <TouchableOpacity
+                  key={opt.pct}
+                  style={[styles.noveltyOption, active && styles.noveltyOptionActive]}
+                  onPress={() => updateFamilySettings({ smart_fill_novelty_pct: opt.pct })}
+                >
+                  <Text style={[styles.noveltyOptionLabel, active && styles.noveltyOptionLabelActive]}>
+                    {opt.label}
+                  </Text>
+                  <Text style={[styles.noveltyOptionSub, active && styles.noveltyOptionSubActive]}>
+                    {opt.sub}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Card>
+
         {/* Notifications */}
         <SectionHeader title="Notifications" />
         <Card>
@@ -1001,6 +1038,60 @@ const styles = StyleSheet.create({
   },
   unitTextActive: {
     color: Colors.white,
+  },
+  smartFillRow: {
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+    marginBottom: 14,
+  },
+  smartFillLabel: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  smartFillSub: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  noveltyToggle: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  noveltyOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: BorderRadius.card,
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  noveltyOptionActive: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primary,
+  },
+  noveltyOptionLabel: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  noveltyOptionLabelActive: {
+    color: Colors.primary,
+  },
+  noveltyOptionSub: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  noveltyOptionSubActive: {
+    color: Colors.primary,
   },
   editAccountRow: {
     paddingVertical: 12,

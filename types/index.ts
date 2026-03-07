@@ -15,6 +15,8 @@ export interface FamilySettings {
   measurement_units: 'metric' | 'imperial';
   language: string;
   region: string;
+  // Smart Fill preferences
+  smart_fill_novelty_pct: number;  // 0–100: % of slots to fill with meals not in Favs. Default 30.
 }
 
 export interface PantryItem {

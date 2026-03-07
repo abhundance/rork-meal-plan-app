@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback } from 'react';
+import React, { useMemo, useRef, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import * as Haptics from 'expo-haptics';
 import Colors, { SlotColors } from '@/constants/colors';
 import { MealSlot, PlannedMeal } from '@/types';
 import { useFavs } from '@/providers/FavsProvider';
+import { useWeekRatings } from '@/hooks/useWeekRatings';
+import { MealRating } from '@/types';
 import {
   getWeekDates,
   formatDateKey,
@@ -49,8 +51,26 @@ export default function WeeklyPlanView({
   onClearWeek,
 }: WeeklyPlanViewProps) {
   const { meals: favMeals } = useFavs();
+  const { rateWeek, getWeekRating } = useWeekRatings();
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const weekLabel = useMemo(() => getWeekLabel(weekDates), [weekDates]);
+
+  // weekKey = ISO date of the Monday of the current week (used for rating storage)
+  const weekKey = useMemo(() => {
+    const mon = weekDates[0];
+    return `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, '0')}-${String(mon.getDate()).padStart(2, '0')}`;
+  }, [weekDates]);
+
+  // Post-week feedback: track dismissed state locally so banner hides immediately on tap
+  const [dismissedWeekKey, setDismissedWeekKey] = useState<string | null>(null);
+  const isPastWeek = weekOffset < 0;
+  const weekRating = getWeekRating(weekKey);
+  const showFeedbackBanner = isPastWeek && !weekRating && dismissedWeekKey !== weekKey;
+
+  const handleWeekRating = useCallback((rating: MealRating) => {
+    setDismissedWeekKey(weekKey);
+    rateWeek(weekKey, rating);
+  }, [weekKey, rateWeek]);
 
   // Note: no useMemo here intentionally — getMealsForSlot reads mealsRef.current (always live)
   // but has a stable function reference ([] deps), so a useMemo over it would never recompute
@@ -166,6 +186,29 @@ export default function WeeklyPlanView({
               <Text style={styles.clearText}>Clear week</Text>
             </TouchableOpacity>
           </ScrollView>
+          )}
+
+          {/* Post-week micro-feedback banner — past weeks only, one tap to rate */}
+          {showFeedbackBanner && (
+            <View style={styles.feedbackBanner}>
+              <Text style={styles.feedbackLabel}>How was this week's menu?</Text>
+              <View style={styles.feedbackEmojis}>
+                {([
+                  { emoji: '😕', rating: 'disliked' as MealRating },
+                  { emoji: '😊', rating: 'liked' as MealRating },
+                  { emoji: '😍', rating: 'loved' as MealRating },
+                ]).map(({ emoji, rating }) => (
+                  <TouchableOpacity
+                    key={rating}
+                    style={styles.feedbackEmojiBtn}
+                    onPress={() => handleWeekRating(rating)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.feedbackEmoji}>{emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           )}
 
           <View style={styles.gridContainer}>
@@ -610,5 +653,40 @@ const emptyStyles = StyleSheet.create({
   orText: {
     fontSize: 12,
     color: Colors.textSecondary,
+  },
+  feedbackBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  feedbackLabel: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: Colors.primary,
+    flex: 1,
+  },
+  feedbackEmojis: {
+    flexDirection: 'row',
+    gap: 8,
+    marginLeft: 12,
+  },
+  feedbackEmojiBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedbackEmoji: {
+    fontSize: 20,
   },
 });
