@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,7 @@ import { X, Plus, Minus } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
+import { extractRecipeMetadata } from '@/services/recipeExtraction';
 import Colors from '@/constants/colors';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -28,7 +30,18 @@ import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { consumePendingPlanSlot } from '@/services/pendingPlanSlot';
-import { Recipe, Ingredient, PlannedMeal, CUISINE_OPTIONS, DIETARY_OPTIONS, COOKING_TIME_BANDS } from '@/types';
+import {
+  Recipe,
+  Ingredient,
+  PlannedMeal,
+  CUISINE_OPTIONS,
+  COOKING_TIME_BANDS,
+  DISH_CATEGORY_OPTIONS,
+  PROTEIN_SOURCE_OPTIONS,
+  ALLERGEN_OPTIONS,
+  DIET_LABEL_OPTIONS,
+  OCCASION_OPTIONS,
+} from '@/types';
 
 export default function AddMealScreen() {
   const insets = useSafeAreaInsets();
@@ -46,16 +59,8 @@ export default function AddMealScreen() {
 
   const isEditing = !!editMeal;
 
+  // ── Core recipe fields ───────────────────────────────────────────────────────
   const [name, setName] = useState<string>(editMeal?.name ?? '');
-  const [cuisine, setCuisine] = useState<string>(editMeal?.cuisine ?? '');
-  const [cookingTimeBand, setCookingTimeBand] = useState<string>(editMeal?.cooking_time_band ?? '');
-  const [prepTime, setPrepTime] = useState<string>(editMeal?.prep_time != null ? String(editMeal.prep_time) : '');
-  const [cookTime, setCookTime] = useState<string>(editMeal?.cook_time != null ? String(editMeal.cook_time) : '');
-  const [dietaryTags, setDietaryTags] = useState<string[]>(editMeal?.dietary_tags ?? []);
-  const [customTags, setCustomTags] = useState<string[]>(editMeal?.custom_tags ?? []);
-  const [newTag, setNewTag] = useState<string>('');
-  const [mealTypeSlotId, setMealTypeSlotId] = useState<string>(editMeal?.meal_type_slot_id ?? '');
-  const [description, setDescription] = useState<string>(editMeal?.description ?? '');
   const [servingSize, setServingSize] = useState<number>(editMeal?.recipe_serving_size ?? familySettings.default_serving_size);
   const [ingredients, setIngredients] = useState<{ name: string; quantity: string; unit: string }[]>(
     editMeal?.ingredients?.length
@@ -66,24 +71,121 @@ export default function AddMealScreen() {
         }))
       : [{ name: '', quantity: '', unit: '' }]
   );
-  const [deliveryUrl, setDeliveryUrl] = useState<string>(editMeal?.delivery_url ?? '');
   const [methodSteps, setMethodSteps] = useState<string[]>(
     editMeal?.method_steps?.length ? editMeal.method_steps : ['']
   );
+  const [deliveryUrl, setDeliveryUrl] = useState<string>(editMeal?.delivery_url ?? '');
+
+  // ── Cook time (standalone) ───────────────────────────────────────────────────
+  const [cookingTimeBand, setCookingTimeBand] = useState<string>(editMeal?.cooking_time_band ?? '');
+
+  // ── Recipe Details accordion ─────────────────────────────────────────────────
+  const [accordionOpen, setAccordionOpen] = useState<boolean>(false);
+  const [isAiFillingMetadata, setIsAiFillingMetadata] = useState<boolean>(false);
+  // Meal type slot (plan integration)
+  const [mealTypeSlotId, setMealTypeSlotId] = useState<string>(editMeal?.meal_type_slot_id ?? '');
+  // Cuisine
+  const [cuisine, setCuisine] = useState<string>(editMeal?.cuisine ?? '');
+  // Classification
+  const [dishCategory, setDishCategory] = useState<string>(editMeal?.dish_category ?? '');
+  const [proteinSource, setProteinSource] = useState<string>(editMeal?.protein_source ?? '');
+  // Dietary
+  const [dietLabels, setDietLabels] = useState<string[]>(editMeal?.diet_labels ?? []);
+  const [allergens, setAllergens] = useState<string[]>(editMeal?.allergens ?? []);
+  const [occasions, setOccasions] = useState<string[]>(editMeal?.occasions ?? []);
+  // Time (exact minutes)
+  const [prepTime, setPrepTime] = useState<string>(editMeal?.prep_time != null ? String(editMeal.prep_time) : '');
+  const [cookTime, setCookTime] = useState<string>(editMeal?.cook_time != null ? String(editMeal.cook_time) : '');
+  // Nutrition
+  const [caloriesPerServing, setCaloriesPerServing] = useState<string>(
+    editMeal?.calories_per_serving != null ? String(editMeal.calories_per_serving) : ''
+  );
+  const [proteinPerServingG, setProteinPerServingG] = useState<string>(
+    editMeal?.protein_per_serving_g != null ? String(editMeal.protein_per_serving_g) : ''
+  );
+  const [carbsPerServingG, setCarbsPerServingG] = useState<string>(
+    editMeal?.carbs_per_serving_g != null ? String(editMeal.carbs_per_serving_g) : ''
+  );
+  // Description & custom tags
+  const [description, setDescription] = useState<string>(editMeal?.description ?? '');
+  const [customTags, setCustomTags] = useState<string[]>(editMeal?.custom_tags ?? []);
+  const [newTag, setNewTag] = useState<string>('');
 
   const sortedSlots = useMemo(
     () => [...familySettings.meal_slots].sort((a, b) => a.order - b.order),
     [familySettings.meal_slots]
   );
 
-  const toggleDietaryTag = useCallback((tag: string) => {
-    if (tag === 'No Restrictions') {
-      setDietaryTags([]);
+  // ── AI fill ──────────────────────────────────────────────────────────────────
+  const handleAiFill = useCallback(async () => {
+    if (!name.trim()) {
+      Alert.alert('Name required', 'Add a meal name first so AI knows what to classify.');
       return;
     }
-    setDietaryTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev.filter((t) => t !== 'No Restrictions'), tag]
-    );
+    setIsAiFillingMetadata(true);
+    try {
+      const validIngredients = ingredients
+        .filter((i) => i.name.trim())
+        .map((i) => ({
+          name: i.name.trim(),
+          quantity: parseFloat(i.quantity) || 0,
+          unit: i.unit.trim() || 'pc',
+        }));
+      const result = await extractRecipeMetadata(name.trim(), validIngredients);
+      if (result.dish_category) setDishCategory(result.dish_category);
+      if (result.protein_source) setProteinSource(result.protein_source);
+      if (result.diet_labels?.length) setDietLabels(result.diet_labels);
+      if (result.allergens?.length) setAllergens(result.allergens);
+      if (result.occasions?.length) setOccasions(result.occasions);
+      if (result.calories_per_serving != null) setCaloriesPerServing(String(result.calories_per_serving));
+      if (result.protein_per_serving_g != null) setProteinPerServingG(String(result.protein_per_serving_g));
+      if (result.carbs_per_serving_g != null) setCarbsPerServingG(String(result.carbs_per_serving_g));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {
+      console.log('[AddMeal] AI fill failed:', e);
+      Alert.alert('Could not auto-fill', "AI couldn't classify this recipe. Please fill in manually.");
+    } finally {
+      setIsAiFillingMetadata(false);
+    }
+  }, [name, ingredients]);
+
+  // ── Ingredient helpers ───────────────────────────────────────────────────────
+  const addIngredientRow = useCallback(() => {
+    setIngredients((prev) => [...prev, { name: '', quantity: '', unit: '' }]);
+  }, []);
+
+  const updateIngredient = useCallback((idx: number, field: string, value: string) => {
+    setIngredients((prev) => prev.map((ing, i) => (i === idx ? { ...ing, [field]: value } : ing)));
+  }, []);
+
+  const removeIngredient = useCallback((idx: number) => {
+    setIngredients((prev) => prev.filter((_, i) => i !== idx));
+  }, []);
+
+  // ── Method step helpers ──────────────────────────────────────────────────────
+  const addStep = useCallback(() => {
+    setMethodSteps((prev) => [...prev, '']);
+  }, []);
+
+  const updateStep = useCallback((idx: number, value: string) => {
+    setMethodSteps((prev) => prev.map((s, i) => (i === idx ? value : s)));
+  }, []);
+
+  const removeStep = useCallback((idx: number) => {
+    setMethodSteps((prev) => prev.filter((_, i) => i !== idx));
+  }, []);
+
+  // ── Toggle helpers ───────────────────────────────────────────────────────────
+  const toggleDietLabel = useCallback((tag: string) => {
+    setDietLabels((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
+  }, []);
+
+  const toggleAllergen = useCallback((tag: string) => {
+    setAllergens((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
+  }, []);
+
+  const toggleOccasion = useCallback((tag: string) => {
+    setOccasions((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
   }, []);
 
   const addCustomTag = useCallback(() => {
@@ -97,30 +199,7 @@ export default function AddMealScreen() {
     setCustomTags((prev) => prev.filter((t) => t !== tag));
   }, []);
 
-  const addIngredientRow = useCallback(() => {
-    setIngredients((prev) => [...prev, { name: '', quantity: '', unit: '' }]);
-  }, []);
-
-  const updateIngredient = useCallback((idx: number, field: string, value: string) => {
-    setIngredients((prev) => prev.map((ing, i) => (i === idx ? { ...ing, [field]: value } : ing)));
-  }, []);
-
-  const removeIngredient = useCallback((idx: number) => {
-    setIngredients((prev) => prev.filter((_, i) => i !== idx));
-  }, []);
-
-  const addStep = useCallback(() => {
-    setMethodSteps((prev) => [...prev, '']);
-  }, []);
-
-  const updateStep = useCallback((idx: number, value: string) => {
-    setMethodSteps((prev) => prev.map((s, i) => (i === idx ? value : s)));
-  }, []);
-
-  const removeStep = useCallback((idx: number) => {
-    setMethodSteps((prev) => prev.filter((_, i) => i !== idx));
-  }, []);
-
+  // ── Save ─────────────────────────────────────────────────────────────────────
   const handleSave = useCallback(() => {
     if (!name.trim()) {
       Alert.alert('Name required', 'Please enter a meal name.');
@@ -138,18 +217,34 @@ export default function AddMealScreen() {
       }));
 
     const validSteps = methodSteps.filter((s) => s.trim());
+    // Derive legacy dietary_tags for backward compat
+    const derivedDietaryTags = [...new Set([...dietLabels, ...allergens])];
 
     if (isEditing && editMeal) {
       updateFav(editMeal.id, {
         name: name.trim(),
         image_url: undefined,
-        cuisine: cuisine || undefined,
+        // Time
         cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
         prep_time: prepTime ? parseInt(prepTime) : undefined,
         cook_time: cookTime ? parseInt(cookTime) : undefined,
-        dietary_tags: dietaryTags,
-        custom_tags: customTags,
+        // Slot
         meal_type_slot_id: mealTypeSlotId || undefined,
+        // Classification
+        cuisine: cuisine || undefined,
+        dish_category: dishCategory || undefined,
+        protein_source: proteinSource || undefined,
+        occasions: occasions.length > 0 ? occasions : undefined,
+        // Dietary
+        diet_labels: dietLabels.length > 0 ? dietLabels : undefined,
+        allergens: allergens.length > 0 ? allergens : undefined,
+        // Nutrition
+        calories_per_serving: caloriesPerServing ? parseFloat(caloriesPerServing) : undefined,
+        protein_per_serving_g: proteinPerServingG ? parseFloat(proteinPerServingG) : undefined,
+        carbs_per_serving_g: carbsPerServingG ? parseFloat(carbsPerServingG) : undefined,
+        // Legacy
+        dietary_tags: derivedDietaryTags,
+        custom_tags: customTags,
         description: description || undefined,
         recipe_serving_size: servingSize,
         ingredients: validIngredients,
@@ -168,34 +263,56 @@ export default function AddMealScreen() {
         `You already have "${name.trim()}" in your Favs.`,
         [
           { text: 'View it', onPress: () => router.back() },
-          {
-            text: 'Add Anyway',
-            onPress: () => saveMeal(validIngredients, validSteps),
-          },
+          { text: 'Add Anyway', onPress: () => saveMeal(validIngredients, validSteps, derivedDietaryTags) },
         ]
       );
       return;
     }
 
-    saveMeal(validIngredients, validSteps);
-  }, [name, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, description, servingSize, ingredients, methodSteps, isEditing, editMeal, updateFav, isFavByName]);
+    saveMeal(validIngredients, validSteps, derivedDietaryTags);
+  }, [
+    name, cookingTimeBand, prepTime, cookTime, mealTypeSlotId,
+    cuisine, dishCategory, proteinSource, occasions,
+    dietLabels, allergens,
+    caloriesPerServing, proteinPerServingG, carbsPerServingG,
+    customTags, description, servingSize, ingredients, methodSteps,
+    isEditing, editMeal, updateFav, isFavByName,
+  ]);
 
-  const saveMeal = useCallback((validIngredients: Ingredient[], validSteps: string[]) => {
+  const saveMeal = useCallback((
+    validIngredients: Ingredient[],
+    validSteps: string[],
+    derivedDietaryTags: string[],
+  ) => {
     const newMeal: Recipe = {
       id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: name.trim(),
       image_url: undefined,
-      cuisine: cuisine || undefined,
+      // Time
       cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
       prep_time: prepTime ? parseInt(prepTime) : undefined,
       cook_time: cookTime ? parseInt(cookTime) : undefined,
-      dietary_tags: dietaryTags,
-      custom_tags: customTags,
+      // Slot
       meal_type_slot_id: mealTypeSlotId || undefined,
-      ingredients: validIngredients,
-      recipe_serving_size: servingSize,
-      method_steps: validSteps,
+      // Classification
+      cuisine: cuisine || undefined,
+      dish_category: dishCategory || undefined,
+      protein_source: proteinSource || undefined,
+      occasions: occasions.length > 0 ? occasions : undefined,
+      // Dietary
+      diet_labels: dietLabels.length > 0 ? dietLabels : undefined,
+      allergens: allergens.length > 0 ? allergens : undefined,
+      // Nutrition
+      calories_per_serving: caloriesPerServing ? parseFloat(caloriesPerServing) : undefined,
+      protein_per_serving_g: proteinPerServingG ? parseFloat(proteinPerServingG) : undefined,
+      carbs_per_serving_g: carbsPerServingG ? parseFloat(carbsPerServingG) : undefined,
+      // Legacy / required
+      dietary_tags: derivedDietaryTags,
+      custom_tags: customTags,
       description: description || undefined,
+      recipe_serving_size: servingSize,
+      ingredients: validIngredients,
+      method_steps: validSteps,
       source: 'family_created',
       add_to_plan_count: 0,
       created_at: new Date().toISOString(),
@@ -227,7 +344,13 @@ export default function AddMealScreen() {
     } else {
       router.replace('/(tabs)/favs' as never);
     }
-  }, [name, cuisine, cookingTimeBand, prepTime, cookTime, dietaryTags, customTags, mealTypeSlotId, servingSize, description, deliveryUrl, addFav]);
+  }, [
+    name, cookingTimeBand, prepTime, cookTime, mealTypeSlotId,
+    cuisine, dishCategory, proteinSource, occasions,
+    dietLabels, allergens,
+    caloriesPerServing, proteinPerServingG, carbsPerServingG,
+    customTags, description, servingSize, deliveryUrl, addFav,
+  ]);
 
   return (
     <View style={styles.container}>
@@ -242,6 +365,11 @@ export default function AddMealScreen() {
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+          {/* Hero image */}
+          <MealImagePlaceholder size="hero" mealType={mealTypeSlotId} cuisine={cuisine} name={name} />
+
+          {/* Name */}
           <Text style={styles.label}>Meal name *</Text>
           <TextInput
             style={styles.input}
@@ -253,123 +381,7 @@ export default function AddMealScreen() {
             testID="meal-name-input"
           />
 
-          <MealImagePlaceholder size="hero" mealType={mealTypeSlotId} cuisine={cuisine} name={name} />
-
-          <Text style={styles.label}>Meal type</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
-            {sortedSlots.map((slot) => (
-              <FilterPill
-                key={slot.slot_id}
-                label={slot.name}
-                active={mealTypeSlotId === slot.slot_id}
-                onPress={() => setMealTypeSlotId(mealTypeSlotId === slot.slot_id ? '' : slot.slot_id)}
-              />
-            ))}
-          </ScrollView>
-
-          <Text style={styles.label}>Cuisine</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
-            {CUISINE_OPTIONS.map((c) => (
-              <FilterPill
-                key={c}
-                label={c}
-                active={cuisine === c}
-                onPress={() => setCuisine(cuisine === c ? '' : c)}
-              />
-            ))}
-          </ScrollView>
-
-          <Text style={styles.label}>Cooking time</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
-            {COOKING_TIME_BANDS.map((t) => (
-              <FilterPill
-                key={t}
-                label={`${t} min`}
-                active={cookingTimeBand === t}
-                onPress={() => setCookingTimeBand(cookingTimeBand === t ? '' : t)}
-              />
-            ))}
-          </ScrollView>
-
-          <View style={styles.timeInputRow}>
-            <View style={styles.timeInputWrap}>
-              <Text style={styles.label}>Prep (min)</Text>
-              <TextInput
-                style={styles.timeInput}
-                placeholder="15"
-                placeholderTextColor={Colors.textSecondary}
-                value={prepTime}
-                onChangeText={setPrepTime}
-                keyboardType="number-pad"
-              />
-            </View>
-            <View style={styles.timeInputWrap}>
-              <Text style={styles.label}>Cook (min)</Text>
-              <TextInput
-                style={styles.timeInput}
-                placeholder="30"
-                placeholderTextColor={Colors.textSecondary}
-                value={cookTime}
-                onChangeText={setCookTime}
-                keyboardType="number-pad"
-              />
-            </View>
-          </View>
-
-          <Text style={styles.label}>Dietary tags</Text>
-          <View style={styles.dietaryGrid}>
-            {DIETARY_OPTIONS.filter((d) => d !== 'No Restrictions').map((tag) => (
-              <FilterPill
-                key={tag}
-                label={tag}
-                active={dietaryTags.includes(tag)}
-                onPress={() => toggleDietaryTag(tag)}
-              />
-            ))}
-          </View>
-
-          <Text style={styles.label}>Custom tags</Text>
-          <View style={styles.customTagRow}>
-            <TextInput
-              style={styles.customTagInput}
-              placeholder="Add tag..."
-              placeholderTextColor={Colors.textSecondary}
-              value={newTag}
-              onChangeText={setNewTag}
-              onSubmitEditing={addCustomTag}
-              returnKeyType="done"
-            />
-            <TouchableOpacity style={styles.customTagAddBtn} onPress={addCustomTag}>
-              <Plus size={16} color={Colors.primary} strokeWidth={2.5} />
-            </TouchableOpacity>
-          </View>
-          {customTags.length > 0 && (
-            <View style={styles.customTagList}>
-              {customTags.map((tag) => (
-                <TouchableOpacity key={tag} style={styles.customTag} onPress={() => removeCustomTag(tag)}>
-                  <Text style={styles.customTagText}>{tag}</Text>
-                  <X size={12} color={Colors.primary} strokeWidth={2} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          <Text style={styles.label}>Default serving size</Text>
-          <View style={styles.servingWrap}>
-            <ServingStepper value={servingSize} onValueChange={setServingSize} />
-          </View>
-
-          <Text style={styles.label}>Description / notes</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Any notes about this meal..."
-            placeholderTextColor={Colors.textSecondary}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={3}
-          />
-
+          {/* INGREDIENTS */}
           <Text style={styles.sectionHeader}>Ingredients</Text>
           {ingredients.map((ing, idx) => (
             <View key={idx} style={styles.ingredientInputRow}>
@@ -407,6 +419,7 @@ export default function AddMealScreen() {
             <Text style={styles.addRowText}>Add ingredient</Text>
           </TouchableOpacity>
 
+          {/* METHOD STEPS */}
           <Text style={styles.sectionHeader}>Method steps</Text>
           {methodSteps.map((step, idx) => (
             <View key={idx} style={styles.stepInputRow}>
@@ -433,6 +446,290 @@ export default function AddMealScreen() {
             <Text style={styles.addRowText}>Add step</Text>
           </TouchableOpacity>
 
+          {/* SERVES */}
+          <Text style={styles.label}>Default serving size</Text>
+          <View style={styles.servingWrap}>
+            <ServingStepper value={servingSize} onValueChange={setServingSize} />
+          </View>
+
+          {/* COOK TIME (standalone) */}
+          <Text style={styles.label}>Cooking time</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow} contentContainerStyle={styles.pillRowContent}>
+            {COOKING_TIME_BANDS.map((t) => (
+              <FilterPill
+                key={t}
+                label={`${t} min`}
+                active={cookingTimeBand === t}
+                onPress={() => setCookingTimeBand(cookingTimeBand === t ? '' : t)}
+              />
+            ))}
+          </ScrollView>
+
+          {/* RECIPE DETAILS ACCORDION */}
+          <TouchableOpacity
+            style={styles.accordionHeader}
+            onPress={() => setAccordionOpen(v => !v)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.accordionHeaderTitle}>Recipe Details</Text>
+            <Ionicons
+              name={accordionOpen ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={Colors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          {accordionOpen && (
+            <View style={styles.accordionBody}>
+
+              {/* AI Fill button */}
+              <TouchableOpacity
+                style={[styles.aiFillBtn, isAiFillingMetadata && styles.aiFillBtnLoading]}
+                onPress={handleAiFill}
+                disabled={isAiFillingMetadata}
+                activeOpacity={0.8}
+              >
+                {isAiFillingMetadata ? (
+                  <>
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                    <Text style={styles.aiFillBtnText}>Auto-filling…</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="sparkles" size={16} color={Colors.primary} />
+                    <Text style={styles.aiFillBtnText}>Auto-fill with AI</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {/* Meal Slot */}
+              <Text style={styles.accordionFieldLabel}>Meal type</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow} contentContainerStyle={styles.pillRowContent}>
+                {sortedSlots.map((slot) => (
+                  <FilterPill
+                    key={slot.slot_id}
+                    label={slot.name}
+                    active={mealTypeSlotId === slot.slot_id}
+                    onPress={() => setMealTypeSlotId(mealTypeSlotId === slot.slot_id ? '' : slot.slot_id)}
+                  />
+                ))}
+              </ScrollView>
+
+              {/* Cuisine */}
+              <Text style={styles.accordionFieldLabel}>Cuisine</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow} contentContainerStyle={styles.pillRowContent}>
+                {CUISINE_OPTIONS.map((c) => (
+                  <FilterPill
+                    key={c}
+                    label={c}
+                    active={cuisine === c}
+                    onPress={() => setCuisine(cuisine === c ? '' : c)}
+                  />
+                ))}
+              </ScrollView>
+
+              {/* Dish Type */}
+              <Text style={styles.accordionFieldLabel}>Dish Type</Text>
+              <View style={styles.chipWrap}>
+                {DISH_CATEGORY_OPTIONS.map((opt) => {
+                  const active = dishCategory === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setDishCategory(active ? '' : opt.value)}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Protein Source */}
+              <Text style={styles.accordionFieldLabel}>Protein</Text>
+              <View style={styles.chipWrap}>
+                {PROTEIN_SOURCE_OPTIONS.map((opt) => {
+                  const active = proteinSource === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setProteinSource(active ? '' : opt.value)}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Diet Labels */}
+              <Text style={styles.accordionFieldLabel}>Diet Labels</Text>
+              <View style={styles.chipWrap}>
+                {DIET_LABEL_OPTIONS.map((value) => {
+                  const active = dietLabels.includes(value);
+                  return (
+                    <TouchableOpacity
+                      key={value}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => toggleDietLabel(value)}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                        {value}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Allergens / Free From */}
+              <Text style={styles.accordionFieldLabel}>Free From</Text>
+              <View style={styles.chipWrap}>
+                {ALLERGEN_OPTIONS.map((value) => {
+                  const active = allergens.includes(value);
+                  return (
+                    <TouchableOpacity
+                      key={value}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => toggleAllergen(value)}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                        {value}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Occasions */}
+              <Text style={styles.accordionFieldLabel}>Occasions</Text>
+              <View style={styles.chipWrap}>
+                {OCCASION_OPTIONS.map((value) => {
+                  const active = occasions.includes(value);
+                  return (
+                    <TouchableOpacity
+                      key={value}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => toggleOccasion(value)}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                        {value}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Prep & Cook time */}
+              <View style={styles.timeInputRow}>
+                <View style={styles.timeInputWrap}>
+                  <Text style={styles.accordionFieldLabel}>Prep (min)</Text>
+                  <TextInput
+                    style={styles.timeInput}
+                    placeholder="15"
+                    placeholderTextColor={Colors.textSecondary}
+                    value={prepTime}
+                    onChangeText={setPrepTime}
+                    keyboardType="number-pad"
+                  />
+                </View>
+                <View style={styles.timeInputWrap}>
+                  <Text style={styles.accordionFieldLabel}>Cook (min)</Text>
+                  <TextInput
+                    style={styles.timeInput}
+                    placeholder="30"
+                    placeholderTextColor={Colors.textSecondary}
+                    value={cookTime}
+                    onChangeText={setCookTime}
+                    keyboardType="number-pad"
+                  />
+                </View>
+              </View>
+
+              {/* Nutrition */}
+              <Text style={styles.accordionFieldLabel}>Nutrition (per serving)</Text>
+              <View style={styles.nutritionRow}>
+                <View style={styles.nutritionField}>
+                  <Text style={styles.nutritionLabel}>Calories</Text>
+                  <TextInput
+                    style={styles.nutritionInput}
+                    value={caloriesPerServing}
+                    onChangeText={setCaloriesPerServing}
+                    placeholder="—"
+                    placeholderTextColor={Colors.textSecondary}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+                <View style={styles.nutritionField}>
+                  <Text style={styles.nutritionLabel}>Protein (g)</Text>
+                  <TextInput
+                    style={styles.nutritionInput}
+                    value={proteinPerServingG}
+                    onChangeText={setProteinPerServingG}
+                    placeholder="—"
+                    placeholderTextColor={Colors.textSecondary}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+                <View style={styles.nutritionField}>
+                  <Text style={styles.nutritionLabel}>Carbs (g)</Text>
+                  <TextInput
+                    style={styles.nutritionInput}
+                    value={carbsPerServingG}
+                    onChangeText={setCarbsPerServingG}
+                    placeholder="—"
+                    placeholderTextColor={Colors.textSecondary}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+
+              {/* Description / notes */}
+              <Text style={styles.accordionFieldLabel}>Description / notes</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Any notes about this meal..."
+                placeholderTextColor={Colors.textSecondary}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={3}
+              />
+
+              {/* Custom tags */}
+              <Text style={styles.accordionFieldLabel}>Custom tags</Text>
+              <View style={styles.customTagRow}>
+                <TextInput
+                  style={styles.customTagInput}
+                  placeholder="Add tag..."
+                  placeholderTextColor={Colors.textSecondary}
+                  value={newTag}
+                  onChangeText={setNewTag}
+                  onSubmitEditing={addCustomTag}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity style={styles.customTagAddBtn} onPress={addCustomTag}>
+                  <Plus size={16} color={Colors.primary} strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+              {customTags.length > 0 && (
+                <View style={styles.customTagList}>
+                  {customTags.map((tag) => (
+                    <TouchableOpacity key={tag} style={styles.customTag} onPress={() => removeCustomTag(tag)}>
+                      <Text style={styles.customTagText}>{tag}</Text>
+                      <X size={12} color={Colors.primary} strokeWidth={2} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+            </View>
+          )}
+
+          {/* ORDERING / DELIVERY */}
           <Text style={styles.sectionHeader}>Ordering</Text>
           <Text style={styles.label}>Delivery link (optional)</Text>
           <View style={styles.deliveryRow}>
@@ -548,11 +845,26 @@ const styles = StyleSheet.create({
   pillRow: {
     maxHeight: 44,
     flexDirection: 'row',
+  },
+  pillRowContent: {
     gap: 6,
+    paddingRight: 4,
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  servingWrap: {
+    alignItems: 'flex-start',
+    paddingVertical: 4,
   },
   timeInputRow: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 4,
   },
   timeInputWrap: {
     flex: 1,
@@ -566,65 +878,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 15,
     color: Colors.text,
-  },
-  dietaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  customTagRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  customTagInput: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.button,
-    borderWidth: 1,
-    borderColor: Colors.surface,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: Colors.text,
-  },
-  customTagAddBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  customTagList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
-  },
-  customTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  customTagText: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-  },
-  servingWrap: {
-    alignItems: 'flex-start',
-    paddingVertical: 4,
-  },
-  sectionHeader: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    marginTop: 24,
-    marginBottom: 12,
   },
   ingredientInputRow: {
     flexDirection: 'row',
@@ -700,6 +953,156 @@ const styles = StyleSheet.create({
     minHeight: 48,
     textAlignVertical: 'top' as const,
   },
+  // ── Accordion ────────────────────────────────────────────────────────────────
+  accordionHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginTop: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.card,
+    borderRadius: BorderRadius.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  accordionHeaderTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: Colors.text,
+  },
+  accordionBody: {
+    marginTop: 8,
+    backgroundColor: Colors.card,
+    borderRadius: BorderRadius.card,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  accordionFieldLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  // ── AI fill button ────────────────────────────────────────────────────────────
+  aiFillBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: BorderRadius.button,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    marginTop: 4,
+  },
+  aiFillBtnLoading: {
+    opacity: 0.7,
+  },
+  aiFillBtnText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+  // ── Chips ─────────────────────────────────────────────────────────────────────
+  chipWrap: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 6,
+  },
+  chip: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.button,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  chipActive: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primary,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
+  },
+  chipTextActive: {
+    color: Colors.primary,
+  },
+  // ── Nutrition row ─────────────────────────────────────────────────────────────
+  nutritionRow: {
+    flexDirection: 'row' as const,
+    gap: Spacing.sm,
+  },
+  nutritionField: {
+    flex: 1,
+  },
+  nutritionLabel: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  nutritionInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.button,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 8,
+    fontSize: 15,
+    fontWeight: '500' as const,
+    color: Colors.text,
+    textAlign: 'center' as const,
+  },
+  // ── Custom tags ───────────────────────────────────────────────────────────────
+  customTagRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  customTagInput: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.button,
+    borderWidth: 1,
+    borderColor: Colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  customTagAddBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customTagList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  customTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  customTagText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+  // ── Bottom bar ────────────────────────────────────────────────────────────────
   bottomBar: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -707,6 +1110,7 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.divider,
     backgroundColor: Colors.background,
   },
+  // ── Delivery ──────────────────────────────────────────────────────────────────
   deliveryRow: {
     flexDirection: 'row' as const,
     gap: 8,
