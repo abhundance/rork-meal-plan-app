@@ -499,7 +499,7 @@ export default function ShoppingScreen() {
       if (seen.has(cat) || !grouped.has(cat)) return;
       seen.add(cat);
       const raw = grouped.get(cat)!;
-      const sorted = [...raw].sort((a, b) => Number(a.checked) - Number(b.checked));
+      const sorted = [...raw].sort((a, b) => a.name.localeCompare(b.name));
       result.push({ title: cat, data: collapsedSections.has(cat) ? [] : sorted });
     };
 
