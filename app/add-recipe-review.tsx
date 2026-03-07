@@ -301,8 +301,8 @@ export default function AddMealReviewScreen() {
       // Classification
       meal_type: mealType ? mealType : undefined,
       cuisine: cuisine.trim() || undefined,
-      dish_category: dishCategory || undefined,
-      protein_source: proteinSource || undefined,
+      dish_category: (dishCategory as Recipe['dish_category']) || undefined,
+      protein_source: (proteinSource as Recipe['protein_source']) || undefined,
       occasions: occasions.length > 0 ? occasions : undefined,
       // Dietary
       diet_labels: dietLabels.length > 0 ? dietLabels : undefined,

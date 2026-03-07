@@ -232,8 +232,8 @@ export default function AddMealScreen() {
         meal_type_slot_id: mealTypeSlotId || undefined,
         // Classification
         cuisine: cuisine || undefined,
-        dish_category: dishCategory || undefined,
-        protein_source: proteinSource || undefined,
+        dish_category: (dishCategory as Recipe['dish_category']) || undefined,
+        protein_source: (proteinSource as Recipe['protein_source']) || undefined,
         occasions: occasions.length > 0 ? occasions : undefined,
         // Dietary
         diet_labels: dietLabels.length > 0 ? dietLabels : undefined,
