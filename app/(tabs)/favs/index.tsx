@@ -575,7 +575,7 @@ export default function FavsScreen() {
                 testID="favs-search"
               />
               {search.length > 0 && (
-                <TouchableOpacity onPress={() => setSearch('')}>
+                <TouchableOpacity onPress={() => setSearch('')} hitSlop={8}>
                   <X size={16} color={Colors.textSecondary} strokeWidth={2} />
                 </TouchableOpacity>
               )}
@@ -1065,10 +1065,9 @@ const styles = StyleSheet.create({
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.button,
-    borderWidth: 1,
-    borderColor: Colors.surface,
+    height: 44,
     marginHorizontal: Spacing.lg,
     marginTop: 0,
     marginBottom: 12,
@@ -1079,7 +1078,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: Colors.text,
-    paddingVertical: 10,
   },
   recentSearches: {
     backgroundColor: Colors.white,
