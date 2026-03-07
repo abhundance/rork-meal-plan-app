@@ -82,6 +82,8 @@ export default function AddMealScreen() {
   // ── Recipe Details accordion ─────────────────────────────────────────────────
   const [accordionOpen, setAccordionOpen] = useState<boolean>(false);
   const [isAiFillingMetadata, setIsAiFillingMetadata] = useState<boolean>(false);
+  // Tracks whether AI fill has run at least once (for new meals — auto-fills on first open)
+  const [hasAutoFilled, setHasAutoFilled] = useState<boolean>(false);
   // Meal type slot (plan integration)
   const [mealTypeSlotId, setMealTypeSlotId] = useState<string>(editMeal?.meal_type_slot_id ?? '');
   // Cuisine
@@ -148,6 +150,17 @@ export default function AddMealScreen() {
       setIsAiFillingMetadata(false);
     }
   }, [name, ingredients]);
+
+  // Opening the accordion on a NEW meal auto-triggers AI fill on first open.
+  // On edit mode the accordion just opens normally — details are already filled.
+  const handleAccordionToggle = useCallback(() => {
+    const opening = !accordionOpen;
+    setAccordionOpen(opening);
+    if (opening && !isEditing && !hasAutoFilled && name.trim()) {
+      setHasAutoFilled(true);
+      handleAiFill();
+    }
+  }, [accordionOpen, isEditing, hasAutoFilled, name, handleAiFill]);
 
   // ── Ingredient helpers ───────────────────────────────────────────────────────
   const addIngredientRow = useCallback(() => {
@@ -467,15 +480,25 @@ export default function AddMealScreen() {
 
           {/* RECIPE DETAILS ACCORDION */}
           <TouchableOpacity
-            style={styles.accordionHeader}
-            onPress={() => setAccordionOpen(v => !v)}
-            activeOpacity={0.7}
+            style={[styles.accordionHeader, accordionOpen && styles.accordionHeaderOpen]}
+            onPress={handleAccordionToggle}
+            activeOpacity={0.75}
           >
-            <Text style={styles.accordionHeaderTitle}>Recipe Details</Text>
+            <View style={styles.accordionHeaderLeft}>
+              <Ionicons name="sparkles" size={17} color={Colors.primary} />
+              <View style={styles.accordionHeaderTextBlock}>
+                <Text style={styles.accordionHeaderTitle}>Recipe Details</Text>
+                <Text style={styles.accordionHeaderSubtitle}>
+                  {isEditing
+                    ? 'Dish type · Protein · Dietary · Nutrition'
+                    : 'Tap to open — AI fills this for you'}
+                </Text>
+              </View>
+            </View>
             <Ionicons
               name={accordionOpen ? 'chevron-up' : 'chevron-down'}
               size={18}
-              color={Colors.textSecondary}
+              color={Colors.primary}
             />
           </TouchableOpacity>
 
@@ -497,7 +520,9 @@ export default function AddMealScreen() {
                 ) : (
                   <>
                     <Ionicons name="sparkles" size={16} color={Colors.primary} />
-                    <Text style={styles.aiFillBtnText}>Auto-fill with AI</Text>
+                    <Text style={styles.aiFillBtnText}>
+                      {hasAutoFilled ? 'Re-fill with AI' : 'Auto-fill with AI'}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -961,23 +986,45 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.primaryLight,
     borderRadius: BorderRadius.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  accordionHeaderOpen: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomWidth: 0,
+  },
+  accordionHeaderLeft: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    flex: 1,
+  },
+  accordionHeaderTextBlock: {
+    flex: 1,
   },
   accordionHeaderTitle: {
     fontSize: 15,
     fontWeight: '700' as const,
     color: Colors.text,
   },
+  accordionHeaderSubtitle: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
   accordionBody: {
-    marginTop: 8,
+    marginTop: 0,
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius.card,
+    borderBottomLeftRadius: BorderRadius.card,
+    borderBottomRightRadius: BorderRadius.card,
     padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderTopWidth: 0,
+    borderColor: Colors.primary,
   },
   accordionFieldLabel: {
     fontSize: 13,
