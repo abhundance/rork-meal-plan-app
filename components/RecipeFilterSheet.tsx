@@ -303,7 +303,7 @@ export default function RecipeFilterSheet({
             onPress={onClose}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <X size={22} color="#6B7280" strokeWidth={2} />
+            <X size={22} color={Colors.textSecondary} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
@@ -544,7 +544,7 @@ export default function RecipeFilterSheet({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
   },
   header: {
     flexDirection: 'row',
@@ -554,12 +554,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: Colors.border,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: Colors.text,
   },
   scroll: {
     flex: 1,
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#6B7280',
+    color: Colors.textSecondary,
     letterSpacing: 0.8,
     marginBottom: 12,
   },
@@ -594,20 +594,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: Colors.border,
   },
   clearBtn: {
     flex: 1,
     height: 50,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   clearText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#374151',
+    color: Colors.text,
   },
   applyBtn: {
     flex: 2,
@@ -620,6 +620,6 @@ const styles = StyleSheet.create({
   applyText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.white,
   },
 });

@@ -239,35 +239,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   slotEmpty: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: Colors.border,
   },
   slotOccupied: {
-    backgroundColor: '#EDE9FE',
+    backgroundColor: Colors.primaryLight,
     borderWidth: 1.5,
-    borderColor: 'rgba(124, 58, 237, 0.3)',
+    borderColor: 'rgba(123, 104, 204, 0.3)',
   },
   slotFull: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.surface,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: Colors.border,
   },
   slotEmptyText: {
     fontSize: 18,
     fontWeight: '600' as const,
-    color: '#D1D5DB',
+    color: Colors.border,
   },
   slotOccupiedPlus: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: '#7C3AED',
+    color: Colors.primary,
     lineHeight: 16,
   },
   slotFullText: {
     fontSize: 8,
     fontWeight: '700' as const,
-    color: '#9CA3AF',
+    color: Colors.textSecondary,
     letterSpacing: 0.5,
   },
   dotsRow: {
@@ -280,11 +280,11 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(124, 58, 237, 0.7)',
+    backgroundColor: 'rgba(123, 104, 204, 0.7)',
   },
   extraPlus: {
     fontSize: 7,
     fontWeight: '700' as const,
-    color: 'rgba(124, 58, 237, 0.7)',
+    color: 'rgba(123, 104, 204, 0.7)',
   },
 });

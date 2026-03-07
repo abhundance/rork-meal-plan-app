@@ -340,7 +340,7 @@ export default function MealPickerSheet({
                             </Text>
                           )}
                         </View>
-                        <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+                        <Ionicons name="chevron-forward" size={16} color={Colors.border} />
                       </TouchableOpacity>
                     ))
                   )}
@@ -348,7 +348,7 @@ export default function MealPickerSheet({
                   <Text style={[styles.searchSectionLabel, { marginTop: 28 }]}>SEARCH ONLINE</Text>
                   <View style={styles.searchOnlineStub}>
                     <View style={styles.searchResultImage}>
-                      <Ionicons name="globe-outline" size={18} color="#9CA3AF" />
+                      <Ionicons name="globe-outline" size={18} color={Colors.textSecondary} />
                     </View>
                     <Text style={styles.searchOnlineText}>Search millions of recipes online — coming soon</Text>
                   </View>
@@ -362,7 +362,7 @@ export default function MealPickerSheet({
                       onPress={() => { resetAndClose(); router.push('/(tabs)/favs'); }}
                       testID="browse-favs-btn"
                     >
-                      <Heart size={22} color="#7B68CC" fill="#7B68CC" strokeWidth={2} />
+                      <Heart size={22} color={Colors.primary} fill={Colors.primary} strokeWidth={2} />
                       <Text style={styles.browseCardTitle}>From My Favourites</Text>
                       <Text style={styles.browseCardSubtitle}>
                         {favMeals.length > 0 ? `${favMeals.length} saved recipes` : 'Your saved recipes'}
@@ -403,7 +403,7 @@ export default function MealPickerSheet({
                         <Text style={styles.optionTitle}>Add without Recipe</Text>
                         <Text style={styles.optionSubtitle}>Just a name - add steps later</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+                      <Ionicons name="chevron-forward" size={16} color={Colors.border} />
                     </TouchableOpacity>
 
                     <View style={styles.optionSeparator} />
@@ -414,14 +414,14 @@ export default function MealPickerSheet({
                       onPress={() => { resetAndClose(); onCreateNewRecipe(); }}
                       testID="add-with-recipe-btn"
                     >
-                      <View style={[styles.optionIconCircle, { backgroundColor: '#EDE9FE' }]}>
-                        <Ionicons name="sparkles-outline" size={16} color="#7B68CC" />
+                      <View style={[styles.optionIconCircle, { backgroundColor: Colors.primaryLight }]}>
+                        <Ionicons name="sparkles-outline" size={16} color={Colors.primary} />
                       </View>
                       <View style={styles.optionTextBlock}>
                         <Text style={styles.optionTitle}>Add with Recipe</Text>
                         <Text style={styles.optionSubtitle}>URL, camera, YouTube & more</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+                      <Ionicons name="chevron-forward" size={16} color={Colors.border} />
                     </TouchableOpacity>
 
                     <View style={styles.optionSeparator} />
@@ -439,7 +439,7 @@ export default function MealPickerSheet({
                         <Text style={styles.optionTitle}>Add from Delivery App</Text>
                         <Text style={styles.optionSubtitle}>Paste a delivery link</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+                      <Ionicons name="chevron-forward" size={16} color={Colors.border} />
                     </TouchableOpacity>
                   </View>
                 </>
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   },
   browseCardLeft: {
     flex: 1,
-    backgroundColor: '#EDE9FE',
+    backgroundColor: Colors.primaryLight,
     borderRadius: 14,
     padding: 14,
   },
@@ -570,12 +570,12 @@ const styles = StyleSheet.create({
   browseCardTitle: {
     fontSize: 13,
     fontWeight: '700' as const,
-    color: '#111827',
+    color: Colors.text,
     marginTop: 8,
   },
   browseCardSubtitle: {
     fontSize: 11,
-    color: '#6B7280',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   dividerRow: {
@@ -587,12 +587,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: Colors.border,
   },
   dividerText: {
     fontSize: 11,
     fontWeight: '500' as const,
-    color: '#9CA3AF',
+    color: Colors.textSecondary,
     paddingHorizontal: 12,
   },
   optionRow: {
@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
   },
   optionSeparator: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.surface,
     marginLeft: 66,
   },
   optionIconCircle: {
@@ -620,12 +620,12 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#111827',
+    color: Colors.text,
   },
   optionSubtitle: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#6B7280',
+    color: Colors.textSecondary,
     marginTop: 1,
   },
   manualForm: {
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
   deliverySectionLabel: {
     fontSize: 11,
     fontWeight: '600' as const,
-    color: '#9CA3AF',
+    color: Colors.textSecondary,
     textTransform: 'uppercase' as const,
     letterSpacing: 0.8,
     marginBottom: 8,
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   deliverySaveBtnText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: Colors.white,
   },
   searchBar: {
     flexDirection: 'row',
@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
   searchSectionLabel: {
     fontSize: 11,
     fontWeight: '600' as const,
-    color: '#9CA3AF',
+    color: Colors.textSecondary,
     letterSpacing: 0.8,
     marginHorizontal: 20,
     marginBottom: 10,
@@ -849,6 +849,6 @@ const styles = StyleSheet.create({
   },
   searchOnlineText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: Colors.textSecondary,
   },
 });

@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   filledCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 56,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     paddingVertical: 8,
     gap: 10,
   },
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#2C2C2C',
+    color: Colors.text,
     lineHeight: 20,
   },
   orderPill: {
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
   },
   itemDivider: {
     height: 1,
-    backgroundColor: '#F0EEF9',
+    backgroundColor: Colors.divider,
     marginVertical: 2,
   },
   addItemBtn: {

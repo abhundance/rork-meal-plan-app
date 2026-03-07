@@ -26,6 +26,7 @@ import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import { DiscoverMeal } from '@/types';
+import Colors from '@/constants/colors';
 
 // ---------------------------------------------------------------------------
 // Canonical card dimensions — import these wherever you render the card so
@@ -130,7 +131,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.white,
     lineHeight: 13,
     marginBottom: 2,
   },

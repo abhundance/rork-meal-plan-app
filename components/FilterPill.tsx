@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, Text, StyleSheet } from 'react-native';
+import Colors from '@/constants/colors';
 
 interface FilterPillProps {
   label: string;
@@ -34,22 +35,22 @@ const styles = StyleSheet.create({
     height: 36,
     paddingHorizontal: 16,
     borderRadius: 18,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
     flexGrow: 0,
   },
   pillActive: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: Colors.primary,
   },
   label: {
     fontSize: 14,
     lineHeight: 14,
     fontWeight: '500',
-    color: '#111827',
+    color: Colors.text,
   },
   labelActive: {
-    color: '#FFFFFF',
+    color: Colors.white,
   },
 });

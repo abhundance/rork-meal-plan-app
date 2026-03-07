@@ -274,7 +274,7 @@ export default function WeeklyPlanView({
                                 </Text>
                                 {(!!meal.is_delivery || !!meal.delivery_url) && (
                                   <View style={styles.deliveryDot}>
-                                    <Ionicons name="bicycle" size={10} color="#7C3AED" />
+                                    <Ionicons name="bicycle" size={10} color={Colors.primary} />
                                   </View>
                                 )}
                               </View>
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
