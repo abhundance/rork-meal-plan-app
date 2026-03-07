@@ -406,16 +406,19 @@ export default function DiscoverScreen() {
         showsVerticalScrollIndicator={false}
         testID="discover-scroll"
       >
-        <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+        <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: Colors.surface,
+            backgroundColor: Colors.white,
             borderRadius: 12,
+            borderWidth: 1,
+            borderColor: Colors.surface,
             height: 44,
             paddingHorizontal: 12,
+            gap: 8,
           }}>
-            <Search size={17} color={Colors.textSecondary} strokeWidth={2} style={{ marginRight: 7 }} />
+            <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}

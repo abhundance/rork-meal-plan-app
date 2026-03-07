@@ -1065,8 +1065,10 @@ const styles = StyleSheet.create({
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.button,
+    borderWidth: 1,
+    borderColor: Colors.surface,
     height: 44,
     marginHorizontal: Spacing.lg,
     marginTop: 0,
