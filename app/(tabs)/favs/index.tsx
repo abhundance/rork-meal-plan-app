@@ -958,18 +958,7 @@ const FavGridCard = React.memo(function FavGridCard({
                 onAddToPlan();
               }}
             >
-              <View style={{
-                width: 22,
-                height: 22,
-                borderRadius: 11,
-                backgroundColor: 'transparent',
-                borderWidth: 1.5,
-                borderColor: Colors.primary,
-                alignItems: 'center' as const,
-                justifyContent: 'center' as const,
-              }}>
-                <CalendarPlus size={12} color={Colors.primary} strokeWidth={2} />
-              </View>
+              <CalendarPlus size={15} color={Colors.primary} strokeWidth={2} />
             </TouchableOpacity>
           </View>
         </View>
