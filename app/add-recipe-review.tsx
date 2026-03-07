@@ -22,7 +22,16 @@ import { imageStore } from '@/services/imageStore';
 import { useFavs } from '@/providers/FavsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { consumePendingPlanSlot, hasPendingPlanSlot, peekPendingPlanSlot } from '@/services/pendingPlanSlot';
-import { Recipe, Ingredient, PlannedMeal } from '@/types';
+import {
+  Recipe,
+  Ingredient,
+  PlannedMeal,
+  DISH_CATEGORY_OPTIONS,
+  PROTEIN_SOURCE_OPTIONS,
+  ALLERGEN_OPTIONS,
+  DIET_LABEL_OPTIONS,
+  OCCASION_OPTIONS,
+} from '@/types';
 import ServingStepper from '@/components/ServingStepper';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 
@@ -58,14 +67,6 @@ const COOK_TIME_OPTIONS: { label: string; value: CookTimeBand }[] = [
   { label: 'Over 60', value: 'Over 60' },
 ];
 
-const DIETARY_CHIPS: { label: string; value: string }[] = [
-  { label: 'Vegan', value: 'Vegan' },
-  { label: 'Vegetarian', value: 'Vegetarian' },
-  { label: 'Gluten-Free', value: 'Gluten-Free' },
-  { label: 'Dairy-Free', value: 'Dairy-Free' },
-  { label: 'High Protein', value: 'High Protein' },
-];
-
 
 export default function AddMealReviewScreen() {
   const insets = useSafeAreaInsets();
@@ -78,69 +79,81 @@ export default function AddMealReviewScreen() {
   const [pendingSlotName] = useState<string>(() => { const s = peekPendingPlanSlot(); return s ? s.slotName : ''; });
 
   const inputMode = params.inputMode ?? 'manual';
+  // Whether this recipe was AI-extracted (vs manually entered)
+  const isAiExtracted = inputMode === 'camera' || inputMode === 'photos' || inputMode === 'text' || inputMode === 'url';
 
-  const [isLoading, setIsLoading] = useState<boolean>(
-    inputMode === 'camera' || inputMode === 'photos' || inputMode === 'text' || inputMode === 'url',
-  );
+  const [isLoading, setIsLoading] = useState<boolean>(isAiExtracted);
   const [loadingLabel, setLoadingLabel] = useState<string>(
     inputMode === 'url' ? 'Analysing video description…' : 'This takes about 5 seconds',
   );
   const [retryCount, setRetryCount] = useState<number>(0);
 
+  // ── Core recipe fields ───────────────────────────────────────────────────────
   const [name, setName] = useState<string>(params.prefillName ?? '');
   const [description, setDescription] = useState<string>(params.prefillDescription ?? '');
-  const [mealType, setMealType] = useState<MealTypeValue | ''>(() => {
-    const v = params.prefillMealType ?? '';
-    if (v === 'breakfast' || v === 'lunch_dinner' || v === 'light_bites') return v;
-    return '';
-  });
-  const [cookTimeBand, setCookTimeBand] = useState<CookTimeBand | ''>(() => {
-    const v = params.prefillCookingTimeBand ?? '';
-    if (v === 'Under 30' || v === '30-60' || v === 'Over 60') return v;
-    return '';
-  });
-  const [cuisine, setCuisine] = useState<string>(params.prefillCuisine ?? '');
-  const [dietaryTags, setDietaryTags] = useState<string[]>(() => {
-    if (params.prefillDietaryTags) {
-      try {
-        return JSON.parse(params.prefillDietaryTags) as string[];
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
   const [servingSize, setServingSize] = useState<number>(() => {
     const n = parseInt(params.prefillServingSize ?? '', 10);
     return isNaN(n) ? 4 : n;
   });
   const [ingredients, setIngredients] = useState<Ingredient[]>(() => {
     if (params.prefillIngredients) {
-      try {
-        return JSON.parse(params.prefillIngredients) as Ingredient[];
-      } catch {
-        return [];
-      }
+      try { return JSON.parse(params.prefillIngredients) as Ingredient[]; }
+      catch { return []; }
+    }
+    return [];
+  });
+  const [methodSteps, setMethodSteps] = useState<string[]>(() => {
+    if (params.prefillMethodSteps) {
+      try { return JSON.parse(params.prefillMethodSteps) as string[]; }
+      catch { return []; }
     }
     return [];
   });
   const [isEditingIngredients, setIsEditingIngredients] = useState(false);
   const [isEditingMethod, setIsEditingMethod] = useState(false);
 
-  const [methodSteps, setMethodSteps] = useState<string[]>(() => {
-    if (params.prefillMethodSteps) {
-      try {
-        return JSON.parse(params.prefillMethodSteps) as string[];
-      } catch {
-        return [];
-      }
+  // ── Time fields ──────────────────────────────────────────────────────────────
+  const [cookTimeBand, setCookTimeBand] = useState<CookTimeBand | ''>(() => {
+    const v = params.prefillCookingTimeBand ?? '';
+    if (v === 'Under 30' || v === '30-60' || v === 'Over 60') return v;
+    return '';
+  });
+  const [prepTime, setPrepTime] = useState<number>(0);
+  const [cookTime, setCookTime] = useState<number>(0);
+
+  // ── Recipe Details accordion fields ─────────────────────────────────────────
+  const [accordionOpen, setAccordionOpen] = useState<boolean>(false);
+  const [mealType, setMealType] = useState<MealTypeValue | ''>(() => {
+    const v = params.prefillMealType ?? '';
+    if (v === 'breakfast' || v === 'lunch_dinner' || v === 'light_bites') return v;
+    return '';
+  });
+  const [cuisine, setCuisine] = useState<string>(params.prefillCuisine ?? '');
+  const [dishCategory, setDishCategory] = useState<string>('');
+  const [proteinSource, setProteinSource] = useState<string>('');
+  const [dietLabels, setDietLabels] = useState<string[]>(() => {
+    if (params.prefillDietaryTags) {
+      try { return JSON.parse(params.prefillDietaryTags) as string[]; }
+      catch { return []; }
     }
     return [];
   });
+  const [allergens, setAllergens] = useState<string[]>([]);
+  const [occasions, setOccasions] = useState<string[]>([]);
+  const [caloriesPerServing, setCaloriesPerServing] = useState<string>('');
+  const [proteinPerServingG, setProteinPerServingG] = useState<string>('');
+  const [carbsPerServingG, setCarbsPerServingG] = useState<string>('');
 
+  // Show "AI filled" badge on accordion header when AI populated at least one detail field
+  const accordionHasAiFill = isAiExtracted && (
+    !!mealType || !!cuisine || !!dishCategory || !!proteinSource ||
+    dietLabels.length > 0 || allergens.length > 0 || occasions.length > 0 ||
+    !!caloriesPerServing
+  );
 
+  // ── Extraction ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (inputMode !== 'camera' && inputMode !== 'photos' && inputMode !== 'text' && inputMode !== 'url') return;
+    if (!isAiExtracted) return;
 
     const doExtract = async () => {
       setIsLoading(true);
@@ -149,10 +162,7 @@ export default function AddMealReviewScreen() {
         let result;
         if (inputMode === 'camera' || inputMode === 'photos') {
           const stored = imageStore.get();
-          if (!stored?.base64) {
-            setIsLoading(false);
-            return;
-          }
+          if (!stored?.base64) { setIsLoading(false); return; }
           result = await extractRecipeFromImage(stored.base64);
           imageStore.clear();
         } else if (inputMode === 'text' && params.inputText) {
@@ -165,12 +175,9 @@ export default function AddMealReviewScreen() {
           return;
         }
 
+        // Core fields
         if (result.name) setName(result.name);
         if (result.description) setDescription(result.description);
-        if (result.meal_type) setMealType(result.meal_type);
-        if (result.cooking_time_band) setCookTimeBand(result.cooking_time_band);
-        if (result.cuisine) setCuisine(result.cuisine);
-        if (result.dietary_tags?.length) setDietaryTags(result.dietary_tags);
         if (result.recipe_serving_size > 0) setServingSize(result.recipe_serving_size);
         if (result.ingredients?.length) {
           setIngredients(
@@ -185,8 +192,29 @@ export default function AddMealReviewScreen() {
         }
         if (result.method_steps?.length) setMethodSteps(result.method_steps);
 
-        console.log('[Review] Extraction complete:', result.name);
+        // Time fields
+        if (result.cooking_time_band) setCookTimeBand(result.cooking_time_band);
+        if (result.prep_time > 0) setPrepTime(result.prep_time);
+        if (result.cook_time > 0) setCookTime(result.cook_time);
 
+        // Accordion / details fields
+        if (result.meal_type) setMealType(result.meal_type);
+        if (result.cuisine) setCuisine(result.cuisine);
+        if (result.dish_category) setDishCategory(result.dish_category);
+        if (result.protein_source) setProteinSource(result.protein_source);
+        if (result.diet_labels?.length) setDietLabels(result.diet_labels);
+        if (result.allergens?.length) setAllergens(result.allergens);
+        if (result.occasions?.length) setOccasions(result.occasions);
+        if (result.calories_per_serving != null) setCaloriesPerServing(String(result.calories_per_serving));
+        if (result.protein_per_serving_g != null) setProteinPerServingG(String(result.protein_per_serving_g));
+        if (result.carbs_per_serving_g != null) setCarbsPerServingG(String(result.carbs_per_serving_g));
+
+        // Auto-open accordion when AI populated at least one detail field
+        if (result.dish_category || result.protein_source || result.diet_labels?.length || result.allergens?.length) {
+          setAccordionOpen(true);
+        }
+
+        console.log('[Review] Extraction complete:', result.name);
       } catch (e) {
         console.log('[Review] Extraction failed:', e);
         Alert.alert(
@@ -209,23 +237,21 @@ export default function AddMealReviewScreen() {
   }, [retryCount]);
 
 
+  // ── Ingredient helpers ───────────────────────────────────────────────────────
   const updateIngredient = (idx: number, field: 'name' | 'unit', value: string) => {
     setIngredients(prev => prev.map((ing, i) =>
       i === idx ? { ...ing, [field]: value } : ing
     ));
   };
-
   const updateIngredientQuantity = (idx: number, value: string) => {
     const num = parseFloat(value);
     setIngredients(prev => prev.map((ing, i) =>
       i === idx ? { ...ing, quantity: isNaN(num) ? 0 : num } : ing
     ));
   };
-
   const removeIngredient = (idx: number) => {
     setIngredients(prev => prev.filter((_, i) => i !== idx));
   };
-
   const addIngredient = () => {
     setIngredients(prev => [
       ...prev,
@@ -233,38 +259,61 @@ export default function AddMealReviewScreen() {
     ]);
   };
 
+  // ── Method step helpers ──────────────────────────────────────────────────────
   const updateStep = (idx: number, value: string) => {
     setMethodSteps(prev => prev.map((s, i) => i === idx ? value : s));
   };
-
   const removeStep = (idx: number) => {
     setMethodSteps(prev => prev.filter((_, i) => i !== idx));
   };
-
   const addStep = () => {
     setMethodSteps(prev => [...prev, '']);
   };
 
-  const toggleDietary = useCallback((tag: string) => {
-    setDietaryTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
+  // ── Toggle helpers ───────────────────────────────────────────────────────────
+  const toggleDietLabel = useCallback((tag: string) => {
+    setDietLabels(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  }, []);
+  const toggleAllergen = useCallback((tag: string) => {
+    setAllergens(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  }, []);
+  const toggleOccasion = useCallback((tag: string) => {
+    setOccasions(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   }, []);
 
+  // ── Save ─────────────────────────────────────────────────────────────────────
   const handleSave = useCallback(() => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
+
+    // Derive legacy dietary_tags from new split fields for backward compat
+    const derivedDietaryTags = [...new Set([...dietLabels, ...allergens])];
 
     const meal: Recipe = {
       id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: trimmedName,
       image_url: undefined,
       description: description.trim() || undefined,
-      cuisine: cuisine.trim() || undefined,
+      // Time
       cooking_time_band: cookTimeBand ? cookTimeBand : undefined,
-      dietary_tags: dietaryTags,
-      custom_tags: [],
+      prep_time: prepTime > 0 ? prepTime : undefined,
+      cook_time: cookTime > 0 ? cookTime : undefined,
+      // Classification
       meal_type: mealType ? mealType : undefined,
+      cuisine: cuisine.trim() || undefined,
+      dish_category: dishCategory || undefined,
+      protein_source: proteinSource || undefined,
+      occasions: occasions.length > 0 ? occasions : undefined,
+      // Dietary
+      diet_labels: dietLabels.length > 0 ? dietLabels : undefined,
+      allergens: allergens.length > 0 ? allergens : undefined,
+      // Nutrition
+      calories_per_serving: caloriesPerServing ? parseFloat(caloriesPerServing) : undefined,
+      protein_per_serving_g: proteinPerServingG ? parseFloat(proteinPerServingG) : undefined,
+      carbs_per_serving_g: carbsPerServingG ? parseFloat(carbsPerServingG) : undefined,
+      // Legacy / required fields
+      dietary_tags: derivedDietaryTags,
+      custom_tags: [],
       ingredients,
       recipe_serving_size: servingSize,
       method_steps: methodSteps,
@@ -298,18 +347,12 @@ export default function AddMealReviewScreen() {
       router.replace('/(tabs)/favs' as never);
     }
   }, [
-    name,
-    description,
-    cuisine,
-    cookTimeBand,
-    dietaryTags,
-    mealType,
-    ingredients,
-    servingSize,
-    methodSteps,
-    addFav,
-    addMeal,
-    router,
+    name, description, cookTimeBand, prepTime, cookTime,
+    mealType, cuisine, dishCategory, proteinSource, occasions,
+    dietLabels, allergens,
+    caloriesPerServing, proteinPerServingG, carbsPerServingG,
+    ingredients, servingSize, methodSteps,
+    addFav, addMeal, router,
   ]);
 
   if (isLoading) {
@@ -366,8 +409,9 @@ export default function AddMealReviewScreen() {
             <MealImagePlaceholder size="hero" mealType={mealType || undefined} cuisine={cuisine || undefined} name={name} />
           </View>
 
+          {/* BASICS — name + description */}
           <View style={styles.card}>
-            <Text style={styles.sectionLabel}>BASICS</Text>
+            <Text style={styles.sectionLabel}>RECIPE NAME</Text>
             <TextInput
               style={styles.fieldInput}
               value={name}
@@ -388,26 +432,136 @@ export default function AddMealReviewScreen() {
             />
           </View>
 
+          {/* INGREDIENTS */}
           <View style={styles.card}>
-            <Text style={styles.sectionLabel}>MEAL TYPE</Text>
-            <View style={styles.chipRow}>
-              {MEAL_TYPE_OPTIONS.map((opt) => {
-                const active = mealType === opt.value;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => setMealType(active ? '' : opt.value)}
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                      {opt.label}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionLabel}>INGREDIENTS</Text>
+              <TouchableOpacity onPress={() => setIsEditingIngredients(v => !v)}>
+                <Text style={styles.editLinkText}>
+                  {isEditingIngredients ? 'Done' : 'Edit'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {isEditingIngredients ? (
+              <>
+                {ingredients.map((ing, idx) => (
+                  <View key={ing.id ?? String(idx)} style={styles.editIngredientRow}>
+                    <TextInput
+                      style={[styles.editIngredientInput, styles.editIngredientQty]}
+                      value={ing.quantity > 0 ? String(ing.quantity) : ''}
+                      onChangeText={v => updateIngredientQuantity(idx, v)}
+                      placeholder="Qty"
+                      placeholderTextColor={Colors.textSecondary}
+                      keyboardType="decimal-pad"
+                    />
+                    <TextInput
+                      style={[styles.editIngredientInput, styles.editIngredientUnit]}
+                      value={ing.unit}
+                      onChangeText={v => updateIngredient(idx, 'unit', v)}
+                      placeholder="Unit"
+                      placeholderTextColor={Colors.textSecondary}
+                    />
+                    <TextInput
+                      style={[styles.editIngredientInput, styles.editIngredientName]}
+                      value={ing.name}
+                      onChangeText={v => updateIngredient(idx, 'name', v)}
+                      placeholder="Ingredient"
+                      placeholderTextColor={Colors.textSecondary}
+                    />
+                    <TouchableOpacity onPress={() => removeIngredient(idx)} hitSlop={8}>
+                      <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.addRowBtn} onPress={addIngredient}>
+                  <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+                  <Text style={styles.addRowText}>Add ingredient</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {ingredients.length === 0 ? (
+                  <Text style={styles.emptyHint}>No ingredients yet — tap Edit to add</Text>
+                ) : ingredients.map((ing, idx) => (
+                  <View key={ing.id ?? String(idx)} style={[styles.ingredientRow, idx < ingredients.length - 1 && styles.rowDivider]}>
+                    <Text style={styles.ingredientText}>
+                      {ing.quantity > 0 ? `${ing.quantity} ` : ''}
+                      {ing.unit ? `${ing.unit} ` : ''}
+                      {ing.name}
                     </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                  </View>
+                ))}
+              </>
+            )}
+          </View>
+
+          {/* METHOD */}
+          <View style={styles.card}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionLabel}>METHOD</Text>
+              <TouchableOpacity onPress={() => setIsEditingMethod(v => !v)}>
+                <Text style={styles.editLinkText}>
+                  {isEditingMethod ? 'Done' : 'Edit'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {isEditingMethod ? (
+              <>
+                {methodSteps.map((step, idx) => (
+                  <View key={idx} style={styles.editStepRow}>
+                    <View style={styles.stepBadge}>
+                      <Text style={styles.stepBadgeText}>{idx + 1}</Text>
+                    </View>
+                    <TextInput
+                      style={styles.editStepInput}
+                      value={step}
+                      onChangeText={v => updateStep(idx, v)}
+                      placeholder={`Step ${idx + 1}...`}
+                      placeholderTextColor={Colors.textSecondary}
+                      multiline
+                    />
+                    <TouchableOpacity onPress={() => removeStep(idx)} hitSlop={8}>
+                      <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.addRowBtn} onPress={addStep}>
+                  <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+                  <Text style={styles.addRowText}>Add step</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {methodSteps.length === 0 ? (
+                  <Text style={styles.emptyHint}>No steps yet — tap Edit to add</Text>
+                ) : methodSteps.map((step, idx) => (
+                  <View key={idx} style={[styles.stepRow, idx < methodSteps.length - 1 && styles.rowDivider]}>
+                    <View style={styles.stepBadge}>
+                      <Text style={styles.stepBadgeText}>{idx + 1}</Text>
+                    </View>
+                    <Text style={styles.stepText}>{step}</Text>
+                  </View>
+                ))}
+              </>
+            )}
+          </View>
+
+          {/* SERVES */}
+          <View style={styles.card}>
+            <Text style={styles.sectionLabel}>SERVES</Text>
+            <View style={styles.servingRow}>
+              <ServingStepper
+                value={servingSize}
+                min={1}
+                max={12}
+                onValueChange={setServingSize}
+              />
             </View>
           </View>
 
+          {/* COOK TIME */}
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>COOK TIME</Text>
             <View style={styles.chipRow}>
@@ -428,163 +582,238 @@ export default function AddMealReviewScreen() {
             </View>
           </View>
 
+          {/* RECIPE DETAILS ACCORDION */}
           <View style={styles.card}>
-            <Text style={styles.sectionLabel}>CUISINE</Text>
-            <TextInput
-              style={styles.fieldInput}
-              value={cuisine}
-              onChangeText={setCuisine}
-              placeholder="e.g. Italian, Mexican, Asian..."
-              placeholderTextColor={Colors.textSecondary}
-              testID="input-cuisine"
-            />
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>DIETARY</Text>
-            <View style={styles.chipWrap}>
-              {DIETARY_CHIPS.map((opt) => {
-                const active = dietaryTags.includes(opt.value);
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => toggleDietary(opt.value)}
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>SERVES</Text>
-            <View style={styles.servingRow}>
-              <ServingStepper
-                value={servingSize}
-                min={1}
-                max={12}
-                onValueChange={setServingSize}
-              />
-            </View>
-          </View>
-
-          {(ingredients.length > 0 || isEditingIngredients) && (
-            <View style={styles.card}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionLabel}>INGREDIENTS</Text>
-                <TouchableOpacity onPress={() => setIsEditingIngredients(v => !v)}>
-                  <Text style={styles.editLinkText}>
-                    {isEditingIngredients ? 'Done' : 'Edit'}
-                  </Text>
-                </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.accordionHeader}
+              onPress={() => setAccordionOpen(v => !v)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.accordionHeaderLeft}>
+                <Text style={styles.sectionLabel}>RECIPE DETAILS</Text>
+                {accordionHasAiFill && (
+                  <View style={styles.aiBadge}>
+                    <Text style={styles.aiBadgeText}>AI filled</Text>
+                  </View>
+                )}
               </View>
+              <Ionicons
+                name={accordionOpen ? 'chevron-up' : 'chevron-down'}
+                size={18}
+                color={Colors.textSecondary}
+              />
+            </TouchableOpacity>
 
-              {isEditingIngredients ? (
-                <>
-                  {ingredients.map((ing, idx) => (
-                    <View key={ing.id ?? String(idx)} style={styles.editIngredientRow}>
+            {accordionOpen && (
+              <View style={styles.accordionBody}>
+
+                {/* Meal Type */}
+                <View style={styles.accordionSection}>
+                  <View style={styles.accordionFieldHeader}>
+                    <Text style={styles.accordionFieldLabel}>Meal Type</Text>
+                    {isAiExtracted && mealType ? <View style={styles.aiDot} /> : null}
+                  </View>
+                  <View style={styles.chipRow}>
+                    {MEAL_TYPE_OPTIONS.map((opt) => {
+                      const active = mealType === opt.value;
+                      return (
+                        <TouchableOpacity
+                          key={opt.value}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => setMealType(active ? '' : opt.value)}
+                        >
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                            {opt.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Cuisine */}
+                <View style={styles.accordionSection}>
+                  <View style={styles.accordionFieldHeader}>
+                    <Text style={styles.accordionFieldLabel}>Cuisine</Text>
+                    {isAiExtracted && cuisine ? <View style={styles.aiDot} /> : null}
+                  </View>
+                  <TextInput
+                    style={[styles.fieldInput, styles.accordionTextInput]}
+                    value={cuisine}
+                    onChangeText={setCuisine}
+                    placeholder="e.g. Italian, Mexican, Asian..."
+                    placeholderTextColor={Colors.textSecondary}
+                    testID="input-cuisine"
+                  />
+                </View>
+
+                {/* Dish Category */}
+                <View style={styles.accordionSection}>
+                  <View style={styles.accordionFieldHeader}>
+                    <Text style={styles.accordionFieldLabel}>Dish Type</Text>
+                    {isAiExtracted && dishCategory ? <View style={styles.aiDot} /> : null}
+                  </View>
+                  <View style={styles.chipWrap}>
+                    {DISH_CATEGORY_OPTIONS.map((opt) => {
+                      const active = dishCategory === opt.value;
+                      return (
+                        <TouchableOpacity
+                          key={opt.value}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => setDishCategory(active ? '' : opt.value)}
+                        >
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                            {opt.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Protein Source */}
+                <View style={styles.accordionSection}>
+                  <View style={styles.accordionFieldHeader}>
+                    <Text style={styles.accordionFieldLabel}>Protein</Text>
+                    {isAiExtracted && proteinSource ? <View style={styles.aiDot} /> : null}
+                  </View>
+                  <View style={styles.chipWrap}>
+                    {PROTEIN_SOURCE_OPTIONS.map((opt) => {
+                      const active = proteinSource === opt.value;
+                      return (
+                        <TouchableOpacity
+                          key={opt.value}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => setProteinSource(active ? '' : opt.value)}
+                        >
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                            {opt.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Diet Labels */}
+                <View style={styles.accordionSection}>
+                  <View style={styles.accordionFieldHeader}>
+                    <Text style={styles.accordionFieldLabel}>Diet Labels</Text>
+                    {isAiExtracted && dietLabels.length > 0 ? <View style={styles.aiDot} /> : null}
+                  </View>
+                  <View style={styles.chipWrap}>
+                    {DIET_LABEL_OPTIONS.map((value) => {
+                      const active = dietLabels.includes(value);
+                      return (
+                        <TouchableOpacity
+                          key={value}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => toggleDietLabel(value)}
+                        >
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                            {value}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Allergens / Free From */}
+                <View style={styles.accordionSection}>
+                  <View style={styles.accordionFieldHeader}>
+                    <Text style={styles.accordionFieldLabel}>Free From</Text>
+                    {isAiExtracted && allergens.length > 0 ? <View style={styles.aiDot} /> : null}
+                  </View>
+                  <View style={styles.chipWrap}>
+                    {ALLERGEN_OPTIONS.map((value) => {
+                      const active = allergens.includes(value);
+                      return (
+                        <TouchableOpacity
+                          key={value}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => toggleAllergen(value)}
+                        >
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                            {value}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Occasions */}
+                <View style={styles.accordionSection}>
+                  <View style={styles.accordionFieldHeader}>
+                    <Text style={styles.accordionFieldLabel}>Occasions</Text>
+                    {isAiExtracted && occasions.length > 0 ? <View style={styles.aiDot} /> : null}
+                  </View>
+                  <View style={styles.chipWrap}>
+                    {OCCASION_OPTIONS.map((value) => {
+                      const active = occasions.includes(value);
+                      return (
+                        <TouchableOpacity
+                          key={value}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => toggleOccasion(value)}
+                        >
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                            {value}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Nutrition */}
+                <View style={styles.accordionSection}>
+                  <View style={styles.accordionFieldHeader}>
+                    <Text style={styles.accordionFieldLabel}>Nutrition (per serving)</Text>
+                    {isAiExtracted && caloriesPerServing ? <View style={styles.aiDot} /> : null}
+                  </View>
+                  <View style={styles.nutritionRow}>
+                    <View style={styles.nutritionField}>
+                      <Text style={styles.nutritionLabel}>Calories</Text>
                       <TextInput
-                        style={[styles.editIngredientInput, styles.editIngredientQty]}
-                        value={ing.quantity > 0 ? String(ing.quantity) : ''}
-                        onChangeText={v => updateIngredientQuantity(idx, v)}
-                        placeholder="Qty"
+                        style={styles.nutritionInput}
+                        value={caloriesPerServing}
+                        onChangeText={setCaloriesPerServing}
+                        placeholder="—"
                         placeholderTextColor={Colors.textSecondary}
                         keyboardType="decimal-pad"
                       />
-                      <TextInput
-                        style={[styles.editIngredientInput, styles.editIngredientUnit]}
-                        value={ing.unit}
-                        onChangeText={v => updateIngredient(idx, 'unit', v)}
-                        placeholder="Unit"
-                        placeholderTextColor={Colors.textSecondary}
-                      />
-                      <TextInput
-                        style={[styles.editIngredientInput, styles.editIngredientName]}
-                        value={ing.name}
-                        onChangeText={v => updateIngredient(idx, 'name', v)}
-                        placeholder="Ingredient"
-                        placeholderTextColor={Colors.textSecondary}
-                      />
-                      <TouchableOpacity onPress={() => removeIngredient(idx)} hitSlop={8}>
-                        <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
-                      </TouchableOpacity>
                     </View>
-                  ))}
-                  <TouchableOpacity style={styles.addRowBtn} onPress={addIngredient}>
-                    <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
-                    <Text style={styles.addRowText}>Add ingredient</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  {ingredients.map((ing, idx) => (
-                    <View key={ing.id ?? String(idx)} style={[styles.ingredientRow, idx < ingredients.length - 1 && styles.rowDivider]}>
-                      <Text style={styles.ingredientText}>
-                        {ing.quantity > 0 ? `${ing.quantity} ` : ''}
-                        {ing.unit ? `${ing.unit} ` : ''}
-                        {ing.name}
-                      </Text>
+                    <View style={styles.nutritionField}>
+                      <Text style={styles.nutritionLabel}>Protein (g)</Text>
+                      <TextInput
+                        style={styles.nutritionInput}
+                        value={proteinPerServingG}
+                        onChangeText={setProteinPerServingG}
+                        placeholder="—"
+                        placeholderTextColor={Colors.textSecondary}
+                        keyboardType="decimal-pad"
+                      />
                     </View>
-                  ))}
-                </>
-              )}
-            </View>
-          )}
+                    <View style={styles.nutritionField}>
+                      <Text style={styles.nutritionLabel}>Carbs (g)</Text>
+                      <TextInput
+                        style={styles.nutritionInput}
+                        value={carbsPerServingG}
+                        onChangeText={setCarbsPerServingG}
+                        placeholder="—"
+                        placeholderTextColor={Colors.textSecondary}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                  </View>
+                </View>
 
-          {(methodSteps.length > 0 || isEditingMethod) && (
-            <View style={styles.card}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionLabel}>METHOD</Text>
-                <TouchableOpacity onPress={() => setIsEditingMethod(v => !v)}>
-                  <Text style={styles.editLinkText}>
-                    {isEditingMethod ? 'Done' : 'Edit'}
-                  </Text>
-                </TouchableOpacity>
               </View>
+            )}
+          </View>
 
-              {isEditingMethod ? (
-                <>
-                  {methodSteps.map((step, idx) => (
-                    <View key={idx} style={styles.editStepRow}>
-                      <View style={styles.stepBadge}>
-                        <Text style={styles.stepBadgeText}>{idx + 1}</Text>
-                      </View>
-                      <TextInput
-                        style={styles.editStepInput}
-                        value={step}
-                        onChangeText={v => updateStep(idx, v)}
-                        placeholder={`Step ${idx + 1}...`}
-                        placeholderTextColor={Colors.textSecondary}
-                        multiline
-                      />
-                      <TouchableOpacity onPress={() => removeStep(idx)} hitSlop={8}>
-                        <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                  <TouchableOpacity style={styles.addRowBtn} onPress={addStep}>
-                    <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
-                    <Text style={styles.addRowText}>Add step</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  {methodSteps.map((step, idx) => (
-                    <View key={idx} style={[styles.stepRow, idx < methodSteps.length - 1 && styles.rowDivider]}>
-                      <View style={styles.stepBadge}>
-                        <Text style={styles.stepBadgeText}>{idx + 1}</Text>
-                      </View>
-                      <Text style={styles.stepText}>{step}</Text>
-                    </View>
-                  ))}
-                </>
-              )}
-            </View>
-          )}
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -746,6 +975,13 @@ const styles = StyleSheet.create({
   servingRow: {
     marginTop: 4,
   },
+  emptyHint: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    color: Colors.textSecondary,
+    fontStyle: 'italic' as const,
+    paddingVertical: Spacing.sm,
+  },
   ingredientRow: {
     paddingVertical: Spacing.sm,
   },
@@ -785,10 +1021,6 @@ const styles = StyleSheet.create({
   rowDivider: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
-  },
-  editLink: {
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
   },
   sectionHeaderRow: {
     flexDirection: 'row' as const,
@@ -858,6 +1090,84 @@ const styles = StyleSheet.create({
     fontWeight: '500' as const,
     color: Colors.primary,
   },
+  // ── Accordion ─────────────────────────────────────────────────────────────
+  accordionHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+  },
+  accordionHeaderLeft: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: Spacing.sm,
+  },
+  aiBadge: {
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  aiBadgeText: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+    letterSpacing: 0.3,
+  },
+  accordionBody: {
+    marginTop: Spacing.md,
+  },
+  accordionSection: {
+    marginBottom: Spacing.lg,
+  },
+  accordionFieldHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    marginBottom: Spacing.sm,
+  },
+  accordionFieldLabel: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1,
+  },
+  aiDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.primary,
+  },
+  accordionTextInput: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    paddingVertical: Spacing.xs,
+  },
+  // ── Nutrition row ─────────────────────────────────────────────────────────
+  nutritionRow: {
+    flexDirection: 'row' as const,
+    gap: Spacing.sm,
+  },
+  nutritionField: {
+    flex: 1,
+  },
+  nutritionLabel: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  nutritionInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.button,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 8,
+    fontSize: 15,
+    fontWeight: '500' as const,
+    color: Colors.text,
+    textAlign: 'center' as const,
+  },
+  // ── Footer ────────────────────────────────────────────────────────────────
   stickyFooter: {
     backgroundColor: Colors.background,
     borderTopWidth: 1,
