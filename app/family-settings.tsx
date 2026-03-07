@@ -115,7 +115,7 @@ function SettingRow({ icon, label, value, onPress, rightContent }: {
     <TouchableOpacity
       style={rowStyles.row}
       onPress={onPress}
-      activeOpacity={onPress ? 0.7 : 1}
+      activeOpacity={onPress ? 0.8 : 1}
       disabled={!onPress}
     >
       <View style={rowStyles.left}>

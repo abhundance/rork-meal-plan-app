@@ -8,8 +8,10 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
-import { CalendarDays } from 'lucide-react-native';
+import { CalendarDays, X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
+import { Spacing } from '@/constants/theme';
 import EmptyState from '@/components/EmptyState';
 import { formatDateKey } from '@/utils/dates';
 
@@ -34,6 +36,7 @@ export default function RepeatDaySheet({
   onSelect,
   onClose,
 }: RepeatDaySheetProps) {
+  const insets = useSafeAreaInsets();
   const items = useMemo<DayItem[]>(() => {
     const result: DayItem[] = [];
     for (let i = 1; i <= 30; i++) {
@@ -69,7 +72,7 @@ export default function RepeatDaySheet({
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Repeat a previous day</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={8}>
-            <Ionicons name="close" size={22} color={Colors.text} />
+            <X size={22} color={Colors.text} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
@@ -82,7 +85,7 @@ export default function RepeatDaySheet({
         ) : (
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: Spacing.xxxl + insets.bottom }]}
             showsVerticalScrollIndicator={false}
           >
             {items.map((item) => (
@@ -164,7 +167,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.xl,
     paddingVertical: 14,
   },
   headerTitle: {
@@ -179,21 +182,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 4,
-    paddingBottom: 32,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.xxxl,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.xl,
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
   rowLeft: {
     flex: 1,
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   label: {
     fontSize: 15,

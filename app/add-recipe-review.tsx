@@ -434,7 +434,7 @@ export default function AddMealReviewScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Image Hero Zone */}
-          <TouchableOpacity style={styles.heroZoneWrapper} onPress={handlePickImage} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.heroZoneWrapper} onPress={handlePickImage} activeOpacity={0.8}>
             {selectedImageUri ? (
               <Image source={{ uri: selectedImageUri }} style={styles.heroImage} resizeMode="cover" />
             ) : (
@@ -626,7 +626,7 @@ export default function AddMealReviewScreen() {
             <TouchableOpacity
               style={styles.accordionHeader}
               onPress={() => setAccordionOpen(v => !v)}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
               <View style={styles.accordionHeaderLeft}>
                 <Text style={styles.sectionLabel}>RECIPE DETAILS</Text>
@@ -861,7 +861,7 @@ export default function AddMealReviewScreen() {
           style={[styles.saveFullBtn, !canSave && styles.saveFullBtnDisabled]}
           onPress={handleSave}
           disabled={!canSave}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
           testID="btn-save-to-favs"
         >
           <Text style={styles.saveFullBtnText}>{isAddingToPlan ? 'Add to Meal Plan' : 'Save to Favourites'}</Text>

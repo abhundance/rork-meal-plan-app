@@ -12,11 +12,12 @@ import {
   Image,
 } from 'react-native';
 import { X, Utensils, Heart, Search, ChevronLeft, ChevronRight, Clipboard, CheckCircle2, Globe, Compass, Pencil, Sparkles, Bike } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
-import { BorderRadius } from '@/constants/theme';
+import { BorderRadius, Spacing } from '@/constants/theme';
 import { PlannedMeal, Recipe } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { useFavs } from '@/providers/FavsProvider';
@@ -57,6 +58,7 @@ export default function MealPickerSheet({
   const { updatePlannedMealDelivery } = useMealPlan();
   const router = useRouter();
 
+  const insets = useSafeAreaInsets();
   const isEditingDelivery = !!editingDeliveryMeal;
 
   useEffect(() => {
@@ -214,7 +216,7 @@ export default function MealPickerSheet({
         {mode === 'delivery' ? (
           <ScrollView
             style={styles.chooseScroll}
-            contentContainerStyle={styles.deliveryScrollContent}
+            contentContainerStyle={[styles.deliveryScrollContent, { paddingBottom: 48 + insets.bottom }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -296,7 +298,7 @@ export default function MealPickerSheet({
 
             <ScrollView
               style={styles.chooseScroll}
-              contentContainerStyle={styles.chooseScrollContent}
+              contentContainerStyle={[styles.chooseScrollContent, { paddingBottom: 48 + insets.bottom }]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >

@@ -38,9 +38,11 @@ import {
   StyleSheet,
 } from 'react-native';
 import { X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FilterPill from '@/components/FilterPill';
 import PrimaryButton from '@/components/PrimaryButton';
 import Colors from '@/constants/colors';
+import { Spacing } from '@/constants/theme';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -271,6 +273,7 @@ export default function RecipeFilterSheet({
   initialState,
   config,
 }: RecipeFilterSheetProps) {
+  const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<RecipeFilterState>(initialState);
 
   useEffect(() => {
@@ -526,7 +529,7 @@ export default function RecipeFilterSheet({
         </ScrollView>
 
         {/* ── Footer ── */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: Math.max(Spacing.lg, insets.bottom) }]}>
           <TouchableOpacity style={styles.clearBtn} onPress={handleClear}>
             <Text style={styles.clearText}>Clear All</Text>
           </TouchableOpacity>
@@ -549,9 +552,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
@@ -564,9 +567,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 32,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.xxxl,
   },
   sectionLabel: {
     fontSize: 11,
@@ -589,9 +592,10 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.lg,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },

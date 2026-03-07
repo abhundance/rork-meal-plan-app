@@ -412,7 +412,7 @@ export default function AddMealScreen() {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
           {/* Hero image */}
-          <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={styles.heroTouchable}>
+          <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8} style={styles.heroTouchable}>
             {selectedImageUri ? (
               <Image source={{ uri: selectedImageUri }} style={styles.heroImage} resizeMode="cover" />
             ) : (
@@ -526,7 +526,7 @@ export default function AddMealScreen() {
           <TouchableOpacity
             style={[styles.accordionHeader, accordionOpen && styles.accordionHeaderOpen]}
             onPress={handleAccordionToggle}
-            activeOpacity={0.75}
+            activeOpacity={0.8}
           >
             <View style={styles.accordionHeaderLeft}>
               <Ionicons name="sparkles" size={17} color={Colors.primary} />

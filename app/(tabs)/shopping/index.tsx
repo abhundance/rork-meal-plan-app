@@ -165,7 +165,7 @@ function AllDoneState({ onClearAll }: { onClearAll: () => void }) {
       <Text style={adStyles.emoji}>🎉</Text>
       <Text style={adStyles.title}>Shopping done!</Text>
       <Text style={adStyles.sub}>Everything's ticked off. Time to cook something great.</Text>
-      <TouchableOpacity style={adStyles.btn} onPress={onClearAll} activeOpacity={0.7}>
+      <TouchableOpacity style={adStyles.btn} onPress={onClearAll} activeOpacity={0.8}>
         <Text style={adStyles.btnText}>Clear & start fresh</Text>
       </TouchableOpacity>
     </View>
@@ -279,7 +279,7 @@ function AddItemSheet({ visible, onClose, onAdd }: AddItemSheetProps) {
                 key={cat}
                 style={[sheetStyles.chip, category === cat && sheetStyles.chipActive]}
                 onPress={() => setCategory(cat)}
-                activeOpacity={0.7}
+                activeOpacity={0.8}
               >
                 <Text style={[sheetStyles.chipText, category === cat && sheetStyles.chipTextActive]}>
                   {CATEGORY_ICONS[cat] ?? '•'} {cat}
@@ -399,7 +399,7 @@ const ShoppingItemRow = React.memo(function ShoppingItemRow({ item, onToggle, on
         onPress={() => onToggle(item.id)}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
       >
         <View style={[rowStyles.circle, item.checked && rowStyles.circleChecked]}>
           {item.checked && <Check size={12} color={Colors.white} strokeWidth={3} />}
@@ -611,7 +611,7 @@ export default function ShoppingScreen() {
         <TouchableOpacity
           style={styles.sectionHeader}
           onPress={() => toggleSection(section.title)}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
           <Text style={styles.sectionIcon}>{icon}</Text>
           <Text style={[styles.sectionTitle, allChecked && styles.sectionTitleDone]}>
@@ -636,14 +636,14 @@ export default function ShoppingScreen() {
       <TouchableOpacity
         style={[styles.iconBtn, copyToast && styles.iconBtnSuccess]}
         onPress={handleCopy}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
       >
         {copyToast
           ? <Check size={16} color={Colors.success} strokeWidth={3} />
           : <Copy size={16} color={Colors.textSecondary} strokeWidth={2} />
         }
       </TouchableOpacity>
-      <TouchableOpacity style={styles.iconBtn} onPress={handleShare} activeOpacity={0.7}>
+      <TouchableOpacity style={styles.iconBtn} onPress={handleShare} activeOpacity={0.8}>
         <Share2 size={16} color={Colors.textSecondary} strokeWidth={2} />
       </TouchableOpacity>
     </View>
@@ -659,7 +659,7 @@ export default function ShoppingScreen() {
             key={mode}
             style={[styles.weekPill, shopping.weekMode === mode && styles.weekPillActive]}
             onPress={() => shopping.setWeekMode(mode)}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
             <Text style={[styles.weekPillText, shopping.weekMode === mode && styles.weekPillTextActive]}>
               {mode === 'current' ? 'This week' : 'Next week'}
@@ -677,7 +677,7 @@ export default function ShoppingScreen() {
           <TouchableOpacity
             style={styles.clearCheckedBtn}
             onPress={handleClearChecked}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
             <Text style={styles.clearCheckedText}>Clear checked</Text>
           </TouchableOpacity>
@@ -738,7 +738,7 @@ export default function ShoppingScreen() {
         <TouchableOpacity
           style={[styles.fab, { bottom: insets.bottom + 16 }]}
           onPress={() => setShowAddSheet(true)}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
         >
           <Plus size={26} color={Colors.white} strokeWidth={2.5} />
         </TouchableOpacity>
@@ -779,7 +779,7 @@ export default function ShoppingScreen() {
       <TouchableOpacity
         style={[styles.fab, { bottom: insets.bottom + 16 }]}
         onPress={() => setShowAddSheet(true)}
-        activeOpacity={0.85}
+        activeOpacity={0.8}
       >
         <Plus size={26} color={Colors.white} strokeWidth={2.5} />
       </TouchableOpacity>
@@ -888,7 +888,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    shadowColor: '#000',
+    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.22,
     shadowRadius: 10,

@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   filledCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,

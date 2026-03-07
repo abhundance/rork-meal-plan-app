@@ -791,11 +791,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     borderWidth: 1.5,
     borderColor: Colors.divider,
-    shadowColor: Colors.shadow,
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 3,
+    ...Shadows.card,
   },
   bottomBar: {
     position: 'absolute' as const,

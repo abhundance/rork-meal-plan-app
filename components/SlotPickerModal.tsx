@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { Spacing } from '@/constants/theme';
@@ -31,6 +32,7 @@ export default function SlotPickerModal({
   getMealsForSlot,
   mealName,
 }: SlotPickerModalProps) {
+  const insets = useSafeAreaInsets();
   const [weekOffset] = useState<number>(0);
 
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
@@ -61,7 +63,7 @@ export default function SlotPickerModal({
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: Spacing.lg + insets.bottom }]}>
           <View style={styles.grid}>
             <View style={styles.headerRow}>
               <View style={styles.dayLabelCell} />
@@ -146,9 +148,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
   },
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: Spacing.lg,
   },
   grid: {
     gap: 2,

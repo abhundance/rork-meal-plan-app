@@ -9,8 +9,10 @@ import {
   Animated,
   Pressable,
 } from 'react-native';
-import { CalendarDays } from 'lucide-react-native';
+import { CalendarDays, X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
+import { Spacing } from '@/constants/theme';
 import EmptyState from '@/components/EmptyState';
 import { getWeekDates, formatDateKey, getWeekLabel } from '@/utils/dates';
 
@@ -35,6 +37,7 @@ export default function RepeatWeekSheet({
   onSelect,
   onClose,
 }: RepeatWeekSheetProps) {
+  const insets = useSafeAreaInsets();
   const items = useMemo<WeekItem[]>(() => {
     const result: WeekItem[] = [];
     for (let i = 1; i <= 8; i++) {
@@ -65,7 +68,7 @@ export default function RepeatWeekSheet({
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Repeat a previous week</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={8}>
-            <Ionicons name="close" size={22} color={Colors.text} />
+            <X size={22} color={Colors.text} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
@@ -78,7 +81,7 @@ export default function RepeatWeekSheet({
         ) : (
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: Spacing.xxxl + insets.bottom }]}
             showsVerticalScrollIndicator={false}
           >
             {items.map((item) => (
@@ -160,7 +163,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.xl,
     paddingVertical: 14,
   },
   headerTitle: {
@@ -175,21 +178,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 4,
-    paddingBottom: 32,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.xxxl,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.xl,
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
   rowLeft: {
     flex: 1,
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   dateRange: {
     fontSize: 15,
