@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { View, StyleSheet, RefreshControl, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, RefreshControl, ScrollView, Alert, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -85,6 +85,9 @@ export default function MealPlanScreen() {
   const [pickerSlotName, setPickerSlotName] = useState<string>('');
   const [repeatWeekVisible, setRepeatWeekVisible] = useState<boolean>(false);
   const [repeatDayVisible, setRepeatDayVisible] = useState<boolean>(false);
+  const [smartPlanToast, setSmartPlanToast] = useState<string | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!onboardingLoading && !onboardingData.completed) {
@@ -191,6 +194,18 @@ export default function MealPlanScreen() {
     setViewMode('day');
   }, [setViewMode]);
 
+  const showSmartPlanToast = useCallback((message: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setSmartPlanToast(message);
+    toastOpacity.setValue(0);
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(2200),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => setSmartPlanToast(null));
+    toastTimer.current = setTimeout(() => setSmartPlanToast(null), 2700);
+  }, [toastOpacity]);
+
   const handleSmartPlan = useCallback(() => {
     const weekDates = getWeekDates(weekOffset);
     const defaultServing = familySettings.default_serving_size;
@@ -265,10 +280,11 @@ export default function MealPlanScreen() {
       addMeals(newMeals);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       console.log('[MealPlan] Smart plan generated', newMeals.length, 'meals');
+      showSmartPlanToast(`✨ Week planned! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} added`);
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for this week already have meals. Clear some first to use Smart Fill.');
     }
-  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, addMeals, getMealsForSlot]);
+  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   const handleClearWeek = useCallback(() => {
     Alert.alert('Clear this week?', 'All meals for this week will be removed.', [
@@ -372,10 +388,11 @@ export default function MealPlanScreen() {
       addMeals(newMeals);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       console.log('[MealPlan] Smart plan day generated', newMeals.length, 'meals');
+      showSmartPlanToast(`✨ Day planned! ${newMeals.length} meal${newMeals.length !== 1 ? 's' : ''} added`);
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for today already have meals. Clear some first to use Smart Fill.');
     }
-  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, addMeals, getMealsForSlot]);
+  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   if (isLoading) {
     return (
@@ -481,6 +498,12 @@ export default function MealPlanScreen() {
         onSelect={handleRepeatDay}
         onClose={() => setRepeatDayVisible(false)}
       />
+
+      {smartPlanToast !== null && (
+        <Animated.View style={[styles.smartPlanToast, { opacity: toastOpacity }]} pointerEvents="none">
+          <Text style={styles.smartPlanToastText}>{smartPlanToast}</Text>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -489,6 +512,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  smartPlanToast: {
+    position: 'absolute',
+    bottom: 24,
+    alignSelf: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  smartPlanToastText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   controlWrap: {
     paddingHorizontal: 16,

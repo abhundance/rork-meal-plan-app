@@ -52,11 +52,12 @@ export default function WeeklyPlanView({
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const weekLabel = useMemo(() => getWeekLabel(weekDates), [weekDates]);
 
-  const weekIsEmpty = useMemo(() => {
-    return weekDates.every((date) =>
-      mealSlots.every((slot) => getMealsForSlot(formatDateKey(date), slot.slot_id).length === 0)
-    );
-  }, [weekDates, mealSlots, getMealsForSlot]);
+  // Note: no useMemo here intentionally — getMealsForSlot reads mealsRef.current (always live)
+  // but has a stable function reference ([] deps), so a useMemo over it would never recompute
+  // after addMeals fires. Bare computation is cheap (7 days × N slots) and always accurate.
+  const weekIsEmpty = weekDates.every((date) =>
+    mealSlots.every((slot) => getMealsForSlot(formatDateKey(date), slot.slot_id).length === 0)
+  );
 
   const handleWeekPrev = useCallback(() => {
     onWeekChange(weekOffset - 1);
