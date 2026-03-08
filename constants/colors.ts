@@ -18,6 +18,7 @@ export default {
   textSecondary: '#8B7EA8',
   success: '#8BAF7A',
   warning: '#D4A853',
+  danger: '#D4534D',
   white: '#FFFFFF',
   border: '#F0EEF9',
   shadow: '#7B68CC',

@@ -724,7 +724,7 @@ export default function FamilySettingsScreen() {
             style={styles.dangerRow}
             onPress={() => setShowAccount(!showAccount)}
           >
-            <Trash2 size={18} color="#D4534D" strokeWidth={2} />
+            <Trash2 size={18} color={Colors.danger} strokeWidth={2} />
             <Text style={styles.dangerText}>Delete Account</Text>
           </TouchableOpacity>
 
@@ -771,7 +771,7 @@ export default function FamilySettingsScreen() {
                 style={styles.dangerRow}
                 onPress={() => setShowAdminSettings(!showAdminSettings)}
               >
-                <Trash2 size={18} color="#D4534D" strokeWidth={2} />
+                <Trash2 size={18} color={Colors.danger} strokeWidth={2} />
                 <Text style={styles.dangerText}>Delete Family Account</Text>
               </TouchableOpacity>
 
@@ -1105,7 +1105,7 @@ const styles = StyleSheet.create({
   dangerText: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#D4534D',
+    color: Colors.danger,
   },
   deleteConfirm: {
     paddingTop: 8,
@@ -1129,13 +1129,13 @@ const styles = StyleSheet.create({
   },
   dietarySubLabel: {
     fontSize: 13,
-    color: '#8B7EA8',
+    color: Colors.textSecondary,
     fontWeight: '500' as const,
     marginBottom: 8,
   },
   dietaryHelperText: {
     fontSize: 12,
-    color: '#8B7EA8',
+    color: Colors.textSecondary,
     fontStyle: 'italic' as const,
     marginTop: 16,
     lineHeight: 17,
