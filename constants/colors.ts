@@ -9,23 +9,33 @@ export const SlotColors = [
 ];
 
 export default {
-  primary: '#7B68CC',
-  primaryLight: '#F0EEF9',
-  background: '#FAFAF8',
-  surface: '#F0EEF9',
-  card: '#FFFFFF',
-  text: '#2C2C2C',
-  textSecondary: '#8B7EA8',
+  // Primary — Cucumber Split
+  primary: '#2C845E',          // interactive: buttons, icons, active states (4.60:1 on white ✅)
+  primaryVibrant: '#38A878',   // decorative only: hero fills, card tints, filled hearts
+  primaryLight: '#E2F5EE',     // selected chip bg, highlights, icon container bg
+
+  // Surfaces
+  background: '#F4FBF8',       // page background
+  surface: '#EAF5EF',          // input bg, chip default bg
+  card: '#FFFFFF',             // card backgrounds
+
+  // Text
+  text: '#2C2C2C',             // primary text (unchanged)
+  textSecondary: '#6B7280',    // metadata, helper text, timestamps (4.61:1 on white ✅)
+
+  // Status
   success: '#8BAF7A',
   warning: '#D4A853',
+
+  // Utility
   white: '#FFFFFF',
-  border: '#F0EEF9',
-  shadow: '#7B68CC',
+  border: '#A8DECA',
+  shadow: '#2C845E',
   inactive: 'rgba(44, 44, 44, 0.4)',
-  skeleton1: '#F0EEF9',
-  skeleton2: '#FAFAF8',
+  skeleton1: '#D4EDE2',
+  skeleton2: '#EAF5EF',
   offlineBanner: '#F5E6C8',
   offlineText: '#8B6914',
-  divider: '#F0EEF9',
+  divider: '#A8DECA',
   overlay: 'rgba(0, 0, 0, 0.3)',
 };
