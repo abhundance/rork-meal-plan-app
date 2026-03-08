@@ -8,7 +8,7 @@ import { router, Href } from 'expo-router';
 import {
   ChevronLeft, Lock, Users, User, UtensilsCrossed, Ruler, Leaf,
   Globe, LogOut, Trash2, Shield,
-  ChevronRight, Sparkles, Check,
+  ChevronRight, Sparkles, Check, Camera,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
@@ -223,6 +223,7 @@ export default function FamilySettingsScreen() {
   const [showAdminSettings, setShowAdminSettings] = useState<boolean>(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState<boolean>(false);
   const [showRegionPicker, setShowRegionPicker] = useState<boolean>(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
 
   const [deleteConfirmText, setDeleteConfirmText] = useState<string>('');
   const [editingFamilyName, setEditingFamilyName] = useState<boolean>(false);
@@ -296,10 +297,23 @@ export default function FamilySettingsScreen() {
       >
         {/* Family Profile */}
         <View style={styles.profileSection}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {(familySettings.family_name || userSettings.display_name).charAt(0).toUpperCase()}
-            </Text>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              {familySettings.family_avatar_url && /^\p{Emoji}/u.test(familySettings.family_avatar_url) && Array.from(familySettings.family_avatar_url).length <= 2 ? (
+                <Text style={styles.avatarEmoji}>{familySettings.family_avatar_url}</Text>
+              ) : (
+                <Text style={styles.avatarText}>
+                  {(familySettings.family_name || userSettings.display_name).charAt(0).toUpperCase()}
+                </Text>
+              )}
+            </View>
+            <TouchableOpacity
+              style={styles.avatarCameraButton}
+              onPress={() => setShowEmojiPicker(true)}
+              activeOpacity={0.8}
+            >
+              <Camera size={14} color={Colors.white} />
+            </TouchableOpacity>
           </View>
 
           {editingFamilyName ? (
@@ -331,6 +345,38 @@ export default function FamilySettingsScreen() {
           </Text>
         </View>
 
+        {showEmojiPicker && (
+          <Card style={{ marginTop: 4, marginBottom: 12 }}>
+            <Text style={styles.emojiPickerTitle}>Choose an emoji for your family</Text>
+            <View style={styles.emojiGrid}>
+              {['🍝','🍕','🥗','🌮','🍣','🥘','🍜','🫕','🥐','🍛','🍱','🎉'].map((emoji) => (
+                <TouchableOpacity
+                  key={emoji}
+                  style={[
+                    styles.emojiOption,
+                    familySettings.family_avatar_url === emoji && styles.emojiOptionSelected,
+                  ]}
+                  onPress={() => {
+                    updateFamilySettings({ family_avatar_url: emoji });
+                    setShowEmojiPicker(false);
+                  }}
+                >
+                  <Text style={styles.emojiText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                updateFamilySettings({ family_avatar_url: '' });
+                setShowEmojiPicker(false);
+              }}
+              style={styles.emojiRemoveLink}
+            >
+              <Text style={styles.emojiRemoveText}>Remove</Text>
+            </TouchableOpacity>
+          </Card>
+        )}
+
         {/* Family Members */}
         <View style={styles.membersList}>
           {familyMembers.map((member) => (
@@ -360,10 +406,11 @@ export default function FamilySettingsScreen() {
         </View>
 
         <PrimaryButton
-          label="Invite New Member"
+          label="Invite New Member — Coming soon"
           onPress={() => console.log('[Settings] Invite member')}
           variant="secondary"
           style={{ marginTop: 8 }}
+          disabled={true}
           testID="invite-member"
         />
 
@@ -802,12 +849,31 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarContainer: {
+    position: 'relative' as const,
     marginBottom: 12,
   },
   avatarText: {
     fontSize: 28,
     fontWeight: '700' as const,
     color: Colors.white,
+  },
+  avatarEmoji: {
+    fontSize: 32,
+  },
+  avatarCameraButton: {
+    position: 'absolute' as const,
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: Colors.primary,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    borderWidth: 2,
+    borderColor: Colors.background,
   },
   displayName: {
     fontSize: 22,
@@ -1098,6 +1164,44 @@ const styles = StyleSheet.create({
   },
   comingSoonText: {
     fontSize: 11,
+    color: Colors.textSecondary,
+  },
+  emojiPickerTitle: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  emojiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingVertical: 12,
+    justifyContent: 'center',
+  },
+  emojiOption: {
+    width: 60,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  emojiOptionSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
+  },
+  emojiText: {
+    fontSize: 36,
+  },
+  emojiRemoveLink: {
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  emojiRemoveText: {
+    fontSize: 14,
     color: Colors.textSecondary,
   },
 });
