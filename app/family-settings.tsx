@@ -6,9 +6,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import {
-  ChevronLeft, Lock, Users, UtensilsCrossed, Ruler, Leaf,
+  ChevronLeft, Lock, Users, User, UtensilsCrossed, Ruler, Leaf,
   Globe, LogOut, Trash2, Shield,
-  ChevronRight, Sparkles,
+  ChevronRight, Sparkles, Check,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
@@ -221,6 +221,8 @@ export default function FamilySettingsScreen() {
   const [showPersonalDietary, setShowPersonalDietary] = useState<boolean>(false);
   const [showAccount, setShowAccount] = useState<boolean>(false);
   const [showAdminSettings, setShowAdminSettings] = useState<boolean>(false);
+  const [showLanguagePicker, setShowLanguagePicker] = useState<boolean>(false);
+  const [showRegionPicker, setShowRegionPicker] = useState<boolean>(false);
 
   const [deleteConfirmText, setDeleteConfirmText] = useState<string>('');
   const [editingFamilyName, setEditingFamilyName] = useState<boolean>(false);
@@ -543,12 +545,54 @@ export default function FamilySettingsScreen() {
             icon={<Globe size={18} color={Colors.primary} />}
             label="Language"
             value={familySettings.language || 'English'}
+            onPress={() => setShowLanguagePicker(!showLanguagePicker)}
           />
+          {showLanguagePicker && (
+            <View>
+              {['English', 'Français', 'Español', 'Deutsch', 'Português', 'Italiano'].map((lang) => {
+                const isSelected = (familySettings.language || 'English') === lang;
+                return (
+                  <TouchableOpacity
+                    key={lang}
+                    style={styles.pickerOption}
+                    onPress={() => {
+                      updateFamilySettings({ language: lang });
+                      setShowLanguagePicker(false);
+                    }}
+                  >
+                    <Text style={[styles.pickerOptionText, isSelected && styles.pickerOptionTextActive]}>{lang}</Text>
+                    {isSelected && <Check size={16} color={Colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
           <SettingRow
             icon={<Globe size={18} color={Colors.primary} />}
             label="Region"
             value={familySettings.region || 'US'}
+            onPress={() => setShowRegionPicker(!showRegionPicker)}
           />
+          {showRegionPicker && (
+            <View>
+              {['US', 'UK', 'CA', 'AU', 'NZ', 'FR', 'DE', 'ES', 'IT', 'JP'].map((reg) => {
+                const isSelected = (familySettings.region || 'US') === reg;
+                return (
+                  <TouchableOpacity
+                    key={reg}
+                    style={styles.pickerOption}
+                    onPress={() => {
+                      updateFamilySettings({ region: reg });
+                      setShowRegionPicker(false);
+                    }}
+                  >
+                    <Text style={[styles.pickerOptionText, isSelected && styles.pickerOptionTextActive]}>{reg}</Text>
+                    {isSelected && <Check size={16} color={Colors.primary} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
           <View style={styles.unitsRow}>
             <View style={rowStyles.left}>
               <View style={rowStyles.iconWrap}>
@@ -608,7 +652,7 @@ export default function FamilySettingsScreen() {
             </View>
           ) : (
             <SettingRow
-              icon={<Users size={18} color={Colors.primary} />}
+              icon={<User size={18} color={Colors.primary} />}
               label="Display Name"
               value={userSettings.display_name}
               onPress={() => {
@@ -619,9 +663,9 @@ export default function FamilySettingsScreen() {
           )}
 
           <SettingRow
-            icon={<Globe size={18} color={Colors.primary} />}
+            icon={<Lock size={18} color={Colors.primary} />}
             label="Email"
-            value={userSettings.email || 'Not set'}
+            value={userSettings.email || 'Sign in to add email'}
           />
 
           <TouchableOpacity style={styles.signOutRow} onPress={handleSignOut} testID="sign-out">
@@ -665,12 +709,16 @@ export default function FamilySettingsScreen() {
         {isAdmin && (
           <>
             <SectionHeader title="Admin Settings" />
-            <Card style={{ borderWidth: 1, borderColor: Colors.offlineBanner }}>
+            <Card style={{ borderWidth: 1, borderColor: Colors.warning }}>
               <SettingRow
                 icon={<Shield size={18} color={Colors.warning} />}
                 label="Transfer Admin Rights"
                 value="Select a member"
-                onPress={() => console.log('[Settings] Transfer admin')}
+                rightContent={
+                  <View style={styles.comingSoonBadge}>
+                    <Text style={styles.comingSoonText}>Coming soon</Text>
+                  </View>
+                }
               />
               <TouchableOpacity
                 style={styles.dangerRow}
@@ -1025,5 +1073,31 @@ const styles = StyleSheet.create({
     fontStyle: 'italic' as const,
     marginTop: 16,
     lineHeight: 17,
+  },
+  pickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  pickerOptionText: {
+    fontSize: 14,
+    color: Colors.text,
+  },
+  pickerOptionTextActive: {
+    color: Colors.primary,
+    fontWeight: '600' as const,
+  },
+  comingSoonBadge: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  comingSoonText: {
+    fontSize: 11,
+    color: Colors.textSecondary,
   },
 });
