@@ -409,13 +409,13 @@ export default function FamilySettingsScreen() {
           </Card>
         )}
 
-        {/* Household & Serving Size */}
-        <SectionHeader title="Household & Serving Size" />
+        {/* Family Size */}
+        <SectionHeader title="Family Size" />
         {!showHousehold ? (
           <Card>
             <SettingRow
               icon={<Users size={18} color={Colors.primary} />}
-              label="Default Serving Size"
+              label="How many people are in your family?"
               value={`${familySettings.default_serving_size} servings`}
               onPress={() => setShowHousehold(true)}
             />
@@ -423,7 +423,7 @@ export default function FamilySettingsScreen() {
         ) : (
           <Card>
             <Text style={styles.cardHelper}>
-              This is the default serving size applied to every meal slot. Override it per meal in your plan.
+              This is used as the default serving size for every meal. You can always override it per meal in your plan.
             </Text>
             <View style={{ paddingVertical: 16 }}>
               <Stepper
@@ -444,57 +444,40 @@ export default function FamilySettingsScreen() {
 
         {/* Dietary Preferences */}
         <SectionHeader
-          title="Family Dietary Preferences"
+          title="Dietary Preferences"
           locked={!isAdmin}
           adminName={adminName}
         />
-        {!showFamilyDietary ? (
+        {!(showFamilyDietary || showPersonalDietary) ? (
           <Card>
             <SettingRow
               icon={<Leaf size={18} color={Colors.primary} />}
-              label="Family Preferences"
-              value={familySettings.dietary_preferences_family.length > 0
-                ? familySettings.dietary_preferences_family.join(', ')
+              label="Dietary Preferences"
+              value={[...familySettings.dietary_preferences_family, ...userSettings.dietary_preferences_individual].length > 0
+                ? [...familySettings.dietary_preferences_family, ...userSettings.dietary_preferences_individual].join(', ')
                 : 'None set'}
-              onPress={isAdmin ? () => setShowFamilyDietary(true) : undefined}
+              onPress={() => setShowFamilyDietary(true)}
             />
           </Card>
         ) : (
           <Card>
+            <Text style={styles.dietarySubLabel}>Family preferences</Text>
             <DietaryPillGrid
               selected={familySettings.dietary_preferences_family}
               onSelectionChange={(prefs) => updateFamilySettings({ dietary_preferences_family: prefs })}
             />
-            <TouchableOpacity
-              style={[styles.cancelButton, { marginTop: 16 }]}
-              onPress={() => setShowFamilyDietary(false)}
-            >
-              <Text style={styles.cancelText}>Done</Text>
-            </TouchableOpacity>
-          </Card>
-        )}
-
-        <SectionHeader title="Your Personal Preferences" />
-        {!showPersonalDietary ? (
-          <Card>
-            <SettingRow
-              icon={<Leaf size={18} color={Colors.primary} />}
-              label="Personal Preferences"
-              value={userSettings.dietary_preferences_individual.length > 0
-                ? userSettings.dietary_preferences_individual.join(', ')
-                : 'None set'}
-              onPress={() => setShowPersonalDietary(true)}
-            />
-          </Card>
-        ) : (
-          <Card>
+            <View style={{ height: 16 }} />
+            <Text style={styles.dietarySubLabel}>Your preferences</Text>
             <DietaryPillGrid
               selected={userSettings.dietary_preferences_individual}
               onSelectionChange={(prefs) => updateUserSettings({ dietary_preferences_individual: prefs })}
             />
+            <Text style={styles.dietaryHelperText}>
+              Smart Fill uses these to filter out meals that don't suit your family.
+            </Text>
             <TouchableOpacity
               style={[styles.cancelButton, { marginTop: 16 }]}
-              onPress={() => setShowPersonalDietary(false)}
+              onPress={() => { setShowFamilyDietary(false); setShowPersonalDietary(false); }}
             >
               <Text style={styles.cancelText}>Done</Text>
             </TouchableOpacity>
@@ -1029,5 +1012,18 @@ const styles = StyleSheet.create({
     color: Colors.text,
     borderWidth: 1.5,
     borderColor: Colors.border,
+  },
+  dietarySubLabel: {
+    fontSize: 13,
+    color: '#8B7EA8',
+    fontWeight: '500' as const,
+    marginBottom: 8,
+  },
+  dietaryHelperText: {
+    fontSize: 12,
+    color: '#8B7EA8',
+    fontStyle: 'italic' as const,
+    marginTop: 16,
+    lineHeight: 17,
   },
 });
