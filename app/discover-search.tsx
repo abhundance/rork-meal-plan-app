@@ -1,20 +1,18 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
   SectionList,
   StyleSheet,
-  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, Href } from 'expo-router';
 import { Image } from 'expo-image';
 import { ArrowLeft, Search, X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { BorderRadius, Shadows } from '@/constants/theme';
+import { BorderRadius } from '@/constants/theme';
 import { DISCOVER_MEALS, COLLECTIONS } from '@/mocks/discover';
 import { DiscoverMeal, MealCollection } from '@/types';
 
@@ -29,7 +27,7 @@ export default function DiscoverSearchScreen() {
       meals: DISCOVER_MEALS.filter(
         (m) =>
           m.name.toLowerCase().includes(q) ||
-          m.cuisine.toLowerCase().includes(q) ||
+          (m.cuisine ?? '').toLowerCase().includes(q) ||
           m.dietary_tags.some((t) => t.toLowerCase().includes(q))
       ),
       collections: COLLECTIONS.filter(

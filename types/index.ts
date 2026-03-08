@@ -189,7 +189,8 @@ export type ProteinSource =
   | 'egg'
   | 'dairy'
   | 'plant'
-  | 'none';
+  | 'none'
+  | 'other';
 
 export type MealRating = 'disliked' | 'liked' | 'loved';
 

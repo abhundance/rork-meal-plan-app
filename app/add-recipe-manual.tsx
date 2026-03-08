@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  Linking,
   ActivityIndicator,
   Image,
 } from 'react-native';
@@ -173,7 +172,7 @@ export default function AddMealScreen() {
       if (result.calories_per_serving != null) setCaloriesPerServing(String(result.calories_per_serving));
       if (result.protein_per_serving_g != null) setProteinPerServingG(String(result.protein_per_serving_g));
       if (result.carbs_per_serving_g != null) setCarbsPerServingG(String(result.carbs_per_serving_g));
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e) {
       console.log('[AddMeal] AI fill failed:', e);
       Alert.alert('Could not auto-fill', "AI couldn't classify this recipe. Please fill in manually.");
@@ -189,7 +188,7 @@ export default function AddMealScreen() {
     setAccordionOpen(opening);
     if (opening && !isEditing && !hasAutoFilled && name.trim()) {
       setHasAutoFilled(true);
-      handleAiFill();
+      void handleAiFill();
     }
   }, [accordionOpen, isEditing, hasAutoFilled, name, handleAiFill]);
 
@@ -244,85 +243,6 @@ export default function AddMealScreen() {
   }, []);
 
   // ── Save ─────────────────────────────────────────────────────────────────────
-  const handleSave = useCallback(() => {
-    if (!name.trim()) {
-      Alert.alert('Name required', 'Please enter a meal name.');
-      return;
-    }
-
-    const validIngredients: Ingredient[] = ingredients
-      .filter((i) => i.name.trim())
-      .map((i, idx) => ({
-        id: `ing_${Date.now()}_${idx}`,
-        name: i.name.trim(),
-        quantity: parseFloat(i.quantity) || 0,
-        unit: i.unit.trim() || 'pc',
-        category: 'Other',
-      }));
-
-    const validSteps = methodSteps.filter((s) => s.trim());
-    // Derive legacy dietary_tags for backward compat
-    const derivedDietaryTags = [...new Set([...dietLabels, ...allergens])];
-
-    if (isEditing && editMeal) {
-      updateFav(editMeal.id, {
-        name: name.trim(),
-        image_url: selectedImageUri || undefined,
-        // Time
-        cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
-        prep_time: prepTime ? parseInt(prepTime) : undefined,
-        cook_time: cookTime ? parseInt(cookTime) : undefined,
-        // Meal type
-        meal_type: (mealType as Recipe['meal_type']) || undefined,
-        // Classification
-        cuisine: cuisine || undefined,
-        dish_category: (dishCategory as Recipe['dish_category']) || undefined,
-        protein_source: (proteinSource as Recipe['protein_source']) || undefined,
-        occasions: occasions.length > 0 ? occasions : undefined,
-        // Dietary
-        diet_labels: dietLabels.length > 0 ? dietLabels : undefined,
-        allergens: allergens.length > 0 ? allergens : undefined,
-        // Nutrition
-        calories_per_serving: caloriesPerServing ? parseFloat(caloriesPerServing) : undefined,
-        protein_per_serving_g: proteinPerServingG ? parseFloat(proteinPerServingG) : undefined,
-        carbs_per_serving_g: carbsPerServingG ? parseFloat(carbsPerServingG) : undefined,
-        // Legacy
-        dietary_tags: derivedDietaryTags,
-        custom_tags: customTags,
-        description: description || undefined,
-        recipe_serving_size: servingSize,
-        ingredients: validIngredients,
-        method_steps: validSteps,
-        is_ingredient_complete: validIngredients.length > 0,
-        is_recipe_complete: validSteps.length > 0,
-      });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.back();
-      return;
-    }
-
-    if (!isEditing && isFavByName(name.trim())) {
-      Alert.alert(
-        'Duplicate found',
-        `You already have "${name.trim()}" in your Favs.`,
-        [
-          { text: 'View it', onPress: () => router.back() },
-          { text: 'Add Anyway', onPress: () => saveMeal(validIngredients, validSteps, derivedDietaryTags) },
-        ]
-      );
-      return;
-    }
-
-    saveMeal(validIngredients, validSteps, derivedDietaryTags);
-  }, [
-    name, cookingTimeBand, prepTime, cookTime, mealType, selectedImageUri,
-    cuisine, dishCategory, proteinSource, occasions,
-    dietLabels, allergens,
-    caloriesPerServing, proteinPerServingG, carbsPerServingG,
-    customTags, description, servingSize, ingredients, methodSteps,
-    isEditing, editMeal, updateFav, isFavByName,
-  ]);
-
   const saveMeal = useCallback((
     validIngredients: Ingredient[],
     validSteps: string[],
@@ -332,25 +252,19 @@ export default function AddMealScreen() {
       id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: name.trim(),
       image_url: selectedImageUri || undefined,
-      // Time
       cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
       prep_time: prepTime ? parseInt(prepTime) : undefined,
       cook_time: cookTime ? parseInt(cookTime) : undefined,
-      // Meal type
       meal_type: (mealType as Recipe['meal_type']) || undefined,
-      // Classification
       cuisine: cuisine || undefined,
-      dish_category: dishCategory || undefined,
-      protein_source: proteinSource || undefined,
+      dish_category: (dishCategory as Recipe['dish_category']) || undefined,
+      protein_source: (proteinSource as Recipe['protein_source']) || undefined,
       occasions: occasions.length > 0 ? occasions : undefined,
-      // Dietary
       diet_labels: dietLabels.length > 0 ? dietLabels : undefined,
       allergens: allergens.length > 0 ? allergens : undefined,
-      // Nutrition
       calories_per_serving: caloriesPerServing ? parseFloat(caloriesPerServing) : undefined,
       protein_per_serving_g: proteinPerServingG ? parseFloat(proteinPerServingG) : undefined,
       carbs_per_serving_g: carbsPerServingG ? parseFloat(carbsPerServingG) : undefined,
-      // Legacy / required
       dietary_tags: derivedDietaryTags,
       custom_tags: customTags,
       description: description || undefined,
@@ -366,7 +280,7 @@ export default function AddMealScreen() {
       delivery_platform: deliveryUrl.trim() ? (detectPlatformFromUrl(deliveryUrl.trim()) ?? undefined) : undefined,
     };
     addFav(newMeal);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const pending = consumePendingPlanSlot();
     if (pending) {
       const plannedMeal: PlannedMeal = {
@@ -393,7 +307,79 @@ export default function AddMealScreen() {
     cuisine, dishCategory, proteinSource, occasions,
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
-    customTags, description, servingSize, deliveryUrl, addFav,
+    customTags, description, servingSize, deliveryUrl, addFav, addMeal,
+  ]);
+
+  const handleSave = useCallback(() => {
+    if (!name.trim()) {
+      Alert.alert('Name required', 'Please enter a meal name.');
+      return;
+    }
+
+    const validIngredients: Ingredient[] = ingredients
+      .filter((i) => i.name.trim())
+      .map((i, idx) => ({
+        id: `ing_${Date.now()}_${idx}`,
+        name: i.name.trim(),
+        quantity: parseFloat(i.quantity) || 0,
+        unit: i.unit.trim() || 'pc',
+        category: 'Other',
+      }));
+
+    const validSteps = methodSteps.filter((s) => s.trim());
+    const derivedDietaryTags = [...new Set([...dietLabels, ...allergens])];
+
+    if (isEditing && editMeal) {
+      updateFav(editMeal.id, {
+        name: name.trim(),
+        image_url: selectedImageUri || undefined,
+        cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
+        prep_time: prepTime ? parseInt(prepTime) : undefined,
+        cook_time: cookTime ? parseInt(cookTime) : undefined,
+        meal_type: (mealType as Recipe['meal_type']) || undefined,
+        cuisine: cuisine || undefined,
+        dish_category: (dishCategory as Recipe['dish_category']) || undefined,
+        protein_source: (proteinSource as Recipe['protein_source']) || undefined,
+        occasions: occasions.length > 0 ? occasions : undefined,
+        diet_labels: dietLabels.length > 0 ? dietLabels : undefined,
+        allergens: allergens.length > 0 ? allergens : undefined,
+        calories_per_serving: caloriesPerServing ? parseFloat(caloriesPerServing) : undefined,
+        protein_per_serving_g: proteinPerServingG ? parseFloat(proteinPerServingG) : undefined,
+        carbs_per_serving_g: carbsPerServingG ? parseFloat(carbsPerServingG) : undefined,
+        dietary_tags: derivedDietaryTags,
+        custom_tags: customTags,
+        description: description || undefined,
+        recipe_serving_size: servingSize,
+        ingredients: validIngredients,
+        method_steps: validSteps,
+        is_ingredient_complete: validIngredients.length > 0,
+        is_recipe_complete: validSteps.length > 0,
+      });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.back();
+      return;
+    }
+
+    if (!isEditing && isFavByName(name.trim())) {
+      Alert.alert(
+        'Duplicate found',
+        `You already have "${name.trim()}" in your Favs.`,
+        [
+          { text: 'View it', onPress: () => router.back() },
+          { text: 'Add Anyway', onPress: () => saveMeal(validIngredients, validSteps, derivedDietaryTags) },
+        ]
+      );
+      return;
+    }
+
+    saveMeal(validIngredients, validSteps, derivedDietaryTags);
+  }, [
+    name, cookingTimeBand, prepTime, cookTime, mealType, selectedImageUri,
+    cuisine, dishCategory, proteinSource, occasions,
+    dietLabels, allergens,
+    caloriesPerServing, proteinPerServingG, carbsPerServingG,
+    customTags, description, servingSize, ingredients, methodSteps,
+    isEditing, editMeal, updateFav, isFavByName, saveMeal,
   ]);
 
   return (

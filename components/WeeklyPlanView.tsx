@@ -25,7 +25,7 @@ import {
   getWeekLabel,
 } from '@/utils/dates';
 
-const SWIPE_THRESHOLD = 48;
+const _SWIPE_THRESHOLD = 48;
 const LEFT_CELL_W = 52;
 
 interface WeeklyPlanViewProps {
@@ -68,7 +68,7 @@ export default function WeeklyPlanView({
 
   const handleWeekRating = useCallback((rating: MealRating) => {
     setDismissedWeekKey(weekKey);
-    rateWeek(weekKey, rating);
+    void rateWeek(weekKey, rating);
   }, [weekKey, rateWeek]);
 
   // Note: no useMemo here intentionally — getMealsForSlot reads mealsRef.current (always live)
@@ -80,12 +80,12 @@ export default function WeeklyPlanView({
 
   const handleWeekPrev = useCallback(() => {
     onWeekChange(weekOffset - 1);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [weekOffset, onWeekChange]);
 
   const handleWeekNext = useCallback(() => {
     onWeekChange(weekOffset + 1);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [weekOffset, onWeekChange]);
 
   const smartFillScale = useRef(new Animated.Value(1)).current;
@@ -112,10 +112,10 @@ export default function WeeklyPlanView({
       .onEnd((e) => {
         if (e.translationX < -60) {
           handleWeekNextRef.current();
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         } else if (e.translationX > 60) {
           handleWeekPrevRef.current();
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }
       }),
   []);
@@ -237,7 +237,7 @@ export default function WeeklyPlanView({
                   ]}
                   onPress={() => {
                     onDayPress(date);
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
                   activeOpacity={0.8}
                 >
@@ -547,6 +547,33 @@ const styles = StyleSheet.create({
     width: 14,
     height: 2,
     backgroundColor: Colors.border,
+  },
+  feedbackBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 12,
+    marginHorizontal: 12,
+    marginBottom: 8,
+  },
+  feedbackLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  feedbackEmojis: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  feedbackEmojiBtn: {
+    padding: 4,
+  },
+  feedbackEmoji: {
+    fontSize: 22,
   },
 });
 

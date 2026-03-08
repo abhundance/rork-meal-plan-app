@@ -791,7 +791,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     borderWidth: 1.5,
     borderColor: Colors.divider,
-    ...Shadows.card,
   },
   bottomBar: {
     position: 'absolute' as const,

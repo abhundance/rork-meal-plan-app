@@ -11,7 +11,6 @@ import {
   Dimensions,
   TextInput,
   Image,
-  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
@@ -488,7 +487,7 @@ export default function DiscoverScreen() {
                     key={meal.id}
                     meal={meal}
                     onPress={() => handleMealPress(meal)}
-                    style={{ width: _GRID_CARD_WIDTH, height: Math.round(_GRID_CARD_WIDTH * 1.35) }}
+                    width={_GRID_CARD_WIDTH} height={Math.round(_GRID_CARD_WIDTH * 1.35)}
                   />
                 ))}
               </View>
