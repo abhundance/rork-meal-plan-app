@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import ProgressBar from '@/components/ProgressBar';
 import PrimaryButton from '@/components/PrimaryButton';
 import MealSlotEditor from '@/components/MealSlotEditor';
@@ -72,6 +73,7 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
     marginBottom: 12,
@@ -79,6 +81,7 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize: 28,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 8,

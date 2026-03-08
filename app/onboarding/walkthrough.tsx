@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import { CalendarDays, ShoppingBasket, Heart, Sparkles } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
@@ -145,6 +146,7 @@ const styles = StyleSheet.create({
   skipText: {
     fontSize: 15,
     color: Colors.primary,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
   },
   contentArea: {
@@ -180,6 +182,7 @@ const styles = StyleSheet.create({
   },
   tabName: {
     fontSize: 24,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 12,
@@ -189,6 +192,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 26,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     maxWidth: SCREEN_WIDTH * 0.75,
   },
