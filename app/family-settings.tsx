@@ -1,14 +1,14 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Switch, Alert, Animated, Platform,
+  TextInput, Switch, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import {
   ChevronLeft, Lock, Users, UtensilsCrossed, Ruler, Leaf,
-  ShoppingBasket, Bell, Globe, LogOut, Trash2, Shield,
-  UserPlus, Plus, X, ChevronRight, Sparkles,
+  Globe, LogOut, Trash2, Shield,
+  ChevronRight, Sparkles,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
@@ -18,7 +18,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import MealSlotEditor from '@/components/MealSlotEditor';
 import Stepper from '@/components/Stepper';
 import DietaryPillGrid from '@/components/DietaryPillGrid';
-import { PantryItem, MealSlot, PANTRY_CATEGORIES } from '@/types';
+import { MealSlot } from '@/types';
 
 function SectionHeader({ title, icon, locked, adminName }: {
   title: string;
@@ -209,7 +209,7 @@ export default function FamilySettingsScreen() {
   const {
     familySettings, userSettings, notificationSettings, familyMembers,
     updateFamilySettings, updateUserSettings, updateNotificationSettings,
-    updateMealSlots, addPantryItem, removePantryItem,
+    updateMealSlots,
   } = useFamilySettings();
 
   const isAdmin = userSettings.is_admin;
@@ -217,15 +217,11 @@ export default function FamilySettingsScreen() {
 
   const [showMealSlots, setShowMealSlots] = useState<boolean>(false);
   const [showHousehold, setShowHousehold] = useState<boolean>(false);
-  const [showPantry, setShowPantry] = useState<boolean>(false);
   const [showFamilyDietary, setShowFamilyDietary] = useState<boolean>(false);
   const [showPersonalDietary, setShowPersonalDietary] = useState<boolean>(false);
-  const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [showAccount, setShowAccount] = useState<boolean>(false);
   const [showAdminSettings, setShowAdminSettings] = useState<boolean>(false);
 
-  const [pantryInput, setPantryInput] = useState<string>('');
-  const [pantryCategory, setPantryCategory] = useState<string>('Other');
   const [deleteConfirmText, setDeleteConfirmText] = useState<string>('');
   const [editingFamilyName, setEditingFamilyName] = useState<boolean>(false);
   const [familyNameDraft, setFamilyNameDraft] = useState<string>(familySettings.family_name);
@@ -233,18 +229,6 @@ export default function FamilySettingsScreen() {
   const [displayNameDraft, setDisplayNameDraft] = useState<string>(userSettings.display_name);
 
   const [mealSlotsDraft, setMealSlotsDraft] = useState<MealSlot[]>(familySettings.meal_slots);
-
-  const handleAddPantryItem = useCallback(() => {
-    if (!pantryInput.trim()) return;
-    const item: PantryItem = {
-      id: `pantry_${Date.now()}`,
-      name: pantryInput.trim(),
-      category: pantryCategory,
-    };
-    addPantryItem(item);
-    setPantryInput('');
-    console.log('[Settings] Added pantry item:', item.name);
-  }, [pantryInput, pantryCategory, addPantryItem]);
 
   const handleSaveMealSlots = useCallback(() => {
     const valid = mealSlotsDraft.filter(s => s.name.trim());
@@ -457,52 +441,6 @@ export default function FamilySettingsScreen() {
             </TouchableOpacity>
           </Card>
         )}
-
-        {/* Pantry */}
-        <SectionHeader title="Pantry — We Already Have" />
-        <Card>
-          <Text style={styles.cardHelper}>
-            Items here are automatically marked as "Already have this" in your shopping list.
-          </Text>
-          <View style={styles.pantryInputRow}>
-            <TextInput
-              style={styles.pantryInput}
-              value={pantryInput}
-              onChangeText={setPantryInput}
-              placeholder="Add a pantry item..."
-              placeholderTextColor={Colors.inactive}
-              returnKeyType="done"
-              onSubmitEditing={handleAddPantryItem}
-              testID="pantry-input"
-            />
-            <TouchableOpacity
-              style={[styles.pantryAddButton, !pantryInput.trim() && styles.pantryAddDisabled]}
-              onPress={handleAddPantryItem}
-              disabled={!pantryInput.trim()}
-            >
-              <Plus size={18} color={Colors.white} strokeWidth={2.5} />
-            </TouchableOpacity>
-          </View>
-
-          {familySettings.pantry_items.length === 0 ? (
-            <Text style={styles.emptyPantry}>No pantry items yet</Text>
-          ) : (
-            familySettings.pantry_items.map((item) => (
-              <View key={item.id} style={styles.pantryRow}>
-                <View style={styles.pantryItemInfo}>
-                  <Text style={styles.pantryItemName}>{item.name}</Text>
-                  <Text style={styles.pantryItemCategory}>{item.category}</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => removePantryItem(item.id)}
-                  style={styles.pantryRemove}
-                >
-                  <X size={16} color={Colors.textSecondary} strokeWidth={2} />
-                </TouchableOpacity>
-              </View>
-            ))
-          )}
-        </Card>
 
         {/* Dietary Preferences */}
         <SectionHeader
@@ -953,63 +891,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.primary,
     fontWeight: '500' as const,
-  },
-  pantryInputRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  pantryInput: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.input,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 15,
-    color: Colors.text,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  pantryAddButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.input,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pantryAddDisabled: {
-    opacity: 0.4,
-  },
-  emptyPantry: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    paddingVertical: 16,
-  },
-  pantryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-  },
-  pantryItemInfo: {
-    flex: 1,
-  },
-  pantryItemName: {
-    fontSize: 15,
-    color: Colors.text,
-    fontWeight: '500' as const,
-  },
-  pantryItemCategory: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  pantryRemove: {
-    padding: 8,
   },
   unitsRow: {
     flexDirection: 'row',
