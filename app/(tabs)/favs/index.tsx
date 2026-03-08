@@ -69,6 +69,7 @@ import * as Clipboard from 'expo-clipboard';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
 import { consumePendingDeliveryLink } from '@/services/pendingDeliveryLink';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import AppHeader from '@/components/AppHeader';
 import SlotPickerModal from '@/components/SlotPickerModal';
@@ -1013,6 +1014,7 @@ const styles = StyleSheet.create({
   },
   segmentBtnText: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
   },
@@ -1030,6 +1032,7 @@ const styles = StyleSheet.create({
   },
   segmentBadgeText: {
     fontSize: 11,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.textSecondary,
   },
@@ -1059,6 +1062,7 @@ const styles = StyleSheet.create({
   },
   filterBadgeCountText: {
     fontSize: 9,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
@@ -1096,11 +1100,13 @@ const styles = StyleSheet.create({
   },
   recentTitle: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
   },
   recentClear: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -1157,6 +1163,7 @@ const styles = StyleSheet.create({
   },
   listMealName: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: '#2C2C2C',
     marginBottom: 4,
@@ -1175,6 +1182,7 @@ const styles = StyleSheet.create({
   },
   cuisinePillText: {
     fontSize: 10,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: '#7B68CC',
   },
@@ -1218,6 +1226,7 @@ const styles = StyleSheet.create({
   },
   segmentEmptyTitle: {
     fontSize: 17,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
     marginTop: 16,
@@ -1225,6 +1234,7 @@ const styles = StyleSheet.create({
   },
   segmentEmptySubtitle: {
     fontSize: 16,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
     textAlign: 'center',
@@ -1240,6 +1250,7 @@ const styles = StyleSheet.create({
   },
   segmentEmptyCtaText: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.white,
   },
@@ -1253,6 +1264,7 @@ const styles = StyleSheet.create({
   },
   clearFiltersBtnText: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -1280,6 +1292,7 @@ const styles = StyleSheet.create({
   },
   filterPillText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
   },
@@ -1300,6 +1313,7 @@ const styles = StyleSheet.create({
   },
   activeFilterBarText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -1339,6 +1353,7 @@ const styles = StyleSheet.create({
   },
   addMethodTitle: {
     fontSize: 17,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     textAlign: 'center' as const,
@@ -1390,6 +1405,7 @@ const styles = StyleSheet.create({
   },
   addMethodBackTitle: {
     fontSize: 17,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     flex: 1,
@@ -1424,11 +1440,13 @@ const styles = StyleSheet.create({
   },
   addMethodSaveBtnText: {
     fontSize: 15,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.white,
   },
   addMethodDeliveryLabel: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     alignSelf: 'flex-start' as const,
@@ -1507,12 +1525,14 @@ const styles = StyleSheet.create({
   },
   addTileName: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     marginBottom: 2,
   },
   addTileSubtitle: {
     fontSize: 12,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
   },
@@ -1535,6 +1555,7 @@ const styles = StyleSheet.create({
   },
   filterEmptyTitle: {
     fontSize: 17,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
     textAlign: 'center' as const,
@@ -1542,6 +1563,7 @@ const styles = StyleSheet.create({
   },
   filterEmptySubtitle: {
     fontSize: 16,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
     textAlign: 'center' as const,
@@ -1557,6 +1579,7 @@ const styles = StyleSheet.create({
   },
   filterEmptyClearBtnText: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.white,
   },
@@ -1569,6 +1592,7 @@ const styles = StyleSheet.create({
   },
   filterEmptyAddBtnText: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },

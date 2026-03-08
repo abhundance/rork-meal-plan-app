@@ -19,6 +19,7 @@ import { Plus, Copy, Share2, ChevronDown, ChevronRight, Check, Trash2, ShoppingB
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Shadows } from '@/constants/theme';
 import AppHeader from '@/components/AppHeader';
 import EmptyState from '@/components/EmptyState';
@@ -342,6 +343,7 @@ const sheetStyles = StyleSheet.create({
   inputHalf: { flex: 1 },
   aisleLabel: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     letterSpacing: 0.6,
@@ -868,6 +870,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     flex: 1,
     fontSize: 12,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.textSecondary,
     textTransform: 'uppercase' as const,

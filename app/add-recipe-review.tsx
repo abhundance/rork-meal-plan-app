@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Camera, XCircle, PlusCircle, ChevronUp, ChevronDown } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 import { extractRecipeFromImage, extractRecipeFromText, detectVideoUrlType, extractRecipeFromVideoUrl } from '@/services/recipeExtraction';
 import { imageStore } from '@/services/imageStore';
@@ -885,6 +886,7 @@ const styles = StyleSheet.create({
   },
   loadingTitle: {
     fontSize: 17,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
     marginTop: Spacing.lg,
@@ -892,6 +894,7 @@ const styles = StyleSheet.create({
   },
   loadingSubtitle: {
     fontSize: 15,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
     marginTop: 6,
@@ -919,12 +922,14 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 12,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: '#7C3AED',
     textAlign: 'center',
@@ -932,6 +937,7 @@ const styles = StyleSheet.create({
   },
   headerSaveText: {
     fontSize: 16,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -965,6 +971,7 @@ const styles = StyleSheet.create({
   heroEditBadgeText: {
     color: '#FFFFFF',
     fontSize: 12,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
   },
   card: {
@@ -977,6 +984,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
     textTransform: 'uppercase' as const,
@@ -1026,6 +1034,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
   },
@@ -1037,6 +1046,7 @@ const styles = StyleSheet.create({
   },
   emptyHint: {
     fontSize: 14,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
     fontStyle: 'italic' as const,
@@ -1047,6 +1057,7 @@ const styles = StyleSheet.create({
   },
   ingredientText: {
     fontSize: 15,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.text,
   },
@@ -1068,12 +1079,14 @@ const styles = StyleSheet.create({
   },
   stepBadgeText: {
     fontSize: 13,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.white,
   },
   stepText: {
     flex: 1,
     fontSize: 14,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.text,
     lineHeight: 20,
@@ -1142,11 +1155,13 @@ const styles = StyleSheet.create({
   },
   addRowText: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.primary,
   },
   editLinkText: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.primary,
   },
@@ -1169,6 +1184,7 @@ const styles = StyleSheet.create({
   },
   aiBadgeText: {
     fontSize: 10,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
     letterSpacing: 0.3,
@@ -1187,6 +1203,7 @@ const styles = StyleSheet.create({
   },
   accordionFieldLabel: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
     textTransform: 'uppercase' as const,
@@ -1213,6 +1230,7 @@ const styles = StyleSheet.create({
   },
   nutritionLabel: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
     marginBottom: 4,
@@ -1223,6 +1241,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 8,
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.text,
     textAlign: 'center' as const,
@@ -1247,6 +1266,7 @@ const styles = StyleSheet.create({
   },
   saveFullBtnText: {
     fontSize: 16,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.white,
   },

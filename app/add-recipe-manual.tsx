@@ -23,6 +23,7 @@ import * as Clipboard from 'expo-clipboard';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
 import { extractRecipeMetadata } from '@/services/recipeExtraction';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import FilterPill from '@/components/FilterPill';
@@ -901,6 +902,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
   },
@@ -927,6 +929,7 @@ const styles = StyleSheet.create({
   heroEditBadgeText: {
     color: '#FFFFFF',
     fontSize: 12,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
   },
   scroll: {
@@ -937,6 +940,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     marginBottom: 6,
@@ -966,6 +970,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontSize: 18,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     marginTop: 24,
@@ -1039,6 +1044,7 @@ const styles = StyleSheet.create({
   },
   addRowText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -1059,6 +1065,7 @@ const styles = StyleSheet.create({
   },
   stepBadgeText: {
     fontSize: 12,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.white,
   },
@@ -1096,11 +1103,13 @@ const styles = StyleSheet.create({
   },
   accordionHeaderTitle: {
     fontSize: 15,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
   },
   accordionHeaderSubtitle: {
     fontSize: 12,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
     marginTop: 1,
@@ -1117,6 +1126,7 @@ const styles = StyleSheet.create({
   },
   accordionFieldLabel: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     marginTop: 16,
@@ -1141,6 +1151,7 @@ const styles = StyleSheet.create({
   },
   aiFillBtnText: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -1165,11 +1176,13 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
   },
   chipTextActive: {
     color: Colors.primary,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
   },
   // ── Nutrition row ─────────────────────────────────────────────────────────────
@@ -1192,6 +1205,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 8,
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.text,
     textAlign: 'center' as const,
@@ -1237,6 +1251,7 @@ const styles = StyleSheet.create({
   },
   customTagText: {
     fontSize: 12,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },

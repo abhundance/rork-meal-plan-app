@@ -42,6 +42,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FilterPill from '@/components/FilterPill';
 import PrimaryButton from '@/components/PrimaryButton';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { Spacing } from '@/constants/theme';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -560,6 +561,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
+    fontFamily: FontFamily.bold,
     fontWeight: '700',
     color: Colors.text,
   },
@@ -573,6 +575,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 11,
+    fontFamily: FontFamily.bold,
     fontWeight: '700',
     color: Colors.textSecondary,
     letterSpacing: 0.8,
@@ -609,6 +612,7 @@ const styles = StyleSheet.create({
   },
   clearText: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.text,
   },

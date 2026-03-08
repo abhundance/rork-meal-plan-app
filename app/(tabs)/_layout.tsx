@@ -2,12 +2,14 @@ import React, { useCallback, useMemo } from 'react';
 import { Tabs } from 'expo-router';
 import { CalendarDays, ShoppingBasket, Heart, Sparkles } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { Shadows } from '@/constants/theme';
 import TabBarIcon from '@/components/TabBarIcon';
 
 const tabBarLabelStyle = {
+  fontFamily: FontFamily.semiBold,
   fontSize: 11,
-  fontWeight: '500' as const,
+  fontWeight: '600' as const,
 };
 
 const tabBarStyle = {

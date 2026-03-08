@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import { PlannedMeal, Recipe } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
@@ -524,6 +525,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
   },
@@ -567,6 +569,7 @@ const styles = StyleSheet.create({
   },
   browseCardTitle: {
     fontSize: 13,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     marginTop: 8,
@@ -589,6 +592,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
     paddingHorizontal: 12,
@@ -617,11 +621,13 @@ const styles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
   },
   optionSubtitle: {
     fontSize: 12,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
     marginTop: 1,
@@ -643,6 +649,7 @@ const styles = StyleSheet.create({
   },
   manualFormHeading: {
     fontSize: 20,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 20,
@@ -694,6 +701,7 @@ const styles = StyleSheet.create({
   },
   backLinkText: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -704,6 +712,7 @@ const styles = StyleSheet.create({
   },
   deliverySectionLabel: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     textTransform: 'uppercase' as const,
@@ -744,6 +753,7 @@ const styles = StyleSheet.create({
   },
   deliveryPlatformText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.primary,
   },
@@ -768,6 +778,7 @@ const styles = StyleSheet.create({
   },
   searchSectionLabel: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     letterSpacing: 0.8,
@@ -799,11 +810,13 @@ const styles = StyleSheet.create({
   },
   searchResultName: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
   },
   searchResultMeta: {
     fontSize: 13,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
     marginTop: 2,
@@ -821,6 +834,7 @@ const styles = StyleSheet.create({
   },
   searchEmptyDiscoverBtn: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
     marginTop: 12,

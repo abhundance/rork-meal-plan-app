@@ -12,6 +12,7 @@ import {
 import { CalendarDays, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { Spacing } from '@/constants/theme';
 import EmptyState from '@/components/EmptyState';
 import { getWeekDates, formatDateKey, getWeekLabel } from '@/utils/dates';
@@ -168,6 +169,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
+    fontFamily: FontFamily.bold,
     fontWeight: '700',
     color: Colors.text,
   },
@@ -196,6 +198,7 @@ const styles = StyleSheet.create({
   },
   dateRange: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.text,
   },
@@ -207,6 +210,7 @@ const styles = StyleSheet.create({
   },
   mealCountText: {
     fontSize: 12,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.primary,
   },

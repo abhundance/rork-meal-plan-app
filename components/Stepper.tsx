@@ -2,6 +2,7 @@ import React, { useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 
 interface StepperProps {
   value: number;
@@ -89,6 +90,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 36,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.primary,
   },

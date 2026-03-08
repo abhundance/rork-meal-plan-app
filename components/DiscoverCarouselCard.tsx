@@ -27,6 +27,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import { DiscoverMeal } from '@/types';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 
 // ---------------------------------------------------------------------------
 // Canonical card dimensions — import these wherever you render the card so
@@ -130,6 +131,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 10,
+    fontFamily: FontFamily.bold,
     fontWeight: '700',
     color: Colors.white,
     lineHeight: 13,
@@ -138,6 +140,7 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 9,
     color: 'rgba(255,255,255,0.75)',
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500',
   },
 });

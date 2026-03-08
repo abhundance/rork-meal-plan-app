@@ -11,6 +11,7 @@ import {
   UserPlus, Plus, X, ChevronRight, Sparkles,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import Card from '@/components/Card';
@@ -68,6 +69,7 @@ const sectionStyles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.textSecondary,
     textTransform: 'uppercase',
@@ -84,6 +86,7 @@ const sectionStyles = StyleSheet.create({
   },
   lockLabel: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
   },
@@ -100,6 +103,7 @@ const sectionStyles = StyleSheet.create({
   tooltipText: {
     fontSize: 12,
     color: Colors.white,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
   },
 });
@@ -160,6 +164,7 @@ const rowStyles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
   },
@@ -199,6 +204,7 @@ const switchStyles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.text,
   },
@@ -813,6 +819,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
   },
@@ -837,11 +844,13 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 28,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.white,
   },
   displayName: {
     fontSize: 22,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 6,
@@ -851,6 +860,7 @@ const styles = StyleSheet.create({
   },
   nameInput: {
     fontSize: 22,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     borderBottomWidth: 2,
@@ -862,6 +872,7 @@ const styles = StyleSheet.create({
   role: {
     fontSize: 14,
     color: Colors.textSecondary,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     backgroundColor: Colors.primaryLight,
     paddingHorizontal: 12,
@@ -890,6 +901,7 @@ const styles = StyleSheet.create({
   },
   memberAvatarText: {
     fontSize: 16,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -898,6 +910,7 @@ const styles = StyleSheet.create({
   },
   memberName: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
     marginBottom: 4,
@@ -918,6 +931,7 @@ const styles = StyleSheet.create({
   },
   roleBadgeText: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
   },
@@ -933,6 +947,7 @@ const styles = StyleSheet.create({
   prefTagText: {
     fontSize: 11,
     color: Colors.textSecondary,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
   },
   cardHelper: {
@@ -952,6 +967,7 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 15,
     color: Colors.primary,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
   },
   pantryInputRow: {
@@ -1001,6 +1017,7 @@ const styles = StyleSheet.create({
   pantryItemName: {
     fontSize: 15,
     color: Colors.text,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
   },
   pantryItemCategory: {
@@ -1033,6 +1050,7 @@ const styles = StyleSheet.create({
   },
   unitText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
   },
@@ -1047,6 +1065,7 @@ const styles = StyleSheet.create({
   },
   smartFillLabel: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
     marginBottom: 4,
@@ -1076,6 +1095,7 @@ const styles = StyleSheet.create({
   },
   noveltyOptionLabel: {
     fontSize: 12,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.textSecondary,
     textAlign: 'center',
@@ -1115,6 +1135,7 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.warning,
   },
@@ -1126,6 +1147,7 @@ const styles = StyleSheet.create({
   },
   dangerText: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: '#D4534D',
   },

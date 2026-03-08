@@ -11,6 +11,7 @@ import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { Spacing } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
 import { getWeekDates, formatDateKey, getDayName, getDateNumber } from '@/utils/dates';
@@ -159,6 +160,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
   },
@@ -200,6 +202,7 @@ const styles = StyleSheet.create({
   },
   slotHeaderText: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     textAlign: 'center' as const,
@@ -216,11 +219,13 @@ const styles = StyleSheet.create({
   },
   dayName: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
   },
   dayNameToday: {
     color: Colors.primary,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
   },
   dayNum: {
@@ -257,6 +262,7 @@ const styles = StyleSheet.create({
   },
   slotEmptyText: {
     fontSize: 18,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.border,
   },
@@ -268,6 +274,7 @@ const styles = StyleSheet.create({
   },
   slotFullText: {
     fontSize: 8,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.textSecondary,
     letterSpacing: 0.5,
@@ -286,6 +293,7 @@ const styles = StyleSheet.create({
   },
   extraPlus: {
     fontSize: 7,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: 'rgba(123, 104, 204, 0.7)',
   },

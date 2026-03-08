@@ -18,6 +18,7 @@ import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Check, SlidersHorizontal, X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import RecipeFilterSheet, {
   RecipeFilterState,
@@ -663,12 +664,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 17,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 16,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
     textAlign: 'center' as const,
@@ -684,11 +687,13 @@ const styles = StyleSheet.create({
   },
   carouselTitle: {
     fontSize: 20,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
   },
   carouselSubtitle: {
     fontSize: 14,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
     paddingHorizontal: 16,
