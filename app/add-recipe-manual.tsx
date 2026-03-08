@@ -1195,6 +1195,7 @@ const styles = StyleSheet.create({
   },
   nutritionLabel: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
     marginBottom: 4,

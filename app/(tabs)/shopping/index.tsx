@@ -150,8 +150,8 @@ function ProgressBar({ checked, total }: { checked: number; total: number }) {
 const pbStyles = StyleSheet.create({
   wrap: { paddingHorizontal: 14, paddingVertical: 12 },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  label: { fontSize: 13, fontWeight: '500' as const, color: Colors.textSecondary },
-  pct: { fontSize: 13, fontWeight: '600' as const, color: Colors.primary },
+  label: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '500' as const, color: Colors.textSecondary },
+  pct: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const, color: Colors.primary },
   pctDone: { color: Colors.success },
   track: { height: 6, borderRadius: 99, backgroundColor: Colors.surface, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 99, backgroundColor: Colors.primary },
@@ -176,7 +176,7 @@ function AllDoneState({ onClearAll }: { onClearAll: () => void }) {
 const adStyles = StyleSheet.create({
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
   emoji: { fontSize: 64, marginBottom: 12 },
-  title: { fontSize: 22, fontWeight: '700' as const, color: Colors.text, marginBottom: 8 },
+  title: { fontSize: 22, fontFamily: FontFamily.bold, fontWeight: '700' as const, color: Colors.text, marginBottom: 8 },
   sub: {
     fontSize: 15,
     color: Colors.textSecondary,
@@ -192,7 +192,7 @@ const adStyles = StyleSheet.create({
     borderColor: Colors.border,
     backgroundColor: Colors.white,
   },
-  btnText: { fontSize: 14, fontWeight: '600' as const, color: Colors.textSecondary },
+  btnText: { fontSize: 14, fontFamily: FontFamily.semiBold, fontWeight: '600' as const, color: Colors.textSecondary },
 });
 
 // ─── Add item sheet ───────────────────────────────────────────────────────────
@@ -329,7 +329,7 @@ const sheetStyles = StyleSheet.create({
     marginBottom: 4,
   },
   inner: { paddingHorizontal: 16, paddingTop: 8 },
-  title: { fontSize: 18, fontWeight: '700' as const, color: Colors.text, marginBottom: 16 },
+  title: { fontSize: 18, fontFamily: FontFamily.bold, fontWeight: '700' as const, color: Colors.text, marginBottom: 16 },
   input: {
     height: 46,
     backgroundColor: Colors.surface,
@@ -365,7 +365,7 @@ const sheetStyles = StyleSheet.create({
   },
   chipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
   chipText: { fontSize: 13, color: Colors.textSecondary },
-  chipTextActive: { color: Colors.primary, fontWeight: '600' as const },
+  chipTextActive: { color: Colors.primary, fontFamily: FontFamily.semiBold, fontWeight: '600' as const },
   addBtn: {
     height: 50,
     borderRadius: BorderRadius.button,
@@ -374,7 +374,7 @@ const sheetStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   addBtnDisabled: { backgroundColor: Colors.surface },
-  addBtnText: { fontSize: 15, fontWeight: '600' as const, color: Colors.white },
+  addBtnText: { fontSize: 15, fontFamily: FontFamily.semiBold, fontWeight: '600' as const, color: Colors.white },
   addBtnTextDisabled: { color: Colors.inactive },
 });
 
@@ -456,7 +456,7 @@ const rowStyles = StyleSheet.create({
   },
   circleChecked: { borderColor: Colors.success, backgroundColor: Colors.success },
   textWrap: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '400' as const, color: Colors.text },
+  name: { fontSize: 15, fontFamily: FontFamily.regular, fontWeight: '400' as const, color: Colors.text },
   nameChecked: { textDecorationLine: 'line-through' as const, color: Colors.inactive },
   qty: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
   qtyChecked: { color: Colors.inactive },
@@ -830,7 +830,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     backgroundColor: Colors.white,
   },
-  clearCheckedText: { fontSize: 12, fontWeight: '500' as const, color: Colors.textSecondary },
+  clearCheckedText: { fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '500' as const, color: Colors.textSecondary },
 
   weekRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, marginBottom: 6 },
   weekPill: {
@@ -842,8 +842,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   weekPillActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
-  weekPillText: { fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary },
-  weekPillTextActive: { color: Colors.primary, fontWeight: '600' as const },
+  weekPillText: { fontSize: 13, fontFamily: FontFamily.regular, fontWeight: '400' as const, color: Colors.textSecondary },
+  weekPillTextActive: { color: Colors.primary, fontFamily: FontFamily.semiBold, fontWeight: '600' as const },
 
   timestamp: {
     fontSize: 12,

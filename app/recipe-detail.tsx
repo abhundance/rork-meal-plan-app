@@ -351,7 +351,7 @@ export default function MealDetailScreen() {
                 }
               }}
             >
-              <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>
+              <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>
                 {favMeals.find((m) => m.id === meal.id)?.is_customized ? 'Edit my version' : 'Customize'}
               </Text>
             </TouchableOpacity>
@@ -362,7 +362,7 @@ export default function MealDetailScreen() {
                 style={{ position: 'absolute', top: insets.top + 8, right: 56, backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
                 onPress={() => setDeliveryEditVisible(true)}
               >
-                <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>Edit Delivery</Text>
+                <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>Edit Delivery</Text>
               </TouchableOpacity>
             ) : planMealFoundViaId ? (
               <TouchableOpacity
@@ -380,7 +380,7 @@ export default function MealDetailScreen() {
                   router.push({ pathname: '/add-recipe-manual', params: { editId: newMeal.id } });
                 }}
               >
-                <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>Save to My Meals & Edit</Text>
+                <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>Save to My Meals & Edit</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -392,7 +392,7 @@ export default function MealDetailScreen() {
                   router.push({ pathname: '/add-recipe-manual', params: { editId: newId } });
                 }}
               >
-                <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>Save & Edit</Text>
+                <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>Save & Edit</Text>
               </TouchableOpacity>
             )
           )}

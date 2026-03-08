@@ -442,7 +442,7 @@ export default function FavsScreen() {
           }}>
             <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
           </View>
-          <Text style={{ fontSize: 9, fontWeight: '600', color: Colors.primary, textAlign: 'center', lineHeight: 12 }}>Add Meal</Text>
+          <Text style={{ fontSize: 9, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.primary, textAlign: 'center', lineHeight: 12 }}>Add Meal</Text>
         </TouchableOpacity>
       );
     }
@@ -721,8 +721,8 @@ export default function FavsScreen() {
                     <FileText size={22} color={Colors.primary} strokeWidth={2} />
                   </View>
                   <View style={styles.addMethodOptionTextBlock}>
-                    <Text style={{ fontSize: 15, fontWeight: '700' as const, color: Colors.text }}>Add with Recipe</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary, marginTop: 2 }}>URL, camera, YouTube & more</Text>
+                    <Text style={{ fontSize: 15, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.text }}>Add with Recipe</Text>
+                    <Text style={{ fontSize: 13, fontFamily: FontFamily.regular, fontWeight: '400', color: Colors.textSecondary, marginTop: 2 }}>URL, camera, YouTube & more</Text>
                   </View>
                   <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
                 </TouchableOpacity>
@@ -735,8 +735,8 @@ export default function FavsScreen() {
                     <Pencil size={22} color={Colors.primary} strokeWidth={2} />
                   </View>
                   <View style={styles.addMethodOptionTextBlock}>
-                    <Text style={{ fontSize: 15, fontWeight: '700' as const, color: Colors.text }}>Add without Recipe</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary, marginTop: 2 }}>Just a name — add the recipe later</Text>
+                    <Text style={{ fontSize: 15, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.text }}>Add without Recipe</Text>
+                    <Text style={{ fontSize: 13, fontFamily: FontFamily.regular, fontWeight: '400', color: Colors.textSecondary, marginTop: 2 }}>Just a name — add the recipe later</Text>
                   </View>
                   <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
                 </TouchableOpacity>
@@ -756,8 +756,8 @@ export default function FavsScreen() {
                     <Bike size={22} color={Colors.primary} strokeWidth={2} />
                   </View>
                   <View style={styles.addMethodOptionTextBlock}>
-                    <Text style={{ fontSize: 15, fontWeight: '700' as const, color: Colors.text }}>Add from Delivery App</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '400' as const, color: Colors.textSecondary, marginTop: 2 }}>Save a link from Uber Eats, Grab & more</Text>
+                    <Text style={{ fontSize: 15, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.text }}>Add from Delivery App</Text>
+                    <Text style={{ fontSize: 13, fontFamily: FontFamily.regular, fontWeight: '400', color: Colors.textSecondary, marginTop: 2 }}>Save a link from Uber Eats, Grab & more</Text>
                   </View>
                   <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
                 </TouchableOpacity>
@@ -886,7 +886,7 @@ export default function FavsScreen() {
           }}
         >
           <Check size={15} color="#FFFFFF" />
-          <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600', flexShrink: 1 }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 15, fontFamily: FontFamily.semiBold, fontWeight: '600', flexShrink: 1 }}>
             {toastMsg}
           </Text>
         </Animated.View>
@@ -963,7 +963,7 @@ const FavGridCard = React.memo(function FavGridCard({
             paddingHorizontal: 5,
             gap: 3,
           }}>
-            <Text style={{ fontSize: 10.5, fontWeight: '600' as const, color: Colors.text, flex: 1, lineHeight: 13 }} numberOfLines={2}>{meal.name}</Text>
+            <Text style={{ fontSize: 10.5, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.text, flex: 1, lineHeight: 13 }} numberOfLines={2}>{meal.name}</Text>
             <TouchableOpacity
               hitSlop={8}
               onPress={(e) => {
@@ -1015,7 +1015,7 @@ const styles = StyleSheet.create({
   segmentBtnText: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.textSecondary,
   },
   segmentBtnTextActive: {
@@ -1033,7 +1033,7 @@ const styles = StyleSheet.create({
   segmentBadgeText: {
     fontSize: 11,
     fontFamily: FontFamily.bold,
-    fontWeight: '700' as const,
+    fontFamily: FontFamily.bold, fontWeight: '700',
     color: Colors.textSecondary,
   },
   segmentBadgeTextActive: {
@@ -1063,7 +1063,7 @@ const styles = StyleSheet.create({
   filterBadgeCountText: {
     fontSize: 9,
     fontFamily: FontFamily.bold,
-    fontWeight: '700' as const,
+    fontFamily: FontFamily.bold, fontWeight: '700',
     color: '#FFFFFF',
   },
   searchWrap: {
@@ -1101,13 +1101,13 @@ const styles = StyleSheet.create({
   recentTitle: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.textSecondary,
   },
   recentClear: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.primary,
   },
   recentItem: {
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
   listMealName: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: '#2C2C2C',
     marginBottom: 4,
   },
@@ -1183,7 +1183,7 @@ const styles = StyleSheet.create({
   cuisinePillText: {
     fontSize: 10,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: '#7B68CC',
   },
   timeText: {
@@ -1227,7 +1227,7 @@ const styles = StyleSheet.create({
   segmentEmptyTitle: {
     fontSize: 17,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.text,
     marginTop: 16,
     textAlign: 'center',
@@ -1235,7 +1235,7 @@ const styles = StyleSheet.create({
   segmentEmptySubtitle: {
     fontSize: 16,
     fontFamily: FontFamily.regular,
-    fontWeight: '400' as const,
+    fontFamily: FontFamily.regular, fontWeight: '400',
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: 8,
@@ -1251,7 +1251,7 @@ const styles = StyleSheet.create({
   segmentEmptyCtaText: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.white,
   },
   clearFiltersBtn: {
@@ -1265,7 +1265,7 @@ const styles = StyleSheet.create({
   clearFiltersBtnText: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.primary,
   },
   cuisineFilterRow: {
@@ -1293,7 +1293,7 @@ const styles = StyleSheet.create({
   filterPillText: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.text,
   },
   filterPillTextActive: {
@@ -1314,7 +1314,7 @@ const styles = StyleSheet.create({
   activeFilterBarText: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.primary,
   },
   fab: {
@@ -1354,7 +1354,7 @@ const styles = StyleSheet.create({
   addMethodTitle: {
     fontSize: 17,
     fontFamily: FontFamily.bold,
-    fontWeight: '700' as const,
+    fontFamily: FontFamily.bold, fontWeight: '700',
     color: Colors.text,
     textAlign: 'center' as const,
     paddingHorizontal: 20,
@@ -1406,7 +1406,7 @@ const styles = StyleSheet.create({
   addMethodBackTitle: {
     fontSize: 17,
     fontFamily: FontFamily.bold,
-    fontWeight: '700' as const,
+    fontFamily: FontFamily.bold, fontWeight: '700',
     color: Colors.text,
     flex: 1,
   },
@@ -1441,13 +1441,13 @@ const styles = StyleSheet.create({
   addMethodSaveBtnText: {
     fontSize: 15,
     fontFamily: FontFamily.bold,
-    fontWeight: '700' as const,
+    fontFamily: FontFamily.bold, fontWeight: '700',
     color: Colors.white,
   },
   addMethodDeliveryLabel: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.textSecondary,
     alignSelf: 'flex-start' as const,
     marginBottom: 6,
@@ -1526,14 +1526,14 @@ const styles = StyleSheet.create({
   addTileName: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.textSecondary,
     marginBottom: 2,
   },
   addTileSubtitle: {
     fontSize: 12,
     fontFamily: FontFamily.regular,
-    fontWeight: '400' as const,
+    fontFamily: FontFamily.regular, fontWeight: '400',
     color: Colors.textSecondary,
   },
   // ── Filter empty state ───────────────────────────────────────────────────
@@ -1556,7 +1556,7 @@ const styles = StyleSheet.create({
   filterEmptyTitle: {
     fontSize: 17,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.text,
     textAlign: 'center' as const,
     marginBottom: 10,
@@ -1564,7 +1564,7 @@ const styles = StyleSheet.create({
   filterEmptySubtitle: {
     fontSize: 16,
     fontFamily: FontFamily.regular,
-    fontWeight: '400' as const,
+    fontFamily: FontFamily.regular, fontWeight: '400',
     color: Colors.textSecondary,
     textAlign: 'center' as const,
     lineHeight: 22,
@@ -1580,7 +1580,7 @@ const styles = StyleSheet.create({
   filterEmptyClearBtnText: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.white,
   },
   filterEmptyAddBtn: {
@@ -1593,7 +1593,7 @@ const styles = StyleSheet.create({
   filterEmptyAddBtnText: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.primary,
   },
 });

@@ -992,6 +992,7 @@ const styles = StyleSheet.create({
   },
   fieldInput: {
     fontSize: 17,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.text,
     paddingVertical: Spacing.xs,

@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
   },
   dayNum: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
   },
@@ -268,6 +269,7 @@ const styles = StyleSheet.create({
   },
   slotOccupiedPlus: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
     lineHeight: 16,
