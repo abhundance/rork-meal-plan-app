@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import PrimaryButton from './PrimaryButton';
 
 interface EmptyStateProps {
@@ -48,6 +49,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
+    fontFamily: FontFamily.semiBold,
     fontSize: 17,
     fontWeight: '600' as const,
     color: Colors.text,
@@ -55,6 +57,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   description: {
+    fontFamily: FontFamily.regular,
     fontSize: 16,
     color: Colors.textSecondary,
     textAlign: 'center',

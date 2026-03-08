@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TextInput, View, Text, StyleSheet, ViewStyle } from 'react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 
 interface InputFieldProps {
@@ -51,12 +52,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
+    fontFamily: FontFamily.semiBold,
     fontSize: 14,
     fontWeight: '600' as const,
     color: Colors.text,
     marginBottom: 6,
   },
   input: {
+    fontFamily: FontFamily.regular,
     backgroundColor: Colors.white,
     borderWidth: 1.5,
     borderColor: Colors.border,

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet, LayoutChangeEvent } from 'react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 
 interface SegmentedControlProps {
@@ -83,6 +84,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   label: {
+    fontFamily: FontFamily.semiBold,
     fontSize: 14,
     fontWeight: '600' as const,
     color: Colors.text,
