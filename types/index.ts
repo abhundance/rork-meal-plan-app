@@ -126,6 +126,10 @@ export interface Recipe {
   occasions?: string[];
 
   // ── Dietary & allergens (discover) ────────────────────────────────────────
+  is_vegan?: boolean;
+  is_vegetarian?: boolean;
+  is_gluten_free?: boolean;
+  is_dairy_free?: boolean;
   allergens?: string[];          // what the recipe is FREE FROM (e.g. ['gluten-free', 'dairy-free'])
   diet_labels?: string[];        // positive classifications (e.g. ['vegan', 'high-protein', 'keto'])
 

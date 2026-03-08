@@ -71,6 +71,10 @@ type PoolEntry = {
   rating?: string;             // 'disliked' | 'liked' | 'loved'
   add_to_plan_count?: number;
   last_cooked_at?: string;
+  is_vegan?: boolean;
+  is_vegetarian?: boolean;
+  is_gluten_free?: boolean;
+  is_dairy_free?: boolean;
 };
 
 type ScoringContext = {
@@ -139,7 +143,7 @@ function weightedPick<T>(items: T[], scores: number[]): T {
 export default function MealPlanScreen() {
   const insets = useSafeAreaInsets();
   const { data: onboardingData, isLoading: onboardingLoading } = useOnboarding();
-  const { familySettings } = useFamilySettings();
+  const { familySettings, userSettings } = useFamilySettings();
   const {
     viewMode,
     setViewMode,
@@ -313,6 +317,10 @@ export default function MealPlanScreen() {
       rating: f.rating,
       add_to_plan_count: f.add_to_plan_count,
       last_cooked_at: f.last_cooked_at,
+      is_vegan: f.is_vegan,
+      is_vegetarian: f.is_vegetarian,
+      is_gluten_free: f.is_gluten_free,
+      is_dairy_free: f.is_dairy_free,
     }));
 
     // newPool = discover meals not already in Favs
@@ -328,6 +336,10 @@ export default function MealPlanScreen() {
         protein_source: d.protein_source,
         cuisines: d.cuisines,
         add_to_plan_count: d.add_to_plan_count,
+        is_vegan: d.is_vegan,
+        is_vegetarian: d.is_vegetarian,
+        is_gluten_free: d.is_gluten_free,
+        is_dairy_free: d.is_dairy_free,
       }));
 
     const fullPool = [...familiarPool, ...newPool];
@@ -348,9 +360,18 @@ export default function MealPlanScreen() {
     const targetNewCount = Math.round(totalSlotsToFill * noveltyPct / 100);
 
     // ── Eligibility helper ───────────────────────────────────────────────────
-    // Hard filter: disliked meals and already-used meals never appear as candidates.
+    // Hard filter: disliked meals, already-used meals, and dietary mismatches never appear.
+    const combinedPrefs = [...(familySettings.dietary_preferences_family ?? []), ...(userSettings.dietary_preferences_individual ?? [])];
     const eligible = (pool: PoolEntry[], usedSet: Set<string>) =>
-      pool.filter((m) => m.rating !== 'disliked' && !usedSet.has(m.name.toLowerCase()));
+      pool.filter((m) => {
+        if (m.rating === 'disliked') return false;
+        if (usedSet.has(m.name.toLowerCase())) return false;
+        if (combinedPrefs.includes('Vegan') && !m.is_vegan) return false;
+        if (combinedPrefs.includes('Vegetarian') && !m.is_vegan && !m.is_vegetarian) return false;
+        if (combinedPrefs.includes('Gluten-Free') && !m.is_gluten_free) return false;
+        if (combinedPrefs.includes('Dairy-Free') && !m.is_dairy_free) return false;
+        return true;
+      });
 
     // Slot matcher: prefer meal_type field; fall back to name heuristic for older meals.
     const matchesSlot = (m: PoolEntry, slotCat: string) =>
@@ -446,7 +467,7 @@ export default function MealPlanScreen() {
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for this week already have meals. Clear some first to use Smart Fill.');
     }
-  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, addMeals, getMealsForSlot, showSmartPlanToast]);
+  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   const handleClearWeek = useCallback(() => {
     Alert.alert('Clear this week?', 'All meals for this week will be removed.', [
@@ -498,6 +519,10 @@ export default function MealPlanScreen() {
       rating: f.rating,
       add_to_plan_count: f.add_to_plan_count,
       last_cooked_at: f.last_cooked_at,
+      is_vegan: f.is_vegan,
+      is_vegetarian: f.is_vegetarian,
+      is_gluten_free: f.is_gluten_free,
+      is_dairy_free: f.is_dairy_free,
     }));
 
     const newPool: PoolEntry[] = DISCOVER_MEALS
@@ -512,6 +537,10 @@ export default function MealPlanScreen() {
         protein_source: d.protein_source,
         cuisines: d.cuisines,
         add_to_plan_count: d.add_to_plan_count,
+        is_vegan: d.is_vegan,
+        is_vegetarian: d.is_vegetarian,
+        is_gluten_free: d.is_gluten_free,
+        is_dairy_free: d.is_dairy_free,
       }));
 
     const fullPool = [...familiarPool, ...newPool];
@@ -529,8 +558,17 @@ export default function MealPlanScreen() {
     const targetNewCount = Math.round(totalSlotsToFill * noveltyPct / 100);
 
     // ── Eligibility + slot match helpers ────────────────────────────────────
+    const combinedPrefs = [...(familySettings.dietary_preferences_family ?? []), ...(userSettings.dietary_preferences_individual ?? [])];
     const eligible = (pool: PoolEntry[], usedSet: Set<string>) =>
-      pool.filter((m) => m.rating !== 'disliked' && !usedSet.has(m.name.toLowerCase()));
+      pool.filter((m) => {
+        if (m.rating === 'disliked') return false;
+        if (usedSet.has(m.name.toLowerCase())) return false;
+        if (combinedPrefs.includes('Vegan') && !m.is_vegan) return false;
+        if (combinedPrefs.includes('Vegetarian') && !m.is_vegan && !m.is_vegetarian) return false;
+        if (combinedPrefs.includes('Gluten-Free') && !m.is_gluten_free) return false;
+        if (combinedPrefs.includes('Dairy-Free') && !m.is_dairy_free) return false;
+        return true;
+      });
 
     const matchesSlot = (m: PoolEntry, slotCat: string) =>
       (m.meal_type ?? getMealCategoryByName(m.name)) === slotCat;
@@ -617,7 +655,7 @@ export default function MealPlanScreen() {
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for today already have meals. Clear some first to use Smart Fill.');
     }
-  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, addMeals, getMealsForSlot, showSmartPlanToast]);
+  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   if (isLoading) {
     return (
