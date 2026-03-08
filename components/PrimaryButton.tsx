@@ -1,6 +1,7 @@
 import React, { useRef, useCallback } from 'react';
 import { Animated, Text, StyleSheet, TouchableOpacity, ViewStyle, ActivityIndicator } from 'react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 
 interface PrimaryButtonProps {
@@ -89,6 +90,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   label: {
+    fontFamily: FontFamily.semiBold,
     fontSize: 16,
     fontWeight: '600' as const,
   },

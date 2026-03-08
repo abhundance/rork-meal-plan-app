@@ -14,6 +14,7 @@ import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { ArrowLeft, Heart, CalendarPlus, Clock } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Shadows } from '@/constants/theme';
 import SlotPickerModal from '@/components/SlotPickerModal';
 import { useFavs } from '@/providers/FavsProvider';
@@ -217,6 +218,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     fontSize: 18,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     textAlign: 'center' as const,
@@ -275,6 +277,7 @@ const styles = StyleSheet.create({
   },
   cardName: {
     fontSize: 14,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 2,
@@ -295,6 +298,7 @@ const styles = StyleSheet.create({
   },
   miniTagText: {
     fontSize: 10,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },

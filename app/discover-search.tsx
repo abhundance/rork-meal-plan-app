@@ -12,7 +12,8 @@ import { router, Stack, Href } from 'expo-router';
 import { Image } from 'expo-image';
 import { ArrowLeft, Search, X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { BorderRadius } from '@/constants/theme';
+import { FontFamily } from '@/constants/typography';
+import { BorderRadius, Shadows } from '@/constants/theme';
 import { DISCOVER_MEALS, COLLECTIONS } from '@/mocks/discover';
 import { DiscoverMeal, MealCollection } from '@/types';
 
@@ -197,6 +198,7 @@ const styles = StyleSheet.create({
   },
   noResultsPrimary: {
     fontSize: 17,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
     textAlign: 'center' as const,
@@ -204,6 +206,7 @@ const styles = StyleSheet.create({
   },
   noResultsSecondary: {
     fontSize: 16,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
     textAlign: 'center' as const,
@@ -216,6 +219,7 @@ const styles = StyleSheet.create({
   },
   resultsCountText: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
   },
@@ -224,6 +228,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     paddingHorizontal: 16,
@@ -248,6 +253,7 @@ const styles = StyleSheet.create({
   },
   resultName: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
   },

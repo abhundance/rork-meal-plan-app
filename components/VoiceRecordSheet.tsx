@@ -14,6 +14,7 @@ import {
 import { Mic, Square } from 'lucide-react-native';
 import { useAudioRecorder, RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync } from 'expo-audio';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import { transcribeAndExtract, ExtractedRecipe } from '@/services/recipeExtraction';
 
@@ -228,12 +229,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
+    fontFamily: FontFamily.bold,
     fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
+    fontFamily: FontFamily.regular,
     fontWeight: '400',
     textAlign: 'center',
     marginTop: 8,
@@ -262,6 +265,7 @@ const styles = StyleSheet.create({
   },
   timer: {
     fontSize: 17,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.text,
     marginBottom: 8,
@@ -273,6 +277,7 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500',
     color: Colors.textSecondary,
   },

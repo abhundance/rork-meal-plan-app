@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import { UtensilsCrossed, Mail, X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
@@ -176,6 +177,7 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontSize: 32,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     letterSpacing: -0.5,
@@ -184,6 +186,7 @@ const styles = StyleSheet.create({
   tagline: {
     fontSize: 17,
     color: Colors.textSecondary,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
   },
   authSection: {
@@ -199,6 +202,7 @@ const styles = StyleSheet.create({
   },
   emailLinkText: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
     textDecorationLine: 'underline',
@@ -230,6 +234,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
   },
@@ -247,6 +252,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
     marginBottom: 6,

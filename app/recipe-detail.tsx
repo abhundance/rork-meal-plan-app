@@ -27,6 +27,7 @@ import {
   FileText,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Shadows } from '@/constants/theme';
 import ServingStepper from '@/components/ServingStepper';
 import SlotPickerModal from '@/components/SlotPickerModal';
@@ -350,7 +351,7 @@ export default function MealDetailScreen() {
                 }
               }}
             >
-              <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>
+              <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>
                 {favMeals.find((m) => m.id === meal.id)?.is_customized ? 'Edit my version' : 'Customize'}
               </Text>
             </TouchableOpacity>
@@ -361,7 +362,7 @@ export default function MealDetailScreen() {
                 style={{ position: 'absolute', top: insets.top + 8, right: 56, backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
                 onPress={() => setDeliveryEditVisible(true)}
               >
-                <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>Edit Delivery</Text>
+                <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>Edit Delivery</Text>
               </TouchableOpacity>
             ) : planMealFoundViaId ? (
               <TouchableOpacity
@@ -379,7 +380,7 @@ export default function MealDetailScreen() {
                   router.push({ pathname: '/add-recipe-manual', params: { editId: newMeal.id } });
                 }}
               >
-                <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>Save to My Meals & Edit</Text>
+                <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>Save to My Meals & Edit</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -391,7 +392,7 @@ export default function MealDetailScreen() {
                   router.push({ pathname: '/add-recipe-manual', params: { editId: newId } });
                 }}
               >
-                <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' as const }}>Save & Edit</Text>
+                <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>Save & Edit</Text>
               </TouchableOpacity>
             )
           )}
@@ -652,6 +653,7 @@ const styles = StyleSheet.create({
   },
   mealName: {
     fontSize: 24,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 12,
@@ -676,6 +678,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 12,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -694,6 +697,7 @@ const styles = StyleSheet.create({
   },
   timeValue: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
   },
@@ -715,6 +719,7 @@ const styles = StyleSheet.create({
   },
   servingText: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
   },
@@ -729,6 +734,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
   },
@@ -748,6 +754,7 @@ const styles = StyleSheet.create({
   ingredientQty: {
     width: 80,
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -772,6 +779,7 @@ const styles = StyleSheet.create({
   },
   stepNumText: {
     fontSize: 13,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.white,
   },
@@ -823,6 +831,7 @@ const styles = StyleSheet.create({
   },
   addToPlanText: {
     fontSize: 16,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.white,
   },
@@ -845,6 +854,7 @@ const styles = StyleSheet.create({
   },
   notFoundText: {
     fontSize: 18,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
   },
@@ -863,11 +873,13 @@ const styles = StyleSheet.create({
   },
   nutritionTitle: {
     fontSize: 18,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
   },
   nutritionSubtitle: {
     fontSize: 13,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
   },
@@ -890,23 +902,27 @@ const styles = StyleSheet.create({
   },
   nutritionValue: {
     fontSize: 18,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
   },
   nutritionUnit: {
     fontSize: 11,
+    fontFamily: FontFamily.regular,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
     marginBottom: 2,
   },
   nutritionLabel: {
     fontSize: 12,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
     marginTop: 4,
   },
   backLink: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },

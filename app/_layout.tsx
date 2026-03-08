@@ -13,7 +13,9 @@ import { DiscoverProvider } from "@/providers/DiscoverProvider";
 import { AppState, Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AlertCircle, Bike, X } from 'lucide-react-native';
+import { useFonts, Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold } from '@expo-google-fonts/nunito';
 import Colors from "@/constants/colors";
+import { FontFamily } from "@/constants/typography";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { detectPlatformFromUrl, getPlatformLabel } from "@/services/deliveryUtils";
 import { setPendingDeliveryLink } from "@/services/pendingDeliveryLink";
@@ -66,12 +68,14 @@ const errorStyles = StyleSheet.create({
     padding: Spacing.xxxl,
   },
   title: {
+    fontFamily: FontFamily.semiBold,
     fontSize: 20,
     fontWeight: '600' as const,
     color: Colors.text,
     marginTop: Spacing.lg,
   },
   message: {
+    fontFamily: FontFamily.regular,
     fontSize: 15,
     fontWeight: '400' as const,
     color: Colors.textSecondary,
@@ -87,6 +91,7 @@ const errorStyles = StyleSheet.create({
     marginTop: Spacing.xxl,
   },
   buttonText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: 15,
     fontWeight: '600' as const,
     color: Colors.white,
@@ -278,11 +283,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bannerTitle: {
+    fontFamily: FontFamily.semiBold,
     fontSize: 13,
     fontWeight: '600',
     color: Colors.primary,
   },
   bannerSubtitle: {
+    fontFamily: FontFamily.regular,
     fontSize: 11,
     fontWeight: '400',
     color: Colors.textSecondary,
@@ -295,6 +302,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   addButtonText: {
+    fontFamily: FontFamily.bold,
     fontSize: 12,
     fontWeight: '700',
     color: Colors.white,
@@ -305,9 +313,21 @@ const styles = StyleSheet.create({
 });
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Nunito_400Regular,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+  });
+
   useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <ErrorBoundary>

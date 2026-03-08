@@ -2,6 +2,7 @@ import React, { useRef, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { GripVertical, X, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import { MealSlot } from '@/types';
 
@@ -158,6 +159,7 @@ const styles = StyleSheet.create({
   },
   addLabel: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },

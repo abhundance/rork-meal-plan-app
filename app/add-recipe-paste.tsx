@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Trash2 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Spacing } from '@/constants/theme';
 
 export default function AddMealPasteScreen() {
@@ -131,16 +132,19 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 16,
+    fontFamily: FontFamily.regular,
     fontWeight: '400',
     color: Colors.textSecondary,
   },
   titleText: {
     fontSize: 17,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.text,
   },
   extractText: {
     fontSize: 16,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.primary,
   },
@@ -171,6 +175,7 @@ const styles = StyleSheet.create({
   },
   wordCount: {
     fontSize: 13,
+    fontFamily: FontFamily.regular,
     fontWeight: '400',
     color: Colors.textSecondary,
   },

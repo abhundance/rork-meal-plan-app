@@ -15,6 +15,7 @@ import { ChevronLeft, ChevronRight, Plus, PlusCircle, Bike } from 'lucide-react-
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
 import { useFavs } from '@/providers/FavsProvider';
@@ -451,6 +452,7 @@ const styles = StyleSheet.create({
   },
   weekLabel: {
     fontSize: 12,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
   },
@@ -466,6 +468,7 @@ const styles = StyleSheet.create({
   },
   dayAbbr: {
     fontSize: 10,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     marginBottom: 4,
   },
@@ -478,6 +481,7 @@ const styles = StyleSheet.create({
   },
   dateNum: {
     fontSize: 17,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
   },
   scroll: {
@@ -498,6 +502,7 @@ const styles = StyleSheet.create({
   },
   slotName: {
     fontSize: 12,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     textTransform: 'uppercase' as const,
@@ -520,6 +525,7 @@ const styles = StyleSheet.create({
   },
   addLabel: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -536,6 +542,7 @@ const styles = StyleSheet.create({
   },
   filledSlotLabel: {
     fontSize: 11,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
     letterSpacing: 0.8,
@@ -567,6 +574,7 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
     lineHeight: 20,
@@ -583,6 +591,7 @@ const styles = StyleSheet.create({
   },
   orderPillText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -599,6 +608,7 @@ const styles = StyleSheet.create({
   },
   addItemText: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.primary,
   },
@@ -617,6 +627,7 @@ const styles = StyleSheet.create({
   },
   smartFillLabel: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -628,6 +639,7 @@ const styles = StyleSheet.create({
   },
   clearDayLabel: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
   },

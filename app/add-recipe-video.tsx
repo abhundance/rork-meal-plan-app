@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons'; // kept for logo-youtube / logo-tiktok brand icons only
 import { Info, Link as LinkIcon } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import {
   detectVideoUrlType,
@@ -179,16 +180,19 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 16,
+    fontFamily: FontFamily.regular,
     fontWeight: '400',
     color: Colors.textSecondary,
   },
   titleText: {
     fontSize: 17,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.text,
   },
   extractText: {
     fontSize: 16,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.primary,
   },
@@ -213,6 +217,7 @@ const styles = StyleSheet.create({
   disclaimerText: {
     flex: 1,
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500',
     color: '#92400E',
     lineHeight: 18,
@@ -246,6 +251,7 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500',
     color: Colors.textSecondary,
   },

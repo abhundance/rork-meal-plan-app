@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Minus, Plus, Trash2 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 
 interface ServingStepperProps {
   value: number;
@@ -84,6 +85,7 @@ const styles = StyleSheet.create({
     opacity: 0.35,
   },
   value: {
+    fontFamily: FontFamily.bold,
     fontSize: 16,
     fontWeight: '700' as const,
     color: Colors.primary,

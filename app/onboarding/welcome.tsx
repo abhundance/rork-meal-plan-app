@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import { UtensilsCrossed } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 
 export default function WelcomeScreen() {
@@ -96,6 +97,7 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize: 26,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     textAlign: 'center',
@@ -103,6 +105,7 @@ const styles = StyleSheet.create({
   },
   familyName: {
     fontSize: 28,
+    fontFamily: FontFamily.bold,
     fontWeight: '800' as const,
     color: Colors.primary,
     textAlign: 'center',
@@ -113,6 +116,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textSecondary,
     textAlign: 'center',
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
   },
 });

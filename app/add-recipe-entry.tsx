@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons'; // kept for logo-youtube / logo-t
 import { ChevronLeft, Link as LinkIcon, Globe, FileText, PenLine, Image as LucideImage, Video, Mic, Camera } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { imageStore } from '@/services/imageStore';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 
@@ -332,6 +333,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
+    fontFamily: FontFamily.bold,
     fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
@@ -341,6 +343,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500',
     color: Colors.textSecondary,
     textTransform: 'uppercase',
@@ -388,6 +391,7 @@ const styles = StyleSheet.create({
   },
   extractBtnText: {
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: '#fff',
   },
@@ -401,6 +405,7 @@ const styles = StyleSheet.create({
   urlHintText: {
     fontSize: 13,
     color: Colors.textSecondary,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500',
   },
   methodSection: {
@@ -435,12 +440,14 @@ const styles = StyleSheet.create({
   },
   methodTitle: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.text,
     marginTop: Spacing.sm + 2,
   },
   methodSubtitle: {
     fontSize: 12,
+    fontFamily: FontFamily.regular,
     fontWeight: '400',
     color: Colors.textSecondary,
     marginTop: 3,

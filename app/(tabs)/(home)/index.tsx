@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import AppHeader from '@/components/AppHeader';
 import SegmentedControl from '@/components/SegmentedControl';
 import WeeklyPlanView from '@/components/WeeklyPlanView';
@@ -793,6 +794,7 @@ const styles = StyleSheet.create({
   smartPlanToastText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
   },
   controlWrap: {

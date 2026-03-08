@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { WifiOff } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 
 export default function OfflineBanner() {
   return (
@@ -23,8 +24,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.offlineBanner,
   },
   text: {
+    fontFamily: FontFamily.semiBold,
     fontSize: 13,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.offlineText,
   },
 });

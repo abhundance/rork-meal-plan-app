@@ -17,6 +17,7 @@ import { router, Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Check, SlidersHorizontal, X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import RecipeFilterSheet, {
   RecipeFilterState,
@@ -321,13 +322,13 @@ export default function DiscoverScreen() {
               )}
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.text, marginBottom: 4 }} numberOfLines={2}>
+              <Text style={{ fontSize: 16, fontFamily: FontFamily.bold, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.text, marginBottom: 4 }} numberOfLines={2}>
                 {meal.name}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 {meal.cuisine && (
                   <View style={{ backgroundColor: Colors.primaryLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
-                    <Text style={{ fontSize: 11, color: Colors.primary, fontWeight: '600' }}>{meal.cuisine}</Text>
+                    <Text style={{ fontSize: 11, color: Colors.primary, fontFamily: FontFamily.semiBold, fontFamily: FontFamily.semiBold, fontWeight: '600'}}>{meal.cuisine}</Text>
                   </View>
                 )}
                 <Text style={{ fontSize: 12, color: Colors.textSecondary }}>{timeLabel}</Text>
@@ -338,14 +339,14 @@ export default function DiscoverScreen() {
             onPress={() => { handleAddToPlan(meal); onClose(); }}
             style={{ backgroundColor: Colors.primary, borderRadius: 12, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}
           >
-            <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Add to Meal Plan</Text>
+            <Text style={{ color: '#FFF', fontSize: 16, fontFamily: FontFamily.bold, fontFamily: FontFamily.bold, fontWeight: '700'}}>Add to Meal Plan</Text>
           </TouchableOpacity>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <TouchableOpacity
               onPress={() => { handleSaveFav(meal); onClose(); }}
               style={{ flex: 1, backgroundColor: Colors.surface, borderRadius: 12, height: 44, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}
             >
-              <Text style={{ fontSize: 14, fontWeight: '600', color: saved ? Colors.primary : Colors.textSecondary }}>
+              <Text style={{ fontSize: 14, fontFamily: FontFamily.semiBold, fontFamily: FontFamily.semiBold, fontWeight: '600', color: saved ? Colors.primary : Colors.textSecondary }}>
                 {saved ? '♥ Saved' : '♡ Save'}
               </Text>
             </TouchableOpacity>
@@ -353,7 +354,7 @@ export default function DiscoverScreen() {
               onPress={() => { handleMealPress(meal); onClose(); }}
               style={{ flex: 1, backgroundColor: Colors.surface, borderRadius: 12, height: 44, alignItems: 'center', justifyContent: 'center' }}
             >
-              <Text style={{ fontSize: 14, fontWeight: '600', color: Colors.textSecondary }}>View recipe</Text>
+              <Text style={{ fontSize: 14, fontFamily: FontFamily.semiBold, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary }}>View recipe</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -392,7 +393,7 @@ export default function DiscoverScreen() {
                 justifyContent: 'center',
                 paddingHorizontal: 3,
               }}>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: '#FFFFFF' }}>
+                <Text style={{ fontSize: 9, fontFamily: FontFamily.bold, fontFamily: FontFamily.bold, fontWeight: '700', color: '#FFFFFF' }}>
                   {discoverFilterCount}
                 </Text>
               </View>
@@ -459,10 +460,10 @@ export default function DiscoverScreen() {
             >
               <ShieldCheck size={14} color={Colors.primary} strokeWidth={2} style={{ marginRight: 6 }} />
               <Text style={{ flex: 1, fontSize: 13, color: Colors.textSecondary }} numberOfLines={1}>
-                <Text style={{ fontWeight: '600', color: Colors.primary }}>Household filter: </Text>
+                <Text style={{ fontFamily: FontFamily.semiBold, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.primary }}>Household filter: </Text>
                 {activePrefs.join(' · ')}
               </Text>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: Colors.primary, marginLeft: 8 }}>Edit</Text>
+              <Text style={{ fontSize: 13, fontFamily: FontFamily.semiBold, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.primary, marginLeft: 8 }}>Edit</Text>
               <ChevronRight size={13} color={Colors.primary} strokeWidth={2} style={{ marginLeft: 2 }} />
             </TouchableOpacity>
           );
@@ -565,7 +566,7 @@ export default function DiscoverScreen() {
                       }}>
                         <ArrowRight size={16} color={Colors.white} strokeWidth={2.5} />
                       </View>
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: Colors.primary, textAlign: 'center' }}>
+                      <Text style={{ fontSize: 11, fontFamily: FontFamily.bold, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.primary, textAlign: 'center' }}>
                         See all
                       </Text>
                     </TouchableOpacity>
@@ -637,7 +638,7 @@ export default function DiscoverScreen() {
           }}
         >
           <Check size={15} color="#FFFFFF" />
-          <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600', flexShrink: 1 }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 15, fontFamily: FontFamily.semiBold, fontFamily: FontFamily.semiBold, fontWeight: '600', flexShrink: 1 }}>
             {toastMsg}
           </Text>
         </Animated.View>
@@ -662,13 +663,15 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 17,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.text,
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 16,
-    fontWeight: '400' as const,
+    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.regular, fontWeight: '400',
     color: Colors.textSecondary,
     textAlign: 'center' as const,
     marginTop: 8,
@@ -683,12 +686,14 @@ const styles = StyleSheet.create({
   },
   carouselTitle: {
     fontSize: 20,
-    fontWeight: '700' as const,
+    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.bold, fontWeight: '700',
     color: Colors.text,
   },
   carouselSubtitle: {
     fontSize: 14,
-    fontWeight: '400' as const,
+    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.regular, fontWeight: '400',
     color: Colors.textSecondary,
     paddingHorizontal: 16,
     marginBottom: 8,

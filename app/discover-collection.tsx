@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack, Href } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import DiscoverCarouselCard, {
   CAROUSEL_CARD_WIDTH,
@@ -142,6 +143,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     fontSize: 18,
+    fontFamily: FontFamily.bold,
     fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
@@ -163,6 +165,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 17,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.text,
   },

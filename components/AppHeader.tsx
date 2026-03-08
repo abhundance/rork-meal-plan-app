@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { UtensilsCrossed, User } from 'lucide-react-native';
 import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { Shadows } from '@/constants/theme';
 
 interface AppHeaderProps {
@@ -61,6 +62,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
+    fontFamily: FontFamily.semiBold,
     fontSize: 17,
     fontWeight: '600' as const,
     color: Colors.text,

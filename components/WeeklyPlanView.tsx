@@ -12,6 +12,7 @@ import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { ChevronLeft, ChevronRight, Copy, Wand2, CalendarDays, Clock, Bike } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors, { SlotColors } from '@/constants/colors';
+import { FontFamily } from '@/constants/typography';
 import { MealSlot, PlannedMeal } from '@/types';
 import { useFavs } from '@/providers/FavsProvider';
 import { useWeekRatings } from '@/hooks/useWeekRatings';
@@ -386,6 +387,7 @@ const styles = StyleSheet.create({
   },
   weekLabel: {
     fontSize: 16,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     minWidth: 140,
@@ -408,6 +410,7 @@ const styles = StyleSheet.create({
   },
   smartFillText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -422,6 +425,7 @@ const styles = StyleSheet.create({
   },
   copyText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
   },
@@ -433,6 +437,7 @@ const styles = StyleSheet.create({
   },
   clearText: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
   },
@@ -454,6 +459,7 @@ const styles = StyleSheet.create({
   },
   slotHeaderText: {
     fontSize: 9,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     textAlign: 'center',
@@ -481,6 +487,7 @@ const styles = StyleSheet.create({
   },
   dayAbbrev: {
     fontSize: 9,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     letterSpacing: 0.4,
@@ -500,6 +507,7 @@ const styles = StyleSheet.create({
   },
   dateNum: {
     fontSize: 13,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
   },
@@ -539,6 +547,7 @@ const styles = StyleSheet.create({
   },
   mealPillText: {
     fontSize: 9,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.primary,
     textAlign: 'center',
@@ -600,6 +609,7 @@ const emptyStyles = StyleSheet.create({
   pastTitle: {
     marginTop: 12,
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     textAlign: 'center',
@@ -613,6 +623,7 @@ const emptyStyles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 4,
@@ -656,6 +667,7 @@ const emptyStyles = StyleSheet.create({
   },
   optionTitle: {
     fontSize: 15,
+    fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
     marginBottom: 3,
@@ -695,6 +707,7 @@ const emptyStyles = StyleSheet.create({
   },
   feedbackLabel: {
     fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.primary,
     flex: 1,
