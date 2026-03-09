@@ -17,13 +17,13 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
-import { ChevronLeft, Bike, ClipboardIcon as ClipboardPasteIcon, CheckCircle2 } from 'lucide-react-native';
+import { ChevronLeft, Bike, ClipboardIcon as ClipboardPasteIcon, CheckCircle2, Sparkles } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { Recipe } from '@/types';
 import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
-import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
+import { detectPlatformFromUrl, getPlatformLabel, extractNameFromDeliveryUrl } from '@/services/deliveryUtils';
 import PrimaryButton from '@/components/PrimaryButton';
 
 export default function AddToFavsDeliveryScreen() {
@@ -34,6 +34,45 @@ export default function AddToFavsDeliveryScreen() {
 
   const [mealName, setMealName] = useState('');
   const [deliveryUrl, setDeliveryUrl] = useState('');
+  // True when the meal name was auto-filled from the URL (not manually typed)
+  const [nameAutoFilled, setNameAutoFilled] = useState(false);
+
+  const handleUrlChange = useCallback((text: string) => {
+    setDeliveryUrl(text);
+    const trimmed = text.trim();
+    if (trimmed.startsWith('http')) {
+      const extracted = extractNameFromDeliveryUrl(trimmed);
+      // Auto-fill only if name is empty or was previously auto-filled
+      if (extracted && (mealName === '' || nameAutoFilled)) {
+        setMealName(extracted);
+        setNameAutoFilled(true);
+      }
+    } else if (nameAutoFilled) {
+      // URL cleared — remove the auto-filled name too
+      setMealName('');
+      setNameAutoFilled(false);
+    }
+  }, [mealName, nameAutoFilled]);
+
+  const handleNameChange = useCallback((text: string) => {
+    setMealName(text);
+    // Any manual edit clears the auto-fill flag
+    setNameAutoFilled(false);
+  }, []);
+
+  const handlePasteFromClipboard = useCallback(async () => {
+    const text = await Clipboard.getStringAsync();
+    if (!text) return;
+    setDeliveryUrl(text);
+    const trimmed = text.trim();
+    if (trimmed.startsWith('http')) {
+      const extracted = extractNameFromDeliveryUrl(trimmed);
+      if (extracted && (mealName === '' || nameAutoFilled)) {
+        setMealName(extracted);
+        setNameAutoFilled(true);
+      }
+    }
+  }, [mealName, nameAutoFilled]);
 
   const handleSave = useCallback(() => {
     if (!mealName.trim()) return;
@@ -61,10 +100,9 @@ export default function AddToFavsDeliveryScreen() {
     addFav(favMeal);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     // Came from add-to-favs/index — 2 screens in the modal stack.
-    // router.back() pops delivery → index; router.dismiss() then closes index → Favs tab.
     router.back();
     router.dismiss();
-  }, [mealName, deliveryUrl, addFav]);
+  }, [mealName, deliveryUrl, addFav, defaultServing]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -92,26 +130,14 @@ export default function AddToFavsDeliveryScreen() {
           <Text style={styles.heading}>Add from Delivery App</Text>
         </View>
 
-        <Text style={styles.sectionLabel}>MEAL NAME</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. Butter Chicken from Spice Garden"
-          placeholderTextColor={Colors.textSecondary}
-          value={mealName}
-          onChangeText={setMealName}
-          autoCapitalize="words"
-          autoFocus
-          testID="delivery-name-input"
-        />
-
-        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>DELIVERY LINK (OPTIONAL)</Text>
+        {/* URL field — first, since it drives the name auto-fill */}
         <View style={styles.linkRow}>
           <TextInput
             style={styles.linkInput}
-            placeholder="Paste Uber Eats, Zomato, Grab link..."
+            placeholder="Paste your Uber Eats, Zomato or Grab link…"
             placeholderTextColor={Colors.textSecondary}
             value={deliveryUrl}
-            onChangeText={setDeliveryUrl}
+            onChangeText={handleUrlChange}
             keyboardType="url"
             autoCapitalize="none"
             autoCorrect={false}
@@ -119,10 +145,7 @@ export default function AddToFavsDeliveryScreen() {
           />
           <TouchableOpacity
             style={styles.clipboardBtn}
-            onPress={async () => {
-              const text = await Clipboard.getStringAsync();
-              if (text) setDeliveryUrl(text);
-            }}
+            onPress={handlePasteFromClipboard}
             testID="delivery-clipboard-btn"
           >
             <ClipboardPasteIcon size={20} color={Colors.primary} strokeWidth={2} />
@@ -137,6 +160,26 @@ export default function AddToFavsDeliveryScreen() {
             </Text>
           </View>
         )}
+
+        {/* Meal name — auto-filled from URL, always editable */}
+        <View style={styles.nameLabelRow}>
+          <Text style={styles.sectionLabel}>MEAL NAME</Text>
+          {nameAutoFilled && (
+            <View style={styles.autoFillBadge}>
+              <Sparkles size={11} color={Colors.primary} strokeWidth={2} />
+              <Text style={styles.autoFillText}>auto-filled</Text>
+            </View>
+          )}
+        </View>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. Butter Chicken from Spice Garden"
+          placeholderTextColor={Colors.textSecondary}
+          value={mealName}
+          onChangeText={handleNameChange}
+          autoCapitalize="words"
+          testID="delivery-name-input"
+        />
 
         <PrimaryButton
           label="Save Meal"
@@ -219,7 +262,29 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+  },
+  nameLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
     marginBottom: 8,
+  },
+  autoFillBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 99,
+  },
+  autoFillText: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+    textTransform: 'lowercase',
   },
   input: {
     backgroundColor: Colors.surface,
