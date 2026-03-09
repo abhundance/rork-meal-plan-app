@@ -28,12 +28,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import {
   X, Plus, Minus, Camera, Sparkles, ChevronUp, ChevronDown,
-  Clipboard as ClipboardIcon, CheckCircle2, Link as LinkIcon,
   Mic, Send,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import * as Clipboard from 'expo-clipboard';
-import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
 import {
   extractRecipeMetadata,
   extractRecipeFromVideoUrl,
@@ -95,7 +92,6 @@ export default function AddRecipeEntryScreen() {
     { name: '', quantity: '', unit: '' },
   ]);
   const [methodSteps, setMethodSteps] = useState<string[]>(['']);
-  const [deliveryUrl, setDeliveryUrl] = useState('');
   const [cookingTimeBand, setCookingTimeBand] = useState('');
   const [accordionOpen, setAccordionOpen] = useState(false);
   const [isAiFillingMetadata, setIsAiFillingMetadata] = useState(false);
@@ -313,8 +309,6 @@ export default function AddRecipeEntryScreen() {
       created_at: new Date().toISOString(),
       is_ingredient_complete: validIngredients.length > 0,
       is_recipe_complete: validSteps.length > 0,
-      delivery_url: deliveryUrl.trim() || undefined,
-      delivery_platform: deliveryUrl.trim() ? (detectPlatformFromUrl(deliveryUrl.trim()) ?? undefined) : undefined,
     };
     addFav(newMeal);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -327,8 +321,6 @@ export default function AddRecipeEntryScreen() {
         serving_size: pending.defaultServing,
         ingredients: newMeal.ingredients,
         recipe_serving_size: newMeal.recipe_serving_size,
-        delivery_url: newMeal.delivery_url,
-        delivery_platform: newMeal.delivery_platform,
         meal_id: newMeal.id,
       };
       addMeal(plannedMeal);
@@ -339,7 +331,7 @@ export default function AddRecipeEntryScreen() {
   }, [
     name, cookingTimeBand, prepTime, cookTime, mealType, selectedImageUri, cuisine,
     dishCategory, proteinSource, occasions, dietLabels, allergens, caloriesPerServing,
-    proteinPerServingG, carbsPerServingG, customTags, description, servingSize, deliveryUrl,
+    proteinPerServingG, carbsPerServingG, customTags, description, servingSize,
     addFav, addMeal,
   ]);
 
@@ -643,30 +635,6 @@ export default function AddRecipeEntryScreen() {
               </View>
             )}
 
-            {/* Ordering / Delivery */}
-            <Text style={styles.sectionHeader}>Ordering</Text>
-            <Text style={styles.label}>Delivery link (optional)</Text>
-            <View style={styles.deliveryRow}>
-              <TextInput style={[styles.input, styles.deliveryInput]} placeholder="Paste Uber Eats, Zomato, Grab link..." placeholderTextColor={Colors.textSecondary} value={deliveryUrl} onChangeText={setDeliveryUrl} autoCapitalize="none" keyboardType="url" />
-              <TouchableOpacity style={styles.clipboardBtn} onPress={async () => { const text = await Clipboard.getStringAsync(); if (text) setDeliveryUrl(text); }}>
-                <ClipboardIcon size={20} color={Colors.primary} strokeWidth={2} />
-              </TouchableOpacity>
-            </View>
-            {deliveryUrl.trim().length > 0 && (() => {
-              const platform = detectPlatformFromUrl(deliveryUrl.trim());
-              return platform !== null ? (
-                <View style={styles.platformChip}>
-                  <CheckCircle2 size={14} color={Colors.primary} strokeWidth={2} />
-                  <Text style={styles.platformChipText}>{getPlatformLabel(platform)} detected</Text>
-                </View>
-              ) : (
-                <View style={styles.platformChip}>
-                  <LinkIcon size={14} color="#6B7280" strokeWidth={2} />
-                  <Text style={[styles.platformChipText, { color: '#6B7280' }]}>Link saved</Text>
-                </View>
-              );
-            })()}
-
             <View style={{ height: 100 }} />
           </ScrollView>
 
@@ -825,10 +793,5 @@ const styles = StyleSheet.create({
   customTagList: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   customTag: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.surface, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
   customTagText: { fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.primary },
-  deliveryRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  deliveryInput: { flex: 1 },
-  clipboardBtn: { width: 44, height: 44, borderRadius: BorderRadius.button, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' },
-  platformChip: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
-  platformChipText: { fontSize: 12, color: Colors.primary },
   bottomBar: { paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.divider, backgroundColor: Colors.background },
 });
