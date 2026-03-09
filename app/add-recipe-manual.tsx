@@ -520,9 +520,7 @@ export default function AddMealScreen() {
               <View style={styles.accordionHeaderTextBlock}>
                 <Text style={styles.accordionHeaderTitle}>Recipe Details</Text>
                 <Text style={styles.accordionHeaderSubtitle}>
-                  {isEditing
-                    ? 'Dish type · Protein · Dietary · Nutrition'
-                    : 'Tap to open — AI fills this for you'}
+                  Dish type · Protein · Dietary · Nutrition
                 </Text>
               </View>
             </View>
