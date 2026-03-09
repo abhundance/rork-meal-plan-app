@@ -157,7 +157,7 @@ export default function FavsScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
-  const [favFilters, setFavFilters] = useState<RecipeFilterState>({ ...DEFAULT_FILTER_STATE, sort: 'most_used' });
+  const [favFilters, setFavFilters] = useState<RecipeFilterState>({ ...DEFAULT_FILTER_STATE, sort: 'recently_added' });
   const [mealTypeFilter, setMealTypeFilter] = useState<string>('all');
   const [dishTypeFilter, setDishTypeFilter] = useState<string>('all');
   const [proteinFilter,  setProteinFilter]  = useState<string>('all');
@@ -247,7 +247,7 @@ export default function FavsScreen() {
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFavFilters({ ...DEFAULT_FILTER_STATE, sort: 'most_used' });
+    setFavFilters({ ...DEFAULT_FILTER_STATE, sort: 'recently_added' });
     setSearch('');
     setMealTypeFilter('all');
     setDishTypeFilter('all');
@@ -668,7 +668,7 @@ export default function FavsScreen() {
             {/* ── Inline filter pill row ─────────────────────────── */}
             {(() => {
               const sortLabel    = SORT_OPTIONS.find(o => o.value === favFilters.sort)?.label ?? 'Sort';
-              const sortActive   = favFilters.sort !== 'most_used';
+              const sortActive   = favFilters.sort !== 'recently_added';
               const whenLabel    = MEAL_TYPE_OPTIONS.find(o => o.value === mealTypeFilter)?.label ?? 'When';
               const whenActive   = mealTypeFilter !== 'all';
               const typeLabel    = DISH_TYPE_OPTIONS.find(o => o.value === dishTypeFilter)?.label ?? 'Type';
