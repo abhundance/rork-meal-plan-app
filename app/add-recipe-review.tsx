@@ -931,7 +931,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
-    color: '#7C3AED',
+    color: Colors.primary,
     textAlign: 'center',
     marginTop: 2,
   },

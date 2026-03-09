@@ -1171,7 +1171,7 @@ const styles = StyleSheet.create({
   },
   listAccentBand: {
     height: 4,
-    backgroundColor: '#F0EEF9',
+    backgroundColor: Colors.primaryLight,
     width: '100%',
   },
   listCardRow: {
@@ -1198,7 +1198,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap' as const,
   },
   cuisinePill: {
-    backgroundColor: '#F0EEF9',
+    backgroundColor: Colors.primaryLight,
     borderRadius: 20,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -1207,11 +1207,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: FontFamily.semiBold,
     fontFamily: FontFamily.semiBold, fontWeight: '600',
-    color: '#7B68CC',
+    color: Colors.primary,
   },
   timeText: {
     fontSize: 11,
-    color: '#8B7EA8',
+    color: Colors.textSecondary,
   },
   listActions: {
     alignItems: 'center' as const,
