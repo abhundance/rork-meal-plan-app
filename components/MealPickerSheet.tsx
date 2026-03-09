@@ -478,10 +478,10 @@ export default function MealPickerSheet({
         ) : (
           <>
             <View style={styles.manualForm}>
-              <View style={styles.manualIconWrap}>
-                <Utensils size={32} color={Colors.primary} strokeWidth={1.5} />
+              <View style={styles.manualHeadingRow}>
+                <Utensils size={22} color={Colors.primary} strokeWidth={1.5} />
+                <Text style={styles.manualFormHeading}>Add Without Recipe</Text>
               </View>
-              <Text style={styles.manualFormHeading}>Add Without Recipe</Text>
               <Text style={styles.manualLabel}>Meal name</Text>
               <TextInput
                 style={styles.manualInput}
@@ -665,24 +665,20 @@ const styles = StyleSheet.create({
   manualForm: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 32,
+    paddingTop: 16,
     alignItems: 'center',
   },
-  manualIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: Colors.primaryLight,
+  manualHeadingRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 20,
   },
   manualFormHeading: {
     fontSize: 20,
     fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
-    marginBottom: 20,
   },
   manualLabel: {
     fontSize: 14,
