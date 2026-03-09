@@ -20,7 +20,7 @@ export default {
 
   // Surfaces — intentionally neutral so the red accent pops rather than bleeds
   background: '#FFFFFF',       // page background (pure white — Supreme aesthetic)
-  surface: '#F5F5F5',          // input bg, chip default bg (visibly distinct from white bg)
+  surface: '#F8F8F8',          // input bg, chip default bg (visibly distinct from white bg)
   card: '#FFFFFF',             // card backgrounds (elevation via shadow, not color)
 
   // Text
