@@ -102,6 +102,7 @@ const PROTEIN_OPTIONS = [
   { label: 'Eggs',         value: 'egg'      },
   { label: 'Plant-Based',  value: 'plant'    },
   { label: 'Dairy',        value: 'dairy'    },
+  { label: 'None',         value: 'none'     },
 ];
 const DIET_OPTIONS = [
   { label: 'Any',          value: 'all'         },
