@@ -91,9 +91,8 @@ const COLS = 4;
 const H_PAD = 12;
 const COL_GAP = 6;
 const CARD_W = Math.floor((SCREEN_W - H_PAD * 2 - COL_GAP * (COLS - 1)) / COLS);
-const CARD_H = Math.round(CARD_W * 1.38);
-const IMG_H = Math.round(CARD_H * 0.62);
-const STRIP_H = CARD_H - IMG_H;
+const IMG_H = Math.round(CARD_W * 1.15);  // portrait image tile, no card container
+const CARD_H = IMG_H + 36;                // add-tile height ≈ image + text row below
 
 const FAVS_FILTER_CONFIG: RecipeFilterConfig = {
   showSort:        false,   // Sort is owned by the inline Sort pill, not the filter sheet
@@ -938,60 +937,51 @@ const FavGridCard = React.memo(function FavGridCard({
           Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
         }
       >
+        {/* Image tile — rounded on all sides, no card container */}
         <View style={{
           width: CARD_W,
-          height: CARD_H,
-          borderRadius: 12,
+          height: IMG_H,
+          borderRadius: BorderRadius.card,
           overflow: 'hidden' as const,
-          backgroundColor: Colors.card,
         }}>
-          <View style={{
-            width: CARD_W,
-            height: IMG_H,
-            overflow: 'hidden' as const,
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-          }}>
-            {meal.image_url ? (
-              <Image source={{ uri: meal.image_url }} style={{ width: CARD_W, height: IMG_H }} resizeMode="cover" />
-            ) : (
-              <View style={{
-                width: CARD_W,
-                height: IMG_H,
-                overflow: 'hidden' as const,
-              }}>
-                <MealImagePlaceholder
-                  size="card"
-                  borderRadius={0}
-                  mealType={meal.meal_type}
-                  cuisine={meal.cuisine}
-                  name={meal.name}
-                  deliveryPlatform={deliveryPlatform}
-                  familyAvatarUrl={!deliveryPlatform ? familyAvatarUrl : undefined}
-                  familyInitials={!deliveryPlatform ? familyInitials : undefined}
-                />
-              </View>
-            )}
-          </View>
-          <View style={{
-            height: STRIP_H,
-            backgroundColor: Colors.surface,
-            flexDirection: 'row' as const,
-            alignItems: 'center' as const,
-            paddingHorizontal: 5,
-            gap: 3,
-          }}>
-              <Text style={{ fontSize: 10.5, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.text, flex: 1, lineHeight: 13 }} numberOfLines={2}>{meal.name}</Text>
-              <TouchableOpacity
-                hitSlop={8}
-                onPress={(e) => {
-                  e.stopPropagation?.();
-                  onAddToPlan();
-                }}
-              >
-                <CalendarPlus size={15} color={Colors.primary} strokeWidth={2} />
-              </TouchableOpacity>
-            </View>
+          {meal.image_url ? (
+            <Image source={{ uri: meal.image_url }} style={{ width: CARD_W, height: IMG_H }} resizeMode="cover" />
+          ) : (
+            <MealImagePlaceholder
+              size="card"
+              borderRadius={BorderRadius.card}
+              mealType={meal.meal_type}
+              cuisine={meal.cuisine}
+              name={meal.name}
+              deliveryPlatform={deliveryPlatform}
+              familyAvatarUrl={!deliveryPlatform ? familyAvatarUrl : undefined}
+              familyInitials={!deliveryPlatform ? familyInitials : undefined}
+            />
+          )}
+        </View>
+        {/* Text row — sits directly on the page background, no card */}
+        <View style={{
+          width: CARD_W,
+          paddingTop: Spacing.xs,
+          flexDirection: 'row' as const,
+          alignItems: 'flex-start' as const,
+          gap: Spacing.xs,
+        }}>
+          <Text
+            style={{ flex: 1, fontSize: 11, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.text, lineHeight: 14 }}
+            numberOfLines={2}
+          >
+            {meal.name}
+          </Text>
+          <TouchableOpacity
+            hitSlop={8}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              onAddToPlan();
+            }}
+          >
+            <CalendarPlus size={14} color={Colors.primary} strokeWidth={2} />
+          </TouchableOpacity>
         </View>
       </Pressable>
     </Animated.View>
