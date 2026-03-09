@@ -462,18 +462,18 @@ export default function MealPickerSheet({
               testID="manual-meal-input"
             />
             <TouchableOpacity
-              style={styles.saveToMyMealsRow}
+              style={[styles.saveToMyMealsRow, saveToMyMeals && styles.saveToMyMealsRowActive]}
               onPress={() => setSaveToMyMeals((v) => !v)}
               activeOpacity={0.8}
               testID="save-to-my-meals-toggle"
             >
               <Heart
-                size={18}
+                size={20}
                 color={saveToMyMeals ? Colors.primary : Colors.textSecondary}
                 fill={saveToMyMeals ? Colors.primary : 'none'}
                 strokeWidth={2}
               />
-              <Text style={styles.saveToMyMealsText}>Save to My Meals</Text>
+              <Text style={[styles.saveToMyMealsText, saveToMyMeals && styles.saveToMyMealsTextActive]}>Save to Favourites</Text>
             </TouchableOpacity>
             <Text style={styles.manualHint}>
               You can add ingredients later from the meal detail screen.
@@ -691,13 +691,28 @@ const styles = StyleSheet.create({
   saveToMyMealsRow: {
     flexDirection: 'row' as const,
     alignItems: 'center',
-    gap: 8,
-    alignSelf: 'flex-start',
+    gap: 10,
     marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  saveToMyMealsRowActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
   },
   saveToMyMealsText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    flex: 1,
+  },
+  saveToMyMealsTextActive: {
+    color: Colors.primary,
   },
   backLinkText: {
     fontSize: 14,
