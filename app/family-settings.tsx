@@ -107,7 +107,7 @@ const sectionStyles = StyleSheet.create({
     fontSize: 12,
     color: Colors.white,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
 });
 
@@ -208,7 +208,7 @@ const switchStyles = StyleSheet.create({
   label: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.text,
   },
 });
@@ -946,7 +946,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textSecondary,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     backgroundColor: Colors.primaryLight,
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -1021,7 +1021,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textSecondary,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
   cardHelper: {
     fontSize: 13,
@@ -1041,7 +1041,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.primary,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
   pantryInputRow: {
     flexDirection: 'row',
@@ -1091,7 +1091,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
   pantryItemCategory: {
     fontSize: 12,
@@ -1248,7 +1248,7 @@ const styles = StyleSheet.create({
   dietarySubLabel: {
     fontSize: 13,
     color: Colors.textSecondary,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     marginBottom: 8,
   },
   dietaryHelperText: {

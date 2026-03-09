@@ -442,7 +442,7 @@ export default function AddMealReviewScreen() {
               <MealImagePlaceholder size="hero" mealType={mealType || undefined} cuisine={cuisine || undefined} name={name} />
             )}
             <View style={styles.heroEditBadge}>
-              <Camera size={16} color="#FFFFFF" strokeWidth={2} />
+              <Camera size={16} color={Colors.white} strokeWidth={2} />
               <Text style={styles.heroEditBadgeText}>
                 {selectedImageUri ? 'Change photo' : 'Add photo'}
               </Text>
@@ -930,7 +930,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.primary,
     textAlign: 'center',
     marginTop: 2,
@@ -963,13 +963,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 5,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: Colors.overlay,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   heroEditBadgeText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
     textTransform: 'uppercase' as const,
     letterSpacing: 1,
@@ -1036,7 +1036,7 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
   },
   chipTextActive: {
@@ -1157,13 +1157,13 @@ const styles = StyleSheet.create({
   addRowText: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.primary,
   },
   editLinkText: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.primary,
   },
   // ── Accordion ─────────────────────────────────────────────────────────────
@@ -1205,7 +1205,7 @@ const styles = StyleSheet.create({
   accordionFieldLabel: {
     fontSize: 11,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
     textTransform: 'uppercase' as const,
     letterSpacing: 1,
@@ -1232,7 +1232,7 @@ const styles = StyleSheet.create({
   nutritionLabel: {
     fontSize: 11,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
     marginBottom: 4,
   },
@@ -1243,7 +1243,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.text,
     textAlign: 'center' as const,
   },

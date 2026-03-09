@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
     gap: 4,
     alignSelf: 'flex-start' as const,
     backgroundColor: Colors.primaryLight,
-    borderRadius: 9999,
+    borderRadius: BorderRadius.pill,
     paddingVertical: 4,
     paddingHorizontal: 10,
   },
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   smartFillBtn: {
-    borderRadius: 9999,
+    borderRadius: BorderRadius.pill,
     backgroundColor: Colors.surface,
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   clearDayBtn: {
-    borderRadius: 9999,
+    borderRadius: BorderRadius.pill,
     backgroundColor: Colors.surface,
     paddingVertical: 6,
     paddingHorizontal: 14,

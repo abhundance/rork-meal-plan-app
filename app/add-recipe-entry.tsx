@@ -460,7 +460,7 @@ export default function AddRecipeEntryScreen() {
                 <MealImagePlaceholder size="hero" mealType={mealType} cuisine={cuisine} name={name} />
               )}
               <View style={styles.heroEditBadge}>
-                <Camera size={16} color="#FFFFFF" strokeWidth={2} />
+                <Camera size={16} color={Colors.white} strokeWidth={2} />
                 <Text style={styles.heroEditBadgeText}>{selectedImageUri ? 'Change photo' : 'Add photo'}</Text>
               </View>
             </TouchableOpacity>
@@ -746,8 +746,8 @@ const styles = StyleSheet.create({
   manualScrollContent: { padding: 20 },
   heroTouchable: { overflow: 'hidden', marginBottom: 4 },
   heroImage: { width: '100%', height: 220 },
-  heroEditBadge: { position: 'absolute', bottom: 10, right: 12, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  heroEditBadgeText: { color: '#FFFFFF', fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '600' },
+  heroEditBadge: { position: 'absolute', bottom: 10, right: 12, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: Colors.overlay, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  heroEditBadgeText: { color: Colors.white, fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '600' },
   label: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary, marginBottom: 6, marginTop: 12 },
   input: { backgroundColor: Colors.white, borderRadius: BorderRadius.button, borderWidth: 1, borderColor: Colors.surface, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: Colors.text },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
@@ -773,17 +773,17 @@ const styles = StyleSheet.create({
   aiFillStatusText: { fontSize: 13, fontFamily: FontFamily.regular, color: Colors.primary, flex: 1 },
   refillLinkText: { fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { backgroundColor: Colors.white, borderRadius: BorderRadius.button, borderWidth: 1, borderColor: '#DDD9F5', paddingHorizontal: 12, paddingVertical: 8 },
-  chipActive: { backgroundColor: Colors.primaryLight, borderColor: Colors.primary, borderWidth: 1.5 },
-  chipText: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '500', color: Colors.textSecondary },
+  chip: { backgroundColor: Colors.surface, borderRadius: BorderRadius.button, paddingHorizontal: 12, paddingVertical: 8 },
+  chipActive: { backgroundColor: Colors.primary },
+  chipText: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.text },
   chipTextActive: { color: Colors.primary, fontFamily: FontFamily.semiBold, fontWeight: '600' },
   timeInputRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
   timeInputWrap: { flex: 1 },
   timeInput: { backgroundColor: Colors.white, borderRadius: BorderRadius.button, borderWidth: 1, borderColor: Colors.surface, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: Colors.text },
   nutritionRow: { flexDirection: 'row', gap: Spacing.sm },
   nutritionField: { flex: 1 },
-  nutritionLabel: { fontSize: 11, fontFamily: FontFamily.semiBold, fontWeight: '500', color: Colors.textSecondary, marginBottom: 4 },
-  nutritionInput: { backgroundColor: Colors.surface, borderRadius: BorderRadius.button, paddingHorizontal: Spacing.sm, paddingVertical: 8, fontSize: 15, fontFamily: FontFamily.semiBold, fontWeight: '500', color: Colors.text, textAlign: 'center' },
+  nutritionLabel: { fontSize: 11, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary, marginBottom: 4 },
+  nutritionInput: { backgroundColor: Colors.surface, borderRadius: BorderRadius.button, paddingHorizontal: Spacing.sm, paddingVertical: 8, fontSize: 15, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.text, textAlign: 'center' },
   customTagRow: { flexDirection: 'row', gap: 8 },
   customTagInput: { flex: 1, backgroundColor: Colors.white, borderRadius: BorderRadius.button, borderWidth: 1, borderColor: Colors.surface, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: Colors.text },
   customTagAddBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' },

@@ -150,7 +150,7 @@ function ProgressBar({ checked, total }: { checked: number; total: number }) {
 const pbStyles = StyleSheet.create({
   wrap: { paddingHorizontal: 14, paddingVertical: 12 },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  label: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '500' as const, color: Colors.textSecondary },
+  label: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const, color: Colors.textSecondary },
   pct: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const, color: Colors.primary },
   pctDone: { color: Colors.success },
   track: { height: 6, borderRadius: 99, backgroundColor: Colors.surface, overflow: 'hidden' },
@@ -315,8 +315,8 @@ const sheetStyles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: Colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: BorderRadius.card,
+    borderTopRightRadius: BorderRadius.card,
     ...Shadows.header,
   },
   handle: {
@@ -828,7 +828,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     backgroundColor: Colors.white,
   },
-  clearCheckedText: { fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '500' as const, color: Colors.textSecondary },
+  clearCheckedText: { fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '600' as const, color: Colors.textSecondary },
 
   weekRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, marginBottom: 6 },
   weekPill: {

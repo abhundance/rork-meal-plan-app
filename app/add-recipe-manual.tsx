@@ -399,7 +399,7 @@ export default function AddMealScreen() {
               <MealImagePlaceholder size="hero" mealType={mealType} cuisine={cuisine} name={name} />
             )}
             <View style={styles.heroEditBadge}>
-              <Camera size={16} color="#FFFFFF" strokeWidth={2} />
+              <Camera size={16} color={Colors.white} strokeWidth={2} />
               <Text style={styles.heroEditBadgeText}>
                 {selectedImageUri ? 'Change photo' : 'Add photo'}
               </Text>
@@ -860,13 +860,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 5,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: Colors.overlay,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   heroEditBadgeText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
@@ -1101,26 +1101,22 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chip: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.button,
-    borderWidth: 1,
-    borderColor: '#DDD9F5',
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   chipActive: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primary,
-    borderWidth: 1.5,
+    backgroundColor: Colors.primary,
   },
   chipText: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
-    color: Colors.textSecondary,
+    fontWeight: '600' as const,
+    color: Colors.text,
   },
   chipTextActive: {
-    color: Colors.primary,
+    color: Colors.white,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
   },
@@ -1135,7 +1131,7 @@ const styles = StyleSheet.create({
   nutritionLabel: {
     fontSize: 11,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
     marginBottom: 4,
   },
@@ -1146,7 +1142,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.text,
     textAlign: 'center' as const,
   },

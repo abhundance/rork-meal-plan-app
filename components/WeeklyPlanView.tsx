@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight, Copy, Wand2, CalendarDays, Bike } from 'luci
 import * as Haptics from 'expo-haptics';
 import Colors, { SlotColors } from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
+import { BorderRadius } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
 import { useFavs } from '@/providers/FavsProvider';
 import { useWeekRatings } from '@/hooks/useWeekRatings';
@@ -402,7 +403,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   smartFillBtn: {
-    borderRadius: 9999,
+    borderRadius: BorderRadius.pill,
     backgroundColor: Colors.surface,
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -414,7 +415,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   copyBtn: {
-    borderRadius: 9999,
+    borderRadius: BorderRadius.pill,
     backgroundColor: Colors.surface,
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   clearBtn: {
-    borderRadius: 9999,
+    borderRadius: BorderRadius.pill,
     backgroundColor: Colors.surface,
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -704,7 +705,7 @@ const emptyStyles = StyleSheet.create({
   feedbackLabel: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.primary,
     flex: 1,
   },

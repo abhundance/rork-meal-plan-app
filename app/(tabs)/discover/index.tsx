@@ -393,7 +393,7 @@ export default function DiscoverScreen() {
                 justifyContent: 'center',
                 paddingHorizontal: 3,
               }}>
-                <Text style={{ fontSize: 9, fontFamily: FontFamily.bold, fontFamily: FontFamily.bold, fontWeight: '700', color: '#FFFFFF' }}>
+                <Text style={{ fontSize: 9, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.white }}>
                   {discoverFilterCount}
                 </Text>
               </View>
@@ -622,7 +622,7 @@ export default function DiscoverScreen() {
                 outputRange: [10, 0],
               }),
             }],
-            backgroundColor: '#111827',
+            backgroundColor: Colors.text,
             borderRadius: 12,
             paddingVertical: 12,
             paddingHorizontal: 16,
@@ -637,8 +637,8 @@ export default function DiscoverScreen() {
             elevation: 8,
           }}
         >
-          <Check size={15} color="#FFFFFF" />
-          <Text style={{ color: '#FFFFFF', fontSize: 15, fontFamily: FontFamily.semiBold, fontFamily: FontFamily.semiBold, fontWeight: '600', flexShrink: 1 }}>
+          <Check size={15} color={Colors.white} />
+          <Text style={{ color: Colors.white, fontSize: 15, fontFamily: FontFamily.semiBold, fontWeight: '600', flexShrink: 1 }}>
             {toastMsg}
           </Text>
         </Animated.View>

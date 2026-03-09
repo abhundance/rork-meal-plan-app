@@ -670,7 +670,7 @@ export default function FavsScreen() {
                 outputRange: [10, 0],
               }),
             }],
-            backgroundColor: '#111827',
+            backgroundColor: Colors.text,
             borderRadius: 12,
             paddingVertical: 12,
             paddingHorizontal: 16,
@@ -685,8 +685,8 @@ export default function FavsScreen() {
             elevation: 8,
           }}
         >
-          <Check size={15} color="#FFFFFF" />
-          <Text style={{ color: '#FFFFFF', fontSize: 15, fontFamily: FontFamily.semiBold, fontWeight: '600', flexShrink: 1 }}>
+          <Check size={15} color={Colors.white} />
+          <Text style={{ color: Colors.white, fontSize: 15, fontFamily: FontFamily.semiBold, fontWeight: '600', flexShrink: 1 }}>
             {toastMsg}
           </Text>
         </Animated.View>
@@ -869,7 +869,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontFamily: FontFamily.bold,
     fontFamily: FontFamily.bold, fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.white,
   },
   searchWrap: {
     flexDirection: 'row',
@@ -941,7 +941,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   listCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     borderRadius: 14,
     marginBottom: 10,
     overflow: 'hidden',
@@ -970,7 +970,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
     fontFamily: FontFamily.semiBold, fontWeight: '600',
-    color: '#2C2C2C',
+    color: Colors.text,
     marginBottom: 4,
   },
   listMeta: {
@@ -1298,7 +1298,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   addTileCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.white,
     borderRadius: 14,
     marginBottom: 10,
     overflow: 'hidden',

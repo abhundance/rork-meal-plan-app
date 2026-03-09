@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   dayName: {
     fontSize: 11,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
   },
   dayNameToday: {
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   slotOccupied: {
     backgroundColor: Colors.primaryLight,
     borderWidth: 1.5,
-    borderColor: 'rgba(123, 104, 204, 0.3)',
+    borderColor: 'rgba(237, 28, 22, 0.3)',
   },
   slotFull: {
     backgroundColor: Colors.surface,
@@ -291,12 +291,12 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(123, 104, 204, 0.7)',
+    backgroundColor: 'rgba(237, 28, 22, 0.7)',
   },
   extraPlus: {
     fontSize: 7,
     fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
-    color: 'rgba(123, 104, 204, 0.7)',
+    color: 'rgba(237, 28, 22, 0.7)',
   },
 });

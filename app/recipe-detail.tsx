@@ -38,7 +38,7 @@ import { Recipe, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { getFamilyInitials, isRealPhotoUrl } from '@/utils/familyAvatar';
 
-const DESTRUCTIVE_RED = '#E05252';
+const DESTRUCTIVE_RED = Colors.danger;
 
 export default function MealDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
   servingText: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
   },
   section: {
@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
   nutritionLabel: {
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
     marginTop: 4,
   },
