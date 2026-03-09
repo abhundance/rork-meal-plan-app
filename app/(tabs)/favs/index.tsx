@@ -460,7 +460,7 @@ export default function FavsScreen() {
         onAddToPlan={() => handleAddToPlan(item)}
         onLongPress={() => item.source === 'family_created' ? handleDeleteMyRecipe(item) : handleRemoveSaved(item)}
         deliveryPlatform={item.delivery_platform}
-        familyAvatarUrl={!item.delivery_platform && item.source === 'family_created' ? familyPhotoUrl : undefined}
+        familyAvatarUrl={undefined}
         familyInitials={!item.delivery_platform && item.source === 'family_created' ? familyInitials : undefined}
       />
     );
