@@ -9,7 +9,7 @@ import {
   Pressable,
 } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import { ChevronLeft, ChevronRight, Copy, Wand2, CalendarDays, Clock, Bike } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Copy, Wand2, CalendarDays, Bike } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors, { SlotColors } from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
@@ -165,7 +165,7 @@ export default function WeeklyPlanView({
               <Animated.View
                 style={[styles.smartFillBtn, { transform: [{ scale: smartFillScale }] }]}
               >
-                <Text style={styles.smartFillText}>🔀 Reshuffle</Text>
+                <Text style={styles.smartFillText}>Reshuffle</Text>
               </Animated.View>
             </Pressable>
 
@@ -177,7 +177,6 @@ export default function WeeklyPlanView({
               <Animated.View
                 style={[styles.copyBtn, { transform: [{ scale: copyScale }] }]}
               >
-                <Clock size={13} color={Colors.primary} strokeWidth={2} />
                 <Text style={styles.copyText}>Repeat</Text>
               </Animated.View>
             </Pressable>
@@ -404,7 +403,7 @@ const styles = StyleSheet.create({
   },
   smartFillBtn: {
     borderRadius: 9999,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.surface,
     paddingVertical: 6,
     paddingHorizontal: 14,
   },
@@ -412,14 +411,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: Colors.text,
   },
   copyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
     borderRadius: 9999,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.surface,
     paddingVertical: 6,
     paddingHorizontal: 14,
   },
@@ -427,13 +423,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: Colors.text,
   },
   clearBtn: {
     borderRadius: 9999,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.surface,
     paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
   },
   clearText: {
     fontSize: 13,
