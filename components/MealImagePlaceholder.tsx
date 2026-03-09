@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import Colors from '@/constants/colors';
 
 interface MealImagePlaceholderProps {
   mealType?: string;
@@ -107,8 +108,9 @@ const NAME_CUISINE_MAP: Array<[string[], [string, string, string]]> = [
   [['hummus', 'falafel', 'gyro', 'shawarma', 'pita', 'halloumi'], ['#CCFBF1', '#99F6E4', '#5EEAD4']],
 ];
 
-// Cucumber green gradient for family-created meals without a photo
-const FAMILY_GRADIENT: [string, string, string] = ['#E2F5EE', '#C5E4D5', '#A8DECA'];
+// Family gradient for meals without a photo — sourced from the design system token.
+// To update this gradient, change Colors.familyGradient in constants/colors.ts only.
+const FAMILY_GRADIENT = Colors.familyGradient;
 
 function getEmojiFromName(n: string): string | null {
   for (const [keywords, emoji] of NAME_EMOJI_MAP) {
@@ -367,7 +369,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_600SemiBold',
     fontSize: 13,
     fontWeight: '600',
-    color: '#4B5563',
+    color: Colors.textSecondary,
     marginTop: 10,
     letterSpacing: 0.2,
   },
@@ -389,12 +391,12 @@ const styles = StyleSheet.create({
     height: 94,
     borderRadius: 47,
   },
-  // Family initials: green circle with white letters
+  // Family initials: primary-coloured circle with white letters
   initialsCircle: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#2C845E',
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
