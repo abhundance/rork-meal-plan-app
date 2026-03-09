@@ -218,7 +218,7 @@ const ActionStrip = React.memo(function ActionStrip({ dayIsEmpty, onSmartPlan, o
         onPress={onSmartPlan}
       >
         <Animated.View style={[styles.smartFillBtn, { transform: [{ scale: smartScale }] }]}>
-          <Text style={styles.smartFillLabel}>{dayIsEmpty ? '✨ Smart Fill' : '🔀 Reshuffle'}</Text>
+          <Text style={styles.smartFillLabel}>{dayIsEmpty ? 'Smart Fill' : 'Reshuffle'}</Text>
         </Animated.View>
       </Pressable>
       <TouchableOpacity onPress={onRepeatDay} style={styles.clearDayBtn} activeOpacity={0.8}>
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
   },
   smartFillBtn: {
     borderRadius: 9999,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.surface,
     paddingVertical: 6,
     paddingHorizontal: 14,
   },
@@ -629,13 +629,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: Colors.text,
   },
   clearDayBtn: {
     borderRadius: 9999,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.surface,
     paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
   },
   clearDayLabel: {
     fontSize: 13,
