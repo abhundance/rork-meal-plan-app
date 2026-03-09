@@ -533,7 +533,7 @@ export default function AddRecipeEntryScreen() {
                 <Sparkles size={17} color={Colors.primary} strokeWidth={2} />
                 <View style={styles.accordionHeaderTextBlock}>
                   <Text style={styles.accordionHeaderTitle}>Recipe Details</Text>
-                  <Text style={styles.accordionHeaderSubtitle}>Tap to open — AI fills this for you</Text>
+                  <Text style={styles.accordionHeaderSubtitle}>Tap to open</Text>
                 </View>
               </View>
               {accordionOpen ? <ChevronUp size={18} color={Colors.primary} strokeWidth={2} /> : <ChevronDown size={18} color={Colors.primary} strokeWidth={2} />}
