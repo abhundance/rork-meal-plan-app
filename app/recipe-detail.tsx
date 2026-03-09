@@ -99,14 +99,14 @@ export default function MealDetailScreen() {
         cook_time: favMatch?.cook_time ?? discMatch?.cook_time,
         dietary_tags: favMatch?.dietary_tags ?? discMatch?.dietary_tags ?? [],
         custom_tags: favMatch?.custom_tags ?? [],
-        ingredients: plannedMeal.ingredients,
+        ingredients: favMatch?.ingredients ?? plannedMeal.ingredients,
         recipe_serving_size: plannedMeal.recipe_serving_size,
         method_steps: methodSteps,
         description: favMatch?.description ?? discMatch?.description,
         source: favMatch ? favMatch.source : (discMatch ? 'discover' as const : 'family_created' as const),
         add_to_plan_count: favMatch?.add_to_plan_count ?? 0,
         created_at: favMatch?.created_at ?? plannedMeal.date,
-        is_ingredient_complete: plannedMeal.ingredients.length > 0,
+        is_ingredient_complete: (favMatch?.ingredients ?? plannedMeal.ingredients).length > 0,
         is_recipe_complete: methodSteps.length > 0,
       } as Recipe;
     }
