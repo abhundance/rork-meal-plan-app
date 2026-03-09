@@ -938,61 +938,49 @@ const FavGridCard = React.memo(function FavGridCard({
           Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
         }
       >
-        {/* Outer view carries the shadow — must NOT have overflow:hidden or iOS clips the shadow */}
         <View style={{
           width: CARD_W,
           height: CARD_H,
           borderRadius: 12,
+          overflow: 'hidden' as const,
           backgroundColor: Colors.card,
-          shadowColor: Colors.shadow,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.10,
-          shadowRadius: 8,
-          elevation: 3,
         }}>
-          {/* Inner view handles overflow clipping so image corners are rounded */}
           <View style={{
             width: CARD_W,
-            height: CARD_H,
-            borderRadius: 12,
+            height: IMG_H,
             overflow: 'hidden' as const,
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
           }}>
-            <View style={{
-              width: CARD_W,
-              height: IMG_H,
-              overflow: 'hidden' as const,
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-            }}>
-              {meal.image_url ? (
-                <Image source={{ uri: meal.image_url }} style={{ width: CARD_W, height: IMG_H }} resizeMode="cover" />
-              ) : (
-                <View style={{
-                  width: CARD_W,
-                  height: IMG_H,
-                  overflow: 'hidden' as const,
-                }}>
-                  <MealImagePlaceholder
-                    size="card"
-                    borderRadius={0}
-                    mealType={meal.meal_type}
-                    cuisine={meal.cuisine}
-                    name={meal.name}
-                    deliveryPlatform={deliveryPlatform}
-                    familyAvatarUrl={!deliveryPlatform ? familyAvatarUrl : undefined}
-                    familyInitials={!deliveryPlatform ? familyInitials : undefined}
-                  />
-                </View>
-              )}
-            </View>
-            <View style={{
-              height: STRIP_H,
-              backgroundColor: Colors.card,
-              flexDirection: 'row' as const,
-              alignItems: 'center' as const,
-              paddingHorizontal: 5,
-              gap: 3,
-            }}>
+            {meal.image_url ? (
+              <Image source={{ uri: meal.image_url }} style={{ width: CARD_W, height: IMG_H }} resizeMode="cover" />
+            ) : (
+              <View style={{
+                width: CARD_W,
+                height: IMG_H,
+                overflow: 'hidden' as const,
+              }}>
+                <MealImagePlaceholder
+                  size="card"
+                  borderRadius={0}
+                  mealType={meal.meal_type}
+                  cuisine={meal.cuisine}
+                  name={meal.name}
+                  deliveryPlatform={deliveryPlatform}
+                  familyAvatarUrl={!deliveryPlatform ? familyAvatarUrl : undefined}
+                  familyInitials={!deliveryPlatform ? familyInitials : undefined}
+                />
+              </View>
+            )}
+          </View>
+          <View style={{
+            height: STRIP_H,
+            backgroundColor: Colors.surface,
+            flexDirection: 'row' as const,
+            alignItems: 'center' as const,
+            paddingHorizontal: 5,
+            gap: 3,
+          }}>
               <Text style={{ fontSize: 10.5, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.text, flex: 1, lineHeight: 13 }} numberOfLines={2}>{meal.name}</Text>
               <TouchableOpacity
                 hitSlop={8}
@@ -1004,7 +992,6 @@ const FavGridCard = React.memo(function FavGridCard({
                 <CalendarPlus size={15} color={Colors.primary} strokeWidth={2} />
               </TouchableOpacity>
             </View>
-          </View>
         </View>
       </Pressable>
     </Animated.View>
