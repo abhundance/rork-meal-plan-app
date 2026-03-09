@@ -476,40 +476,41 @@ export default function MealPickerSheet({
             </ScrollView>
           </>
         ) : (
-          <View style={styles.manualForm}>
-            <View style={styles.manualIconWrap}>
-              <Utensils size={32} color={Colors.primary} strokeWidth={1.5} />
-            </View>
-            <Text style={styles.manualFormHeading}>Add Without Recipe</Text>
-            <Text style={styles.manualLabel}>Meal name</Text>
-            <TextInput
-              style={styles.manualInput}
-              placeholder="e.g. Mum's Special Pasta"
-              placeholderTextColor={Colors.textSecondary}
-              value={manualName}
-              onChangeText={setManualName}
-              autoCapitalize="words"
-              autoFocus
-              testID="manual-meal-input"
-            />
-            <TouchableOpacity
-              style={styles.saveToMyMealsRow}
-              onPress={() => setSaveToMyMeals((v) => !v)}
-              activeOpacity={0.8}
-              testID="save-to-my-meals-toggle"
-            >
-              <Heart
-                size={20}
-                color={saveToMyMeals ? Colors.primary : Colors.textSecondary}
-                fill={saveToMyMeals ? Colors.primary : 'none'}
-                strokeWidth={2}
+          <>
+            <View style={styles.manualForm}>
+              <View style={styles.manualIconWrap}>
+                <Utensils size={32} color={Colors.primary} strokeWidth={1.5} />
+              </View>
+              <Text style={styles.manualFormHeading}>Add Without Recipe</Text>
+              <Text style={styles.manualLabel}>Meal name</Text>
+              <TextInput
+                style={styles.manualInput}
+                placeholder="e.g. Mum's Special Pasta"
+                placeholderTextColor={Colors.textSecondary}
+                value={manualName}
+                onChangeText={setManualName}
+                autoCapitalize="words"
+                autoFocus
+                testID="manual-meal-input"
               />
-              <Text style={[styles.saveToMyMealsText, saveToMyMeals && styles.saveToMyMealsTextActive]}>Save to Favourites</Text>
-            </TouchableOpacity>
-            <Text style={styles.manualHint}>
-              You can add ingredients later from the meal detail screen.
-            </Text>
-            <View style={{ flex: 1 }} />
+              <TouchableOpacity
+                style={styles.saveToMyMealsRow}
+                onPress={() => setSaveToMyMeals((v) => !v)}
+                activeOpacity={0.8}
+                testID="save-to-my-meals-toggle"
+              >
+                <Heart
+                  size={20}
+                  color={saveToMyMeals ? Colors.primary : Colors.textSecondary}
+                  fill={saveToMyMeals ? Colors.primary : 'none'}
+                  strokeWidth={2}
+                />
+                <Text style={[styles.saveToMyMealsText, saveToMyMeals && styles.saveToMyMealsTextActive]}>Save to Favourites</Text>
+              </TouchableOpacity>
+              <Text style={styles.manualHint}>
+                You can add ingredients later from the meal detail screen.
+              </Text>
+            </View>
             <View style={styles.manualActions}>
               <PrimaryButton
                 label="Add Meal"
@@ -517,7 +518,7 @@ export default function MealPickerSheet({
                 disabled={!manualName.trim()}
               />
             </View>
-          </View>
+          </>
         )}
       </KeyboardAvoidingView>
     </Modal>
@@ -710,8 +711,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   manualActions: {
-    width: '100%',
+    paddingHorizontal: 20,
     paddingBottom: 24,
+    paddingTop: 12,
   },
   backLink: {
     paddingVertical: 8,
