@@ -9,16 +9,63 @@ interface MealImagePlaceholderProps {
   name?: string;
   size: 'card' | 'thumbnail' | 'hero';
   borderRadius?: number;
-  /** URI for the family profile photo — shown in hero when the meal has no image */
+  /** URI for the family profile photo — shown when the meal has no image */
   familyAvatarUrl?: string;
   /** 1-2 letter initials to show when no family photo is set (e.g. "SF" for Smith Family) */
   familyInitials?: string;
+  /** Delivery platform key — when set, shows the platform logo instead of emoji/family identity */
+  deliveryPlatform?: string;
 }
 
 interface PlaceholderConfig {
   colors: [string, string, string];
   emoji: string;
 }
+
+// ─── Delivery platform config ────────────────────────────────────────────────
+// Logos served via Clearbit's free CDN (reliable for dev/staging).
+// Gradients are subtle brand-tinted backgrounds.
+interface DeliveryConfig {
+  gradient: [string, string, string];
+  logoUrl: string;
+  label: string;
+}
+
+const DELIVERY_CONFIG: Record<string, DeliveryConfig> = {
+  uber_eats: {
+    gradient: ['#F7F7F7', '#EFEFEF', '#E5E5E5'],
+    logoUrl: 'https://logo.clearbit.com/ubereats.com',
+    label: 'Uber Eats',
+  },
+  doordash: {
+    gradient: ['#FFF4F2', '#FFE4DC', '#FFD4C8'],
+    logoUrl: 'https://logo.clearbit.com/doordash.com',
+    label: 'DoorDash',
+  },
+  deliveroo: {
+    gradient: ['#F0FDF8', '#D6F5EA', '#BDEADB'],
+    logoUrl: 'https://logo.clearbit.com/deliveroo.com',
+    label: 'Deliveroo',
+  },
+  zomato: {
+    gradient: ['#FFF5F5', '#FFE0E0', '#FFCECE'],
+    logoUrl: 'https://logo.clearbit.com/zomato.com',
+    label: 'Zomato',
+  },
+  grab: {
+    gradient: ['#F3FFF0', '#DCFAD4', '#C5F5B8'],
+    logoUrl: 'https://logo.clearbit.com/grab.com',
+    label: 'Grab',
+  },
+  swiggy: {
+    gradient: ['#FFFAF0', '#FFECD4', '#FFDFB8'],
+    logoUrl: 'https://logo.clearbit.com/swiggy.com',
+    label: 'Swiggy',
+  },
+};
+
+const DELIVERY_FALLBACK_GRADIENT: [string, string, string] = ['#F5F5F5', '#EBEBEB', '#E0E0E0'];
+// ─────────────────────────────────────────────────────────────────────────────
 
 const NAME_EMOJI_MAP: Array<[string[], string]> = [
   [['rice', 'biryani', 'pilaf', 'risotto'], '🍚'],
@@ -147,6 +194,7 @@ export default function MealImagePlaceholder({
   borderRadius,
   familyAvatarUrl,
   familyInitials,
+  deliveryPlatform,
 }: MealImagePlaceholderProps) {
   const config = getConfig(mealType, cuisine, name);
 
@@ -160,8 +208,8 @@ export default function MealImagePlaceholder({
     }
     if (isCard) {
       if (borderRadius !== undefined) {
-        // borderRadius=0 also means "fill parent" — drop the aspectRatio constraint
-        return [styles.containerCard, { borderRadius, aspectRatio: undefined as any, width: '100%', height: '100%' }];
+        // borderRadius=0 means "fill parent" — drop the aspectRatio constraint
+        return [styles.containerCard, { borderRadius, aspectRatio: undefined as any, width: '100%' as const, height: '100%' as const }] as any;
       }
       return styles.containerCard;
     }
@@ -171,12 +219,48 @@ export default function MealImagePlaceholder({
   const glowSize = isThumbnail ? 30 : isCard ? 56 : 100;
   const emojiFontSize = isThumbnail ? 26 : isCard ? 42 : 70;
 
-  // Detect whether familyAvatarUrl is a real photo URI (not an emoji string)
+  // ─── 1. Delivery platform logo ──────────────────────────────────────────────
+  if (deliveryPlatform) {
+    const dc = DELIVERY_CONFIG[deliveryPlatform];
+    const gradient = dc?.gradient ?? DELIVERY_FALLBACK_GRADIENT;
+    const logoUrl = dc?.logoUrl;
+    const label = dc?.label ?? 'Delivery';
+
+    // Logo container size scaled by size prop
+    const logoSize = isThumbnail ? 26 : isCard ? 48 : 72;
+    const logoRadius = isThumbnail ? 6 : isCard ? 10 : 14;
+
+    return (
+      <LinearGradient
+        colors={gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={containerStyle}
+      >
+        {logoUrl ? (
+          <View style={[styles.logoContainer, { width: logoSize, height: logoSize, borderRadius: logoRadius }]}>
+            <Image
+              source={{ uri: `${logoUrl}?size=128` }}
+              style={{ width: logoSize, height: logoSize, borderRadius: logoRadius }}
+              contentFit="contain"
+            />
+          </View>
+        ) : (
+          // Fallback for unknown "other" platforms
+          <Text style={{ fontSize: emojiFontSize }}>🛵</Text>
+        )}
+        {isHero && label && (
+          <Text style={styles.deliveryLabel}>{label}</Text>
+        )}
+      </LinearGradient>
+    );
+  }
+
+  // ─── 2. Family avatar photo or initials ─────────────────────────────────────
   const hasRealPhoto =
     !!familyAvatarUrl &&
     (familyAvatarUrl.startsWith('http') || familyAvatarUrl.startsWith('file://'));
 
-  // Show family avatar photo or initials for ALL sizes when either prop is provided
   if (hasRealPhoto || familyInitials) {
     // Scale avatar dimensions by size
     const circleSize = isThumbnail ? 30 : isCard ? 64 : 100;
@@ -216,6 +300,7 @@ export default function MealImagePlaceholder({
     );
   }
 
+  // ─── 3. Default emoji + colour gradient ────────────────────────────────────
   return (
     <LinearGradient
       colors={config.colors}
@@ -265,6 +350,26 @@ const styles = StyleSheet.create({
   glow: {
     position: 'absolute',
     backgroundColor: 'rgba(255,255,255,0.28)',
+  },
+  // Delivery platform logo container
+  logoContainer: {
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  deliveryLabel: {
+    fontFamily: 'Nunito_600SemiBold',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginTop: 10,
+    letterSpacing: 0.2,
   },
   // Family avatar: circular photo with white ring
   avatarRing: {

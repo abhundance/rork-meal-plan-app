@@ -459,8 +459,9 @@ export default function FavsScreen() {
         onPress={() => handleMealPress(item)}
         onAddToPlan={() => handleAddToPlan(item)}
         onLongPress={() => item.source === 'family_created' ? handleDeleteMyRecipe(item) : handleRemoveSaved(item)}
-        familyAvatarUrl={item.source === 'family_created' ? familyPhotoUrl : undefined}
-        familyInitials={item.source === 'family_created' ? familyInitials : undefined}
+        deliveryPlatform={item.delivery_platform}
+        familyAvatarUrl={!item.delivery_platform && item.source === 'family_created' ? familyPhotoUrl : undefined}
+        familyInitials={!item.delivery_platform && item.source === 'family_created' ? familyInitials : undefined}
       />
     );
   }, [handleMealPress, handleAddToPlan, handleDeleteMyRecipe, handleRemoveSaved, openAddMethodSheet, familyPhotoUrl, familyInitials]);
@@ -913,10 +914,12 @@ interface FavGridCardProps {
   familyAvatarUrl?: string;
   /** 1-2 letter initials shown when no photo is set (e.g. "SF") */
   familyInitials?: string;
+  /** Delivery platform key — when set, shows the platform logo */
+  deliveryPlatform?: string;
 }
 
 const FavGridCard = React.memo(function FavGridCard({
-  meal, onPress, onAddToPlan, onLongPress, familyAvatarUrl, familyInitials,
+  meal, onPress, onAddToPlan, onLongPress, familyAvatarUrl, familyInitials, deliveryPlatform,
 }: FavGridCardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -968,8 +971,9 @@ const FavGridCard = React.memo(function FavGridCard({
                   mealType={meal.meal_type}
                   cuisine={meal.cuisine}
                   name={meal.name}
-                  familyAvatarUrl={familyAvatarUrl}
-                  familyInitials={familyInitials}
+                  deliveryPlatform={deliveryPlatform}
+                  familyAvatarUrl={!deliveryPlatform ? familyAvatarUrl : undefined}
+                  familyInitials={!deliveryPlatform ? familyInitials : undefined}
                 />
               </View>
             )}
