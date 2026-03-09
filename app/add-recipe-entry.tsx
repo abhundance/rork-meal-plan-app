@@ -28,7 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import {
   X, Plus, Minus, Camera, Sparkles, ChevronUp, ChevronDown, ChevronLeft,
-  Mic, Send,
+  Mic, Link2, FileText,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import {
@@ -64,12 +64,6 @@ import {
 
 type Mode = 'ai' | 'manual';
 
-const AI_BULLETS = [
-  { emoji: '🔗', text: 'Paste a link from the web' },
-  { emoji: '🎙️', text: 'Describe it by voice' },
-  { emoji: '📷', text: 'Share a photo' },
-  { emoji: '▶️', text: 'Paste a YouTube or TikTok link' },
-];
 
 export default function AddRecipeEntryScreen() {
   const insets = useSafeAreaInsets();
@@ -112,6 +106,11 @@ export default function AddRecipeEntryScreen() {
   const [description, setDescription] = useState('');
   const [customTags, setCustomTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
+
+  // ── AI Mode derived values ────────────────────────────────────────────────────
+  const hasAiContent = aiInput.trim().length > 0;
+  const isUrlInput   = /^https?:\/\//i.test(aiInput.trim());
+  const aiWordCount  = aiInput.trim() === '' ? 0 : aiInput.trim().split(/\s+/).length;
 
   // ── AI Mode handlers ─────────────────────────────────────────────────────────
   const isUrl = (text: string) => {
@@ -368,19 +367,16 @@ export default function AddRecipeEntryScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
           <ChevronLeft size={24} color={Colors.text} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add a Recipe</Text>
-        <View style={{ width: 36 }} />
-      </View>
-
-      {/* ─── Mode toggle ──────────────────────────────────── */}
-      <View style={styles.toggleWrap}>
-        <View style={styles.toggleTrack}>
-          <View style={[styles.togglePill, mode === 'ai' ? styles.togglePillLeft : styles.togglePillRight]} />
-          <TouchableOpacity style={styles.toggleOption} onPress={() => setMode('ai')} activeOpacity={0.8}>
-            <Text style={[styles.toggleLabel, mode === 'ai' && styles.toggleLabelActive]}>✨  AI Mode</Text>
+        {/* Title is absolutely centred so the asymmetric side elements don't push it */}
+        <Text style={styles.headerTitle} pointerEvents="none">Add a Recipe</Text>
+        {/* Compact mode toggle — lives in the header right slot */}
+        <View style={styles.headerToggleWrap}>
+          <View style={[styles.headerTogglePill, mode === 'ai' ? styles.headerTogglePillLeft : styles.headerTogglePillRight]} />
+          <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('ai')} activeOpacity={0.8}>
+            <Text style={[styles.headerToggleLabel, mode === 'ai' && styles.headerToggleLabelActive]}>✨ AI</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.toggleOption} onPress={() => setMode('manual')} activeOpacity={0.8}>
-            <Text style={[styles.toggleLabel, mode === 'manual' && styles.toggleLabelActive]}>✏️  Manual</Text>
+          <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('manual')} activeOpacity={0.8}>
+            <Text style={[styles.headerToggleLabel, mode === 'manual' && styles.headerToggleLabelActive]}>✏️ Manual</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -392,56 +388,97 @@ export default function AddRecipeEntryScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView
+            style={styles.flex}
             contentContainerStyle={styles.aiScrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.aiBubble}>
-              <View style={styles.aiBubbleIconRow}>
-                <View style={styles.aiBubbleIconCircle}>
-                  <Sparkles size={18} color={Colors.primary} strokeWidth={2} />
+            {/* ── Drop zone ── */}
+            <View style={[styles.aiDropZone, hasAiContent && styles.aiDropZoneActive]}>
+              <TextInput
+                style={styles.aiTextInput}
+                placeholder={"Paste a recipe link or recipe text here…\n\nWorks with recipe websites, YouTube links, copied text, or your own notes."}
+                placeholderTextColor={Colors.textSecondary}
+                value={aiInput}
+                onChangeText={setAiInput}
+                multiline
+                autoCapitalize="none"
+                autoCorrect={false}
+                textAlignVertical="top"
+                scrollEnabled={false}
+              />
+              {/* Detection badge — appears once user has entered something */}
+              {hasAiContent && (
+                <View style={styles.aiDropZoneMeta}>
+                  <View style={styles.aiDetectBadge}>
+                    {isUrlInput
+                      ? <Link2 size={11} color={Colors.primary} strokeWidth={2.5} />
+                      : <FileText size={11} color={Colors.primary} strokeWidth={2} />
+                    }
+                    <Text style={styles.aiDetectBadgeText}>
+                      {isUrlInput ? 'Link detected' : 'Text detected'}
+                    </Text>
+                  </View>
+                  {/* Word count — only meaningful for pasted text, not URLs */}
+                  {!isUrlInput && (
+                    <Text style={styles.aiWordCount}>{aiWordCount} words</Text>
+                  )}
                 </View>
-                <Text style={styles.aiBubbleName}>Meal Plan AI</Text>
-              </View>
-              <Text style={styles.aiBubbleIntro}>Hi! Share your recipe any way you like:</Text>
-              {AI_BULLETS.map((b) => (
-                <View key={b.emoji} style={styles.aiBulletRow}>
-                  <Text style={styles.aiBulletEmoji}>{b.emoji}</Text>
-                  <Text style={styles.aiBulletText}>{b.text}</Text>
+              )}
+            </View>
+
+            {/* ── Divider ── */}
+            <View style={styles.aiDividerRow}>
+              <View style={styles.aiDividerLine} />
+              <Text style={styles.aiDividerText}>or add from</Text>
+              <View style={styles.aiDividerLine} />
+            </View>
+
+            {/* ── Secondary option tiles: Voice + Camera ── */}
+            <View style={styles.aiSecondaryTiles}>
+              <TouchableOpacity
+                style={styles.aiSecondaryTile}
+                onPress={() => setShowVoiceSheet(true)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.aiSecondaryTileIcon}>
+                  <Mic size={22} color={Colors.textSecondary} strokeWidth={2} />
                 </View>
-              ))}
+                <Text style={styles.aiSecondaryTileLabel}>Voice</Text>
+                <Text style={styles.aiSecondaryTileSub}>Describe it aloud</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.aiSecondaryTile}
+                onPress={handleCamera}
+                activeOpacity={0.8}
+              >
+                <View style={styles.aiSecondaryTileIcon}>
+                  <Camera size={22} color={Colors.textSecondary} strokeWidth={2} />
+                </View>
+                <Text style={styles.aiSecondaryTileLabel}>Camera</Text>
+                <Text style={styles.aiSecondaryTileSub}>Photo of a recipe</Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
 
-          <View style={[styles.aiInputBar, { paddingBottom: insets.bottom + Spacing.sm }]}>
-            <TouchableOpacity style={styles.aiInputAction} onPress={handleCamera} hitSlop={8}>
-              <Camera size={22} color={Colors.textSecondary} strokeWidth={2} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.aiInputAction} onPress={() => setShowVoiceSheet(true)} hitSlop={8}>
-              <Mic size={22} color={Colors.textSecondary} strokeWidth={2} />
-            </TouchableOpacity>
-            <TextInput
-              style={styles.aiTextInput}
-              placeholder="Paste a link or describe a recipe…"
-              placeholderTextColor={Colors.textSecondary}
-              value={aiInput}
-              onChangeText={setAiInput}
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="send"
-              onSubmitEditing={handleAiSend}
-              multiline={false}
-            />
+          {/* ── Sticky footer — always above the keyboard ── */}
+          <View style={[styles.aiFooter, { paddingBottom: insets.bottom + Spacing.sm }]}>
             <TouchableOpacity
-              style={[styles.aiSendBtn, (!aiInput.trim() || isExtracting) && styles.aiSendBtnDisabled]}
+              style={[styles.aiExtractBtn, (!hasAiContent || isExtracting) && styles.aiExtractBtnDisabled]}
               onPress={handleAiSend}
-              disabled={!aiInput.trim() || isExtracting}
-              hitSlop={8}
+              disabled={!hasAiContent || isExtracting}
+              activeOpacity={0.85}
             >
-              {isExtracting
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Send size={16} color="#fff" strokeWidth={2.5} />
-              }
+              {isExtracting ? (
+                <>
+                  <ActivityIndicator size="small" color={Colors.white} />
+                  <Text style={styles.aiExtractBtnText}>Extracting recipe…</Text>
+                </>
+              ) : (
+                <Text style={[styles.aiExtractBtnText, !hasAiContent && styles.aiExtractBtnTextDisabled]}>
+                  Extract Recipe
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -676,71 +713,141 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   headerTitle: {
+    position: 'absolute',
+    left: 0, right: 0,
+    textAlign: 'center',
     fontSize: 18, fontFamily: FontFamily.bold, fontWeight: '700',
     color: Colors.text,
   },
 
-  // ── Toggle ──────────────────────────────────────────────
-  toggleWrap: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
-    backgroundColor: Colors.background,
-  },
-  toggleTrack: {
+  // ── Header toggle (compact pill, right of header) ────────
+  headerToggleWrap: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.input,
-    padding: 3,
+    borderRadius: BorderRadius.full,
+    padding: 2,
     position: 'relative',
   },
-  togglePill: {
+  headerTogglePill: {
     position: 'absolute',
-    top: 3, bottom: 3,
-    width: '50%' as unknown as number,
+    top: 2, bottom: 2,
+    width: 64,
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius.input - 2,
+    borderRadius: BorderRadius.full,
     ...Shadows.card,
   },
-  togglePillLeft: { left: 3 },
-  togglePillRight: { left: '50%' as unknown as number },
-  toggleOption: {
-    flex: 1, paddingVertical: 9,
+  headerTogglePillLeft: { left: 2 },
+  headerTogglePillRight: { left: 66 },
+  headerToggleOption: {
+    width: 64, height: 28,
     alignItems: 'center', justifyContent: 'center',
     zIndex: 1,
   },
-  toggleLabel: {
-    fontSize: 14, fontFamily: FontFamily.semiBold, fontWeight: '600',
+  headerToggleLabel: {
+    fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.textSecondary,
   },
-  toggleLabelActive: { color: Colors.primary },
+  headerToggleLabelActive: { color: Colors.primary },
 
-  // ── AI Mode ─────────────────────────────────────────────
+  // ── AI Mode — drop zone design ────────────────────────────
   aiScrollContent: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
-  aiBubble: { backgroundColor: Colors.primaryLight, borderRadius: BorderRadius.card, padding: Spacing.lg },
-  aiBubbleIconRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.sm },
-  aiBubbleIconCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center' },
-  aiBubbleName: { fontSize: 14, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.primary },
-  aiBubbleIntro: { fontSize: 15, fontFamily: FontFamily.regular, fontWeight: '400', color: Colors.text, marginBottom: Spacing.md, lineHeight: 22 },
-  aiBulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, marginBottom: Spacing.sm },
-  aiBulletEmoji: { fontSize: 15, lineHeight: 22, width: 24 },
-  aiBulletText: { fontSize: 15, fontFamily: FontFamily.regular, fontWeight: '400', color: Colors.text, lineHeight: 22, flex: 1 },
-  aiInputBar: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm,
+  aiDropZone: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.card,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    minHeight: 130,
+  },
+  aiDropZoneActive: {
+    borderColor: Colors.primary,
+  },
+  aiTextInput: {
+    fontSize: 15, fontFamily: FontFamily.regular, fontWeight: '400',
+    color: Colors.text,
+    lineHeight: 22,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  aiDropZoneMeta: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.sm,
+  },
+  aiDetectBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  aiDetectBadgeText: {
+    fontSize: 11, fontFamily: FontFamily.semiBold, fontWeight: '600',
+    color: Colors.primary,
+  },
+  aiWordCount: {
+    fontSize: 12, fontFamily: FontFamily.regular, fontWeight: '400',
+    color: Colors.textSecondary,
+  },
+  aiDividerRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginBottom: Spacing.md,
+  },
+  aiDividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
+  aiDividerText: {
+    fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '600',
+    color: Colors.textSecondary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  aiSecondaryTiles: { flexDirection: 'row', gap: Spacing.md },
+  aiSecondaryTile: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.card,
+    borderWidth: 1, borderColor: Colors.border,
+    paddingVertical: Spacing.lg, paddingHorizontal: Spacing.md,
+    alignItems: 'center', gap: Spacing.xs,
+  },
+  aiSecondaryTileIcon: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: Colors.card,
+    alignItems: 'center', justifyContent: 'center',
+    ...Shadows.card,
+    marginBottom: Spacing.xs,
+  },
+  aiSecondaryTileLabel: {
+    fontSize: 14, fontFamily: FontFamily.semiBold, fontWeight: '600',
+    color: Colors.text,
+  },
+  aiSecondaryTileSub: {
+    fontSize: 11, fontFamily: FontFamily.regular, fontWeight: '400',
+    color: Colors.textSecondary, textAlign: 'center',
+  },
+  aiFooter: {
+    paddingHorizontal: Spacing.lg, paddingTop: Spacing.md,
     borderTopWidth: 1, borderTopColor: Colors.border,
     backgroundColor: Colors.background,
   },
-  aiInputAction: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  aiTextInput: {
-    flex: 1, height: 40, backgroundColor: Colors.card,
-    borderWidth: 1.5, borderColor: Colors.border,
-    borderRadius: BorderRadius.input,
-    paddingHorizontal: Spacing.md, fontSize: 15,
-    color: Colors.text, fontFamily: FontFamily.regular,
+  aiExtractBtn: {
+    height: 50,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.button,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: Spacing.sm,
+    ...Shadows.card,
   },
-  aiSendBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
-  aiSendBtnDisabled: { backgroundColor: Colors.surface },
+  aiExtractBtnDisabled: {
+    backgroundColor: Colors.surface,
+    shadowOpacity: 0, elevation: 0,
+  },
+  aiExtractBtnText: {
+    fontSize: 16, fontFamily: FontFamily.semiBold, fontWeight: '600',
+    color: Colors.white,
+  },
+  aiExtractBtnTextDisabled: {
+    color: Colors.inactive,
+  },
 
   // ── Manual Mode ─────────────────────────────────────────
   manualScrollContent: { padding: 20 },
