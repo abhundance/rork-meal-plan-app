@@ -261,7 +261,7 @@ export default function FavsScreen() {
     if (pill === 'type')    setDishTypeFilter(value);
     if (pill === 'protein') setProteinFilter(value);
     if (pill === 'diet')    setDietFilter(value);
-    setActiveExpandedPill(null);
+    // Sub-row stays open — closes only when user taps the parent pill again or switches pill
   }, []);
 
   const handleAddToPlan = useCallback((meal: Recipe) => {
