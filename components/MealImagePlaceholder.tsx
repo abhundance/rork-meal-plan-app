@@ -112,6 +112,38 @@ const NAME_CUISINE_MAP: Array<[string[], [string, string, string]]> = [
 // To update this gradient, change Colors.familyGradient in constants/colors.ts only.
 const FAMILY_GRADIENT = Colors.familyGradient;
 
+// ─── Meal name initials palette ──────────────────────────────────────────────
+// 8 muted, distinct tones. Each meal name hashes to one consistently, so the
+// same meal always gets the same colour across sessions and devices.
+const MEAL_INITIALS_PALETTE: Array<{ bg: string; text: string }> = [
+  { bg: '#E8F5E9', text: '#2E7D32' }, // sage green
+  { bg: '#FBE9E7', text: '#BF360C' }, // terracotta
+  { bg: '#E3F2FD', text: '#1565C0' }, // dusty blue
+  { bg: '#FFF3E0', text: '#E65100' }, // warm amber
+  { bg: '#EDE7F6', text: '#4527A0' }, // soft lavender
+  { bg: '#FCE4EC', text: '#880E4F' }, // dusty rose
+  { bg: '#E0F2F1', text: '#004D40' }, // teal
+  { bg: '#FFFDE7', text: '#F57F17' }, // marigold
+];
+
+/** First letter of first word + first letter of second word (if present), uppercased. Max 2 chars. */
+function getMealInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '?';
+  if (words.length === 1) return words[0][0].toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
+/** Deterministic hash → palette index. Same name always gets the same colour. */
+function hashMealName(name: string): number {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) {
+    h = (h * 31 + name.charCodeAt(i)) & 0x7fffffff;
+  }
+  return h % MEAL_INITIALS_PALETTE.length;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function getEmojiFromName(n: string): string | null {
   for (const [keywords, emoji] of NAME_EMOJI_MAP) {
     if (keywords.some((kw) => n.includes(kw))) return emoji;
@@ -274,27 +306,21 @@ export default function MealImagePlaceholder({
     );
   }
 
-  // Initials — circle centered on gradient background
+  // Meal name initials — shown for family-created meals without a photo.
+  // Each meal hashes to a unique muted palette colour so the grid stays varied.
   if (familyInitials) {
-    const circleSize = isThumbnail ? 30 : isCard ? 64 : 100;
-    const fontSize = isThumbnail ? 13 : isCard ? 26 : 34;
+    const initials = name ? getMealInitials(name) : familyInitials;
+    const palette = name
+      ? MEAL_INITIALS_PALETTE[hashMealName(name)]
+      : { bg: Colors.primaryLight, text: Colors.primary };
+    const fontSize = isThumbnail ? 15 : isCard ? 30 : 48;
 
     return (
-      <LinearGradient
-        colors={FAMILY_GRADIENT}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={containerStyle}
-      >
-        <View style={[
-          styles.initialsCircle,
-          { width: circleSize, height: circleSize, borderRadius: circleSize / 2 },
-        ]}>
-          <Text style={[styles.initialsText, { fontSize, lineHeight: circleSize }]}>
-            {familyInitials}
-          </Text>
-        </View>
-      </LinearGradient>
+      <View style={[containerStyle, { backgroundColor: palette.bg }]}>
+        <Text style={[styles.initialsText, { fontSize, color: palette.text }]}>
+          {initials}
+        </Text>
+      </View>
     );
   }
 
@@ -369,26 +395,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
     letterSpacing: 0.2,
   },
-  // Family avatar: circular photo with white ring
-  // Family initials: primary-coloured circle with white letters
-  initialsCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
-  },
+  // Meal name initials text — colour is set inline per-card via the hashed palette
   initialsText: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 34,
     fontWeight: '700',
-    color: '#FFFFFF',
     letterSpacing: 1,
   },
 });
