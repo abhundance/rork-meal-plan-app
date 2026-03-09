@@ -27,7 +27,7 @@ import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import {
-  X, Plus, Minus, Camera, Sparkles, ChevronUp, ChevronDown,
+  X, Plus, Minus, Camera, Sparkles, ChevronUp, ChevronDown, ChevronLeft,
   Mic, Send,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -366,7 +366,7 @@ export default function AddRecipeEntryScreen() {
       {/* ─── Header ───────────────────────────────────────── */}
       <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <X size={20} color={Colors.text} strokeWidth={2} />
+          <ChevronLeft size={24} color={Colors.text} strokeWidth={2} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add a Recipe</Text>
         <View style={{ width: 36 }} />

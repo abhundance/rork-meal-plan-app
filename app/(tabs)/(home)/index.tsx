@@ -766,7 +766,6 @@ export default function MealPlanScreen() {
         onClose={() => setPickerVisible(false)}
         onSelectMeal={handleSelectMeal}
         onCreateNewRecipe={() => {
-          setPickerVisible(false);
           setPendingPlanSlot({
             slotId: pickerSlotId,
             date: pickerDate,
