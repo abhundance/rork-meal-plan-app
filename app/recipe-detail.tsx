@@ -496,7 +496,7 @@ export default function MealDetailScreen() {
               <Text style={styles.sectionTitle}>Ingredients</Text>
               {scaledIngredients.map((ing, idx) => (
                 <View
-                  key={ing.id}
+                  key={ing.id && !scaledIngredients.slice(0, idx).some(prev => prev.id === ing.id) ? ing.id : `ing_fallback_${idx}`}
                   style={[
                     styles.ingredientRow,
                     idx < scaledIngredients.length - 1 && styles.ingredientBorder,

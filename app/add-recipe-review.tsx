@@ -212,7 +212,7 @@ export default function AddMealReviewScreen() {
         if (result.ingredients?.length) {
           setIngredients(
             result.ingredients.map((ing, idx) => ({
-              id: String(idx + 1),
+              id: `ing_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
               name: ing.name,
               quantity: ing.quantity,
               unit: ing.unit,
@@ -285,7 +285,7 @@ export default function AddMealReviewScreen() {
   const addIngredient = () => {
     setIngredients(prev => [
       ...prev,
-      { id: String(Date.now()), name: '', quantity: 0, unit: '', category: 'Other' }
+      { id: `ing_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name: '', quantity: 0, unit: '', category: 'Other' }
     ]);
   };
 
