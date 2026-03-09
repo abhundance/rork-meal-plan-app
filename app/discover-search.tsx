@@ -4,8 +4,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  SectionList,
+  ScrollView,
   StyleSheet,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, Href } from 'expo-router';
@@ -13,9 +14,13 @@ import { Image } from 'expo-image';
 import { ArrowLeft, Search, X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
-import { BorderRadius, Shadows } from '@/constants/theme';
+import { BorderRadius } from '@/constants/theme';
 import { DISCOVER_MEALS, COLLECTIONS } from '@/mocks/discover';
 import { DiscoverMeal, MealCollection } from '@/types';
+import DiscoverCarouselCard from '@/components/DiscoverCarouselCard';
+
+const { width: screenWidth } = Dimensions.get('window');
+const GRID_CARD_WIDTH = (screenWidth - 48) / 3;
 
 export default function DiscoverSearchScreen() {
   const insets = useSafeAreaInsets();
@@ -40,17 +45,11 @@ export default function DiscoverSearchScreen() {
   const hasResults = results.meals.length > 0 || results.collections.length > 0;
   const totalResults = results.meals.length + results.collections.length;
 
-  const sections = useMemo(() => {
-    const s: { title: string; data: any[] }[] = [];
-    if (results.meals.length > 0) s.push({ title: 'Meals', data: results.meals });
-    if (results.collections.length > 0) s.push({ title: 'Collections', data: results.collections });
-    return s;
-  }, [results]);
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
+      {/* Search bar */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={20} color={Colors.text} strokeWidth={2} />
@@ -75,6 +74,7 @@ export default function DiscoverSearchScreen() {
         </View>
       </View>
 
+      {/* States */}
       {!query.trim() ? (
         <View style={styles.emptyPrompt}>
           <Search size={40} color={Colors.surface} strokeWidth={1.5} />
@@ -87,52 +87,54 @@ export default function DiscoverSearchScreen() {
           <Text style={styles.noResultsSecondary}>Check the spelling or try a different search</Text>
         </View>
       ) : (
-        <>
-          <View style={styles.resultsCountRow}>
-            <Text style={styles.resultsCountText}>
-              {totalResults} result{totalResults !== 1 ? 's' : ''} for '{query}'
-            </Text>
-          </View>
-          <SectionList
-          sections={sections}
-          keyExtractor={(item, idx) => item.id ?? `item_${idx}`}
-          renderSectionHeader={({ section }) => (
-            <Text style={styles.sectionTitle}>{section.title}</Text>
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Result count */}
+          <Text style={styles.resultsCountText}>
+            {totalResults} result{totalResults !== 1 ? 's' : ''} for '{query}'
+          </Text>
+
+          {/* Meals — 3-column grid */}
+          {results.meals.length > 0 && (
+            <View>
+              <Text style={styles.sectionTitle}>Meals</Text>
+              <View style={styles.grid}>
+                {results.meals.map((meal: DiscoverMeal) => (
+                  <DiscoverCarouselCard
+                    key={meal.id}
+                    meal={meal}
+                    onPress={() => router.push(`/recipe-detail?id=${meal.id}&source=discover` as Href)}
+                    width={GRID_CARD_WIDTH}
+                    height={Math.round(GRID_CARD_WIDTH * 1.35)}
+                  />
+                ))}
+              </View>
+            </View>
           )}
-          renderItem={({ item, section }) => {
-            if (section.title === 'Meals') {
-              const meal = item as DiscoverMeal;
-              return (
+
+          {/* Collections — horizontal rows */}
+          {results.collections.length > 0 && (
+            <View>
+              <Text style={styles.sectionTitle}>Collections</Text>
+              {results.collections.map((col: MealCollection) => (
                 <TouchableOpacity
+                  key={col.id}
                   style={styles.resultRow}
-                  onPress={() => router.push(`/recipe-detail?id=${meal.id}&source=discover` as Href)}
+                  onPress={() => router.push(`/collection?id=${col.id}` as Href)}
                 >
-                  <Image source={{ uri: meal.image_url }} style={styles.resultThumb} contentFit="cover" />
+                  <Image source={{ uri: col.cover_image_url }} style={styles.resultThumb} contentFit="cover" />
                   <View style={styles.resultInfo}>
-                    <Text style={styles.resultName} numberOfLines={1}>{meal.name}</Text>
-                    <Text style={styles.resultMeta}>{meal.cuisine}</Text>
+                    <Text style={styles.resultName} numberOfLines={1}>{col.title}</Text>
+                    <Text style={styles.resultMeta}>{col.meal_count} meals</Text>
                   </View>
                 </TouchableOpacity>
-              );
-            }
-            const col = item as MealCollection;
-            return (
-              <TouchableOpacity
-                style={styles.resultRow}
-                onPress={() => router.push(`/collection?id=${col.id}` as Href)}
-              >
-                <Image source={{ uri: col.cover_image_url }} style={styles.resultThumb} contentFit="cover" />
-                <View style={styles.resultInfo}>
-                  <Text style={styles.resultName} numberOfLines={1}>{col.title}</Text>
-                  <Text style={styles.resultMeta}>{col.meal_count} meals</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-        </>
+              ))}
+            </View>
+          )}
+        </ScrollView>
       )}
     </View>
   );
@@ -213,33 +215,33 @@ const styles = StyleSheet.create({
     maxWidth: 240,
     marginTop: 8,
   },
-  resultsCountRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  scrollContent: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
   },
   resultsCountText: {
-    fontSize: 15,
+    fontSize: 13,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
-  },
-  listContent: {
-    paddingBottom: 40,
+    marginBottom: 4,
   },
   sectionTitle: {
     fontSize: 16,
     fontFamily: FontFamily.bold,
     fontWeight: '700' as const,
     color: Colors.text,
-    paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 8,
-    backgroundColor: Colors.background,
+    paddingBottom: 10,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
   },
   resultRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 12,
   },
