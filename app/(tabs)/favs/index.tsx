@@ -462,11 +462,10 @@ export default function FavsScreen() {
       <FavGridCard
         meal={item}
         onPress={() => handleMealPress(item)}
-        // In slot mode: CalendarPlus overlay adds to the pending slot directly (Fix 2).
-        // In normal mode: opens the SlotPickerModal as usual.
-        onAddToPlan={() => pendingSlot ? handleSlotModeSelect(item) : handleAddToPlan(item)}
-        // In slot mode: long-press is a no-op — the tap action has changed and an accidental
-        // long-press should never trigger a delete / remove (Fix 6).
+        onAddToPlan={() => handleAddToPlan(item)}
+        // In slot mode: hide the CalendarPlus button — the whole card tap handles the add.
+        // In slot mode: long-press is a no-op to prevent accidental delete (Fix 6).
+        showAddToPlan={!pendingSlot}
         onLongPress={() => {
           if (pendingSlot) return;
           item.source === 'family_created' ? handleDeleteMyRecipe(item) : handleRemoveSaved(item);
@@ -809,6 +808,8 @@ interface FavGridCardProps {
   onPress: () => void;
   onAddToPlan: () => void;
   onLongPress: () => void;
+  /** When false, hides the CalendarPlus overlay button (e.g. in slot-picker mode where the whole card tap handles the action) */
+  showAddToPlan?: boolean;
   /** Real photo URI for the family avatar (http/https/file://) */
   familyAvatarUrl?: string;
   /** 1-2 letter initials shown when no photo is set (e.g. "SF") */
@@ -818,7 +819,7 @@ interface FavGridCardProps {
 }
 
 const FavGridCard = React.memo(function FavGridCard({
-  meal, onPress, onAddToPlan, onLongPress, familyAvatarUrl, familyInitials, deliveryPlatform,
+  meal, onPress, onAddToPlan, onLongPress, showAddToPlan = true, familyAvatarUrl, familyInitials, deliveryPlatform,
 }: FavGridCardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -860,27 +861,29 @@ const FavGridCard = React.memo(function FavGridCard({
               />
             )}
           </View>
-          {/* Add to Plan overlay — bottom-right corner of image */}
-          <TouchableOpacity
-            hitSlop={6}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onAddToPlan();
-            }}
-            style={{
-              position: 'absolute' as const,
-              bottom: Spacing.sm,
-              right: Spacing.sm,
-              width: 17,
-              height: 17,
-              borderRadius: 9,
-              backgroundColor: Colors.white,
-              alignItems: 'center' as const,
-              justifyContent: 'center' as const,
-            }}
-          >
-            <CalendarPlus size={9} color={Colors.primary} strokeWidth={3.5} />
-          </TouchableOpacity>
+          {/* Add to Plan overlay — bottom-right corner of image. Hidden in slot-picker mode. */}
+          {showAddToPlan && (
+            <TouchableOpacity
+              hitSlop={6}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onAddToPlan();
+              }}
+              style={{
+                position: 'absolute' as const,
+                bottom: Spacing.sm,
+                right: Spacing.sm,
+                width: 17,
+                height: 17,
+                borderRadius: 9,
+                backgroundColor: Colors.white,
+                alignItems: 'center' as const,
+                justifyContent: 'center' as const,
+              }}
+            >
+              <CalendarPlus size={9} color={Colors.primary} strokeWidth={3.5} />
+            </TouchableOpacity>
+          )}
         </View>
         {/* Meal name — sits directly on the page background */}
         <Text
