@@ -54,9 +54,16 @@ Safe checkpoints tagged on GitHub. To restore: `git checkout pre-recipe-type-uni
 ## Key Features
 
 ### Add a Recipe Flow
-Single entry point: `app/add-recipe-entry.tsx`. The screen has two sections: a **Paste a Link** field at the top (handles recipe blogs, YouTube, TikTok — extracts recipe automatically), and a **Choose a Method** grid below with six options: Paste Text (`add-recipe-paste.tsx`), Manual Entry (`add-recipe-manual.tsx`), Photos, Video Link (`add-recipe-video.tsx`), Voice, and Camera. All paths eventually write to `app/add-recipe-review.tsx`.
+Single entry point: `app/add-recipe-entry.tsx`. The screen has **two modes toggled entirely via local state — no sub-navigation**:
 
-> **Rule:** All navigation to the Add a Recipe flow must go to `/add-recipe-entry`. The only exception is editing an existing meal, which navigates directly to `/add-recipe-review?editId={id}` to bypass the entry chooser.
+- **✨ AI Mode** (default) — chat-style input. User types a meal name and description; AI extracts and auto-fills all recipe metadata (cuisine, cook time, dietary tags, etc.) via `services/recipeExtraction.ts`. Voice input via `VoiceRecordSheet`. Recipe Details accordion auto-fills with AI the moment it is opened (no button tap required); shows "Auto-filled with AI" status + quiet "Re-fill" link once done.
+- **✏️ Manual Mode** — full form entry. User fills in all fields themselves (name, image, ingredients, method steps, cook time, dietary tags, etc.).
+
+Both modes write to `app/add-recipe-review.tsx` when the user is ready to save.
+
+> **Rule:** All navigation to the Add a Recipe flow must go to `/add-recipe-entry`. The only exception is editing an existing meal, which navigates directly to `/add-recipe-review?editId={id}` to bypass the entry screen.
+
+> **Note:** The old 6-button entry chooser (Paste Text, Manual Entry, Photos, Video Link, Voice, Camera) no longer exists. The files `add-recipe-paste.tsx`, `add-recipe-manual.tsx`, and `add-recipe-video.tsx` may still be present in the repo but are no longer part of the active flow.
 
 ### Recipe Extraction
 AI-powered extraction from YouTube URLs, TikTok URLs, pasted text, and images. Handled by `services/recipeExtraction.ts` using `gpt-4o-mini`. Extracts name, ingredients, method, cuisine, and cook time.
@@ -130,7 +137,7 @@ Shadows.card / header / tabBar
 - `FilterPill` — horizontal chip for filter rows
 - `RecipeFilterSheet` — shared bottom sheet filter component used by both Favs and Discover tabs. Configured via `RecipeFilterConfig` prop (13 possible sections). Exports `RecipeFilterState`, `DEFAULT_FILTER_STATE`, `countActiveFilters`. See `components/RecipeFilterSheet.tsx`.
 - `SlotPickerModal` — meal slot selection modal
-- `MealPickerSheet` — slide-up sheet for adding meals to a slot (search, manual, delivery modes)
+- `MealPickerSheet` — slide-up RN Modal for adding meals to a slot. Three internal modes: `choose` (search existing meals + option tiles), `manual` (Add Without Recipe — name-only quick add), `delivery` (Add from Delivery App — name + URL). Used in `home/index.tsx` and `recipe-detail.tsx`. "Add with Recipe" from this sheet navigates to `/add-recipe-entry` (Expo Router modal).
 - `MealSlotEditor` — add/remove/rename meal slots in settings
 - `WeeklyPlanView` — 7-day grid with meal pills, week navigation, Smart Fill
 - `DailyPlanView` — day-level meal slots with serving stepper and meal rows
