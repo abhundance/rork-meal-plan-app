@@ -422,33 +422,28 @@ export default function FavsScreen() {
     if ((item as any)._isAddTile) {
       return (
         <TouchableOpacity
-          style={{
-            width: CARD_W,
-            height: CARD_H,
-            borderRadius: 12,
-            backgroundColor: Colors.primaryLight,
-            borderWidth: 1.5,
-            borderColor: Colors.primary,
-            borderStyle: 'dashed',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-          }}
           onPress={openAddMethodSheet}
           activeOpacity={0.8}
           testID="add-recipe-tile"
         >
+          {/* Image-sized tile — mirrors other card image tiles */}
           <View style={{
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            backgroundColor: Colors.primary,
+            width: CARD_W,
+            height: IMG_H,
+            borderRadius: BorderRadius.card,
+            backgroundColor: Colors.surface,
+            borderWidth: 1,
+            borderColor: Colors.border,
+            borderStyle: 'dashed',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
+            <Plus size={20} color={Colors.primary} strokeWidth={2} />
           </View>
-          <Text style={{ fontSize: 9, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.primary, textAlign: 'center', lineHeight: 12 }}>Add Meal</Text>
+          {/* Label below — matches meal name style */}
+          <Text style={{ width: CARD_W, paddingTop: Spacing.xs, fontSize: 11, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary, lineHeight: 14, textAlign: 'center' }}>
+            Add Meal
+          </Text>
         </TouchableOpacity>
       );
     }
@@ -971,15 +966,15 @@ const FavGridCard = React.memo(function FavGridCard({
               position: 'absolute' as const,
               bottom: Spacing.sm,
               right: Spacing.sm,
-              width: 28,
-              height: 28,
-              borderRadius: 14,
+              width: 14,
+              height: 14,
+              borderRadius: 7,
               backgroundColor: Colors.white,
               alignItems: 'center' as const,
               justifyContent: 'center' as const,
             }}
           >
-            <CalendarPlus size={13} color={Colors.primary} strokeWidth={2.5} />
+            <CalendarPlus size={8} color={Colors.primary} strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
         {/* Meal name — sits directly on the page background */}
