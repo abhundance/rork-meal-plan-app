@@ -384,6 +384,9 @@ export default function MealPlanScreen() {
     const proteinCountsThisWeek = new Map<string, number>();
 
     const used = new Set<string>();
+    // Tracks picks within the current repeat cycle so meals rotate evenly
+    // once the unique pool is exhausted (see fallback block below).
+    const usedRepeat = new Set<string>();
     const newMeals: PlannedMeal[] = [];
     let newPicksCount = 0;
 
@@ -425,10 +428,16 @@ export default function MealPlanScreen() {
         // If the unique-meal pool is exhausted (e.g. strict dietary prefs reduce eligible meals
         // to fewer than the number of slots in the week), allow repetition rather than silently
         // skipping slots and leaving the plan incomplete.
+        // usedRepeat rotates through the eligible pool in cycles so repeat picks stay varied —
+        // once every eligible meal has been repeated once, the cycle resets.
         if (candidates.length === 0) {
-          const repeatPool = eligible(fullPool, new Set<string>());
-          const repeatSlotMatch = repeatPool.filter((m) => matchesSlot(m, slotCat));
-          candidates = repeatSlotMatch.length > 0 ? repeatSlotMatch : repeatPool;
+          const allEligible = eligible(fullPool, new Set<string>());
+          if (allEligible.length > 0 && allEligible.every((m) => usedRepeat.has(m.name.toLowerCase()))) {
+            usedRepeat.clear();
+          }
+          const cyclePool = eligible(fullPool, usedRepeat);
+          const cycleSlotMatch = cyclePool.filter((m) => matchesSlot(m, slotCat));
+          candidates = cycleSlotMatch.length > 0 ? cycleSlotMatch : cyclePool;
         }
 
         if (candidates.length === 0) continue;
@@ -439,6 +448,7 @@ export default function MealPlanScreen() {
         const picked = weightedPick(candidates, scores);
 
         used.add(picked.name.toLowerCase());
+        usedRepeat.add(picked.name.toLowerCase());
         if (picked.isNew) newPicksCount++;
 
         // Update diversity context for subsequent picks
@@ -589,6 +599,7 @@ export default function MealPlanScreen() {
     const proteinCountsThisWeek = new Map<string, number>(); // empty for single-day fill
 
     const used = new Set<string>();
+    const usedRepeat = new Set<string>();
     const newMeals: PlannedMeal[] = [];
     let newPicksCount = 0;
 
@@ -623,9 +634,13 @@ export default function MealPlanScreen() {
 
       // If the unique-meal pool is exhausted, allow repetition rather than leaving the slot empty.
       if (candidates.length === 0) {
-        const repeatPool = eligible(fullPool, new Set<string>());
-        const repeatSlotMatch = repeatPool.filter((m) => matchesSlot(m, slotCat));
-        candidates = repeatSlotMatch.length > 0 ? repeatSlotMatch : repeatPool;
+        const allEligible = eligible(fullPool, new Set<string>());
+        if (allEligible.length > 0 && allEligible.every((m) => usedRepeat.has(m.name.toLowerCase()))) {
+          usedRepeat.clear();
+        }
+        const cyclePool = eligible(fullPool, usedRepeat);
+        const cycleSlotMatch = cyclePool.filter((m) => matchesSlot(m, slotCat));
+        candidates = cycleSlotMatch.length > 0 ? cycleSlotMatch : cyclePool;
       }
 
       if (candidates.length === 0) continue;
@@ -636,6 +651,7 @@ export default function MealPlanScreen() {
       const picked = weightedPick(candidates, scores);
 
       used.add(picked.name.toLowerCase());
+      usedRepeat.add(picked.name.toLowerCase());
       if (picked.isNew) newPicksCount++;
 
       if (picked.protein_source) {
