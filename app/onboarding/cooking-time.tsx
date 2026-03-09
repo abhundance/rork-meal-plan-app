@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
@@ -33,7 +33,12 @@ export default function CookingTimeScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ProgressBar current={7} total={11} />
 
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.stepLabel}>Step 7 of 11</Text>
         <Text style={styles.heading}>How much time do you usually have to cook?</Text>
         <Text style={styles.subheading}>
@@ -62,7 +67,7 @@ export default function CookingTimeScreen() {
             );
           })}
         </View>
-      </View>
+      </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <PrimaryButton
@@ -80,10 +85,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  content: {
+  scroll: {
     flex: 1,
+  },
+  content: {
     paddingHorizontal: 24,
     paddingTop: 32,
+    paddingBottom: 16,
   },
   stepLabel: {
     fontSize: 13,

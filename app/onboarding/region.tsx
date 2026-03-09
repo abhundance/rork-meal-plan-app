@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
-import { BorderRadius, Spacing } from '@/constants/theme';
+import { BorderRadius } from '@/constants/theme';
 import ProgressBar from '@/components/ProgressBar';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';

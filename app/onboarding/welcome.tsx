@@ -10,13 +10,21 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useFavs } from '@/providers/FavsProvider';
-import { Recipe } from '@/types';
+import { Recipe, MealSlot } from '@/types';
 
 const NOVELTY_MAP: Record<string, number> = {
   familiar:    10,
   balanced:    30,
   adventurous: 60,
 };
+
+// The 4 available slot definitions with their display names
+const SLOT_DEFINITIONS: MealSlot[] = [
+  { slot_id: 'breakfast', name: 'Breakfast', order: 0 },
+  { slot_id: 'lunch',     name: 'Lunch',     order: 1 },
+  { slot_id: 'dinner',    name: 'Dinner',    order: 2 },
+  { slot_id: 'snacks',    name: 'Snacks',    order: 3 },
+];
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
@@ -26,9 +34,9 @@ export default function WelcomeScreen() {
 
   const [isSeeding, setIsSeeding] = useState(false);
 
-  const logoScale   = useRef(new Animated.Value(0.3)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
+  const logoScale    = useRef(new Animated.Value(0.3)).current;
+  const logoOpacity  = useRef(new Animated.Value(0)).current;
+  const textOpacity  = useRef(new Animated.Value(0)).current;
   const textTranslate = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
@@ -62,55 +70,77 @@ export default function WelcomeScreen() {
     ]).start();
   }, [logoScale, logoOpacity, textOpacity, textTranslate]);
 
-  const familyName = data.family_name || 'Your Family';
-  const totalPicks = (data.starter_meals ?? []).length;
+  const familyName  = data.family_name || 'Your Family';
+  const totalPicks  = (data.starter_meals ?? []).length;
+
+  // Summary items (only render card if at least one exists)
+  const summaryItems = [
+    data.region
+      ? `📍 ${data.region} · ${data.measurement_units === 'imperial' ? 'Imperial' : 'Metric'}`
+      : null,
+    data.planning_style
+      ? `🎯 ${data.planning_style === 'familiar' ? 'Familiar meals' : data.planning_style === 'adventurous' ? 'Adventurous picks' : 'Balanced mix'}`
+      : null,
+    data.personal_goal && data.personal_goal !== 'balanced'
+      ? `💪 Goal: ${data.personal_goal.replace(/_/g, ' ')}`
+      : null,
+  ].filter(Boolean) as string[];
 
   const handleGetStarted = () => {
     if (isSeeding) return;
     setIsSeeding(true);
 
-    // 1. Sync family settings from onboarding data
+    // FIX 1: Build meal_slots from enabled_slots so the weekly planner reflects
+    // what the user configured in configure-slots.tsx
+    const enabledSlotIds = data.enabled_slots ?? ['breakfast', 'lunch', 'dinner'];
+    const mealSlots: MealSlot[] = SLOT_DEFINITIONS
+      .filter(slot => enabledSlotIds.includes(slot.slot_id))
+      .map((slot, idx) => ({ ...slot, order: idx }));
+
+    // FIX 2: Sync household_size → default_serving_size so every recipe
+    // defaults to the correct serving count for the family
     updateFamilySettings({
-      family_name:    data.family_name || 'My Family',
-      region:         data.region ?? 'Singapore',
-      measurement_units: data.measurement_units ?? 'metric',
-      smart_fill_novelty_pct: NOVELTY_MAP[data.planning_style ?? 'balanced'] ?? 30,
+      family_name:             data.family_name || 'My Family',
+      region:                  data.region ?? 'Singapore',
+      measurement_units:       data.measurement_units ?? 'metric',
+      smart_fill_novelty_pct:  NOVELTY_MAP[data.planning_style ?? 'balanced'] ?? 30,
       dietary_preferences_family: data.dietary_preferences_family,
+      meal_slots:              mealSlots,
+      default_serving_size:    data.household_size ?? 4,
     });
 
-    // 2. Sync user settings from onboarding
+    // Sync user settings
     updateUserSettings({
-      personal_goal: data.personal_goal ?? 'balanced',
+      personal_goal:                  data.personal_goal ?? 'balanced',
       dietary_preferences_individual: data.dietary_preferences_individual,
     });
 
-    // 3. Seed starter meals as Favs
+    // Seed starter meals as Favs
     const picks = data.starter_meals ?? [];
     picks.forEach((pick) => {
       const recipe: Recipe = {
-        id:                   `starter_${pick.id}`,
-        name:                 pick.name,
-        source:               'family_created',
-        ingredients:          [],
-        recipe_serving_size:  4,
-        method_steps:         [],
-        dietary_tags:         [],
-        custom_tags:          [],
-        add_to_plan_count:    0,
-        created_at:           new Date().toISOString(),
+        id:                     `starter_${pick.id}`,
+        name:                   pick.name,
+        source:                 'family_created',
+        ingredients:            [],
+        recipe_serving_size:    data.household_size ?? 4,
+        method_steps:           [],
+        dietary_tags:           [],
+        custom_tags:            [],
+        add_to_plan_count:      0,
+        created_at:             new Date().toISOString(),
         is_ingredient_complete: false,
         is_recipe_complete:     false,
-        meal_type:            pick.meal_type,
-        cuisine:              pick.cuisine,
-        cook_time:            pick.cook_time_mins,
+        meal_type:              pick.meal_type,
+        cuisine:                pick.cuisine,
+        cook_time:              pick.cook_time_mins,
       };
       addFav(recipe);
     });
 
-    // 4. Mark onboarding complete
+    // Mark complete THEN navigate so the completed flag is in state before
+    // the home screen's onboarding check runs
     completeOnboarding();
-
-    // 5. Navigate to main app
     router.replace('/(tabs)' as Href);
   };
 
@@ -128,27 +158,25 @@ export default function WelcomeScreen() {
           <Text style={styles.familyName}>Welcome, {familyName}</Text>
           <Text style={styles.subtitle}>Your personalised meal planner is ready.</Text>
 
+          {/* FIX 3: Show picks count with accurate copy — "ready to add" not "added" */}
           {totalPicks > 0 && (
             <View style={styles.pillRow}>
               <View style={styles.pill}>
-                <Text style={styles.pillText}>✅ {totalPicks} meal{totalPicks !== 1 ? 's' : ''} added to Favs</Text>
+                <Text style={styles.pillText}>
+                  🍽️ {totalPicks} meal{totalPicks !== 1 ? 's' : ''} ready to add to Favs
+                </Text>
               </View>
             </View>
           )}
 
-          <View style={styles.summaryCard}>
-            {data.region ? (
-              <Text style={styles.summaryLine}>📍 {data.region} · {data.measurement_units === 'imperial' ? 'Imperial' : 'Metric'}</Text>
-            ) : null}
-            {data.planning_style ? (
-              <Text style={styles.summaryLine}>
-                🎯 {data.planning_style === 'familiar' ? 'Familiar meals' : data.planning_style === 'adventurous' ? 'Adventurous picks' : 'Balanced mix'}
-              </Text>
-            ) : null}
-            {data.personal_goal && data.personal_goal !== 'balanced' ? (
-              <Text style={styles.summaryLine}>💪 Goal: {data.personal_goal.replace(/_/g, ' ')}</Text>
-            ) : null}
-          </View>
+          {/* FIX 4: Only render summary card if there's at least one item */}
+          {summaryItems.length > 0 && (
+            <View style={styles.summaryCard}>
+              {summaryItems.map((line) => (
+                <Text key={line} style={styles.summaryLine}>{line}</Text>
+              ))}
+            </View>
+          )}
         </Animated.View>
       </View>
 
@@ -218,14 +246,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   pill: {
-    backgroundColor: '#E6F9F0',
+    backgroundColor: Colors.primaryLight,
     borderRadius: BorderRadius.pill,
     paddingVertical: 8,
     paddingHorizontal: 16,
   },
   pillText: {
     fontSize: 14,
-    color: '#1A7A4A',
+    color: Colors.primary,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
   },

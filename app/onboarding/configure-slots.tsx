@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
@@ -21,13 +21,20 @@ export default function ConfigureSlotsScreen() {
   const { data, setEnabledSlots, setStep } = useOnboarding();
   const initialEnabled = data.enabled_slots ?? ['breakfast', 'lunch', 'dinner'];
   const [enabled, setEnabled] = useState<Set<string>>(new Set(initialEnabled));
+  const [showMinWarning, setShowMinWarning] = useState(false);
 
   const toggle = (id: string) => {
+    if (enabled.has(id) && enabled.size === 1) {
+      // Can't disable the last slot — show a warning instead
+      setShowMinWarning(true);
+      setTimeout(() => setShowMinWarning(false), 2000);
+      return;
+    }
+    setShowMinWarning(false);
     setEnabled(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
-        // Always keep at least one slot enabled
-        if (next.size > 1) next.delete(id);
+        next.delete(id);
       } else {
         next.add(id);
       }
@@ -39,7 +46,7 @@ export default function ConfigureSlotsScreen() {
     const slots = ALL_SLOTS.map(s => s.id).filter(id => enabled.has(id));
     setEnabledSlots(slots);
     setStep(10);
-    // Navigate to first enabled picks screen
+    // Navigate to first enabled picks screen (snacks has no picks screen)
     if (enabled.has('breakfast')) {
       router.push('/onboarding/breakfast-picks' as Href);
     } else if (enabled.has('lunch')) {
@@ -55,7 +62,12 @@ export default function ConfigureSlotsScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ProgressBar current={9} total={11} />
 
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.stepLabel}>Step 9 of 11</Text>
         <Text style={styles.heading}>Which meal slots do you plan for?</Text>
         <Text style={styles.subheading}>
@@ -66,6 +78,8 @@ export default function ConfigureSlotsScreen() {
           {ALL_SLOTS.map((slot) => {
             const isEnabled = enabled.has(slot.id);
             return (
+              // FIX: TouchableOpacity handles all row taps.
+              // Switch is set to pointerEvents="none" to prevent double-trigger.
               <TouchableOpacity
                 key={slot.id}
                 style={[styles.slotRow, isEnabled && styles.slotRowEnabled]}
@@ -79,18 +93,26 @@ export default function ConfigureSlotsScreen() {
                   </Text>
                   <Text style={styles.slotDesc}>{slot.description}</Text>
                 </View>
-                <Switch
-                  value={isEnabled}
-                  onValueChange={() => toggle(slot.id)}
-                  trackColor={{ false: Colors.border, true: Colors.primary }}
-                  thumbColor={Colors.white}
-                  ios_backgroundColor={Colors.border}
-                />
+                {/* pointerEvents="none" so Switch never captures the touch event */}
+                <View pointerEvents="none">
+                  <Switch
+                    value={isEnabled}
+                    trackColor={{ false: Colors.border, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                    ios_backgroundColor={Colors.border}
+                  />
+                </View>
               </TouchableOpacity>
             );
           })}
         </View>
-      </View>
+
+        {showMinWarning && (
+          <View style={styles.warningBanner}>
+            <Text style={styles.warningText}>You need at least one meal slot enabled.</Text>
+          </View>
+        )}
+      </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <PrimaryButton
@@ -108,10 +130,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  content: {
+  scroll: {
     flex: 1,
+  },
+  content: {
     paddingHorizontal: 24,
     paddingTop: 32,
+    paddingBottom: 16,
   },
   stepLabel: {
     fontSize: 13,
@@ -174,6 +199,20 @@ const styles = StyleSheet.create({
   slotDesc: {
     fontSize: 13,
     color: Colors.textSecondary,
+  },
+  warningBanner: {
+    marginTop: 16,
+    backgroundColor: '#FFF8EB',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  warningText: {
+    fontSize: 13,
+    color: '#8B6914',
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '500' as const,
+    textAlign: 'center',
   },
   footer: {
     paddingHorizontal: 24,
