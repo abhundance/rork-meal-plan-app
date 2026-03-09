@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
   clearDayLabel: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
-    color: Colors.textSecondary,
+    fontWeight: '600' as const,
+    color: Colors.text,
   },
 });

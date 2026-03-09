@@ -434,8 +434,8 @@ const styles = StyleSheet.create({
   clearText: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
-    color: Colors.textSecondary,
+    fontWeight: '600' as const,
+    color: Colors.text,
   },
   gridContainer: {
     flex: 1,
