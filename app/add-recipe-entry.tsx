@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   stepBadgeText: { fontSize: 12, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.white },
   stepInput: { flex: 1, minHeight: 48, textAlignVertical: 'top' },
   accordionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 28, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border },
-  accordionHeaderTitle: { fontSize: 14, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary },
+  accordionHeaderTitle: { fontSize: 18, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.text },
   accordionBody: { paddingTop: 4, paddingBottom: 8 },
   accordionFieldLabel: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary, marginTop: 16, marginBottom: 8 },
   aiFillBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: Colors.primaryLight, borderRadius: BorderRadius.button, borderWidth: 1, borderColor: Colors.primary, marginTop: 4 },
