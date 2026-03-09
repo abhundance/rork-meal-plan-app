@@ -157,7 +157,10 @@ export default function FavsScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
-  const [favFilters, setFavFilters] = useState<RecipeFilterState>({ ...DEFAULT_FILTER_STATE, sort: 'recently_added' });
+  const [favFilters, setFavFilters] = useState<RecipeFilterState>(() => ({
+    ...DEFAULT_FILTER_STATE,
+    sort: peekPendingPlanSlot() ? 'most_used' : 'recently_added',
+  }));
   const [mealTypeFilter, setMealTypeFilter] = useState<string>('all');
   const [dishTypeFilter, setDishTypeFilter] = useState<string>('all');
   const [proteinFilter,  setProteinFilter]  = useState<string>('all');
@@ -404,13 +407,20 @@ export default function FavsScreen() {
       // Reset scroll to top every time this tab is focused.
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
       // Re-read the pending slot — it may have been set since last render.
-      setPendingSlot(peekPendingPlanSlot());
+      const slot = peekPendingPlanSlot();
+      setPendingSlot(slot);
+      // In slot-picker mode, default to Most Used so the user sees their
+      // most-cooked meals first — the most likely candidates to re-add.
+      if (slot) {
+        setFavFilters(f => ({ ...f, sort: 'most_used' }));
+      }
       return () => {
         // If the user navigates away without picking a meal, discard the slot
-        // so it doesn't ghost onto future Favs visits.
+        // so it doesn't ghost onto future Favs visits, and restore default sort.
         if (peekPendingPlanSlot()) {
           consumePendingPlanSlot();
           setPendingSlot(null);
+          setFavFilters(f => ({ ...f, sort: 'recently_added' }));
         }
       };
     }, [])
