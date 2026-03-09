@@ -37,6 +37,7 @@ Safe checkpoints tagged on GitHub. To restore: `git checkout pre-recipe-type-uni
 | Tag | Commit | Date | What's working | Why it was tagged |
 |-----|--------|------|----------------|-------------------|
 | `pre-recipe-type-unification` | c090906 | 2026-03-06 | Favs grid layout ✅, add-meal tile ✅, chip row removed ✅ | Before Option B: merging `Meal` + `DiscoverMeal` into unified `Recipe` type |
+| *(latest stable)* | 55603f0 | 2026-03-09 | Supreme Red design system ✅, cardless Favs grid ✅, meal name initials ✅, chip consistency ✅, Plan tab action buttons ✅, Repeat sheet double-tap fix ✅ | Post Supreme Red rebrand + Favs grid overhaul |
 
 ---
 
@@ -44,10 +45,10 @@ Safe checkpoints tagged on GitHub. To restore: `git checkout pre-recipe-type-uni
 
 | Tab | Purpose |
 |-----|---------|
-| **Plan** | Weekly calendar grid. Assign meals to Breakfast / Lunch / Dinner / Snack slots across 7 days. Supports serving-size scaling per slot. |
+| **Meal Plan** | Weekly calendar grid. Assign meals to Breakfast / Lunch / Dinner / Snack slots across 7 days. Supports serving-size scaling per slot. |
 | **Shopping** | Auto-generated shopping list aggregated from all planned meals. Items grouped by ingredient category with check-off functionality. |
-| **Favs** | Single unified grid of all saved meals (family-created + hearted from Discover). Searchable. Inline filter pills: Sort, Meal Type, Dish Type, Protein, Diet. Filter sheet: 9 sections (Meal Type, Dish Type, Cuisine, Protein, Cook Time, Dietary, Calories, Source, Rating). Recipe cards have a ghost `CalendarPlus` icon to add directly to plan. |
-| **Discover** | Browse 38+ curated recipes. Filter sheet: 10 sections (Meal Type, Dish Type, Cuisine, Protein, Cook Time, Dietary, Intolerances, Occasion, Spice Level, Calories). Includes chef profiles and curated collections. |
+| **Favs** | Single unified grid of all saved meals (family-created + hearted from Discover), searchable and filterable by meal type, dish type, protein, and diet. No SegmentedControl — the segment was removed. |
+| **Discover** | Browse 38+ curated recipes. Filter by meal type, cuisine, cook time, and dietary needs. Includes chef profiles and curated collections. |
 
 ---
 
@@ -70,16 +71,9 @@ Entry via `router.push('/add-to-favs')`. No slot context. No "From My Favourites
 ---
 
 ### Add a Recipe Flow
-Single entry point: `app/add-recipe-entry.tsx`. The screen has **two modes toggled entirely via local state — no sub-navigation**:
+Single entry point: `app/add-recipe-entry.tsx`. The screen has two sections: a **Paste a Link** field at the top (handles recipe blogs, YouTube, TikTok — extracts recipe automatically), and a **Choose a Method** grid below with six options: Paste Text (`add-recipe-paste.tsx`), Manual Entry (`add-recipe-manual.tsx`), Photos, Video Link (`add-recipe-video.tsx`), Voice, and Camera. All paths eventually write to `app/add-recipe-review.tsx`.
 
-- **✨ AI Mode** (default) — chat-style input. User types a meal name and description; AI extracts and auto-fills all recipe metadata (cuisine, cook time, dietary tags, etc.) via `services/recipeExtraction.ts`. Voice input via `VoiceRecordSheet`. Recipe Details accordion auto-fills with AI the moment it is opened (no button tap required); shows "Auto-filled with AI" status + quiet "Re-fill" link once done.
-- **✏️ Manual Mode** — full form entry. User fills in all fields themselves (name, image, ingredients, method steps, cook time, dietary tags, etc.).
-
-Both modes write to `app/add-recipe-review.tsx` when the user is ready to save.
-
-> **Rule:** All navigation to the Add a Recipe flow must go to `/add-recipe-entry`. The only exception is editing an existing meal, which navigates directly to `/add-recipe-review?editId={id}` to bypass the entry screen.
-
-> **Note:** The old 6-button entry chooser (Paste Text, Manual Entry, Photos, Video Link, Voice, Camera) no longer exists. The files `add-recipe-paste.tsx`, `add-recipe-manual.tsx`, and `add-recipe-video.tsx` may still be present in the repo but are no longer part of the active flow.
+> **Rule:** All navigation to the Add a Recipe flow must go to `/add-recipe-entry`. The only exception is editing an existing meal, which navigates directly to `/add-recipe-review?editId={id}` to bypass the entry chooser.
 
 ### Recipe Extraction
 AI-powered extraction from YouTube URLs, TikTok URLs, pasted text, and images. Handled by `services/recipeExtraction.ts` using `gpt-4o-mini`. Extracts name, ingredients, method, cuisine, and cook time.
@@ -87,8 +81,8 @@ AI-powered extraction from YouTube URLs, TikTok URLs, pasted text, and images. H
 ### Meal Image Handling
 Auto-suggests food images from Unsplash after meal name entry. Users can also pick from camera or photo library. Base64 images passed between screens via `services/imageStore.ts` (never via route params). Handled by `services/imageSearch.ts`.
 
-### Favs Tab — Unified Grid
-Family-created meals (`source === 'family_created'`) are stored permanently and can only be deleted via explicit long-press confirmation — never accidentally removed by tapping a heart. Discovered/saved meals can be removed via the heart button. Both types appear in **one unified grid** — there is no SegmentedControl separating them. Each card shows a ghost `CalendarPlus` icon (bare, no border, `Colors.primary`, size 15) in the white strip next to the title — this triggers the slot picker to add the meal to the plan. This button is distinct from the floating `+` FAB which opens the Add a Recipe flow.
+### My Recipes vs Saved (Favs Tab)
+Family-created meals (`source === 'family_created'`) are stored permanently and can only be deleted via explicit long-press confirmation — never accidentally removed by tapping a heart. Discovered/saved meals can be removed via the heart button. Both types appear together in one unified grid (the SegmentedControl between My Recipes / Saved was removed).
 
 ### Onboarding & Auth
 Onboarding flow exists at `app/onboarding/`. The home screen redirects to `/onboarding/auth` when `onboardingData.completed === false`.
@@ -123,42 +117,65 @@ All stored in Rork's Environment Variables panel (not in `.env` files):
 
 All design tokens live in two files. **Never hardcode hex values or magic numbers.**
 
+> ⚠️ The app uses a **Supreme Red** brand palette — not purple. Any documentation or AI context referring to purple, lavender, or `#7B68CC` is outdated and must be ignored.
+
 ### `constants/colors.ts`
 ```
-Colors.primary         #7B68CC   — purple accent, buttons, active states
-Colors.primaryLight    #F0EEF9   — selected chip backgrounds, highlights
+// Primary — Supreme Red
+Colors.primary         #ED1C16   — buttons, active states, CTAs, icons
+Colors.primaryVibrant  #F53530   — decorative only: hero fills, card tints, filled hearts
+Colors.primaryLight    #FEF0EE   — selected chip bg, highlights, icon container bg
+
+// Family placeholder gradient (used by MealImagePlaceholder for family-created meals)
+// Update all three values in colors.ts whenever primary changes — never hardcode inline.
+Colors.familyGradient  ['#FEF0EE', '#FDDAD8', '#FCC8C5']  — warm red-tinted gradient
+
+// Surfaces — neutral so the red accent pops rather than bleeds
+Colors.background      #FFFFFF   — page background (pure white — Supreme aesthetic)
+Colors.surface         #F8F8F8   — input bg, chip default bg (distinct from white)
+Colors.card            #FFFFFF   — card backgrounds (elevation via shadow, not colour)
+
+// Text
 Colors.text            #2C2C2C   — primary text
-Colors.textSecondary   #8B7EA8   — secondary text, placeholders
-Colors.border          #F0EEF9   — borders, dividers
-Colors.card            #FFFFFF   — card backgrounds
-Colors.background      #FAFAF8   — page background
-Colors.surface         #F0EEF9   — input backgrounds, chip surfaces
-Colors.white           #FFFFFF
+Colors.textSecondary   #6B7280   — metadata, helper text, timestamps
+
+// Status
 Colors.success         #8BAF7A   — success states
 Colors.warning         #D4A853   — warning states
+Colors.danger          #B91C1C   — errors (darker crimson, distinct from primary red)
+
+// Utility
+Colors.white           #FFFFFF
+Colors.border          #E0E0E0   — borders, dividers
+Colors.divider         #E0E0E0   — list dividers
+Colors.shadow          #ED1C16   — red-tinted shadows on cards and tab bar
 Colors.inactive        rgba(44,44,44,0.4) — inactive tab icons, disabled elements
-Colors.divider         #F0EEF9   — list dividers
-Colors.slotColors      array[7]  — per-slot colour schemes (background, text, dot) for meal slot differentiation
+Colors.overlay         rgba(0,0,0,0.3)   — modal/sheet backdrops
+Colors.skeleton1       #F5DCDA   — warm red-tinted skeleton base
+Colors.skeleton2       #FEF0EE   — skeleton shimmer highlight
+Colors.offlineBanner   #F5E6C8
+Colors.offlineText     #8B6914
+Colors.SlotColors      array[7]  — per-slot colour schemes (bg, text, dot) for meal slot differentiation
 ```
 
 ### `constants/theme.ts`
 ```
 Spacing.xs(4) / sm(8) / md(12) / lg(16) / xl(20) / xxl(24) / xxxl(32)
 BorderRadius.button(12) / input(12) / card(16) / pill(20) / full(999)
-Shadows.card / header / tabBar
+Shadows.card / header / tabBar  — all use Colors.shadow (red-tinted)
 ```
 
 ### Existing Components (reuse, never recreate)
 - `AppHeader` — top navigation bar with title and optional right element
-- `FilterPill` — horizontal chip for filter rows
-- `RecipeFilterSheet` — shared bottom sheet filter component used by both Favs and Discover tabs. Configured via `RecipeFilterConfig` prop (13 possible sections). Exports `RecipeFilterState`, `DEFAULT_FILTER_STATE`, `countActiveFilters`. See `components/RecipeFilterSheet.tsx`.
+- `FilterPill` — horizontal chip for filter rows. Active state: `Colors.primary` bg + white text. Inactive: `Colors.surface` bg + `Colors.text`.
+- `MealImagePlaceholder` — image placeholder for meals without a photo. Renders in three modes: (1) **delivery platform logo** (when `deliveryPlatform` prop is set), (2) **meal name initials** on a hashed muted background (when `familyInitials` prop is set — used for family-created meals without a photo; initials are derived from `name` prop, e.g. "MC" for Masala Chai), (3) **emoji + colour gradient** fallback. Never pass `familyAvatarUrl` to Favs grid cards — only `familyInitials` is used there.
 - `SlotPickerModal` — meal slot selection modal
-- `MealPickerSheet` — slide-up RN Modal for adding meals to a slot. Three internal modes: `choose` (search existing meals + option tiles), `manual` (Add Without Recipe — name-only quick add), `delivery` (Add from Delivery App — name + URL). Used in `home/index.tsx` and `recipe-detail.tsx`. "Add with Recipe" from this sheet navigates to `/add-recipe-entry` (Expo Router modal).
+- `MealPickerSheet` — slide-up sheet for adding meals to a slot (search, manual, delivery modes)
 - `MealSlotEditor` — add/remove/rename meal slots in settings
-- `WeeklyPlanView` — 7-day grid with meal pills, week navigation, Smart Fill
-- `DailyPlanView` — day-level meal slots with serving stepper and meal rows
-- `RepeatWeekSheet` / `RepeatDaySheet` — copy meals from a previous week/day
-- `SegmentedControl` — two-option toggle (e.g. Week / Day view)
+- `WeeklyPlanView` — 7-day grid with meal pills, week navigation, Smart Fill. Action buttons (Reshuffle, Repeat, Clear week) use `Colors.surface` bg, `Colors.text`, `fontWeight: '600'`, no icons.
+- `DailyPlanView` — day-level meal slots with serving stepper and meal rows. Action buttons (Smart Fill/Reshuffle, Repeat day, Clear day) match WeeklyPlanView style exactly.
+- `RepeatWeekSheet` / `RepeatDaySheet` — copy meals from a previous week/day. Both recompute their items list whenever the sheet opens (`visible` is in the `useMemo` dep array) — do not remove this.
+- `SegmentedControl` — two-option toggle
 - `EmptyState` — standardised empty screen with icon, title, and CTA
 - `SkeletonLoader` — loading placeholder
 - `ServingStepper` — +/– control for adjusting serving sizes
@@ -184,40 +201,6 @@ Always submit prompts as a **single message** — no newlines in the submitted t
 
 ---
 
-## Screen Map
-
-A visual reference of every screen, its exact file path, and all navigation connections is maintained at **`screen-map.html`** in the repository root. Open it in any browser — it is pannable, zoomable, and click-to-inspect.
-
-> **Rule — keep the screen map current at all times.**
-> After any change that does one of the following, update `screen-map.html` before committing:
-> - Adds a new screen or sheet/modal component
-> - Removes or renames an existing screen file
-> - Adds, removes, or changes a `router.push` / `router.replace` navigation call
->
-> **What to edit:** Only the `SCREENS` array and the `CONNECTIONS` array inside the `<script>` block at the bottom of `screen-map.html`. The HTML, CSS, and rendering logic must never be changed.
->
-> **`SCREENS` entry shape:**
-> ```js
-> { id:'unique-id', label:'Display Name', file:'app/path/to/file.tsx',
->   group:'tabs|add-recipe|discover|onboarding|shared|settings|sheets',
->   type:'Tab|Screen|Sheet|Modal', x: 000, y: 000,
->   desc:'One sentence describing this screen and its purpose.' }
-> ```
-> **`CONNECTIONS` entry shape:** `['fromId', 'toId', 'short edge label']`
->
-> **Groups and their left-border colours:**
-> | group | colour | use for |
-> |---|---|---|
-> | `tabs` | #7B68CC purple | The four main tab screens |
-> | `add-recipe` | #d97706 orange | add-recipe-entry, review, manual, paste, video |
-> | `discover` | #059669 green | discover sub-screens |
-> | `onboarding` | #db2777 pink | onboarding flow screens |
-> | `shared` | #2563eb blue | screens reached from multiple tabs (recipe-detail) |
-> | `settings` | #6b7280 grey | family-settings |
-> | `sheets` | #0891b2 teal dashed | any component-level sheet or modal |
-
----
-
 ## Architectural Rules
 
 These patterns were established through development and must be followed:
@@ -239,9 +222,9 @@ These patterns were established through development and must be followed:
 
 5. **Single-scroll-container for filter-pill + grid screens** — Any screen that has a filter pill row above a scrollable content grid **must** put both inside the same scroll container. Never split them across a fixed-above-ScrollView architecture.
 
-   **Why:** iOS's `UIScrollView` preserves its `contentOffset` when the user scrolls down and then switches tabs. On return, the grid's scroll container is at its old position — creating a phantom blank gap at the top equal to how far the user had scrolled. This gap is invisible to the layout inspector (it shows as the screen's background colour with no element owning it).
+   **Why:** iOS's `UIScrollView` preserves its `contentOffset` when the user scrolls down and then switches tabs or navigates away. When they return, the grid's scroll container is at its old position — creating a phantom blank gap at the top equal to how far the user had scrolled. This gap is invisible to the layout inspector (it shows as the screen's background colour, with no element owning it), making it extremely hard to diagnose.
 
-   **The fix:** Use a `FlatList` that owns the entire scroll area. Put the search bar and filter pill row inside `ListHeaderComponent`. The grid items are the FlatList data.
+   **The fix:** Use a `FlatList` that owns the entire scroll area. Put the search bar and filter pill row inside `ListHeaderComponent`. The grid items are the FlatList data. This mirrors the Discover tab architecture and makes phantom gaps structurally impossible — there is no seam between the header and the grid.
 
    ```tsx
    // ✅ Correct — single FlatList owns everything
@@ -253,6 +236,7 @@ These patterns were established through development and must be followed:
        <View>
          {/* search bar */}
          {/* filter pill horizontal ScrollView */}
+         {/* filter count bar */}
          <View style={{ height: 12 }} />
        </View>
      }
@@ -266,10 +250,10 @@ These patterns were established through development and must be followed:
    <ScrollView style={{ flex: 1 }}>{/* grid */}</ScrollView>
    ```
 
-   Also add a `useFocusEffect` that calls `flatListRef.current?.scrollToOffset({ offset: 0, animated: false })` whenever the tab is focused as a belt-and-suspenders safety net.
+   Also add a `useFocusEffect` that calls `flatListRef.current?.scrollToOffset({ offset: 0, animated: false })` whenever the tab is focused, as a belt-and-suspenders safety net.
 
    > **Screens using this pattern:** `app/(tabs)/favs/index.tsx`
-   > **Reference implementation:** Commit `6ac4db6` — `fix(favs): merge all content into single FlatList`
+   > **Reference implementation:** See commit `6ac4db6` — `fix(favs): merge all content into single FlatList`
 
 ---
 
@@ -284,70 +268,43 @@ Items intentionally deferred — must be completed before public launch:
 
 ---
 
+## Feature Backlog
+
+Post-launch features for future development sprints:
+
+### Full Video Recipe Extraction (TikTok / Instagram / YouTube)
+**What:** Extract recipes from videos even when there is no recipe text in the description — by downloading the video, transcribing the audio, and analysing video frames with vision AI.
+**Why:** Competitors like Honeydew do this. Currently the app only reads the YouTube description and TikTok caption, which fails for videos with no text.
+**How it works:**
+1. Server-side video download using `yt-dlp` or Apify (cannot run client-side)
+2. Audio extraction → OpenAI Whisper transcription
+3. Frame extraction (keyframes) → GPT-4o Vision analysis for on-screen text, ingredients, quantities
+4. Combined transcript + visual data → GPT-4o recipe assembly
+**Dependency:** Requires backend migration (Supabase Edge Functions) to be completed first — video downloading and processing cannot run on the mobile client.
+**Estimated cost:** ~$0.08–0.17 per video extraction (Whisper + GPT-4o Vision + GPT-4o). Cover via subscription or per-user credit quota.
+**Legal note:** Downloading TikTok/Instagram videos without authorisation technically violates their ToS. Monitor platform policy changes.
+
+---
+
 ## Data Model (Key Fields)
 
 ```ts
-// Recipe — unified type used across Favs, Plan tab, and Add a Recipe flow
-// (also DiscoverMeal for the Discover tab — nearly identical shape)
+// FavMeal — core meal object used across Favs, Meal Plan, and Add a Meal
 {
   id: string
   name: string
-  source: 'family_created' | 'discover' | string  // CRITICAL: determines card delete behaviour
   image_url?: string
-
-  // Classification (used by filter sheet)
-  meal_type?: 'breakfast' | 'lunch_dinner' | 'light_bites'
-  dish_category?: 'main' | 'salad' | 'soup' | 'appetizer' | 'side' | 'dessert' | 'drink' | 'bread' | 'sandwich' | 'sauce' | 'other'
-  cuisine?: string               // single primary cuisine (e.g. 'Italian')
-  cuisines?: string[]            // multi-cuisine array (Spoonacular-compatible)
-  protein_source?: 'chicken' | 'beef' | 'pork' | 'lamb' | 'turkey' | 'seafood' | 'egg' | 'dairy' | 'plant' | 'none'
-  cooking_time_band?: 'Under 30' | '30-60' | 'Over 60'
-  prep_time?: number             // minutes
-  cook_time?: number             // minutes
-
-  // Dietary (multiple overlapping arrays — check all three in filter logic)
-  dietary_tags?: string[]        // e.g. ['Vegan', 'Gluten-Free']
-  diet_labels?: string[]         // Spoonacular positive labels e.g. ['keto', 'paleo']
-  allergens?: string[]           // free-from list e.g. ['gluten-free', 'nut-free']
-  occasions?: string[]           // e.g. ['weeknight', 'meal-prep']
-
-  // Nutrition (used by Calories filter)
-  calories_per_serving?: number
-  protein_per_serving_g?: number
-  carbs_per_serving_g?: number
-
-  // Taste profile (used by Spice Level filter: 0–100; mild ≤15, medium 16–35, hot ≥36)
-  taste_spiciness?: number
-
-  // Family interaction (used by Rating filter)
-  rating?: 'loved' | 'liked' | undefined
-  add_to_plan_count: number      // used by 'Most Used' sort
-  last_planned_date?: string
-  created_at: string
-
-  // Recipe content
+  source: 'family_created' | 'discover' | string  // CRITICAL: determines My Recipes vs Saved
+  cuisine?: string
+  meal_type?: string
+  prep_time?: number
+  cook_time?: number
   ingredients: { name: string; quantity: number; unit: string }[]
   method_steps?: string[]
   recipe_serving_size?: number
-}
-```
-
-### RecipeFilterState (from `components/RecipeFilterSheet.tsx`)
-All 13 filter fields. Both tabs share this type; each tab enables a subset via `RecipeFilterConfig`.
-```ts
-{
-  sort:         string    // 'recently_added' | 'most_used' | 'recently_planned' | 'cooking_time' | 'a_to_z'
-  mealType:     string    // '' | 'breakfast' | 'lunch_dinner' | 'light_bites'
-  dishTypes:    string[]  // multi-select DishCategory values
-  cuisines:     string[]  // multi-select cuisine keys
-  protein:      string[]  // multi-select ProteinSource keys
-  cookTime:     string    // '' | 'Under 30' | '30-60' | 'Over 60'
-  dietary:      string[]  // multi-select: vegan | vegetarian | gluten_free | dairy_free | high_protein | low_carb | keto | paleo | whole30 | nut_free
-  intolerances: string[]  // multi-select allergen-free keys (Discover only)
-  occasions:    string[]  // multi-select (Discover only)
-  spiceLevel:   string    // '' | 'mild' | 'medium' | 'hot' (Discover only)
-  calories:     string    // '' | 'under_400' | '400_600' | 'over_600'
-  source:       string    // '' | 'family_created' | 'discover' (Favs only)
-  rating:       string    // '' | 'loved' | 'liked' | 'unrated' (Favs only)
+  is_vegan?: boolean
+  is_vegetarian?: boolean
+  is_gluten_free?: boolean
+  is_dairy_free?: boolean
 }
 ```
