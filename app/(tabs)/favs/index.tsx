@@ -9,39 +9,11 @@ import {
   StyleSheet,
   RefreshControl,
   Animated,
-  ActionSheetIOS,
   Alert,
   Image,
   Dimensions,
-  Platform,
   Pressable,
 } from 'react-native';
-
-// Cross-platform action sheet — uses native ActionSheetIOS on iOS, falls back to Alert elsewhere (e.g. Rork web preview)
-function showSheet(
-  opts: {
-    options: string[];
-    cancelButtonIndex: number;
-    destructiveButtonIndex?: number;
-    title?: string;
-    message?: string;
-  },
-  callback: (index: number) => void
-) {
-  if (Platform.OS === 'ios') {
-    ActionSheetIOS.showActionSheetWithOptions(opts, callback);
-  } else {
-    const buttons = opts.options.map((label, i) => ({
-      text: label,
-      style: (
-        i === opts.destructiveButtonIndex ? 'destructive' :
-        i === opts.cancelButtonIndex      ? 'cancel'      : 'default'
-      ) as 'destructive' | 'cancel' | 'default',
-      onPress: () => callback(i),
-    }));
-    Alert.alert(opts.title ?? '', opts.message ?? '', buttons);
-  }
-}
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href, useFocusEffect } from 'expo-router';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
@@ -167,7 +139,7 @@ export default function FavsScreen() {
   const [dietFilter,     setDietFilter]     = useState<string>('all');
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<Recipe | null>(null);
-
+  const [activeExpandedPill, setActiveExpandedPill] = useState<'when' | 'type' | 'protein' | 'diet' | null>(null);
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
 
@@ -256,13 +228,14 @@ export default function FavsScreen() {
     setDishTypeFilter('all');
     setProteinFilter('all');
     setDietFilter('all');
+    setActiveExpandedPill(null);
   }, []);
 
   // Scroll back to top whenever any filter/sort/search changes so the grid
   // never shows a phantom blank gap caused by a stale scroll offset.
   useEffect(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, [search, mealTypeFilter, dishTypeFilter, proteinFilter, dietFilter, favFilters]);
+  }, [search, mealTypeFilter, dishTypeFilter, proteinFilter, dietFilter, favFilters, activeExpandedPill]);
 
   // Cycles to the next sort option on each tap — no sheet needed
   const cycleSortOption = useCallback(() => {
@@ -274,36 +247,21 @@ export default function FavsScreen() {
     });
   }, []);
 
-  const openMealTypeSheet = useCallback(() => {
+  // Inline pill expansion — replaces native ActionSheetIOS for all four filter pills.
+  // Scroll-to-top first so the header height change never creates a phantom gap (Rule 5).
+  const handlePillTap = useCallback((pill: 'when' | 'type' | 'protein' | 'diet') => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    showSheet(
-      { options: [...MEAL_TYPE_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: MEAL_TYPE_OPTIONS.length },
-      (i) => { if (i < MEAL_TYPE_OPTIONS.length) setMealTypeFilter(MEAL_TYPE_OPTIONS[i].value); }
-    );
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    setActiveExpandedPill(prev => prev === pill ? null : pill);
   }, []);
 
-  const openDishTypeSheet = useCallback(() => {
+  const handleSubOptionSelect = useCallback((pill: 'when' | 'type' | 'protein' | 'diet', value: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    showSheet(
-      { options: [...DISH_TYPE_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: DISH_TYPE_OPTIONS.length },
-      (i) => { if (i < DISH_TYPE_OPTIONS.length) setDishTypeFilter(DISH_TYPE_OPTIONS[i].value); }
-    );
-  }, []);
-
-  const openProteinSheet = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    showSheet(
-      { options: [...PROTEIN_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: PROTEIN_OPTIONS.length },
-      (i) => { if (i < PROTEIN_OPTIONS.length) setProteinFilter(PROTEIN_OPTIONS[i].value); }
-    );
-  }, []);
-
-  const openDietSheet = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    showSheet(
-      { options: [...DIET_OPTIONS.map(o => o.label), 'Cancel'], cancelButtonIndex: DIET_OPTIONS.length },
-      (i) => { if (i < DIET_OPTIONS.length) setDietFilter(DIET_OPTIONS[i].value); }
-    );
+    if (pill === 'when')    setMealTypeFilter(value);
+    if (pill === 'type')    setDishTypeFilter(value);
+    if (pill === 'protein') setProteinFilter(value);
+    if (pill === 'diet')    setDietFilter(value);
+    setActiveExpandedPill(null);
   }, []);
 
   const handleAddToPlan = useCallback((meal: Recipe) => {
@@ -374,32 +332,24 @@ export default function FavsScreen() {
   }, [pendingSlot, handleSlotModeSelect]);
 
   const handleDeleteMyRecipe = useCallback((meal: Recipe) => {
-    showSheet(
-      {
-        options: ['Cancel', 'Delete'],
-        destructiveButtonIndex: 1,
-        cancelButtonIndex: 0,
-        title: 'Delete recipe?',
-        message: meal.name + ' will be permanently deleted.',
-      },
-      (i) => {
-        if (i === 1) removeFav(meal.id);
-      }
+    Alert.alert(
+      'Delete recipe?',
+      meal.name + ' will be permanently deleted.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => removeFav(meal.id) },
+      ]
     );
   }, [removeFav]);
 
   const handleRemoveSaved = useCallback((meal: Recipe) => {
-    showSheet(
-      {
-        options: ['Cancel', 'Remove from Favs'],
-        destructiveButtonIndex: 1,
-        cancelButtonIndex: 0,
-        title: meal.name,
-        message: 'Remove from your favourites?',
-      },
-      (i) => {
-        if (i === 1) removeFav(meal.id);
-      }
+    Alert.alert(
+      meal.name,
+      'Remove from your favourites?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove from Favs', style: 'destructive', onPress: () => removeFav(meal.id) },
+      ]
     );
   }, [removeFav]);
 
@@ -679,48 +629,91 @@ export default function FavsScreen() {
 
             {/* ── Inline filter pill row ─────────────────────────── */}
             {(() => {
-              const sortLabel    = SORT_OPTIONS.find(o => o.value === favFilters.sort)?.label ?? 'Sort';
-              const sortActive   = favFilters.sort !== 'recently_added';
-              const whenLabel    = MEAL_TYPE_OPTIONS.find(o => o.value === mealTypeFilter)?.label ?? 'When';
-              const whenActive   = mealTypeFilter !== 'all';
-              const typeLabel    = DISH_TYPE_OPTIONS.find(o => o.value === dishTypeFilter)?.label ?? 'Type';
-              const typeActive   = dishTypeFilter !== 'all';
-              const proteinLabel = PROTEIN_OPTIONS.find(o => o.value === proteinFilter)?.label ?? 'Protein';
+              const sortLabel     = SORT_OPTIONS.find(o => o.value === favFilters.sort)?.label ?? 'Sort';
+              const sortActive    = favFilters.sort !== 'recently_added';
+              const whenLabel     = MEAL_TYPE_OPTIONS.find(o => o.value === mealTypeFilter)?.label ?? 'When';
+              const whenActive    = mealTypeFilter !== 'all';
+              const typeLabel     = DISH_TYPE_OPTIONS.find(o => o.value === dishTypeFilter)?.label ?? 'Type';
+              const typeActive    = dishTypeFilter !== 'all';
+              const proteinLabel  = PROTEIN_OPTIONS.find(o => o.value === proteinFilter)?.label ?? 'Protein';
               const proteinActive = proteinFilter !== 'all';
-              const dietLabel    = DIET_OPTIONS.find(o => o.value === dietFilter)?.label ?? 'Diet';
-              const dietActive   = dietFilter !== 'all';
-              const handleWhenPress    = whenActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMealTypeFilter('all'); } : openMealTypeSheet;
-              const handleTypePress    = typeActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setDishTypeFilter('all'); } : openDishTypeSheet;
-              const handleProteinPress = proteinActive ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setProteinFilter('all');  } : openProteinSheet;
-              const handleDietPress    = dietActive    ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setDietFilter('all');     } : openDietSheet;
+              const dietLabel     = DIET_OPTIONS.find(o => o.value === dietFilter)?.label ?? 'Diet';
+              const dietActive    = dietFilter !== 'all';
+
+              // Sub-options data for whichever pill is currently expanded
+              const subOptions = activeExpandedPill === 'when'    ? MEAL_TYPE_OPTIONS
+                               : activeExpandedPill === 'type'    ? DISH_TYPE_OPTIONS
+                               : activeExpandedPill === 'protein' ? PROTEIN_OPTIONS
+                               : activeExpandedPill === 'diet'    ? DIET_OPTIONS
+                               : null;
+              const subCurrentValue = activeExpandedPill === 'when'    ? mealTypeFilter
+                                    : activeExpandedPill === 'type'    ? dishTypeFilter
+                                    : activeExpandedPill === 'protein' ? proteinFilter
+                                    : activeExpandedPill === 'diet'    ? dietFilter
+                                    : 'all';
+
               return (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={{ height: 46 }}
-                  contentContainerStyle={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 7 }}
-                >
-                  <TouchableOpacity onPress={cycleSortOption} activeOpacity={0.8} style={[styles.filterPill, sortActive && styles.filterPillActive]}>
-                    <ArrowUpDown size={13} color={sortActive ? Colors.white : Colors.text} strokeWidth={2.5} />
-                    <Text style={[styles.filterPillText, sortActive && styles.filterPillTextActive, { marginLeft: 5 }]}>{sortLabel}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleWhenPress} activeOpacity={0.8} style={[styles.filterPill, whenActive && styles.filterPillActive]}>
-                    <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}>{whenActive ? whenLabel : 'When'}</Text>
-                    <Text style={[styles.filterPillText, whenActive && styles.filterPillTextActive]}> {whenActive ? '✕' : '▾'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleTypePress} activeOpacity={0.8} style={[styles.filterPill, typeActive && styles.filterPillActive]}>
-                    <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}>{typeActive ? typeLabel : 'Type'}</Text>
-                    <Text style={[styles.filterPillText, typeActive && styles.filterPillTextActive]}> {typeActive ? '✕' : '▾'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleProteinPress} activeOpacity={0.8} style={[styles.filterPill, proteinActive && styles.filterPillActive]}>
-                    <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}>{proteinActive ? proteinLabel : 'Protein'}</Text>
-                    <Text style={[styles.filterPillText, proteinActive && styles.filterPillTextActive]}> {proteinActive ? '✕' : '▾'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleDietPress} activeOpacity={0.8} style={[styles.filterPill, dietActive && styles.filterPillActive]}>
-                    <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}>{dietActive ? dietLabel : 'Diet'}</Text>
-                    <Text style={[styles.filterPillText, dietActive && styles.filterPillTextActive]}> {dietActive ? '✕' : '▾'}</Text>
-                  </TouchableOpacity>
-                </ScrollView>
+                <>
+                  {/* ── Row 1: parent pills ── */}
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={{ height: 46 }}
+                    contentContainerStyle={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 7 }}
+                  >
+                    <TouchableOpacity onPress={cycleSortOption} activeOpacity={0.8} style={[styles.filterPill, sortActive && styles.filterPillActive]}>
+                      <ArrowUpDown size={13} color={sortActive ? Colors.white : Colors.text} strokeWidth={2.5} />
+                      <Text style={[styles.filterPillText, sortActive && styles.filterPillTextActive, { marginLeft: 5 }]}>{sortLabel}</Text>
+                    </TouchableOpacity>
+
+                    {([
+                      { key: 'when',    label: whenActive    ? whenLabel    : 'When',    active: whenActive,    expanded: activeExpandedPill === 'when'    },
+                      { key: 'type',    label: typeActive    ? typeLabel    : 'Type',    active: typeActive,    expanded: activeExpandedPill === 'type'    },
+                      { key: 'protein', label: proteinActive ? proteinLabel : 'Protein', active: proteinActive, expanded: activeExpandedPill === 'protein' },
+                      { key: 'diet',    label: dietActive    ? dietLabel    : 'Diet',    active: dietActive,    expanded: activeExpandedPill === 'diet'    },
+                    ] as const).map(({ key, label, active, expanded }) => (
+                      <TouchableOpacity
+                        key={key}
+                        onPress={() => handlePillTap(key)}
+                        activeOpacity={0.8}
+                        style={[styles.filterPill, (active || expanded) && styles.filterPillActive]}
+                      >
+                        <Text style={[styles.filterPillText, (active || expanded) && styles.filterPillTextActive]}>
+                          {label}
+                        </Text>
+                        <Text style={[styles.filterPillText, (active || expanded) && styles.filterPillTextActive]}>
+                          {' '}{expanded ? '▴' : '▾'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+
+                  {/* ── Row 2: sub-options (shown when a pill is expanded) ── */}
+                  {subOptions && (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={{ height: 46 }}
+                      contentContainerStyle={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 7 }}
+                    >
+                      {subOptions.map(opt => {
+                        const isSelected = opt.value === subCurrentValue;
+                        return (
+                          <TouchableOpacity
+                            key={opt.value}
+                            onPress={() => handleSubOptionSelect(activeExpandedPill!, opt.value)}
+                            activeOpacity={0.8}
+                            style={[styles.subOptionPill, isSelected && styles.subOptionPillActive]}
+                          >
+                            <Text style={[styles.subOptionPillText, isSelected && styles.subOptionPillTextActive]}>
+                              {opt.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  )}
+                </>
               );
             })()}
 
@@ -1264,6 +1257,30 @@ const styles = StyleSheet.create({
   },
   filterPillTextActive: {
     color: Colors.white,
+  },
+  // Sub-option chips — slightly smaller, outlined style to visually differentiate from parent pills
+  subOptionPill: {
+    height: 32,
+    paddingHorizontal: 14,
+    borderRadius: BorderRadius.pill,
+    backgroundColor: Colors.background,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  subOptionPillActive: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primary,
+  },
+  subOptionPillText: {
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  subOptionPillTextActive: {
+    color: Colors.primary,
   },
   activeFilterBar: {
     flexDirection: 'row' as const,
