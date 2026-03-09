@@ -523,7 +523,7 @@ export default function MealPickerSheet({
                 You can add ingredients later from the meal detail screen.
               </Text>
             </View>
-            <View style={[styles.manualActions, { marginBottom: keyboardHeight }]}>
+            <View style={[styles.manualActions, { bottom: keyboardHeight + 16 }]}>
               <PrimaryButton
                 label="Add Meal"
                 onPress={handleAddManual}
@@ -678,6 +678,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 16,
+    paddingBottom: 80,
     alignItems: 'center',
   },
   manualHeadingRow: {
@@ -719,9 +720,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   manualActions: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    paddingTop: 12,
+    position: 'absolute' as const,
+    left: 20,
+    right: 20,
   },
   backLink: {
     paddingVertical: 8,
