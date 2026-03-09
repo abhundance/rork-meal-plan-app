@@ -268,6 +268,46 @@ function matchesDietaryKey(
   }
 }
 
+/**
+ * Keyword map for ingredient-based protein detection.
+ * Used as a fallback when protein_source is not set on a saved meal
+ * (e.g. meals saved before the field was introduced, or family-created
+ * meals where the user skipped the protein field).
+ */
+const PROTEIN_INGREDIENT_KEYWORDS: Record<string, string[]> = {
+  chicken: ['chicken', 'poultry'],
+  beef:    ['beef', 'steak', 'mince', 'brisket', 'veal', 'burger patty'],
+  pork:    ['pork', 'bacon', 'ham', 'prosciutto', 'sausage', 'salami', 'chorizo', 'pancetta'],
+  lamb:    ['lamb', 'mutton'],
+  turkey:  ['turkey'],
+  seafood: ['salmon', 'tuna', 'shrimp', 'prawn', 'crab', 'lobster', 'cod', 'tilapia',
+            'snapper', 'mackerel', 'anchovy', 'sardine', 'squid', 'halibut', 'sea bass',
+            'trout', 'mahi', 'scallop', 'mussel', 'oyster', 'clam', 'seafood', 'fish fillet'],
+  egg:     ['egg', 'eggs'],          // checked with whole-word guard to exclude 'eggplant'
+  dairy:   ['cheese', 'cream', 'milk', 'butter', 'yogurt', 'yoghurt', 'ricotta',
+            'brie', 'cheddar', 'mozzarella', 'feta', 'parmesan', 'gouda', 'halloumi'],
+  plant:   ['tofu', 'tempeh', 'lentil', 'chickpea', 'kidney bean', 'black bean', 'edamame',
+            'soy', 'seitan', 'jackfruit'],
+  none:    [],
+};
+
+function deriveProteinFromIngredients(
+  ingredients: { name: string }[],
+  targetProtein: string,
+): boolean {
+  const keywords = PROTEIN_INGREDIENT_KEYWORDS[targetProtein];
+  if (!keywords || keywords.length === 0) return false;
+
+  const ingredientText = ingredients.map((i) => i.name.toLowerCase()).join(' | ');
+
+  if (targetProtein === 'egg') {
+    // Avoid matching 'eggplant' — require 'egg' not followed by 'plant'
+    return /\beggs?\b/.test(ingredientText) && !/eggplant/.test(ingredientText);
+  }
+
+  return keywords.some((kw) => ingredientText.includes(kw));
+}
+
 export function useFilteredFavs(
   search: string,
   filters: RecipeFilterState & {
@@ -322,12 +362,22 @@ export function useFilteredFavs(
     }
 
     // ── Protein (sheet multi-select OR logic + inline pill single-select) ───
+    // Falls back to ingredient-based detection when protein_source is not set
+    // (covers meals saved before the field was introduced + family-created meals).
     if (filters.protein.length > 0) {
-      result = result.filter((m) => !!m.protein_source && filters.protein.includes(m.protein_source));
+      result = result.filter((m) =>
+        m.protein_source
+          ? filters.protein.includes(m.protein_source)
+          : filters.protein.some((p) => deriveProteinFromIngredients(m.ingredients, p))
+      );
     }
     const inlineP = filters.inlineProtein;
     if (inlineP && inlineP !== 'all') {
-      result = result.filter((m) => m.protein_source === inlineP);
+      result = result.filter((m) =>
+        m.protein_source
+          ? m.protein_source === inlineP
+          : deriveProteinFromIngredients(m.ingredients, inlineP)
+      );
     }
 
     // ── Cook time ───────────────────────────────────────────────────────────
