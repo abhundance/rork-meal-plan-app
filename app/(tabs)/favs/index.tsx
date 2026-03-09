@@ -83,6 +83,7 @@ import RecipeFilterSheet, {
   DEFAULT_FILTER_STATE,
   countActiveFilters,
 } from '@/components/RecipeFilterSheet';
+import { getFamilyInitials, isRealPhotoUrl } from '@/utils/familyAvatar';
 
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -157,6 +158,12 @@ export default function FavsScreen() {
   const { meals, recentSearches, removeFav, addFav, addRecentSearch, clearRecentSearches, incrementPlanCount } = useFavs();
   const { familySettings } = useFamilySettings();
   const { addMeal, getMealsForSlot } = useMealPlan();
+
+  // Derived family avatar props — passed to MealImagePlaceholder for family_created cards
+  const familyPhotoUrl = isRealPhotoUrl(familySettings.family_avatar_url)
+    ? familySettings.family_avatar_url
+    : undefined;
+  const familyInitials = getFamilyInitials(familySettings.family_name);
 
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
@@ -947,11 +954,17 @@ const FavGridCard = React.memo(function FavGridCard({
               <View style={{
                 width: CARD_W,
                 height: IMG_H,
-                backgroundColor: Colors.primaryLight,
-                alignItems: 'center' as const,
-                justifyContent: 'center' as const,
+                overflow: 'hidden' as const,
               }}>
-                <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
+                <MealImagePlaceholder
+                  size="card"
+                  borderRadius={0}
+                  mealType={meal.meal_type}
+                  cuisine={meal.cuisine}
+                  name={meal.name}
+                  familyAvatarUrl={meal.source === 'family_created' ? familyPhotoUrl : undefined}
+                  familyInitials={meal.source === 'family_created' ? familyInitials : undefined}
+                />
               </View>
             )}
           </View>

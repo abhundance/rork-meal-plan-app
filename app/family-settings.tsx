@@ -22,11 +22,7 @@ import MealSlotEditor from '@/components/MealSlotEditor';
 import Stepper from '@/components/Stepper';
 import DietaryPillGrid from '@/components/DietaryPillGrid';
 import { MealSlot } from '@/types';
-
-/** Returns true if the string is a single emoji rather than a real URI */
-function isEmojiAvatar(value: string): boolean {
-  return value.length <= 4 && /^\p{Emoji}/u.test(value);
-}
+import { isEmojiAvatar } from '@/utils/familyAvatar';
 
 function SectionHeader({ title, icon, locked, adminName }: {
   title: string;

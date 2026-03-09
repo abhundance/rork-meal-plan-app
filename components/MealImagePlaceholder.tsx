@@ -160,7 +160,8 @@ export default function MealImagePlaceholder({
     }
     if (isCard) {
       if (borderRadius !== undefined) {
-        return [styles.containerCard, { borderRadius }];
+        // borderRadius=0 also means "fill parent" — drop the aspectRatio constraint
+        return [styles.containerCard, { borderRadius, aspectRatio: undefined as any, width: '100%', height: '100%' }];
       }
       return styles.containerCard;
     }
@@ -171,12 +172,18 @@ export default function MealImagePlaceholder({
   const emojiFontSize = isThumbnail ? 26 : isCard ? 42 : 70;
 
   // Detect whether familyAvatarUrl is a real photo URI (not an emoji string)
-  const isRealPhotoUrl =
+  const hasRealPhoto =
     !!familyAvatarUrl &&
     (familyAvatarUrl.startsWith('http') || familyAvatarUrl.startsWith('file://'));
 
-  // Hero size: show family avatar photo or initials instead of emoji
-  if (isHero && (isRealPhotoUrl || familyInitials)) {
+  // Show family avatar photo or initials for ALL sizes when either prop is provided
+  if (hasRealPhoto || familyInitials) {
+    // Scale avatar dimensions by size
+    const circleSize = isThumbnail ? 30 : isCard ? 64 : 100;
+    const photoSize = isThumbnail ? 30 : isCard ? 64 : 94;
+    const ringPad = isHero ? 3 : 0;          // white ring only on hero
+    const fontSize = isThumbnail ? 13 : isCard ? 26 : 34;
+
     return (
       <LinearGradient
         colors={FAMILY_GRADIENT}
@@ -184,17 +191,25 @@ export default function MealImagePlaceholder({
         end={{ x: 1, y: 1 }}
         style={containerStyle}
       >
-        {isRealPhotoUrl ? (
-          <View style={styles.avatarRing}>
+        {hasRealPhoto ? (
+          <View style={[
+            styles.avatarRing,
+            { width: circleSize, height: circleSize, borderRadius: circleSize / 2, padding: ringPad },
+          ]}>
             <Image
               source={{ uri: familyAvatarUrl! }}
-              style={styles.avatarImage}
+              style={{ width: photoSize, height: photoSize, borderRadius: photoSize / 2 }}
               contentFit="cover"
             />
           </View>
         ) : (
-          <View style={styles.initialsCircle}>
-            <Text style={styles.initialsText}>{familyInitials}</Text>
+          <View style={[
+            styles.initialsCircle,
+            { width: circleSize, height: circleSize, borderRadius: circleSize / 2 },
+          ]}>
+            <Text style={[styles.initialsText, { fontSize, lineHeight: circleSize }]}>
+              {familyInitials}
+            </Text>
           </View>
         )}
       </LinearGradient>

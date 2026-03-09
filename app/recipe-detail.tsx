@@ -37,27 +37,9 @@ import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { Recipe, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
+import { getFamilyInitials, isRealPhotoUrl } from '@/utils/familyAvatar';
 
 const DESTRUCTIVE_RED = '#E05252';
-
-/**
- * Derives 1–2 initials from the family name.
- * Strips common stop words (the, and, our, my, a, &) then takes the
- * first letter of the first word and (if present) the first letter of the
- * last word, uppercased.
- *
- * Examples:  "Smith Family" → "SF",  "The Johnsons" → "J",  "Our Kitchen" → "OK"
- */
-function getFamilyInitials(familyName: string): string {
-  const stopWords = new Set(['the', 'and', 'our', 'my', '&', 'a']);
-  const words = familyName
-    .trim()
-    .split(/\s+/)
-    .filter((w) => w.length > 0 && !stopWords.has(w.toLowerCase()));
-  if (words.length === 0) return 'F'; // "F" for Family when no name is set yet
-  if (words.length === 1) return words[0][0].toUpperCase();
-  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
-}
 
 export default function MealDetailScreen() {
   const insets = useSafeAreaInsets();
