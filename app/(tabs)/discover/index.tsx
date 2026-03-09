@@ -471,7 +471,7 @@ export default function DiscoverScreen() {
 
         {/* Search results — shown only when a query is active */}
         {searchQuery.trim().length > 0 ? (
-          <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100 }}>
+          <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: 100 }}>
             <Text style={{ fontSize: 13, color: Colors.textSecondary, marginBottom: 12 }}>
               {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &quot;{searchQuery.trim()}&quot;
             </Text>
