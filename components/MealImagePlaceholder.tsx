@@ -263,11 +263,20 @@ export default function MealImagePlaceholder({
     !!familyAvatarUrl &&
     (familyAvatarUrl.startsWith('http') || familyAvatarUrl.startsWith('file://'));
 
-  if (hasRealPhoto || familyInitials) {
-    // Scale avatar dimensions by size
+  // Real family photo — fills edge-to-edge like any meal photo, no circle treatment
+  if (hasRealPhoto) {
+    return (
+      <Image
+        source={{ uri: familyAvatarUrl! }}
+        style={containerStyle}
+        contentFit="cover"
+      />
+    );
+  }
+
+  // Initials — circle centered on gradient background
+  if (familyInitials) {
     const circleSize = isThumbnail ? 30 : isCard ? 64 : 100;
-    const photoSize = isThumbnail ? 30 : isCard ? 64 : 94;
-    const ringPad = isHero ? 3 : 0;          // white ring only on hero
     const fontSize = isThumbnail ? 13 : isCard ? 26 : 34;
 
     return (
@@ -277,27 +286,14 @@ export default function MealImagePlaceholder({
         end={{ x: 1, y: 1 }}
         style={containerStyle}
       >
-        {hasRealPhoto ? (
-          <View style={[
-            styles.avatarRing,
-            { width: circleSize, height: circleSize, borderRadius: circleSize / 2, padding: ringPad },
-          ]}>
-            <Image
-              source={{ uri: familyAvatarUrl! }}
-              style={{ width: photoSize, height: photoSize, borderRadius: photoSize / 2 }}
-              contentFit="cover"
-            />
-          </View>
-        ) : (
-          <View style={[
-            styles.initialsCircle,
-            { width: circleSize, height: circleSize, borderRadius: circleSize / 2 },
-          ]}>
-            <Text style={[styles.initialsText, { fontSize, lineHeight: circleSize }]}>
-              {familyInitials}
-            </Text>
-          </View>
-        )}
+        <View style={[
+          styles.initialsCircle,
+          { width: circleSize, height: circleSize, borderRadius: circleSize / 2 },
+        ]}>
+          <Text style={[styles.initialsText, { fontSize, lineHeight: circleSize }]}>
+            {familyInitials}
+          </Text>
+        </View>
       </LinearGradient>
     );
   }
@@ -374,23 +370,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   // Family avatar: circular photo with white ring
-  avatarRing: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#FFFFFF',
-    padding: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  avatarImage: {
-    width: 94,
-    height: 94,
-    borderRadius: 47,
-  },
   // Family initials: primary-coloured circle with white letters
   initialsCircle: {
     width: 100,
