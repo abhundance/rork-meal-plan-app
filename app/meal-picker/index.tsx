@@ -103,13 +103,15 @@ export default function MealPickerScreen() {
   }, []);
 
   const handleBrowseFavs = useCallback(() => {
-    consumePendingPlanSlot();
+    // Do NOT consume the slot here — the Favs tab reads it on focus
+    // and uses it to add the meal directly to the correct slot.
     router.dismiss();
     router.push('/(tabs)/favs');
   }, []);
 
   const handleBrowseDiscover = useCallback(() => {
-    consumePendingPlanSlot();
+    // Do NOT consume the slot here — the Discover tab reads it on focus
+    // and uses it to add the meal directly to the correct slot.
     router.dismiss();
     router.push('/(tabs)/discover');
   }, []);

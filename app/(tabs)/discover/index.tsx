@@ -104,6 +104,8 @@ import { DiscoverMeal, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { useDiscoverRecommendations } from '@/hooks/useDiscoverRecommendations';
 import { ShieldCheck, ChevronRight, Search, Compass, ArrowRight } from 'lucide-react-native';
+import { useFocusEffect } from 'expo-router';
+import { peekPendingPlanSlot, consumePendingPlanSlot } from '@/services/pendingPlanSlot';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -137,6 +139,29 @@ export default function DiscoverScreen() {
   const [actionSheetVisible, setActionSheetVisible] = useState<boolean>(false);
 
   const discoverFilterCount = countActiveFilters(discoverFilters, DISCOVER_FILTER_CONFIG);
+
+  // ── Slot-picker mode ─────────────────────────────────────────────────────
+  const [pendingSlot, setPendingSlot] = useState(() => peekPendingPlanSlot());
+
+  const formattedSlotLabel = useMemo(() => {
+    if (!pendingSlot) return '';
+    const dateStr = new Date(pendingSlot.date + 'T00:00:00').toLocaleDateString('en-GB', {
+      weekday: 'long', day: 'numeric', month: 'short',
+    });
+    return `${dateStr} · ${pendingSlot.slotName}`;
+  }, [pendingSlot]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setPendingSlot(peekPendingPlanSlot());
+      return () => {
+        if (peekPendingPlanSlot()) {
+          consumePendingPlanSlot();
+          setPendingSlot(null);
+        }
+      };
+    }, [])
+  );
 
   const showToast = useCallback((message: string) => {
     setToastMsg(message);
@@ -192,14 +217,43 @@ export default function DiscoverScreen() {
     [selectedMeal, addMeal, familySettings, showToast]
   );
 
+  // When a pending slot exists, tapping a meal adds it to that slot directly.
+  const handleSlotModeSelect = useCallback((meal: DiscoverMeal) => {
+    const slot = consumePendingPlanSlot();
+    if (!slot) return;
+    const planned: PlannedMeal = {
+      id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      slot_id: slot.slotId,
+      date: slot.date,
+      meal_name: meal.name,
+      meal_image_url: meal.image_url,
+      serving_size: slot.defaultServing,
+      ingredients: meal.ingredients ?? [],
+      recipe_serving_size: meal.recipe_serving_size ?? slot.defaultServing,
+      meal_id: meal.id,
+    };
+    addMeal(planned);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setPendingSlot(null);
+    router.push('/(tabs)');
+  }, [addMeal]);
+
   const handleMealPress = useCallback((meal: DiscoverMeal) => {
+    if (pendingSlot) {
+      handleSlotModeSelect(meal);
+      return;
+    }
     router.push(`/recipe-detail?id=${meal.id}&source=discover` as Href);
-  }, []);
+  }, [pendingSlot, handleSlotModeSelect]);
 
   const handleCardPress = useCallback((meal: DiscoverMeal) => {
+    if (pendingSlot) {
+      handleSlotModeSelect(meal);
+      return;
+    }
     setActionMeal(meal);
     setActionSheetVisible(true);
-  }, []);
+  }, [pendingSlot, handleSlotModeSelect]);
 
   const { carousels, recordInteraction, recordView } = useDiscoverRecommendations();
 
@@ -401,6 +455,28 @@ export default function DiscoverScreen() {
           </TouchableOpacity>
         }
       />
+
+      {/* Slot-picker banner — only shown when arriving from meal picker */}
+      {!!pendingSlot && (
+        <View style={styles.slotBanner}>
+          <View style={styles.slotBannerLeft}>
+            <View style={styles.slotBannerDot} />
+            <View>
+              <Text style={styles.slotBannerLabel}>ADDING TO</Text>
+              <Text style={styles.slotBannerSlot}>{formattedSlotLabel}</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            onPress={() => {
+              consumePendingPlanSlot();
+              setPendingSlot(null);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <X size={16} color={Colors.primary} strokeWidth={2.5} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView
         style={styles.scroll}
@@ -651,6 +727,42 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  slotBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDDAD8',
+  },
+  slotBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  slotBannerDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+  },
+  slotBannerLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  slotBannerSlot: {
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    marginTop: 1,
   },
   scroll: {
     flex: 1,

@@ -73,6 +73,7 @@ import RecipeFilterSheet, {
   countActiveFilters,
 } from '@/components/RecipeFilterSheet';
 import { getFamilyInitials, isRealPhotoUrl } from '@/utils/familyAvatar';
+import { peekPendingPlanSlot, consumePendingPlanSlot } from '@/services/pendingPlanSlot';
 
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -166,6 +167,19 @@ export default function FavsScreen() {
 
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
+
+  // ── Slot-picker mode ─────────────────────────────────────────────────────
+  // Set when the user arrives here via "From My Favourites" in the meal picker.
+  // Cleared (consumed) when a meal is added, or when this tab loses focus.
+  const [pendingSlot, setPendingSlot] = useState(() => peekPendingPlanSlot());
+
+  const formattedSlotLabel = useMemo(() => {
+    if (!pendingSlot) return '';
+    const dateStr = new Date(pendingSlot.date + 'T00:00:00').toLocaleDateString('en-GB', {
+      weekday: 'long', day: 'numeric', month: 'short',
+    });
+    return `${dateStr} · ${pendingSlot.slotName}`;
+  }, [pendingSlot]);
 
   const uniqueCuisines = useMemo(() => {
     const seen = new Set<string>();
@@ -317,9 +331,38 @@ export default function FavsScreen() {
     [selectedMealForPlan, addMeal, incrementPlanCount, familySettings, showToast]
   );
 
+  // When a pending slot exists, tapping a meal adds it to that slot directly
+  // instead of opening the recipe detail screen.
+  const handleSlotModeSelect = useCallback((meal: Recipe) => {
+    const slot = consumePendingPlanSlot();
+    if (!slot) return;
+    const planned: PlannedMeal = {
+      id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      slot_id: slot.slotId,
+      date: slot.date,
+      meal_name: meal.name,
+      meal_image_url: meal.image_url,
+      serving_size: slot.defaultServing,
+      ingredients: meal.ingredients ?? [],
+      recipe_serving_size: meal.recipe_serving_size ?? slot.defaultServing,
+      delivery_url: meal.delivery_url,
+      delivery_platform: meal.delivery_platform,
+      meal_id: meal.id,
+    };
+    addMeal(planned);
+    incrementPlanCount(meal.id);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setPendingSlot(null);
+    router.push('/(tabs)');
+  }, [addMeal, incrementPlanCount]);
+
   const handleMealPress = useCallback((meal: Recipe) => {
+    if (pendingSlot) {
+      handleSlotModeSelect(meal);
+      return;
+    }
     router.push(`/recipe-detail?id=${meal.id}&source=favs` as Href);
-  }, []);
+  }, [pendingSlot, handleSlotModeSelect]);
 
   const handleDeleteMyRecipe = useCallback((meal: Recipe) => {
     showSheet(
@@ -355,6 +398,16 @@ export default function FavsScreen() {
     useCallback(() => {
       // Reset scroll to top every time this tab is focused.
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+      // Re-read the pending slot — it may have been set since last render.
+      setPendingSlot(peekPendingPlanSlot());
+      return () => {
+        // If the user navigates away without picking a meal, discard the slot
+        // so it doesn't ghost onto future Favs visits.
+        if (peekPendingPlanSlot()) {
+          consumePendingPlanSlot();
+          setPendingSlot(null);
+        }
+      };
     }, [])
   );
 
@@ -517,6 +570,27 @@ export default function FavsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         ListHeaderComponent={
           <View>
+            {/* ── Slot-picker banner (only shown when arriving from meal picker) ── */}
+            {!!pendingSlot && (
+              <View style={styles.slotBanner}>
+                <View style={styles.slotBannerLeft}>
+                  <View style={styles.slotBannerDot} />
+                  <View>
+                    <Text style={styles.slotBannerLabel}>ADDING TO</Text>
+                    <Text style={styles.slotBannerSlot}>{formattedSlotLabel}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    consumePendingPlanSlot();
+                    setPendingSlot(null);
+                  }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <X size={16} color={Colors.primary} strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+            )}
             {/* ── Search bar ─────────────────────────────────────── */}
             <View style={styles.searchWrap}>
               <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
@@ -870,6 +944,42 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontFamily: FontFamily.bold, fontWeight: '700',
     color: Colors.white,
+  },
+  slotBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDDAD8',
+  },
+  slotBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  slotBannerDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+  },
+  slotBannerLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  slotBannerSlot: {
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    marginTop: 1,
   },
   searchWrap: {
     flexDirection: 'row',
