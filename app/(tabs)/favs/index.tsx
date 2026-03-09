@@ -937,52 +937,58 @@ const FavGridCard = React.memo(function FavGridCard({
           Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start()
         }
       >
-        {/* Image tile — rounded on all sides, no card container */}
-        <View style={{
-          width: CARD_W,
-          height: IMG_H,
-          borderRadius: BorderRadius.card,
-          overflow: 'hidden' as const,
-        }}>
-          {meal.image_url ? (
-            <Image source={{ uri: meal.image_url }} style={{ width: CARD_W, height: IMG_H }} resizeMode="cover" />
-          ) : (
-            <MealImagePlaceholder
-              size="card"
-              borderRadius={BorderRadius.card}
-              mealType={meal.meal_type}
-              cuisine={meal.cuisine}
-              name={meal.name}
-              deliveryPlatform={deliveryPlatform}
-              familyAvatarUrl={!deliveryPlatform ? familyAvatarUrl : undefined}
-              familyInitials={!deliveryPlatform ? familyInitials : undefined}
-            />
-          )}
-        </View>
-        {/* Text row — sits directly on the page background, no card */}
-        <View style={{
-          width: CARD_W,
-          paddingTop: Spacing.xs,
-          flexDirection: 'row' as const,
-          alignItems: 'flex-start' as const,
-          gap: Spacing.xs,
-        }}>
-          <Text
-            style={{ flex: 1, fontSize: 11, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.text, lineHeight: 14 }}
-            numberOfLines={2}
-          >
-            {meal.name}
-          </Text>
+        {/* Image tile — relative wrapper so overlay button can be absolutely positioned */}
+        <View style={{ width: CARD_W, position: 'relative' as const }}>
+          <View style={{
+            width: CARD_W,
+            height: IMG_H,
+            borderRadius: BorderRadius.card,
+            overflow: 'hidden' as const,
+          }}>
+            {meal.image_url ? (
+              <Image source={{ uri: meal.image_url }} style={{ width: CARD_W, height: IMG_H }} resizeMode="cover" />
+            ) : (
+              <MealImagePlaceholder
+                size="card"
+                borderRadius={BorderRadius.card}
+                mealType={meal.meal_type}
+                cuisine={meal.cuisine}
+                name={meal.name}
+                deliveryPlatform={deliveryPlatform}
+                familyAvatarUrl={!deliveryPlatform ? familyAvatarUrl : undefined}
+                familyInitials={!deliveryPlatform ? familyInitials : undefined}
+              />
+            )}
+          </View>
+          {/* Add to Plan overlay — bottom-right corner of image */}
           <TouchableOpacity
-            hitSlop={8}
+            hitSlop={6}
             onPress={(e) => {
               e.stopPropagation?.();
               onAddToPlan();
             }}
+            style={{
+              position: 'absolute' as const,
+              bottom: Spacing.sm,
+              right: Spacing.sm,
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: Colors.primary,
+              alignItems: 'center' as const,
+              justifyContent: 'center' as const,
+            }}
           >
-            <CalendarPlus size={14} color={Colors.primary} strokeWidth={2} />
+            <CalendarPlus size={13} color={Colors.white} strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
+        {/* Meal name — sits directly on the page background */}
+        <Text
+          style={{ width: CARD_W, paddingTop: Spacing.xs, fontSize: 11, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.text, lineHeight: 14 }}
+          numberOfLines={2}
+        >
+          {meal.name}
+        </Text>
       </Pressable>
     </Animated.View>
   );
