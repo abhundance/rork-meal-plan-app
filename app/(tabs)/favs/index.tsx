@@ -359,6 +359,7 @@ export default function FavsScreen() {
     incrementPlanCount(meal.id);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setPendingSlot(null);
+    setFavFilters(f => ({ ...f, sort: 'recently_added' }));
     // Show a brief toast then navigate — gives the user confirmation before the screen changes.
     showToast(`${meal.name} added to ${slot.slotName}`);
     setTimeout(() => router.replace('/(tabs)/(home)' as never), 800);
@@ -608,6 +609,7 @@ export default function FavsScreen() {
             onPress={() => {
               consumePendingPlanSlot();
               setPendingSlot(null);
+              setFavFilters(f => ({ ...f, sort: 'recently_added' }));
               router.replace('/(tabs)/(home)' as never);
             }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
