@@ -53,6 +53,22 @@ Safe checkpoints tagged on GitHub. To restore: `git checkout pre-recipe-type-uni
 
 ## Key Features
 
+### Add-Meal Navigation Architecture
+
+There are **two distinct add-meal entry points** with different intents. They share child screens but must never be confused:
+
+**1. Plan tab / Recipe detail — slot-aware flow (`/meal-picker`)**
+Entry via `router.push('/meal-picker')` after calling `setPendingPlanSlot({slotId, date, slotName, defaultServing})`. The choose screen includes "From My Favourites" and "Try Something New" browse cards (because the user is picking a meal for a specific slot and may want to browse). Sub-screens: `/meal-picker/manual`, `/meal-picker/delivery`. All use `consumePendingPlanSlot()` to read slot context. Back navigation is native Expo Router — `router.back()` returns to the choose screen, and from the choose screen returns to the plan tab.
+
+**2. Favs tab — library-only flow (`/add-to-favs`)**
+Entry via `router.push('/add-to-favs')`. No slot context. No "From My Favourites" card (user is already there). No "Try Something New". Options: "Add with Recipe", "Add Without Recipe", "Add from Delivery App". Saves directly to the favourites library. Sub-screens: `/add-to-favs/manual`, `/add-to-favs/delivery`.
+
+> ⚠️ **Never add "From My Favourites" to the `/add-to-favs` flow.** The user is already on the Favs tab — it would be nonsensical.
+
+> ⚠️ **`MealPickerSheet` (RN Modal component) has been deleted.** Do not recreate it. All add-meal flows use Expo Router screens.
+
+---
+
 ### Add a Recipe Flow
 Single entry point: `app/add-recipe-entry.tsx`. The screen has **two modes toggled entirely via local state — no sub-navigation**:
 
