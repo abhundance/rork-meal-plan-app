@@ -223,7 +223,7 @@ export default function MealPickerSheet({
           )}
           <View style={styles.headerTitleWrap}>
             <Text style={styles.headerTitle}>
-              {mode === 'delivery' ? 'Add from Delivery App' : `Add to ${slotName}`}
+              {`Add to ${slotName}`}
             </Text>
             <Text style={styles.headerSubtitle}>{formattedDate}</Text>
           </View>
@@ -239,6 +239,10 @@ export default function MealPickerSheet({
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            <View style={styles.manualHeadingRow}>
+              <Bike size={22} color={Colors.primary} strokeWidth={1.5} />
+              <Text style={styles.manualFormHeading}>Add from Delivery App</Text>
+            </View>
             <Text style={styles.deliverySectionLabel}>MEAL NAME</Text>
             <TextInput
               style={styles.deliveryInput}
