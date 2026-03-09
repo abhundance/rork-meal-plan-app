@@ -509,15 +509,13 @@ export default function MealPickerSheet({
             <Text style={styles.manualHint}>
               You can add ingredients later from the meal detail screen.
             </Text>
+            <View style={{ flex: 1 }} />
             <View style={styles.manualActions}>
               <PrimaryButton
                 label="Add Meal"
                 onPress={handleAddManual}
                 disabled={!manualName.trim()}
               />
-              <TouchableOpacity onPress={() => setMode('choose')} style={styles.backLink}>
-                <Text style={styles.backLinkText}>Browse meals instead</Text>
-              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -713,8 +711,7 @@ const styles = StyleSheet.create({
   },
   manualActions: {
     width: '100%',
-    gap: 16,
-    alignItems: 'center',
+    paddingBottom: 24,
   },
   backLink: {
     paddingVertical: 8,
