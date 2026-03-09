@@ -459,9 +459,11 @@ export default function FavsScreen() {
         onPress={() => handleMealPress(item)}
         onAddToPlan={() => handleAddToPlan(item)}
         onLongPress={() => item.source === 'family_created' ? handleDeleteMyRecipe(item) : handleRemoveSaved(item)}
+        familyAvatarUrl={item.source === 'family_created' ? familyPhotoUrl : undefined}
+        familyInitials={item.source === 'family_created' ? familyInitials : undefined}
       />
     );
-  }, [handleMealPress, handleAddToPlan, handleDeleteMyRecipe, handleRemoveSaved, openAddMethodSheet]);
+  }, [handleMealPress, handleAddToPlan, handleDeleteMyRecipe, handleRemoveSaved, openAddMethodSheet, familyPhotoUrl, familyInitials]);
 
   const MyRecipesEmptyState = useMemo(() => (
     <View style={styles.segmentEmptyContainer}>
@@ -907,10 +909,14 @@ interface FavGridCardProps {
   onPress: () => void;
   onAddToPlan: () => void;
   onLongPress: () => void;
+  /** Real photo URI for the family avatar (http/https/file://) */
+  familyAvatarUrl?: string;
+  /** 1-2 letter initials shown when no photo is set (e.g. "SF") */
+  familyInitials?: string;
 }
 
 const FavGridCard = React.memo(function FavGridCard({
-  meal, onPress, onAddToPlan, onLongPress,
+  meal, onPress, onAddToPlan, onLongPress, familyAvatarUrl, familyInitials,
 }: FavGridCardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -962,8 +968,8 @@ const FavGridCard = React.memo(function FavGridCard({
                   mealType={meal.meal_type}
                   cuisine={meal.cuisine}
                   name={meal.name}
-                  familyAvatarUrl={meal.source === 'family_created' ? familyPhotoUrl : undefined}
-                  familyInitials={meal.source === 'family_created' ? familyInitials : undefined}
+                  familyAvatarUrl={familyAvatarUrl}
+                  familyInitials={familyInitials}
                 />
               </View>
             )}
