@@ -22,12 +22,15 @@ import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { Recipe } from '@/types';
 import { useFavs } from '@/providers/FavsProvider';
+import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
 import PrimaryButton from '@/components/PrimaryButton';
 
 export default function AddToFavsDeliveryScreen() {
   const insets = useSafeAreaInsets();
   const { addFav } = useFavs();
+  const { familySettings } = useFamilySettings();
+  const defaultServing = familySettings.default_serving_size ?? 2;
 
   const [mealName, setMealName] = useState('');
   const [deliveryUrl, setDeliveryUrl] = useState('');
@@ -41,6 +44,10 @@ export default function AddToFavsDeliveryScreen() {
       name: mealName.trim(),
       source: 'family_created',
       ingredients: [],
+      recipe_serving_size: defaultServing,
+      dietary_tags: [],
+      custom_tags: [],
+      method_steps: [],
       add_to_plan_count: 0,
       created_at: new Date().toISOString(),
       is_ingredient_complete: false,

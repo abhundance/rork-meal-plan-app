@@ -97,10 +97,18 @@ export default function MealPickerDeliveryScreen() {
         name: mealName.trim(),
         source: 'family_created',
         ingredients: [],
+        recipe_serving_size: pendingSlot.defaultServing,
+        dietary_tags: [],
+        custom_tags: [],
+        method_steps: [],
         add_to_plan_count: 0,
         created_at: new Date().toISOString(),
         is_ingredient_complete: false,
         is_recipe_complete: false,
+        ...(trimmedUrl ? {
+          delivery_url: trimmedUrl,
+          delivery_platform: detectPlatformFromUrl(trimmedUrl) ?? undefined,
+        } : {}),
       });
     }
 
