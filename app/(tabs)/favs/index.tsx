@@ -13,6 +13,7 @@ import {
   Alert,
   Image,
   Dimensions,
+  Platform,
   Pressable,
 } from 'react-native';
 
