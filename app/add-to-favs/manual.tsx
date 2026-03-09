@@ -53,6 +53,9 @@ export default function AddToFavsManualScreen() {
 
     addFav(favMeal);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // Came from add-to-favs/index — 2 screens in the modal stack.
+    // router.back() pops manual → index; router.dismiss() then closes index → Favs tab.
+    router.back();
     router.dismiss();
   }, [name, addFav, defaultServing]);
 
