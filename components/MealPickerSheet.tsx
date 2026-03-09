@@ -7,7 +7,6 @@ import {
   Modal,
   StyleSheet,
   KeyboardAvoidingView,
-  Keyboard,
   Platform,
   ScrollView,
   Image,
@@ -57,7 +56,6 @@ export default function MealPickerSheet({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [saveToMyMeals, setSaveToMyMeals] = useState<boolean>(false);
   const [saveDeliveryToFavs, setSaveDeliveryToFavs] = useState<boolean>(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const { meals: favMeals, addFav } = useFavs();
   const { updatePlannedMealDelivery } = useMealPlan();
   const router = useRouter();
@@ -72,16 +70,6 @@ export default function MealPickerSheet({
       setDeliveryUrl(editingDeliveryMeal.delivery_url ?? '');
     }
   }, [editingDeliveryMeal]);
-
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardWillShow', (e) => {
-      setKeyboardHeight(e.endCoordinates.height);
-    });
-    const hide = Keyboard.addListener('keyboardWillHide', () => {
-      setKeyboardHeight(0);
-    });
-    return () => { show.remove(); hide.remove(); };
-  }, []);
 
   const formattedDate = useMemo(() => {
     return new Date(date + 'T00:00:00').toLocaleDateString('en-GB', {
@@ -488,49 +476,51 @@ export default function MealPickerSheet({
             </ScrollView>
           </>
         ) : (
-          <>
-            <View style={styles.manualForm}>
-              <View style={styles.manualHeadingRow}>
-                <Utensils size={22} color={Colors.primary} strokeWidth={1.5} />
-                <Text style={styles.manualFormHeading}>Add Without Recipe</Text>
-              </View>
-              <Text style={styles.manualLabel}>Meal name</Text>
-              <TextInput
-                style={styles.manualInput}
-                placeholder="e.g. Mum's Special Pasta"
-                placeholderTextColor={Colors.textSecondary}
-                value={manualName}
-                onChangeText={setManualName}
-                autoCapitalize="words"
-                autoFocus
-                testID="manual-meal-input"
-              />
-              <TouchableOpacity
-                style={styles.saveToMyMealsRow}
-                onPress={() => setSaveToMyMeals((v) => !v)}
-                activeOpacity={0.8}
-                testID="save-to-my-meals-toggle"
-              >
-                <Heart
-                  size={20}
-                  color={saveToMyMeals ? Colors.primary : Colors.textSecondary}
-                  fill={saveToMyMeals ? Colors.primary : 'none'}
-                  strokeWidth={2}
-                />
-                <Text style={[styles.saveToMyMealsText, saveToMyMeals && styles.saveToMyMealsTextActive]}>Save to Favourites</Text>
-              </TouchableOpacity>
-              <Text style={styles.manualHint}>
-                You can add ingredients later from the meal detail screen.
-              </Text>
+          <ScrollView
+            style={styles.chooseScroll}
+            contentContainerStyle={[styles.manualScrollContent, { paddingBottom: 48 + insets.bottom }]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.manualHeadingRow}>
+              <Utensils size={22} color={Colors.primary} strokeWidth={1.5} />
+              <Text style={styles.manualFormHeading}>Add Without Recipe</Text>
             </View>
-            <View style={[styles.manualActions, { bottom: keyboardHeight + 16 }]}>
-              <PrimaryButton
-                label="Add Meal"
-                onPress={handleAddManual}
-                disabled={!manualName.trim()}
+            <Text style={styles.manualLabel}>Meal name</Text>
+            <TextInput
+              style={styles.manualInput}
+              placeholder="e.g. Mum's Special Pasta"
+              placeholderTextColor={Colors.textSecondary}
+              value={manualName}
+              onChangeText={setManualName}
+              autoCapitalize="words"
+              autoFocus
+              testID="manual-meal-input"
+            />
+            <TouchableOpacity
+              style={styles.saveToMyMealsRow}
+              onPress={() => setSaveToMyMeals((v) => !v)}
+              activeOpacity={0.8}
+              testID="save-to-my-meals-toggle"
+            >
+              <Heart
+                size={20}
+                color={saveToMyMeals ? Colors.primary : Colors.textSecondary}
+                fill={saveToMyMeals ? Colors.primary : 'none'}
+                strokeWidth={2}
               />
-            </View>
-          </>
+              <Text style={[styles.saveToMyMealsText, saveToMyMeals && styles.saveToMyMealsTextActive]}>Save to Favourites</Text>
+            </TouchableOpacity>
+            <Text style={styles.manualHint}>
+              You can add ingredients later from the meal detail screen.
+            </Text>
+            <PrimaryButton
+              label="Add Meal"
+              onPress={handleAddManual}
+              disabled={!manualName.trim()}
+              style={{ marginTop: 8 }}
+            />
+          </ScrollView>
         )}
       </KeyboardAvoidingView>
     </Modal>
@@ -674,12 +664,10 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 1,
   },
-  manualForm: {
-    flex: 1,
+  manualScrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 80,
-    alignItems: 'center',
+    paddingTop: 20,
+    paddingBottom: 48,
   },
   manualHeadingRow: {
     flexDirection: 'row',
@@ -718,11 +706,6 @@ const styles = StyleSheet.create({
     textAlign: 'center' as const,
     marginBottom: 24,
     lineHeight: 18,
-  },
-  manualActions: {
-    position: 'absolute' as const,
-    left: 20,
-    right: 20,
   },
   backLink: {
     paddingVertical: 8,
