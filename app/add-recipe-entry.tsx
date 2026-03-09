@@ -363,21 +363,27 @@ export default function AddRecipeEntryScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* ─── Header ───────────────────────────────────────── */}
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <ChevronLeft size={24} color={Colors.text} strokeWidth={2} />
-        </TouchableOpacity>
-        {/* Title is absolutely centred so the asymmetric side elements don't push it */}
-        <Text style={styles.headerTitle} pointerEvents="none">Add a Recipe</Text>
-        {/* Compact mode toggle — lives in the header right slot */}
-        <View style={styles.headerToggleWrap}>
-          <View style={[styles.headerTogglePill, mode === 'ai' ? styles.headerTogglePillLeft : styles.headerTogglePillRight]} />
-          <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('ai')} activeOpacity={0.8}>
-            <Text style={[styles.headerToggleLabel, mode === 'ai' && styles.headerToggleLabelActive]}>✨ AI</Text>
+      <View style={[styles.headerWrap, { paddingTop: insets.top + Spacing.sm }]}>
+        {/* Row 1: back button + title */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
+            <ChevronLeft size={24} color={Colors.text} strokeWidth={2} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('manual')} activeOpacity={0.8}>
-            <Text style={[styles.headerToggleLabel, mode === 'manual' && styles.headerToggleLabelActive]}>✏️ Manual</Text>
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Add a Recipe</Text>
+          {/* Spacer mirrors the closeBtn width so the title stays centred */}
+          <View style={styles.closeBtnSpacer} />
+        </View>
+        {/* Row 2: mode toggle — full-width centred row */}
+        <View style={styles.headerToggleRow}>
+          <View style={styles.headerToggleWrap}>
+            <View style={[styles.headerTogglePill, mode === 'ai' ? styles.headerTogglePillLeft : styles.headerTogglePillRight]} />
+            <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('ai')} activeOpacity={0.8}>
+              <Text style={[styles.headerToggleLabel, mode === 'ai' && styles.headerToggleLabelActive]}>✨ AI</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('manual')} activeOpacity={0.8}>
+              <Text style={[styles.headerToggleLabel, mode === 'manual' && styles.headerToggleLabelActive]}>✏️ Manual</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -697,54 +703,63 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
 
   // ── Header ──────────────────────────────────────────────
+  headerWrap: {
+    backgroundColor: Colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+    paddingBottom: Spacing.md,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-    backgroundColor: Colors.background,
+    paddingBottom: Spacing.xs,
   },
   closeBtn: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: Colors.surface,
     alignItems: 'center', justifyContent: 'center',
   },
+  closeBtnSpacer: {
+    width: 36, height: 36,
+  },
   headerTitle: {
-    position: 'absolute',
-    left: 0, right: 0,
+    flex: 1,
     textAlign: 'center',
     fontSize: 18, fontFamily: FontFamily.bold, fontWeight: '700',
     color: Colors.text,
   },
 
-  // ── Header toggle (compact pill, right of header) ────────
+  // ── Header toggle — centred row beneath the title ────────
+  headerToggleRow: {
+    alignItems: 'center',
+    paddingTop: Spacing.sm,
+  },
   headerToggleWrap: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.full,
-    padding: 2,
+    padding: 3,
     position: 'relative',
   },
   headerTogglePill: {
     position: 'absolute',
-    top: 2, bottom: 2,
-    width: 64,
+    top: 3, bottom: 3,
+    width: 110,
     backgroundColor: Colors.card,
     borderRadius: BorderRadius.full,
     ...Shadows.card,
   },
-  headerTogglePillLeft: { left: 2 },
-  headerTogglePillRight: { left: 66 },
+  headerTogglePillLeft: { left: 3 },
+  headerTogglePillRight: { left: 113 },
   headerToggleOption: {
-    width: 64, height: 28,
+    width: 110, height: 36,
     alignItems: 'center', justifyContent: 'center',
     zIndex: 1,
   },
   headerToggleLabel: {
-    fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '600',
+    fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600',
     color: Colors.textSecondary,
   },
   headerToggleLabelActive: { color: Colors.primary },
