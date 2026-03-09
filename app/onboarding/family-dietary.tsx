@@ -28,10 +28,10 @@ export default function FamilyDietaryScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ProgressBar current={4} total={7} />
+      <ProgressBar current={4} total={11} />
 
       <View style={styles.content}>
-        <Text style={styles.stepLabel}>Step 4 of 7</Text>
+        <Text style={styles.stepLabel}>Step 4 of 11</Text>
         <Text style={styles.heading}>Does your family follow any dietary preferences?</Text>
 
         <DietaryPillGrid selected={selected} onSelectionChange={setSelected} />

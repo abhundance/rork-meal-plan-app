@@ -1,4 +1,4 @@
-import { FamilySettings, UserSettings, MealSlot, NotificationSettings, OnboardingData } from '@/types';
+import { FamilySettings, UserSettings, MealSlot, NotificationSettings, OnboardingData, StarterMealPick } from '@/types';
 
 export const DEFAULT_MEAL_SLOTS: MealSlot[] = [
   { slot_id: 'breakfast', name: 'Breakfast', order: 0 },
@@ -46,4 +46,11 @@ export const DEFAULT_ONBOARDING: OnboardingData = {
   dietary_preferences_individual: [],
   is_admin: true,
   personal_goal: 'balanced',
+  region: 'Singapore',
+  measurement_units: 'metric',
+  cuisine_preferences: [],
+  cooking_time_pref: '20_40',
+  planning_style: 'balanced',
+  enabled_slots: ['breakfast', 'lunch', 'dinner'],
+  starter_meals: [],
 };

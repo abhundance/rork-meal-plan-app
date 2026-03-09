@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
-import { OnboardingData, MealSlot, PersonalGoal } from '@/types';
+import { OnboardingData, MealSlot, PersonalGoal, StarterMealPick } from '@/types';
 import { DEFAULT_ONBOARDING } from '@/constants/defaults';
 
 const ONBOARDING_KEY = 'onboarding_data';
@@ -98,6 +98,40 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     updateOnboarding({ personal_goal: goal });
   }, [updateOnboarding]);
 
+  const setRegion = useCallback((region: string, units: 'metric' | 'imperial') => {
+    updateOnboarding({ region, measurement_units: units });
+  }, [updateOnboarding]);
+
+  const setCuisinePreferences = useCallback((prefs: string[]) => {
+    updateOnboarding({ cuisine_preferences: prefs });
+  }, [updateOnboarding]);
+
+  const setCookingTimePref = useCallback((pref: 'under_20' | '20_40' | '40_60' | 'over_60') => {
+    updateOnboarding({ cooking_time_pref: pref });
+  }, [updateOnboarding]);
+
+  const setPlanningStyle = useCallback((style: 'familiar' | 'balanced' | 'adventurous') => {
+    updateOnboarding({ planning_style: style });
+  }, [updateOnboarding]);
+
+  const setEnabledSlots = useCallback((slots: string[]) => {
+    updateOnboarding({ enabled_slots: slots });
+  }, [updateOnboarding]);
+
+  const setStarterMeals = useCallback((meals: StarterMealPick[]) => {
+    updateOnboarding({ starter_meals: meals });
+  }, [updateOnboarding]);
+
+  const addStarterMeal = useCallback((meal: StarterMealPick) => {
+    const current = dataRef.current.starter_meals ?? [];
+    const already = current.some(m => m.id === meal.id);
+    if (already) {
+      updateOnboarding({ starter_meals: current.filter(m => m.id !== meal.id) });
+    } else {
+      updateOnboarding({ starter_meals: [...current, meal] });
+    }
+  }, [updateOnboarding]);
+
   const completeOnboarding = useCallback(() => {
     updateOnboarding({ completed: true });
   }, [updateOnboarding]);
@@ -119,6 +153,13 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     setFamilyDietary,
     setPersonalDietary,
     setPersonalGoal,
+    setRegion,
+    setCuisinePreferences,
+    setCookingTimePref,
+    setPlanningStyle,
+    setEnabledSlots,
+    setStarterMeals,
+    addStarterMeal,
     completeOnboarding,
     resetOnboarding,
   };

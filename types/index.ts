@@ -73,6 +73,15 @@ export interface NotificationSettings {
   shopping_reminder_time: string;
 }
 
+export interface StarterMealPick {
+  id: string;
+  name: string;
+  emoji: string;
+  meal_type: 'breakfast' | 'lunch_dinner';
+  cuisine: string;
+  cook_time_mins: number;
+}
+
 export interface OnboardingData {
   completed: boolean;
   current_step: number;
@@ -83,6 +92,14 @@ export interface OnboardingData {
   dietary_preferences_individual: string[];
   is_admin: boolean;
   personal_goal?: PersonalGoal;   // collected during onboarding, written to UserSettings on complete
+  // ── New fields (onboarding overhaul) ─────────────────────────────────────
+  region?: string;
+  measurement_units?: 'metric' | 'imperial';
+  cuisine_preferences?: string[];
+  cooking_time_pref?: 'under_20' | '20_40' | '40_60' | 'over_60';
+  planning_style?: 'familiar' | 'balanced' | 'adventurous';
+  enabled_slots?: string[];       // slot_ids that are toggled on
+  starter_meals?: StarterMealPick[]; // seeded into Favs on onboarding completion
 }
 
 export interface Ingredient {

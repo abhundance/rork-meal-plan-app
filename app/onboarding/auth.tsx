@@ -24,7 +24,7 @@ export default function AuthScreen() {
   const handleSocialAuth = useCallback((provider: string) => {
     console.log('[Auth] Social auth with:', provider);
     setStep(1);
-    router.push('/onboarding/family-name' as Href);
+    router.push('/onboarding/region' as Href);
   }, [setStep]);
 
   const handleEmailSignup = useCallback(() => {
@@ -35,7 +35,7 @@ export default function AuthScreen() {
     console.log('[Auth] Email signup:', email);
     setShowEmailModal(false);
     setStep(1);
-    router.push('/onboarding/family-name' as Href);
+    router.push('/onboarding/region' as Href);
   }, [email, password, confirmPassword, setStep]);
 
   return (

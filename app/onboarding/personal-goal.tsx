@@ -74,26 +74,26 @@ export default function PersonalGoalScreen() {
     // reflect the choice immediately without waiting for a full onboarding completion.
     updateUserSettings({ personal_goal: selected });
     setStep(6);
-    router.push('/onboarding/invite-members' as Href);
+    router.push('/onboarding/cuisines' as Href);
   };
 
   const handleSkip = () => {
     // 'balanced' is the safe default — no carousel or scoring change
     setPersonalGoal('balanced');
     setStep(6);
-    router.push('/onboarding/invite-members' as Href);
+    router.push('/onboarding/cuisines' as Href);
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ProgressBar current={5} total={7} />
+      <ProgressBar current={5} total={11} />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.stepLabel}>Step 5 of 7</Text>
+        <Text style={styles.stepLabel}>Step 5 of 11</Text>
         <Text style={styles.heading}>What's your main health goal?</Text>
         <Text style={styles.subheading}>
           We'll personalise your Discover feed to match. You can update this anytime in Settings.

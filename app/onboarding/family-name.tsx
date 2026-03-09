@@ -16,7 +16,7 @@ export default function FamilyNameScreen() {
 
   const handleContinue = () => {
     setFamilyName(name.trim());
-    setStep(2);
+    setStep(3);
     router.push('/onboarding/household-size' as Href);
   };
 
@@ -25,10 +25,10 @@ export default function FamilyNameScreen() {
       style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ProgressBar current={1} total={6} />
+      <ProgressBar current={2} total={11} />
 
       <View style={styles.content}>
-        <Text style={styles.stepLabel}>Step 1 of 6</Text>
+        <Text style={styles.stepLabel}>Step 2 of 11</Text>
         <Text style={styles.heading}>What's your family name?</Text>
 
         <TextInput
