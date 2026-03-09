@@ -462,7 +462,7 @@ export default function MealPickerSheet({
               testID="manual-meal-input"
             />
             <TouchableOpacity
-              style={[styles.saveToMyMealsRow, saveToMyMeals && styles.saveToMyMealsRowActive]}
+              style={styles.saveToMyMealsRow}
               onPress={() => setSaveToMyMeals((v) => !v)}
               activeOpacity={0.8}
               testID="save-to-my-meals-toggle"
@@ -671,7 +671,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: Colors.text,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   manualHint: {
     fontSize: 13,
@@ -691,25 +691,16 @@ const styles = StyleSheet.create({
   saveToMyMealsRow: {
     flexDirection: 'row' as const,
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-  },
-  saveToMyMealsRowActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 20,
   },
   saveToMyMealsText: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
-    flex: 1,
   },
   saveToMyMealsTextActive: {
     color: Colors.primary,
