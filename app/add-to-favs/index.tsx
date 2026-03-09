@@ -66,8 +66,8 @@ export default function AddToFavsScreen() {
           onPress={() => router.push('/add-to-favs/manual')}
           testID="add-without-recipe-btn"
         >
-          <View style={[styles.optionIconCircle, { backgroundColor: '#FEF3C7' }]}>
-            <Pencil size={16} color="#D97706" strokeWidth={2} />
+          <View style={[styles.optionIconCircle, { backgroundColor: Colors.primaryLight }]}>
+            <Pencil size={16} color={Colors.primary} strokeWidth={2} />
           </View>
           <View style={styles.optionTextBlock}>
             <Text style={styles.optionTitle}>Add without Recipe</Text>
@@ -84,8 +84,8 @@ export default function AddToFavsScreen() {
           onPress={() => router.push('/add-to-favs/delivery')}
           testID="add-delivery-btn"
         >
-          <View style={[styles.optionIconCircle, { backgroundColor: '#DBEAFE' }]}>
-            <Bike size={16} color="#2563EB" strokeWidth={2} />
+          <View style={[styles.optionIconCircle, { backgroundColor: Colors.primaryLight }]}>
+            <Bike size={16} color={Colors.primary} strokeWidth={2} />
           </View>
           <View style={styles.optionTextBlock}>
             <Text style={styles.optionTitle}>Add from Delivery App</Text>

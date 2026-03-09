@@ -249,7 +249,7 @@ export default function MealPickerScreen() {
                 onPress={handleBrowseDiscover}
                 testID="browse-discover-btn"
               >
-                <Compass size={22} color="#059669" strokeWidth={2} />
+                <Compass size={22} color={Colors.primary} strokeWidth={2} />
                 <Text style={styles.browseCardTitle}>Try Something New</Text>
                 <Text style={styles.browseCardSubtitle}>
                   {DISCOVER_MEALS.length} curated recipes
@@ -272,8 +272,8 @@ export default function MealPickerScreen() {
                 onPress={() => router.push('/meal-picker/manual')}
                 testID="add-without-recipe-btn"
               >
-                <View style={[styles.optionIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                  <Pencil size={16} color="#D97706" strokeWidth={2} />
+                <View style={[styles.optionIconCircle, { backgroundColor: Colors.primaryLight }]}>
+                  <Pencil size={16} color={Colors.primary} strokeWidth={2} />
                 </View>
                 <View style={styles.optionTextBlock}>
                   <Text style={styles.optionTitle}>Add without Recipe</Text>
@@ -308,8 +308,8 @@ export default function MealPickerScreen() {
                 onPress={() => router.push('/meal-picker/delivery')}
                 testID="add-delivery-btn"
               >
-                <View style={[styles.optionIconCircle, { backgroundColor: '#DBEAFE' }]}>
-                  <Bike size={16} color="#2563EB" strokeWidth={2} />
+                <View style={[styles.optionIconCircle, { backgroundColor: Colors.primaryLight }]}>
+                  <Bike size={16} color={Colors.primary} strokeWidth={2} />
                 </View>
                 <View style={styles.optionTextBlock}>
                   <Text style={styles.optionTitle}>Add from Delivery App</Text>
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   },
   browseCardRight: {
     flex: 1,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: Colors.primaryLight,
     borderRadius: 14,
     padding: 14,
   },
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   dividerText: {
     fontSize: 11,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
     paddingHorizontal: 12,
   },

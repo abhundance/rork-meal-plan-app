@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   platformChipText: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.primary,
   },
   saveToFavsRow: {
