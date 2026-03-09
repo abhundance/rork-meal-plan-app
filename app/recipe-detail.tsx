@@ -40,6 +40,25 @@ import { DISCOVER_MEALS } from '@/mocks/discover';
 
 const DESTRUCTIVE_RED = '#E05252';
 
+/**
+ * Derives 1–2 initials from the family name.
+ * Strips common stop words (the, and, our, my, a, &) then takes the
+ * first letter of the first word and (if present) the first letter of the
+ * last word, uppercased.
+ *
+ * Examples:  "Smith Family" → "SF",  "The Johnsons" → "J",  "Our Kitchen" → "OK"
+ */
+function getFamilyInitials(familyName: string): string {
+  const stopWords = new Set(['the', 'and', 'our', 'my', '&', 'a']);
+  const words = familyName
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 0 && !stopWords.has(w.toLowerCase()));
+  if (words.length === 0) return '';
+  if (words.length === 1) return words[0][0].toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+
 export default function MealDetailScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id: string; source: string }>();
@@ -320,7 +339,14 @@ export default function MealDetailScreen() {
           {meal.image_url ? (
             <Image source={{ uri: meal.image_url }} style={styles.heroImage} resizeMode="cover" />
           ) : (
-            <MealImagePlaceholder size="hero" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.name} />
+            <MealImagePlaceholder
+              size="hero"
+              mealType={meal.meal_type}
+              cuisine={meal.cuisine}
+              name={meal.name}
+              familyAvatarUrl={meal.source === 'family_created' ? familySettings.family_avatar_url : undefined}
+              familyInitials={meal.source === 'family_created' ? getFamilyInitials(familySettings.family_name) : undefined}
+            />
           )}
           <TouchableOpacity
             style={[styles.backBtn, { top: insets.top + 8 }]}

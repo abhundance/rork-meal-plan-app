@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface MealImagePlaceholderProps {
@@ -8,6 +9,10 @@ interface MealImagePlaceholderProps {
   name?: string;
   size: 'card' | 'thumbnail' | 'hero';
   borderRadius?: number;
+  /** URI for the family profile photo — shown in hero when the meal has no image */
+  familyAvatarUrl?: string;
+  /** 1-2 letter initials to show when no family photo is set (e.g. "SF" for Smith Family) */
+  familyInitials?: string;
 }
 
 interface PlaceholderConfig {
@@ -55,6 +60,9 @@ const NAME_CUISINE_MAP: Array<[string[], [string, string, string]]> = [
   [['hummus', 'falafel', 'gyro', 'shawarma', 'pita', 'halloumi'], ['#CCFBF1', '#99F6E4', '#5EEAD4']],
 ];
 
+// Cucumber green gradient for family-created meals without a photo
+const FAMILY_GRADIENT: [string, string, string] = ['#E2F5EE', '#C5E4D5', '#A8DECA'];
+
 function getEmojiFromName(n: string): string | null {
   for (const [keywords, emoji] of NAME_EMOJI_MAP) {
     if (keywords.some((kw) => n.includes(kw))) return emoji;
@@ -86,7 +94,7 @@ function getConfig(mealType?: string, cuisine?: string, name?: string): Placehol
       colors = ['#CCFBF1', '#99F6E4', '#5EEAD4'];
       baseEmoji = '🥙';
     } else {
-      colors = ['#EDE9FE', '#C4B5FD', '#DDD6FE'];
+      colors = FAMILY_GRADIENT;
       baseEmoji = '🍴';
     }
 
@@ -105,7 +113,7 @@ function getConfig(mealType?: string, cuisine?: string, name?: string): Placehol
     if (nameEmoji) {
       const m = mealType?.toLowerCase() ?? '';
       if (m === 'breakfast') {
-        return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: nameEmoji };
+        return { colors: FAMILY_GRADIENT, emoji: nameEmoji };
       }
       if (m === 'lunch_dinner') {
         return { colors: ['#FEF3C7', '#FDE68A', '#FCD34D'], emoji: nameEmoji };
@@ -113,13 +121,13 @@ function getConfig(mealType?: string, cuisine?: string, name?: string): Placehol
       if (m === 'light_bites') {
         return { colors: ['#D1FAE5', '#A7F3D0', '#6EE7B7'], emoji: nameEmoji };
       }
-      return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: nameEmoji };
+      return { colors: FAMILY_GRADIENT, emoji: nameEmoji };
     }
   }
 
   const m = mealType?.toLowerCase() ?? '';
   if (m === 'breakfast') {
-    return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: '🥞' };
+    return { colors: FAMILY_GRADIENT, emoji: '🥞' };
   }
   if (m === 'lunch_dinner') {
     return { colors: ['#FEF3C7', '#FDE68A', '#FCD34D'], emoji: '🍽' };
@@ -128,7 +136,7 @@ function getConfig(mealType?: string, cuisine?: string, name?: string): Placehol
     return { colors: ['#D1FAE5', '#A7F3D0', '#6EE7B7'], emoji: '🥗' };
   }
 
-  return { colors: ['#EDE9FE', '#C4B5FD', '#DDD6FE'], emoji: '🍴' };
+  return { colors: FAMILY_GRADIENT, emoji: '🍴' };
 }
 
 export default function MealImagePlaceholder({
@@ -137,6 +145,8 @@ export default function MealImagePlaceholder({
   name,
   size,
   borderRadius,
+  familyAvatarUrl,
+  familyInitials,
 }: MealImagePlaceholderProps) {
   const config = getConfig(mealType, cuisine, name);
 
@@ -159,6 +169,32 @@ export default function MealImagePlaceholder({
 
   const glowSize = isThumbnail ? 30 : isCard ? 56 : 100;
   const emojiFontSize = isThumbnail ? 26 : isCard ? 42 : 70;
+
+  // Hero size: show family avatar photo or initials instead of emoji
+  if (isHero && (familyAvatarUrl || familyInitials)) {
+    return (
+      <LinearGradient
+        colors={FAMILY_GRADIENT}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={containerStyle}
+      >
+        {familyAvatarUrl ? (
+          <View style={styles.avatarRing}>
+            <Image
+              source={{ uri: familyAvatarUrl }}
+              style={styles.avatarImage}
+              contentFit="cover"
+            />
+          </View>
+        ) : (
+          <View style={styles.initialsCircle}>
+            <Text style={styles.initialsText}>{familyInitials}</Text>
+          </View>
+        )}
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
@@ -210,5 +246,43 @@ const styles = StyleSheet.create({
     position: 'absolute',
     backgroundColor: 'rgba(255,255,255,0.28)',
   },
-
+  // Family avatar: circular photo with white ring
+  avatarRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FFFFFF',
+    padding: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  avatarImage: {
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+  },
+  // Family initials: green circle with white letters
+  initialsCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#2C845E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  initialsText: {
+    fontFamily: 'Nunito_700Bold',
+    fontSize: 34,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
 });
