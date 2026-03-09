@@ -1,21 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  View, Text, TextInput, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform,
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  FlatList,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
+import { ChevronRight, X, Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import ProgressBar from '@/components/ProgressBar';
+import OnboardingBackButton from '@/components/OnboardingBackButton';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
+
+const COUNTRIES = [
+  'Singapore',
+  'Australia',
+  'Canada',
+  'China',
+  'France',
+  'Germany',
+  'Hong Kong',
+  'India',
+  'Indonesia',
+  'Ireland',
+  'Italy',
+  'Japan',
+  'Malaysia',
+  'Mexico',
+  'Netherlands',
+  'New Zealand',
+  'Philippines',
+  'South Korea',
+  'Spain',
+  'Taiwan',
+  'Thailand',
+  'United Arab Emirates',
+  'United Kingdom',
+  'United States',
+  'Vietnam',
+  'Austria',
+  'Belgium',
+  'Brazil',
+  'Denmark',
+  'Finland',
+  'Greece',
+  'Hungary',
+  'Israel',
+  'Norway',
+  'Poland',
+  'Portugal',
+  'Romania',
+  'Saudi Arabia',
+  'South Africa',
+  'Sweden',
+  'Switzerland',
+  'Turkey',
+  'Argentina',
+  'Chile',
+  'Colombia',
+  'Egypt',
+  'Kenya',
+  'Nigeria',
+  'Pakistan',
+  'Sri Lanka',
+  'Bangladesh',
+  'Nepal',
+  'Myanmar',
+];
 
 export default function RegionScreen() {
   const insets = useSafeAreaInsets();
   const { data, setRegion, setStep } = useOnboarding();
   const [country, setCountry] = useState<string>(data.region ?? 'Singapore');
   const [units, setUnits] = useState<'metric' | 'imperial'>(data.measurement_units ?? 'metric');
+  const [showPicker, setShowPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredCountries = useMemo(() => {
+    if (!searchQuery.trim()) return COUNTRIES;
+    const q = searchQuery.toLowerCase();
+    return COUNTRIES.filter(c => c.toLowerCase().includes(q));
+  }, [searchQuery]);
 
   const handleContinue = () => {
     setRegion(country.trim() || 'Singapore', units);
@@ -23,11 +97,18 @@ export default function RegionScreen() {
     router.push('/onboarding/family-name' as Href);
   };
 
+  const handleSelectCountry = (selected: string) => {
+    setCountry(selected);
+    setShowPicker(false);
+    setSearchQuery('');
+  };
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <OnboardingBackButton />
       <ProgressBar current={1} total={11} />
 
       <View style={styles.content}>
@@ -38,16 +119,15 @@ export default function RegionScreen() {
         </Text>
 
         <Text style={styles.inputLabel}>Country</Text>
-        <TextInput
-          style={styles.input}
-          value={country}
-          onChangeText={setCountry}
-          placeholder="e.g. Singapore"
-          placeholderTextColor={Colors.inactive}
-          autoCapitalize="words"
-          returnKeyType="done"
-          testID="country-input"
-        />
+        <TouchableOpacity
+          style={styles.selectorRow}
+          onPress={() => setShowPicker(true)}
+          activeOpacity={0.7}
+          testID="country-selector"
+        >
+          <Text style={styles.selectorText}>{country}</Text>
+          <ChevronRight size={18} color={Colors.textSecondary} />
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Measurement Units</Text>
         <View style={styles.toggleRow}>
@@ -88,6 +168,77 @@ export default function RegionScreen() {
           testID="continue-btn"
         />
       </View>
+
+      {/* Country Picker Modal */}
+      <Modal
+        visible={showPicker}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowPicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowPicker(false)}
+        />
+        <KeyboardAvoidingView
+          style={styles.modalSheet}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          {/* Drag handle */}
+          <View style={styles.dragHandle} />
+
+          {/* Modal header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Country</Text>
+            <TouchableOpacity
+              onPress={() => { setShowPicker(false); setSearchQuery(''); }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <X size={22} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Search bar */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search countries..."
+              placeholderTextColor={Colors.inactive}
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
+          </View>
+
+          {/* Country list */}
+          <FlatList
+            data={filteredCountries}
+            keyExtractor={(item) => item}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.countryRow}
+                onPress={() => handleSelectCountry(item)}
+                activeOpacity={0.6}
+              >
+                <Text style={styles.countryName}>{item}</Text>
+                {item === country && (
+                  <Check size={18} color={Colors.primary} />
+                )}
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptySearch}>
+                <Text style={styles.emptySearchText}>No countries found</Text>
+              </View>
+            }
+            contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+          />
+        </KeyboardAvoidingView>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -131,18 +282,23 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 8,
   },
-  input: {
+  selectorRow: {
     backgroundColor: Colors.white,
     borderWidth: 1.5,
     borderColor: Colors.border,
     borderRadius: BorderRadius.input,
     paddingHorizontal: 16,
     paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  selectorText: {
+    flex: 1,
     fontSize: 16,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
-    marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 14,
@@ -195,5 +351,83 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 24,
     paddingTop: 16,
+  },
+  // Modal styles
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  modalSheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    top: '10%',
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  dragHandle: {
+    width: 36,
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontFamily: FontFamily.bold,
+    fontWeight: '700' as const,
+    color: Colors.text,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.border,
+  },
+  searchInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: Colors.text,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '400' as const,
+  },
+  countryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.border,
+  },
+  countryName: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.text,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '400' as const,
+  },
+  emptySearch: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  emptySearchText: {
+    fontSize: 15,
+    color: Colors.textSecondary,
   },
 });

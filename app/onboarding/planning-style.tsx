@@ -6,6 +6,7 @@ import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import ProgressBar from '@/components/ProgressBar';
+import OnboardingBackButton from '@/components/OnboardingBackButton';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 
@@ -54,6 +55,7 @@ export default function PlanningStyleScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <OnboardingBackButton />
       <ProgressBar current={8} total={11} />
 
       <ScrollView

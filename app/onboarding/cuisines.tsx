@@ -8,6 +8,7 @@ import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import ProgressBar from '@/components/ProgressBar';
+import OnboardingBackButton from '@/components/OnboardingBackButton';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 import { CUISINE_OPTIONS } from '@/types';
@@ -72,6 +73,7 @@ export default function CuisinesScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <OnboardingBackButton />
       <ProgressBar current={6} total={11} />
 
       <ScrollView

@@ -5,6 +5,7 @@ import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import ProgressBar from '@/components/ProgressBar';
+import OnboardingBackButton from '@/components/OnboardingBackButton';
 import PrimaryButton from '@/components/PrimaryButton';
 import DietaryPillGrid from '@/components/DietaryPillGrid';
 import { useOnboarding } from '@/providers/OnboardingProvider';
@@ -28,6 +29,7 @@ export default function FamilyDietaryScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <OnboardingBackButton />
       <ProgressBar current={4} total={11} />
 
       <View style={styles.content}>

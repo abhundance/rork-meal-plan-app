@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import ProgressBar from '@/components/ProgressBar';
+import OnboardingBackButton from '@/components/OnboardingBackButton';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 
@@ -24,9 +25,17 @@ export default function FamilyNameScreen() {
     <KeyboardAvoidingView
       style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
+      <OnboardingBackButton />
       <ProgressBar current={2} total={11} />
 
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.content}>
         <Text style={styles.stepLabel}>Step 2 of 11</Text>
         <Text style={styles.heading}>What's your family name?</Text>
@@ -46,6 +55,7 @@ export default function FamilyNameScreen() {
           This is how your family will appear across the app
         </Text>
       </View>
+      </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <PrimaryButton
@@ -63,6 +73,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
