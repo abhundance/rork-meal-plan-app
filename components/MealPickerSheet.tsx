@@ -55,6 +55,7 @@ export default function MealPickerSheet({
   const [deliveryUrl, setDeliveryUrl] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [saveToMyMeals, setSaveToMyMeals] = useState<boolean>(false);
+  const [saveDeliveryToFavs, setSaveDeliveryToFavs] = useState<boolean>(false);
   const { meals: favMeals, addFav } = useFavs();
   const { updatePlannedMealDelivery } = useMealPlan();
   const router = useRouter();
@@ -133,6 +134,7 @@ export default function MealPickerSheet({
     setDeliveryUrl('');
     setSearchQuery('');
     setSaveToMyMeals(false);
+    setSaveDeliveryToFavs(false);
     onClose();
   }, [onClose]);
 
@@ -149,6 +151,9 @@ export default function MealPickerSheet({
       resetAndClose();
       return;
     }
+    const favId = saveDeliveryToFavs
+      ? `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+      : undefined;
     const planned: PlannedMeal = {
       id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       slot_id: slotId,
@@ -160,11 +165,24 @@ export default function MealPickerSheet({
       is_delivery: true,
       delivery_url: trimmedUrl || undefined,
       delivery_platform: trimmedUrl ? (detectPlatformFromUrl(trimmedUrl) ?? undefined) : undefined,
+      fav_meal_id: favId,
     };
+    if (saveDeliveryToFavs && favId) {
+      addFav({
+        id: favId,
+        name: deliveryName.trim(),
+        source: 'family_created',
+        ingredients: [],
+        add_to_plan_count: 0,
+        created_at: new Date().toISOString(),
+        is_ingredient_complete: false,
+        is_recipe_complete: false,
+      });
+    }
     onSelectMeal(planned);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     resetAndClose();
-  }, [deliveryName, deliveryUrl, slotId, date, defaultServing, onSelectMeal, resetAndClose, isEditingDelivery, editingDeliveryMeal, updatePlannedMealDelivery]);
+  }, [deliveryName, deliveryUrl, slotId, date, defaultServing, onSelectMeal, resetAndClose, isEditingDelivery, editingDeliveryMeal, updatePlannedMealDelivery, saveDeliveryToFavs, addFav]);
 
   const handleSelectFavMeal = useCallback((meal: Recipe) => {
     const planned: import('@/types').PlannedMeal = {
@@ -267,11 +285,24 @@ export default function MealPickerSheet({
               </View>
             )}
 
+            <TouchableOpacity
+              style={styles.saveToMyMealsRow}
+              onPress={() => setSaveDeliveryToFavs((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <Heart
+                size={20}
+                color={saveDeliveryToFavs ? Colors.primary : Colors.textSecondary}
+                fill={saveDeliveryToFavs ? Colors.primary : 'none'}
+                strokeWidth={2}
+              />
+              <Text style={[styles.saveToMyMealsText, saveDeliveryToFavs && styles.saveToMyMealsTextActive]}>Save to Favourites</Text>
+            </TouchableOpacity>
+
             <PrimaryButton
               label="Save to Meal Plan"
               onPress={handleDeliverySave}
               disabled={deliveryName.trim().length === 0}
-              style={{ marginTop: 24 }}
               testID="delivery-save-btn"
             />
           </ScrollView>
