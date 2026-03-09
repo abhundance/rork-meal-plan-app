@@ -535,13 +535,20 @@ export default function AddRecipeEntryScreen() {
 
             {accordionOpen && (
               <View style={styles.accordionBody}>
-                <TouchableOpacity style={[styles.aiFillBtn, isAiFillingMetadata && styles.aiFillBtnLoading]} onPress={handleAiFill} disabled={isAiFillingMetadata} activeOpacity={0.8}>
-                  {isAiFillingMetadata ? (
-                    <><ActivityIndicator size="small" color={Colors.primary} /><Text style={styles.aiFillBtnText}>Auto-filling…</Text></>
-                  ) : (
-                    <><Sparkles size={16} color={Colors.primary} strokeWidth={2} /><Text style={styles.aiFillBtnText}>{hasAutoFilled ? 'Re-fill with AI' : 'Auto-fill with AI'}</Text></>
-                  )}
-                </TouchableOpacity>
+                {isAiFillingMetadata ? (
+                  <View style={styles.aiFillStatus}>
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                    <Text style={styles.aiFillStatusText}>Auto-filling…</Text>
+                  </View>
+                ) : hasAutoFilled ? (
+                  <View style={styles.aiFillStatus}>
+                    <Sparkles size={13} color={Colors.primary} strokeWidth={2} />
+                    <Text style={styles.aiFillStatusText}>Auto-filled with AI</Text>
+                    <TouchableOpacity onPress={handleAiFill} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Text style={styles.refillLinkText}>Re-fill</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
 
                 <Text style={styles.accordionFieldLabel}>Meal type</Text>
                 <View style={styles.chipWrap}>
@@ -762,9 +769,9 @@ const styles = StyleSheet.create({
   accordionHeaderTitle: { fontSize: 18, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.text },
   accordionBody: { paddingTop: 4, paddingBottom: 8 },
   accordionFieldLabel: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary, marginTop: 16, marginBottom: 8 },
-  aiFillBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: Colors.primaryLight, borderRadius: BorderRadius.button, borderWidth: 1, borderColor: Colors.primary, marginTop: 4 },
-  aiFillBtnLoading: { opacity: 0.7 },
-  aiFillBtnText: { fontSize: 14, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.primary },
+  aiFillStatus: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 },
+  aiFillStatusText: { fontSize: 13, fontFamily: FontFamily.regular, color: Colors.primary, flex: 1 },
+  refillLinkText: { fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { backgroundColor: Colors.white, borderRadius: BorderRadius.button, borderWidth: 1, borderColor: '#DDD9F5', paddingHorizontal: 12, paddingVertical: 8 },
   chipActive: { backgroundColor: Colors.primaryLight, borderColor: Colors.primary, borderWidth: 1.5 },
