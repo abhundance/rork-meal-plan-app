@@ -598,6 +598,7 @@ export default function FavsScreen() {
             onPress={() => {
               consumePendingPlanSlot();
               setPendingSlot(null);
+              router.replace('/(tabs)/(home)' as never);
             }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
