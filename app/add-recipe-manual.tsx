@@ -23,7 +23,7 @@ import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtil
 import { extractRecipeMetadata } from '@/services/recipeExtraction';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
-import { BorderRadius, Spacing, Shadows } from '@/constants/theme';
+import { BorderRadius, Spacing } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import FilterPill from '@/components/FilterPill';
 import ServingStepper from '@/components/ServingStepper';
@@ -395,25 +395,6 @@ export default function AddMealScreen() {
           <View style={{ width: 36 }} />
         </View>
 
-        {/* ── Manual / AI Mode toggle (new recipe only) ── */}
-        {!isEditing && (
-          <View style={styles.toggleWrap}>
-            <View style={styles.toggleTrack}>
-              {/* Pill always sits on Manual since this screen IS Manual */}
-              <View style={[styles.togglePill, styles.togglePillLeft]} />
-              <TouchableOpacity style={styles.toggleOption} activeOpacity={0.8}>
-                <Text style={[styles.toggleLabel, styles.toggleLabelActive]}>✏️  Manual</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.toggleOption}
-                onPress={() => router.replace('/add-recipe-entry' as never)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.toggleLabel}>✨  AI Mode</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -884,48 +865,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-  // ── Toggle ──────────────────────────────────────────────
-  toggleWrap: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
-    backgroundColor: Colors.background,
-  },
-  toggleTrack: {
-    flexDirection: 'row' as const,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.input,
-    padding: 3,
-    position: 'relative' as const,
-  },
-  togglePill: {
-    position: 'absolute' as const,
-    top: 3,
-    bottom: 3,
-    width: '50%' as unknown as number,
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.input - 2,
-    ...Shadows.card,
-  },
-  togglePillLeft: {
-    left: 3,
-  },
-  toggleOption: {
-    flex: 1,
-    paddingVertical: 9,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    zIndex: 1,
-  },
-  toggleLabel: {
-    fontSize: 14,
-    fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  toggleLabelActive: {
-    color: Colors.primary,
   },
   flex: {
     flex: 1,
