@@ -11,9 +11,6 @@ import {
   Animated,
   ActionSheetIOS,
   Alert,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
   Image,
   Dimensions,
   Pressable,
@@ -57,17 +54,8 @@ import {
   ArrowUpDown,
   CalendarPlus,
   Utensils,
-  FileText,
   ChevronRight,
-  Pencil,
-  Bike,
-  ChevronLeft,
-  Clipboard as ClipboardIcon,
-  CheckCircle2,
 } from 'lucide-react-native';
-import * as Clipboard from 'expo-clipboard';
-import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
-import { consumePendingDeliveryLink } from '@/services/pendingDeliveryLink';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
@@ -175,11 +163,6 @@ export default function FavsScreen() {
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [selectedMealForPlan, setSelectedMealForPlan] = useState<Recipe | null>(null);
 
-  const [showAddMethodSheet, setShowAddMethodSheet] = useState<boolean>(false);
-  const [addMethodMode, setAddMethodMode] = useState<'choose' | 'quick_add'>('choose');
-  const [quickAddName, setQuickAddName] = useState<string>('');
-  const [quickAddDeliveryUrl, setQuickAddDeliveryUrl] = useState<string>('');
-  const [quickAddSource, setQuickAddSource] = useState<'manual' | 'delivery'>('manual');
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
 
@@ -367,52 +350,15 @@ export default function FavsScreen() {
     );
   }, [removeFav]);
 
-  const handleQuickAddSave = useCallback(() => {
-    if (!quickAddName.trim()) return;
-    const trimmedUrl = quickAddDeliveryUrl.trim();
-    const newMeal: Recipe = {
-      id: 'meal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-      name: quickAddName.trim(),
-      source: 'family_created',
-      ingredients: [],
-      recipe_serving_size: familySettings.default_serving_size,
-      dietary_tags: [],
-      custom_tags: [],
-      method_steps: [],
-      add_to_plan_count: 0,
-      created_at: new Date().toISOString(),
-      is_ingredient_complete: false,
-      is_recipe_complete: false,
-      delivery_url: trimmedUrl || undefined,
-      delivery_platform: trimmedUrl ? (detectPlatformFromUrl(trimmedUrl) ?? undefined) : undefined,
-    };
-    addFav(newMeal);
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setQuickAddName('');
-    setQuickAddDeliveryUrl('');
-    setShowAddMethodSheet(false);
-    setAddMethodMode('choose');
-  }, [quickAddName, quickAddDeliveryUrl, addFav, familySettings]);
-
   useFocusEffect(
     useCallback(() => {
-      const pending = consumePendingDeliveryLink();
-      if (pending) {
-        setQuickAddDeliveryUrl(pending.url);
-        setAddMethodMode('quick_add');
-        setShowAddMethodSheet(true);
-      }
       // Reset scroll to top every time this tab is focused.
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     }, [])
   );
 
   const openAddMethodSheet = useCallback(() => {
-    setAddMethodMode('choose');
-    setQuickAddName('');
-    setQuickAddDeliveryUrl('');
-    setQuickAddSource('manual');
-    setShowAddMethodSheet(true);
+    router.push('/add-to-favs');
   }, []);
 
   const filterCount = countActiveFilters(favFilters, FAVS_FILTER_CONFIG);
@@ -688,163 +634,6 @@ export default function FavsScreen() {
         getMealsForSlot={getMealsForSlot}
         mealName={selectedMealForPlan?.name ?? ''}
       />
-
-      <Modal
-        visible={showAddMethodSheet}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => {
-          setShowAddMethodSheet(false);
-          setAddMethodMode('choose');
-          setQuickAddName('');
-          setQuickAddDeliveryUrl('');
-          setQuickAddSource('manual');
-        }}
-      >
-        <KeyboardAvoidingView style={styles.addMethodOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
-            activeOpacity={1}
-            onPress={() => {
-              setShowAddMethodSheet(false);
-              setAddMethodMode('choose');
-              setQuickAddName('');
-              setQuickAddDeliveryUrl('');
-              setQuickAddSource('manual');
-            }}
-          />
-          <View style={[styles.addMethodSheet, { paddingBottom: insets.bottom + 16 }]}>
-          {addMethodMode === 'choose' ? (
-            <>
-              <View style={styles.addMethodHandle} />
-              <Text style={styles.addMethodTitle}>How would you like to add?</Text>
-              <View style={{ paddingHorizontal: 20, gap: 10, marginBottom: 24 }}>
-                <TouchableOpacity
-                  style={styles.addMethodOptionRow}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setShowAddMethodSheet(false);
-                    router.push('/add-recipe-entry' as Href);
-                  }}
-                >
-                  <View style={styles.addMethodOptionIcon}>
-                    <FileText size={22} color={Colors.primary} strokeWidth={2} />
-                  </View>
-                  <View style={styles.addMethodOptionTextBlock}>
-                    <Text style={{ fontSize: 15, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.text }}>Add with Recipe</Text>
-                    <Text style={{ fontSize: 13, fontFamily: FontFamily.regular, fontWeight: '400', color: Colors.textSecondary, marginTop: 2 }}>URL, camera, YouTube & more</Text>
-                  </View>
-                  <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.addMethodOptionRow}
-                  activeOpacity={0.8}
-                  onPress={() => { setQuickAddSource('manual'); setAddMethodMode('quick_add'); }}
-                >
-                  <View style={styles.addMethodOptionIcon}>
-                    <Pencil size={22} color={Colors.primary} strokeWidth={2} />
-                  </View>
-                  <View style={styles.addMethodOptionTextBlock}>
-                    <Text style={{ fontSize: 15, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.text }}>Add without Recipe</Text>
-                    <Text style={{ fontSize: 13, fontFamily: FontFamily.regular, fontWeight: '400', color: Colors.textSecondary, marginTop: 2 }}>Just a name — add the recipe later</Text>
-                  </View>
-                  <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.addMethodOptionRow}
-                  activeOpacity={0.8}
-                  onPress={async () => {
-                    const text = (await Clipboard.getStringAsync())?.trim() ?? '';
-                    if (text && detectPlatformFromUrl(text)) {
-                      setQuickAddDeliveryUrl(text);
-                    }
-                    setQuickAddSource('delivery');
-                    setAddMethodMode('quick_add');
-                  }}
-                >
-                  <View style={styles.addMethodOptionIcon}>
-                    <Bike size={22} color={Colors.primary} strokeWidth={2} />
-                  </View>
-                  <View style={styles.addMethodOptionTextBlock}>
-                    <Text style={{ fontSize: 15, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.text }}>Add from Delivery App</Text>
-                    <Text style={{ fontSize: 13, fontFamily: FontFamily.regular, fontWeight: '400', color: Colors.textSecondary, marginTop: 2 }}>Save a link from Uber Eats, Grab & more</Text>
-                  </View>
-                  <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity
-                style={styles.addMethodCancel}
-                onPress={() => setShowAddMethodSheet(false)}
-              >
-                <Text style={styles.addMethodCancelText}>Cancel</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <View style={styles.addMethodHandle} />
-              <View style={styles.addMethodBackRow}>
-                <TouchableOpacity onPress={() => { setAddMethodMode('choose'); setQuickAddSource('manual'); }}>
-                  <ChevronLeft size={20} color={Colors.primary} strokeWidth={2} />
-                </TouchableOpacity>
-                <Text style={styles.addMethodBackTitle}>{quickAddSource === 'delivery' ? 'Add from Delivery App' : 'Add without Recipe'}</Text>
-              </View>
-              <TextInput
-                style={styles.addMethodInput}
-                placeholder={quickAddSource === 'delivery' ? "e.g. Butter Chicken from Spice Garden" : "e.g. Mum's spaghetti bolognese"}
-                placeholderTextColor={Colors.textSecondary}
-                value={quickAddName}
-                onChangeText={setQuickAddName}
-                autoCapitalize="words"
-                autoFocus
-              />
-              <Text style={styles.addMethodHint}>
-                Recipe details can be added later from the meal screen.
-              </Text>
-              {quickAddSource === 'delivery' && (
-                <>
-                  <Text style={styles.addMethodDeliveryLabel}>Delivery link (optional)</Text>
-                  <View style={styles.addMethodDeliveryRow}>
-                    <TextInput
-                      style={styles.addMethodDeliveryInput}
-                      placeholder="Paste Uber Eats, Zomato, Grab link..."
-                      placeholderTextColor={Colors.textSecondary}
-                      value={quickAddDeliveryUrl}
-                      onChangeText={setQuickAddDeliveryUrl}
-                      autoCapitalize="none"
-                      keyboardType="url"
-                    />
-                    <TouchableOpacity
-                      onPress={async () => {
-                        const text = await Clipboard.getStringAsync();
-                        if (text) setQuickAddDeliveryUrl(text);
-                      }}
-                      style={styles.addMethodClipboardBtn}
-                    >
-                      <ClipboardIcon size={20} color={Colors.primary} strokeWidth={2} />
-                    </TouchableOpacity>
-                  </View>
-                  {quickAddDeliveryUrl.trim().length > 0 && (
-                    <View style={styles.addMethodPlatformChip}>
-                      <CheckCircle2 size={14} color={Colors.primary} strokeWidth={2} />
-                      <Text style={styles.addMethodPlatformChipText}>
-                        {getPlatformLabel(detectPlatformFromUrl(quickAddDeliveryUrl.trim()))} detected
-                      </Text>
-                    </View>
-                  )}
-                </>
-              )}
-              <TouchableOpacity
-                style={[styles.addMethodSaveBtn, !quickAddName.trim() && { opacity: 0.4 }]}
-                onPress={handleQuickAddSave}
-                disabled={!quickAddName.trim()}
-              >
-                <Text style={styles.addMethodSaveBtnText}>Save Meal</Text>
-              </TouchableOpacity>
-            </>
-          )}
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
 
       <RecipeFilterSheet
         visible={showFilterSheet}

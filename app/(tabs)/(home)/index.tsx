@@ -9,7 +9,6 @@ import AppHeader from '@/components/AppHeader';
 import SegmentedControl from '@/components/SegmentedControl';
 import WeeklyPlanView from '@/components/WeeklyPlanView';
 import DailyPlanView from '@/components/DailyPlanView';
-import MealPickerSheet from '@/components/MealPickerSheet';
 import RepeatWeekSheet from '@/components/RepeatWeekSheet';
 import RepeatDaySheet from '@/components/RepeatDaySheet';
 import EmptyState from '@/components/EmptyState';
@@ -167,7 +166,6 @@ export default function MealPlanScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [weekOffset, setWeekOffset] = useState<number>(0);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [pickerVisible, setPickerVisible] = useState<boolean>(false);
   const [pickerDate, setPickerDate] = useState<string>('');
   const [pickerSlotId, setPickerSlotId] = useState<string>('');
   const [pickerSlotName, setPickerSlotName] = useState<string>('');
@@ -198,13 +196,15 @@ export default function MealPlanScreen() {
   const handleEmptySlotPress = useCallback(
     (date: string, slotId: string) => {
       const slot = familySettings.meal_slots.find((s) => s.slot_id === slotId);
+      const slotName = slot?.name ?? 'Meal';
       setPickerDate(date);
       setPickerSlotId(slotId);
-      setPickerSlotName(slot?.name ?? 'Meal');
-      setPickerVisible(true);
+      setPickerSlotName(slotName);
+      setPendingPlanSlot({ slotId, date, slotName, defaultServing: familySettings.default_serving_size });
+      router.push('/meal-picker' as Href);
       console.log('[MealPlan] Opening picker for:', date, slotId);
     },
-    [familySettings.meal_slots]
+    [familySettings.meal_slots, familySettings.default_serving_size]
   );
 
   const handleMealPress = useCallback(
@@ -228,18 +228,11 @@ export default function MealPlanScreen() {
       setPickerDate(date);
       setPickerSlotId(slotId);
       setPickerSlotName(slotName);
-      setPickerVisible(true);
+      setPendingPlanSlot({ slotId, date, slotName, defaultServing: familySettings.default_serving_size });
+      router.push('/meal-picker' as Href);
       console.log('[MealPlan] Adding item to slot:', date, slotId);
     },
-    []
-  );
-
-  const handleSelectMeal = useCallback(
-    (meal: PlannedMeal) => {
-      addMeal(meal);
-      setPickerVisible(false);
-    },
-    [addMeal]
+    [familySettings.default_serving_size]
   );
 
   const sortedSlots = useMemo(
@@ -761,25 +754,6 @@ export default function MealPlanScreen() {
         />
       )}
 
-      <MealPickerSheet
-        visible={pickerVisible}
-        onClose={() => setPickerVisible(false)}
-        onSelectMeal={handleSelectMeal}
-        onCreateNewRecipe={() => {
-          setPickerVisible(false);
-          setPendingPlanSlot({
-            slotId: pickerSlotId,
-            date: pickerDate,
-            slotName: pickerSlotName,
-            defaultServing: familySettings.default_serving_size,
-          });
-          router.push('/add-recipe-entry' as Href);
-        }}
-        date={pickerDate}
-        slotId={pickerSlotId}
-        slotName={pickerSlotName}
-        defaultServing={familySettings.default_serving_size}
-      />
       <RepeatWeekSheet
         visible={repeatWeekVisible}
         currentWeekOffset={weekOffset}

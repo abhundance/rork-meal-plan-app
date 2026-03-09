@@ -170,7 +170,7 @@ Shadows.card / header / tabBar  — all use Colors.shadow (red-tinted)
 - `FilterPill` — horizontal chip for filter rows. Active state: `Colors.primary` bg + white text. Inactive: `Colors.surface` bg + `Colors.text`.
 - `MealImagePlaceholder` — image placeholder for meals without a photo. Renders in three modes: (1) **delivery platform logo** (when `deliveryPlatform` prop is set), (2) **meal name initials** on a hashed muted background (when `familyInitials` prop is set — used for family-created meals without a photo; initials are derived from `name` prop, e.g. "MC" for Masala Chai), (3) **emoji + colour gradient** fallback. Never pass `familyAvatarUrl` to Favs grid cards — only `familyInitials` is used there.
 - `SlotPickerModal` — meal slot selection modal
-- `MealPickerSheet` — slide-up sheet for adding meals to a slot (search, manual, delivery modes)
+- ~~`MealPickerSheet`~~ — **deleted**. Replaced by `/meal-picker` and `/add-to-favs` Expo Router screens. See "Add-Meal Navigation Architecture" section above.
 - `MealSlotEditor` — add/remove/rename meal slots in settings
 - `WeeklyPlanView` — 7-day grid with meal pills, week navigation, Smart Fill. Action buttons (Reshuffle, Repeat, Clear week) use `Colors.surface` bg, `Colors.text`, `fontWeight: '600'`, no icons.
 - `DailyPlanView` — day-level meal slots with serving stepper and meal rows. Action buttons (Smart Fill/Reshuffle, Repeat day, Clear day) match WeeklyPlanView style exactly.

@@ -32,7 +32,6 @@ import { BorderRadius, Shadows } from '@/constants/theme';
 import ServingStepper from '@/components/ServingStepper';
 import SlotPickerModal from '@/components/SlotPickerModal';
 import { useFavs } from '@/providers/FavsProvider';
-import MealPickerSheet from '@/components/MealPickerSheet';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { Recipe, PlannedMeal } from '@/types';
@@ -52,7 +51,6 @@ export default function MealDetailScreen() {
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [dailyNote, setDailyNote] = useState<string>('');
   const [initialized, setInitialized] = useState<boolean>(false);
-  const [deliveryEditVisible, setDeliveryEditVisible] = useState<boolean>(false);
 
   const plannedMeal = useMemo<PlannedMeal | null>(() => {
     if (params.source !== 'plan') return null;
@@ -369,7 +367,7 @@ export default function MealDetailScreen() {
             plannedMeal?.delivery_url ? (
               <TouchableOpacity
                 style={{ position: 'absolute', top: insets.top + 8, right: 56, backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
-                onPress={() => setDeliveryEditVisible(true)}
+                onPress={() => router.push(`/meal-picker/delivery?editId=${plannedMeal!.id}` as any)}
               >
                 <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>Edit Delivery</Text>
               </TouchableOpacity>
@@ -595,17 +593,6 @@ export default function MealDetailScreen() {
         </View>
       )}
 
-      <MealPickerSheet
-        visible={deliveryEditVisible}
-        onClose={() => setDeliveryEditVisible(false)}
-        onSelectMeal={() => setDeliveryEditVisible(false)}
-        onCreateNewRecipe={() => {}}
-        date={plannedMeal?.date ?? ''}
-        slotId={plannedMeal?.slot_id ?? ''}
-        slotName=""
-        defaultServing={plannedMeal?.serving_size ?? 1}
-        editingDeliveryMeal={plannedMeal ?? undefined}
-      />
       <SlotPickerModal
         visible={slotPickerVisible}
         onClose={() => setSlotPickerVisible(false)}

@@ -147,6 +147,14 @@ function RootLayoutNav() {
       />
       <Stack.Screen name="add-recipe-video" options={{ headerShown: false }} />
       <Stack.Screen name="add-recipe-paste" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="meal-picker"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="add-to-favs"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
       <Stack.Screen name="+not-found" />
     </Stack>
   );
