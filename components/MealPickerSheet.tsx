@@ -7,6 +7,7 @@ import {
   Modal,
   StyleSheet,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ScrollView,
   Image,
@@ -56,6 +57,7 @@ export default function MealPickerSheet({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [saveToMyMeals, setSaveToMyMeals] = useState<boolean>(false);
   const [saveDeliveryToFavs, setSaveDeliveryToFavs] = useState<boolean>(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const { meals: favMeals, addFav } = useFavs();
   const { updatePlannedMealDelivery } = useMealPlan();
   const router = useRouter();
@@ -70,6 +72,16 @@ export default function MealPickerSheet({
       setDeliveryUrl(editingDeliveryMeal.delivery_url ?? '');
     }
   }, [editingDeliveryMeal]);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardWillShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hide = Keyboard.addListener('keyboardWillHide', () => {
+      setKeyboardHeight(0);
+    });
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const formattedDate = useMemo(() => {
     return new Date(date + 'T00:00:00').toLocaleDateString('en-GB', {
@@ -511,7 +523,7 @@ export default function MealPickerSheet({
                 You can add ingredients later from the meal detail screen.
               </Text>
             </View>
-            <View style={styles.manualActions}>
+            <View style={[styles.manualActions, { marginBottom: keyboardHeight }]}>
               <PrimaryButton
                 label="Add Meal"
                 onPress={handleAddManual}
@@ -554,9 +566,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontFamily: FontFamily.bold,
-    fontWeight: '700' as const,
+    fontSize: 16,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
     color: Colors.text,
   },
   headerSubtitle: {
