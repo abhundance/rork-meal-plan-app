@@ -528,15 +528,9 @@ export default function AddRecipeEntryScreen() {
             </ScrollView>
 
             {/* Recipe Details accordion */}
-            <TouchableOpacity style={[styles.accordionHeader, accordionOpen && styles.accordionHeaderOpen]} onPress={handleAccordionToggle} activeOpacity={0.8}>
-              <View style={styles.accordionHeaderLeft}>
-                <Sparkles size={17} color={Colors.primary} strokeWidth={2} />
-                <View style={styles.accordionHeaderTextBlock}>
-                  <Text style={styles.accordionHeaderTitle}>Recipe Details</Text>
-                  <Text style={styles.accordionHeaderSubtitle}>Tap to open</Text>
-                </View>
-              </View>
-              {accordionOpen ? <ChevronUp size={18} color={Colors.primary} strokeWidth={2} /> : <ChevronDown size={18} color={Colors.primary} strokeWidth={2} />}
+            <TouchableOpacity style={styles.accordionHeader} onPress={handleAccordionToggle} activeOpacity={0.7}>
+              <Text style={styles.accordionHeaderTitle}>Recipe Details</Text>
+              {accordionOpen ? <ChevronUp size={18} color={Colors.textSecondary} strokeWidth={2} /> : <ChevronDown size={18} color={Colors.textSecondary} strokeWidth={2} />}
             </TouchableOpacity>
 
             {accordionOpen && (
@@ -764,13 +758,9 @@ const styles = StyleSheet.create({
   stepBadge: { width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
   stepBadgeText: { fontSize: 12, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.white },
   stepInput: { flex: 1, minHeight: 48, textAlignVertical: 'top' },
-  accordionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: Colors.primaryLight, borderRadius: BorderRadius.card, borderWidth: 1.5, borderColor: Colors.primary },
-  accordionHeaderOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0 },
-  accordionHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  accordionHeaderTextBlock: { flex: 1 },
-  accordionHeaderTitle: { fontSize: 15, fontFamily: FontFamily.bold, fontWeight: '700', color: Colors.text },
-  accordionHeaderSubtitle: { fontSize: 12, fontFamily: FontFamily.regular, fontWeight: '400', color: Colors.textSecondary, marginTop: 1 },
-  accordionBody: { marginTop: 0, backgroundColor: Colors.card, borderBottomLeftRadius: BorderRadius.card, borderBottomRightRadius: BorderRadius.card, padding: 16, borderWidth: 1.5, borderTopWidth: 0, borderColor: Colors.primary },
+  accordionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 28, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border },
+  accordionHeaderTitle: { fontSize: 14, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary },
+  accordionBody: { paddingTop: 4, paddingBottom: 8 },
   accordionFieldLabel: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary, marginTop: 16, marginBottom: 8 },
   aiFillBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: Colors.primaryLight, borderRadius: BorderRadius.button, borderWidth: 1, borderColor: Colors.primary, marginTop: 4 },
   aiFillBtnLoading: { opacity: 0.7 },
