@@ -411,7 +411,7 @@ export default function MealPlanScreen() {
         const fullEligible  = eligible(fullPool, used);
 
         // Priority: preferred slot-match → preferred any → fallback slot-match → fallback any → anything
-        const candidates =
+        let candidates =
           prefEligible.filter((m) => matchesSlot(m, slotCat)).length > 0
             ? prefEligible.filter((m) => matchesSlot(m, slotCat))
           : prefEligible.length > 0
@@ -421,6 +421,15 @@ export default function MealPlanScreen() {
           : fallEligible.length > 0
             ? fallEligible
           : fullEligible;
+
+        // If the unique-meal pool is exhausted (e.g. strict dietary prefs reduce eligible meals
+        // to fewer than the number of slots in the week), allow repetition rather than silently
+        // skipping slots and leaving the plan incomplete.
+        if (candidates.length === 0) {
+          const repeatPool = eligible(fullPool, new Set<string>());
+          const repeatSlotMatch = repeatPool.filter((m) => matchesSlot(m, slotCat));
+          candidates = repeatSlotMatch.length > 0 ? repeatSlotMatch : repeatPool;
+        }
 
         if (candidates.length === 0) continue;
 
@@ -601,7 +610,7 @@ export default function MealPlanScreen() {
       const fallEligible = eligible(fallbackPool, used);
       const fullEligible = eligible(fullPool, used);
 
-      const candidates =
+      let candidates =
         prefEligible.filter((m) => matchesSlot(m, slotCat)).length > 0
           ? prefEligible.filter((m) => matchesSlot(m, slotCat))
         : prefEligible.length > 0
@@ -611,6 +620,13 @@ export default function MealPlanScreen() {
         : fallEligible.length > 0
           ? fallEligible
         : fullEligible;
+
+      // If the unique-meal pool is exhausted, allow repetition rather than leaving the slot empty.
+      if (candidates.length === 0) {
+        const repeatPool = eligible(fullPool, new Set<string>());
+        const repeatSlotMatch = repeatPool.filter((m) => matchesSlot(m, slotCat));
+        candidates = repeatSlotMatch.length > 0 ? repeatSlotMatch : repeatPool;
+      }
 
       if (candidates.length === 0) continue;
 
