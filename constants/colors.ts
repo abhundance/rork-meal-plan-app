@@ -19,9 +19,9 @@ export default {
   familyGradient: ['#FEF0EE', '#FDDAD8', '#FCC8C5'] as [string, string, string],
 
   // Surfaces — intentionally neutral so the red accent pops rather than bleeds
-  background: '#F9F9F9',       // page background (neutral)
-  surface: '#F2F2F2',          // input bg, chip default bg (neutral)
-  card: '#FFFFFF',             // card backgrounds
+  background: '#FFFFFF',       // page background (pure white — Supreme aesthetic)
+  surface: '#F5F5F5',          // input bg, chip default bg (visibly distinct from white bg)
+  card: '#FFFFFF',             // card backgrounds (elevation via shadow, not color)
 
   // Text
   text: '#2C2C2C',             // primary text
@@ -35,13 +35,13 @@ export default {
 
   // Utility
   white: '#FFFFFF',
-  border: '#E5E5E5',           // neutral (no red tint)
+  border: '#E0E0E0',           // slightly crisper on white background
   shadow: '#ED1C16',           // red-tinted card/tab shadows
   inactive: 'rgba(44, 44, 44, 0.4)',
   skeleton1: '#F5DCDA',        // warm red-tinted skeleton base
   skeleton2: '#FEF0EE',        // skeleton shimmer highlight
   offlineBanner: '#F5E6C8',
   offlineText: '#8B6914',
-  divider: '#E5E5E5',          // neutral (no red tint)
+  divider: '#E0E0E0',          // neutral (no red tint)
   overlay: 'rgba(0, 0, 0, 0.3)',
 };
