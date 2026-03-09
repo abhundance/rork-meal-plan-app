@@ -974,12 +974,12 @@ const FavGridCard = React.memo(function FavGridCard({
               width: 28,
               height: 28,
               borderRadius: 14,
-              backgroundColor: Colors.primary,
+              backgroundColor: Colors.white,
               alignItems: 'center' as const,
               justifyContent: 'center' as const,
             }}
           >
-            <CalendarPlus size={13} color={Colors.white} strokeWidth={2.5} />
+            <CalendarPlus size={13} color={Colors.primary} strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
         {/* Meal name — sits directly on the page background */}
