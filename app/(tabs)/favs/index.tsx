@@ -555,6 +555,28 @@ export default function FavsScreen() {
         }
       />
 
+      {/* Slot-picker banner — sticky, outside the FlatList so it never scrolls away */}
+      {!!pendingSlot && (
+        <View style={styles.slotBanner}>
+          <View style={styles.slotBannerLeft}>
+            <View style={styles.slotBannerDot} />
+            <View>
+              <Text style={styles.slotBannerLabel}>ADDING TO</Text>
+              <Text style={styles.slotBannerSlot}>{formattedSlotLabel}</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            onPress={() => {
+              consumePendingPlanSlot();
+              setPendingSlot(null);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <X size={16} color={Colors.primary} strokeWidth={2.5} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Single FlatList owns the entire scroll area — search bar, filter pills,
           and recipe grid are all inside one scroll container so there can be no
           phantom gap between sections caused by stale contentOffset. */}
@@ -570,27 +592,6 @@ export default function FavsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         ListHeaderComponent={
           <View>
-            {/* ── Slot-picker banner (only shown when arriving from meal picker) ── */}
-            {!!pendingSlot && (
-              <View style={styles.slotBanner}>
-                <View style={styles.slotBannerLeft}>
-                  <View style={styles.slotBannerDot} />
-                  <View>
-                    <Text style={styles.slotBannerLabel}>ADDING TO</Text>
-                    <Text style={styles.slotBannerSlot}>{formattedSlotLabel}</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  onPress={() => {
-                    consumePendingPlanSlot();
-                    setPendingSlot(null);
-                  }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <X size={16} color={Colors.primary} strokeWidth={2.5} />
-                </TouchableOpacity>
-              </View>
-            )}
             {/* ── Search bar ─────────────────────────────────────── */}
             <View style={styles.searchWrap}>
               <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
