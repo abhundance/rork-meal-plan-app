@@ -360,7 +360,20 @@ const MealItemRow = React.memo(function MealItemRow({
           {meal.meal_image_url ? (
             <Image source={{ uri: meal.meal_image_url }} style={{ width: 42, height: 42, borderRadius: 10 }} resizeMode="cover" />
           ) : (
-            <MealImagePlaceholder size="thumbnail" mealType={meal.meal_type} cuisine={meal.cuisine} name={meal.meal_name} />
+            <MealImagePlaceholder
+              size="thumbnail"
+              mealType={meal.meal_type}
+              cuisine={meal.cuisine}
+              name={meal.meal_name}
+              deliveryPlatform={meal.delivery_platform}
+              familyInitials={
+                !meal.delivery_platform &&
+                meal.meal_id &&
+                favMeals.find(m => m.id === meal.meal_id)?.source === 'family_created'
+                  ? meal.meal_name
+                  : undefined
+              }
+            />
           )}
           <View style={styles.itemNameCol}>
             <Text style={styles.itemName} numberOfLines={2}>
