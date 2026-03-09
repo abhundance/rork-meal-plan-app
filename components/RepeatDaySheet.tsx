@@ -58,7 +58,7 @@ export default function RepeatDaySheet({
       }
     }
     return result;
-  }, [currentDate, getMealsForDate]);
+  }, [visible, currentDate, getMealsForDate]);
 
   return (
     <Modal

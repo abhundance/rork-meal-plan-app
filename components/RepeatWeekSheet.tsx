@@ -54,7 +54,7 @@ export default function RepeatWeekSheet({
       }
     }
     return result;
-  }, [currentWeekOffset, getMealsForWeek]);
+  }, [visible, currentWeekOffset, getMealsForWeek]);
 
   return (
     <Modal
