@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { UtensilsCrossed, User } from 'lucide-react-native';
 import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { Shadows } from '@/constants/theme';
+import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 
 interface AppHeaderProps {
   title: string;
@@ -12,6 +13,9 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({ title, rightElement }: AppHeaderProps) {
+  const { familySettings } = useFamilySettings();
+  const avatarUrl = familySettings.family_avatar_url;
+
   return (
     <View style={styles.container}>
       <View style={styles.left}>
@@ -30,7 +34,11 @@ export default function AppHeader({ title, rightElement }: AppHeaderProps) {
           onPress={() => router.push('/family-settings' as Href)}
           testID="profile-button"
         >
-          <User size={20} color={Colors.text} strokeWidth={2} />
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.profileImage} />
+          ) : (
+            <User size={20} color={Colors.text} strokeWidth={2} />
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -83,5 +91,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
 });
