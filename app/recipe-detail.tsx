@@ -54,7 +54,7 @@ function getFamilyInitials(familyName: string): string {
     .trim()
     .split(/\s+/)
     .filter((w) => w.length > 0 && !stopWords.has(w.toLowerCase()));
-  if (words.length === 0) return '';
+  if (words.length === 0) return 'F'; // "F" for Family when no name is set yet
   if (words.length === 1) return words[0][0].toUpperCase();
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }

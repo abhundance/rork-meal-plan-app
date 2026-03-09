@@ -170,8 +170,13 @@ export default function MealImagePlaceholder({
   const glowSize = isThumbnail ? 30 : isCard ? 56 : 100;
   const emojiFontSize = isThumbnail ? 26 : isCard ? 42 : 70;
 
+  // Detect whether familyAvatarUrl is a real photo URI (not an emoji string)
+  const isRealPhotoUrl =
+    !!familyAvatarUrl &&
+    (familyAvatarUrl.startsWith('http') || familyAvatarUrl.startsWith('file://'));
+
   // Hero size: show family avatar photo or initials instead of emoji
-  if (isHero && (familyAvatarUrl || familyInitials)) {
+  if (isHero && (isRealPhotoUrl || familyInitials)) {
     return (
       <LinearGradient
         colors={FAMILY_GRADIENT}
@@ -179,10 +184,10 @@ export default function MealImagePlaceholder({
         end={{ x: 1, y: 1 }}
         style={containerStyle}
       >
-        {familyAvatarUrl ? (
+        {isRealPhotoUrl ? (
           <View style={styles.avatarRing}>
             <Image
-              source={{ uri: familyAvatarUrl }}
+              source={{ uri: familyAvatarUrl! }}
               style={styles.avatarImage}
               contentFit="cover"
             />

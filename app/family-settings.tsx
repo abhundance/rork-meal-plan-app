@@ -3,6 +3,8 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Switch, Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import {
@@ -20,6 +22,11 @@ import MealSlotEditor from '@/components/MealSlotEditor';
 import Stepper from '@/components/Stepper';
 import DietaryPillGrid from '@/components/DietaryPillGrid';
 import { MealSlot } from '@/types';
+
+/** Returns true if the string is a single emoji rather than a real URI */
+function isEmojiAvatar(value: string): boolean {
+  return value.length <= 4 && /^\p{Emoji}/u.test(value);
+}
 
 function SectionHeader({ title, icon, locked, adminName }: {
   title: string;
@@ -229,7 +236,7 @@ export default function FamilySettingsScreen() {
   const [showAdminSettings, setShowAdminSettings] = useState<boolean>(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState<boolean>(false);
   const [showRegionPicker, setShowRegionPicker] = useState<boolean>(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
+  // Emoji picker removed — replaced by real photo picker
 
   const [deleteConfirmText, setDeleteConfirmText] = useState<string>('');
   const [editingFamilyName, setEditingFamilyName] = useState<boolean>(false);
@@ -276,6 +283,56 @@ export default function FamilySettingsScreen() {
     Alert.alert('Family Deleted', `The ${name} plan has been deleted.`);
   }, [deleteConfirmText, familySettings.family_name]);
 
+  /** Opens camera or photo library to set a real family profile photo */
+  const pickFamilyAvatar = useCallback(() => {
+    Alert.alert('Family Photo', 'Choose how to set your family photo', [
+      {
+        text: 'Take Photo',
+        onPress: async () => {
+          const perm = await ImagePicker.requestCameraPermissionsAsync();
+          if (!perm.granted) {
+            Alert.alert('Permission needed', 'Camera access is required to take a photo.');
+            return;
+          }
+          const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1] as [number, number],
+            quality: 0.8,
+          });
+          if (!result.canceled && result.assets[0]?.uri) {
+            updateFamilySettings({ family_avatar_url: result.assets[0].uri });
+          }
+        },
+      },
+      {
+        text: 'Choose from Library',
+        onPress: async () => {
+          const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (!perm.granted) {
+            Alert.alert('Permission needed', 'Photo library access is required.');
+            return;
+          }
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1] as [number, number],
+            quality: 0.8,
+          });
+          if (!result.canceled && result.assets[0]?.uri) {
+            updateFamilySettings({ family_avatar_url: result.assets[0].uri });
+          }
+        },
+      },
+      {
+        text: 'Remove Photo',
+        style: 'destructive',
+        onPress: () => updateFamilySettings({ family_avatar_url: '' }),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, [updateFamilySettings]);
+
   const slotNames = familySettings.meal_slots
     .sort((a, b) => a.order - b.order)
     .map(s => s.name)
@@ -305,9 +362,18 @@ export default function FamilySettingsScreen() {
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              {familySettings.family_avatar_url && /^\p{Emoji}/u.test(familySettings.family_avatar_url) && Array.from(familySettings.family_avatar_url).length <= 2 ? (
+              {familySettings.family_avatar_url && !isEmojiAvatar(familySettings.family_avatar_url) ? (
+                // Real photo URI
+                <Image
+                  source={{ uri: familySettings.family_avatar_url }}
+                  style={styles.avatarPhoto}
+                  contentFit="cover"
+                />
+              ) : familySettings.family_avatar_url && isEmojiAvatar(familySettings.family_avatar_url) ? (
+                // Legacy emoji avatar
                 <Text style={styles.avatarEmoji}>{familySettings.family_avatar_url}</Text>
               ) : (
+                // Fallback: first letter of family or user name
                 <Text style={styles.avatarText}>
                   {(familySettings.family_name || userSettings.display_name).charAt(0).toUpperCase()}
                 </Text>
@@ -315,7 +381,7 @@ export default function FamilySettingsScreen() {
             </View>
             <TouchableOpacity
               style={styles.avatarCameraButton}
-              onPress={() => setShowEmojiPicker(true)}
+              onPress={pickFamilyAvatar}
               activeOpacity={0.8}
             >
               <Camera size={14} color={Colors.white} />
@@ -351,37 +417,7 @@ export default function FamilySettingsScreen() {
           </Text>
         </View>
 
-        {showEmojiPicker && (
-          <Card style={{ marginTop: 4, marginBottom: 12 }}>
-            <Text style={styles.emojiPickerTitle}>Choose an emoji for your family</Text>
-            <View style={styles.emojiGrid}>
-              {['🍝','🍕','🥗','🌮','🍣','🥘','🍜','🫕','🥐','🍛','🍱','🎉'].map((emoji) => (
-                <TouchableOpacity
-                  key={emoji}
-                  style={[
-                    styles.emojiOption,
-                    familySettings.family_avatar_url === emoji && styles.emojiOptionSelected,
-                  ]}
-                  onPress={() => {
-                    updateFamilySettings({ family_avatar_url: emoji });
-                    setShowEmojiPicker(false);
-                  }}
-                >
-                  <Text style={styles.emojiText}>{emoji}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity
-              onPress={() => {
-                updateFamilySettings({ family_avatar_url: '' });
-                setShowEmojiPicker(false);
-              }}
-              style={styles.emojiRemoveLink}
-            >
-              <Text style={styles.emojiRemoveText}>Remove</Text>
-            </TouchableOpacity>
-          </Card>
-        )}
+        {/* Emoji picker removed — tap the camera icon to pick a real photo */}
 
         {/* Family Members */}
         <View style={styles.membersList}>
@@ -856,6 +892,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden' as const,
+  },
+  avatarPhoto: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
   },
   avatarContainer: {
     position: 'relative' as const,
