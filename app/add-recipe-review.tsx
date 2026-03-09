@@ -439,7 +439,7 @@ export default function AddMealReviewScreen() {
             {selectedImageUri ? (
               <Image source={{ uri: selectedImageUri }} style={styles.heroImage} resizeMode="cover" />
             ) : (
-              <MealImagePlaceholder size="hero" mealType={mealType || undefined} cuisine={cuisine || undefined} name={name} />
+              <MealImagePlaceholder size="hero" mealType={mealType || undefined} cuisine={cuisine || undefined} name={name} familyInitials={name || ' '} />
             )}
             <View style={styles.heroEditBadge}>
               <Camera size={16} color={Colors.white} strokeWidth={2} />

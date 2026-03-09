@@ -325,8 +325,7 @@ export default function MealDetailScreen() {
               cuisine={meal.cuisine}
               name={meal.name}
               deliveryPlatform={meal.delivery_platform}
-              familyAvatarUrl={!meal.delivery_platform && meal.source === 'family_created' ? familySettings.family_avatar_url : undefined}
-              familyInitials={!meal.delivery_platform && meal.source === 'family_created' ? getFamilyInitials(familySettings.family_name) : undefined}
+              familyInitials={!meal.delivery_platform && meal.source === 'family_created' ? meal.name : undefined}
             />
           )}
           <TouchableOpacity
