@@ -18,7 +18,7 @@ import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { useFavs } from '@/providers/FavsProvider';
 import { DISCOVER_MEALS } from '@/mocks/discover';
-import { Recipe, PlannedMeal } from '@/types';
+import { Recipe, PlannedMeal, PersonalGoal } from '@/types';
 import { getWeekDates, formatDateKey, getDayName, isToday } from '@/utils/dates';
 import { setPendingPlanSlot } from '@/services/pendingPlanSlot';
 import { CalendarDays } from 'lucide-react-native';
@@ -75,13 +75,72 @@ type PoolEntry = {
   is_vegetarian?: boolean;
   is_gluten_free?: boolean;
   is_dairy_free?: boolean;
+  diet_labels?: string[];
+  protein_per_serving_g?: number;
+  health_score?: number;
 };
 
 type ScoringContext = {
   proteinsUsedToday: Set<string>;
   cuisinesUsedToday: Set<string>;
   proteinCountsThisWeek: Map<string, number>;
+  personalGoal?: PersonalGoal;
 };
+
+/**
+ * Goal-aware bonus for Smart Fill (max +20 pts).
+ * Mirrors goalAndHealthScore() from the recommendation engine as an additive bonus.
+ * Always returns 0 when goal is 'balanced' — zero regression for existing users.
+ */
+function goalBonus(entry: PoolEntry, goal: PersonalGoal | undefined): number {
+  if (!goal || goal === 'balanced') return 0;
+  const labels    = entry.diet_labels ?? [];
+  const protein_g = entry.protein_per_serving_g ?? 0;
+  const health    = (entry.health_score ?? 0) / 100;
+  switch (goal) {
+    case 'weight_loss':
+      return labels.includes('low-calorie') || labels.includes('high-fibre') ? 20
+           : health >= 0.75 ? 12 : 0;
+    case 'muscle_gain':
+      return labels.includes('high-protein') || protein_g >= 35 ? 20
+           : protein_g >= 25 ? 12
+           : protein_g >= 15 ? 5 : 0;
+    case 'recomposition':
+      return (labels.includes('high-protein') && health >= 0.65) ? 20
+           : labels.includes('high-protein') ? 10 : 0;
+    case 'keto':
+      return labels.includes('keto') ? 20
+           : (entry.protein_per_serving_g ?? 99) <= 10 ? 12 : 0;
+    case 'paleo':
+      return labels.includes('paleo') ? 20
+           : labels.includes('whole30') ? 12 : 0;
+    case 'whole30':
+      return labels.includes('whole30') ? 20 : 0;
+    case 'carnivore':
+      return ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'seafood'].includes(entry.protein_source ?? '')
+        ? 20 : 0;
+    case 'pregnancy':
+    case 'postpartum':
+      return health >= 0.80 ? 20 : health >= 0.65 ? 10 : 0;
+    case 'pcos':
+    case 'diabetes_management':
+      return labels.includes('low-carb') || labels.includes('high-fibre') ? 20
+           : health >= 0.65 ? 8 : 0;
+    case 'heart_health':
+      return labels.includes('omega-3') || labels.includes('mediterranean') ? 20
+           : health >= 0.75 ? 12 : 0;
+    case 'gut_health':
+      return labels.includes('high-fibre') || labels.includes('plant-based') ? 20
+           : health >= 0.70 ? 8 : 0;
+    case 'longevity':
+    case 'anti_inflammatory':
+      return labels.includes('antioxidant-rich') || labels.includes('omega-3') ? 20
+           : labels.includes('mediterranean') ? 15
+           : health >= 0.75 ? 8 : 0;
+    default:
+      return 0;
+  }
+}
 
 /**
  * Score a pool entry given the current pick context.
@@ -94,6 +153,7 @@ type ScoringContext = {
  *   Protein today:   same protein already used today → −40
  *   Protein week:    same protein used 3+ times this week → −20
  *   Cuisine today:   same cuisine already used today → −20
+ *   Personal goal:   up to +20 for goal-matching meals (zero for 'balanced')
  */
 function scoreCandidate(entry: PoolEntry, ctx: ScoringContext): number {
   let score = entry.rating === 'loved' ? 60
@@ -119,6 +179,9 @@ function scoreCandidate(entry: PoolEntry, ctx: ScoringContext): number {
   if (entry.cuisines?.length) {
     if (entry.cuisines.some((c) => ctx.cuisinesUsedToday.has(c.toLowerCase()))) score -= 20;
   }
+
+  // Personal goal bonus (max +20 pts) — zero for 'balanced'
+  score += goalBonus(entry, ctx.personalGoal);
 
   return score;
 }
@@ -315,6 +378,9 @@ export default function MealPlanScreen() {
       is_vegetarian: f.is_vegetarian,
       is_gluten_free: f.is_gluten_free,
       is_dairy_free: f.is_dairy_free,
+      diet_labels: f.diet_labels,
+      protein_per_serving_g: f.protein_per_serving_g,
+      health_score: f.health_score,
     }));
 
     // newPool = discover meals not already in Favs
@@ -334,6 +400,9 @@ export default function MealPlanScreen() {
         is_vegetarian: d.is_vegetarian,
         is_gluten_free: d.is_gluten_free,
         is_dairy_free: d.is_dairy_free,
+        diet_labels: d.diet_labels,
+        protein_per_serving_g: d.protein_per_serving_g,
+        health_score: d.health_score,
       }));
 
     const fullPool = [...familiarPool, ...newPool];
@@ -436,7 +505,7 @@ export default function MealPlanScreen() {
         if (candidates.length === 0) continue;
 
         // ── Score + weighted pick ──────────────────────────────────────────
-        const ctx: ScoringContext = { proteinsUsedToday, cuisinesUsedToday, proteinCountsThisWeek };
+        const ctx: ScoringContext = { proteinsUsedToday, cuisinesUsedToday, proteinCountsThisWeek, personalGoal: userSettings.personal_goal };
         const scores = candidates.map((m) => scoreCandidate(m, ctx));
         const picked = weightedPick(candidates, scores);
 
@@ -480,7 +549,7 @@ export default function MealPlanScreen() {
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for this week already have meals. Clear some first to use Smart Fill.');
     }
-  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, addMeals, getMealsForSlot, showSmartPlanToast]);
+  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, userSettings.personal_goal, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   const handleClearWeek = useCallback(() => {
     Alert.alert('Clear this week?', 'All meals for this week will be removed.', [
@@ -536,6 +605,9 @@ export default function MealPlanScreen() {
       is_vegetarian: f.is_vegetarian,
       is_gluten_free: f.is_gluten_free,
       is_dairy_free: f.is_dairy_free,
+      diet_labels: f.diet_labels,
+      protein_per_serving_g: f.protein_per_serving_g,
+      health_score: f.health_score,
     }));
 
     const newPool: PoolEntry[] = DISCOVER_MEALS
@@ -554,6 +626,9 @@ export default function MealPlanScreen() {
         is_vegetarian: d.is_vegetarian,
         is_gluten_free: d.is_gluten_free,
         is_dairy_free: d.is_dairy_free,
+        diet_labels: d.diet_labels,
+        protein_per_serving_g: d.protein_per_serving_g,
+        health_score: d.health_score,
       }));
 
     const fullPool = [...familiarPool, ...newPool];
@@ -639,7 +714,7 @@ export default function MealPlanScreen() {
       if (candidates.length === 0) continue;
 
       // ── Score + weighted pick ────────────────────────────────────────────
-      const ctx: ScoringContext = { proteinsUsedToday, cuisinesUsedToday, proteinCountsThisWeek };
+      const ctx: ScoringContext = { proteinsUsedToday, cuisinesUsedToday, proteinCountsThisWeek, personalGoal: userSettings.personal_goal };
       const scores = candidates.map((m) => scoreCandidate(m, ctx));
       const picked = weightedPick(candidates, scores);
 
@@ -681,7 +756,7 @@ export default function MealPlanScreen() {
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for today already have meals. Clear some first to use Smart Fill.');
     }
-  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, addMeals, getMealsForSlot, showSmartPlanToast]);
+  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, userSettings.personal_goal, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   if (isLoading) {
     return (

@@ -20,22 +20,22 @@ export default function PersonalDietaryScreen() {
 
   const handleContinue = () => {
     setPersonalDietary(selected);
-    setStep(7);
+    setStep(8);
     router.push('/onboarding/welcome' as Href);
   };
 
   const handleSkip = () => {
     setPersonalDietary([]);
-    setStep(7);
+    setStep(8);
     router.push('/onboarding/welcome' as Href);
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ProgressBar current={6} total={6} />
+      <ProgressBar current={7} total={7} />
 
       <View style={styles.content}>
-        <Text style={styles.stepLabel}>Step 6 of 6</Text>
+        <Text style={styles.stepLabel}>Step 7 of 7</Text>
         <Text style={styles.heading}>Do you personally have any additional preferences?</Text>
 
         <DietaryPillGrid selected={selected} onSelectionChange={setSelected} />

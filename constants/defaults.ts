@@ -23,6 +23,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   display_name: 'You',
   dietary_preferences_individual: [],
   is_admin: true,
+  personal_goal: 'balanced',
 };
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
@@ -44,4 +45,5 @@ export const DEFAULT_ONBOARDING: OnboardingData = {
   dietary_preferences_family: [],
   dietary_preferences_individual: [],
   is_admin: true,
+  personal_goal: 'balanced',
 };

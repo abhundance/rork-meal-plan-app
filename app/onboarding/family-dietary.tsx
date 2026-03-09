@@ -17,21 +17,21 @@ export default function FamilyDietaryScreen() {
   const handleContinue = () => {
     setFamilyDietary(selected);
     setStep(5);
-    router.push('/onboarding/invite-members' as Href);
+    router.push('/onboarding/personal-goal' as Href);
   };
 
   const handleSkip = () => {
     setFamilyDietary([]);
     setStep(5);
-    router.push('/onboarding/invite-members' as Href);
+    router.push('/onboarding/personal-goal' as Href);
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ProgressBar current={4} total={6} />
+      <ProgressBar current={4} total={7} />
 
       <View style={styles.content}>
-        <Text style={styles.stepLabel}>Step 4 of 6</Text>
+        <Text style={styles.stepLabel}>Step 4 of 7</Text>
         <Text style={styles.heading}>Does your family follow any dietary preferences?</Text>
 
         <DietaryPillGrid selected={selected} onSelectionChange={setSelected} />

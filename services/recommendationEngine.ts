@@ -3,7 +3,7 @@
  * Safe to run client-side or copy verbatim into a Supabase Edge Function.
  */
 
-import { DiscoverMeal, Recipe, PlannedMeal } from '@/types';
+import { DiscoverMeal, Recipe, PlannedMeal, PersonalGoal } from '@/types';
 
 // ─── Supporting types ─────────────────────────────────────────────────────────
 
@@ -49,6 +49,7 @@ export interface UserProfile {
   healthTrend:        'light' | 'neutral' | 'indulgent';
   totalMealsPlanned:  number;
   seasonalTag:        string | null;            // e.g. 'christmas', 'summer'
+  personalGoal:       PersonalGoal;             // always set — defaults to 'balanced'
 }
 
 export interface DiscoverCarousel {
@@ -68,6 +69,7 @@ export function buildUserProfile(
   discoverPrefs:        DiscoverPreference[],
   viewHistory:          ViewHistoryEntry[],
   recentSearches:       string[],
+  personalGoal:         PersonalGoal = 'balanced',  // 7th param — optional, safe default
 ): UserProfile {
   const now       = new Date();
   const todayStr  = now.toISOString().split('T')[0];
@@ -223,6 +225,7 @@ export function buildUserProfile(
     healthTrend,
     totalMealsPlanned: plannedMeals.length,
     seasonalTag,
+    personalGoal,
   };
 }
 
@@ -236,7 +239,7 @@ export function scoreMeal(meal: DiscoverMeal, profile: UserProfile): number {
   const cuisine  = cuisineScore(meal, profile);
   const protein  = proteinScore(meal, profile);
   const taste    = tasteScore(meal, profile);
-  const health   = healthScoreFn(meal, profile);
+  const health   = goalAndHealthScore(meal, profile);
   const novelty  = noveltyScore(meal, profile);
   const context  = contextScore(meal, profile);
 
@@ -300,11 +303,108 @@ function tasteScore(meal: DiscoverMeal, profile: UserProfile): number {
   return (dot / (magA * magB)); // 0–1
 }
 
-function healthScoreFn(meal: DiscoverMeal, profile: UserProfile): number {
-  const normalised = meal.health_score / 100;
-  if (profile.healthTrend === 'indulgent') return normalised;         // boost healthy options
-  if (profile.healthTrend === 'light')     return 0.5;                // already eating well, neutral
-  return normalised * 0.5;                                            // weak signal when neutral
+function goalAndHealthScore(meal: DiscoverMeal, profile: UserProfile): number {
+  const health = meal.health_score / 100; // 0–1
+  const goal   = profile.personalGoal;
+
+  // 'balanced' (or any unrecognised value): preserve exact original behaviour — zero regression
+  if (!goal || goal === 'balanced') {
+    if (profile.healthTrend === 'indulgent') return health;
+    if (profile.healthTrend === 'light')     return 0.5;
+    return health * 0.5;
+  }
+
+  // Goal-specific scoring — return 0–1
+  const labels    = meal.diet_labels ?? [];
+  const protein_g = meal.protein_per_serving_g ?? 0;
+  const carbs_g   = meal.carbs_per_serving_g ?? 0;
+  const cal       = meal.calories_per_serving ?? 0;
+
+  switch (goal) {
+    case 'weight_loss':
+      if (labels.includes('low-calorie'))  return 0.95;
+      if (labels.includes('high-fibre'))   return 0.85;
+      if (health >= 0.75)                  return 0.80;
+      if (cal > 0 && cal < 450)            return 0.70;
+      return 0.3;
+
+    case 'muscle_gain':
+      if (labels.includes('high-protein')) return 0.95;
+      if (protein_g >= 35)                 return 0.90;
+      if (protein_g >= 25)                 return 0.75;
+      if (protein_g >= 15)                 return 0.55;
+      return 0.2;
+
+    case 'recomposition':
+      if (labels.includes('high-protein') &&
+          (labels.includes('low-calorie') || labels.includes('low-fat'))) return 0.95;
+      if (protein_g >= 25 && cal > 0 && cal < 500) return 0.80;
+      if (labels.includes('high-protein'))          return 0.70;
+      return 0.3;
+
+    case 'keto':
+      if (labels.includes('keto'))       return 0.95;
+      if (carbs_g > 0 && carbs_g <= 10)  return 0.80;
+      if (carbs_g > 0 && carbs_g <= 25)  return 0.55;
+      return 0.15;
+
+    case 'paleo':
+      if (labels.includes('paleo'))   return 0.95;
+      if (labels.includes('whole30')) return 0.80;
+      if (health >= 0.70)             return 0.60;
+      return 0.35;
+
+    case 'whole30':
+      if (labels.includes('whole30')) return 0.95;
+      if (labels.includes('paleo'))   return 0.70;
+      return 0.3;
+
+    case 'carnivore':
+      if (['chicken', 'beef', 'pork', 'lamb', 'turkey', 'seafood'].includes(meal.protein_source)) {
+        return protein_g >= 30 ? 0.95 : 0.75;
+      }
+      if (meal.protein_source === 'egg') return 0.60;
+      return 0.1;
+
+    case 'pregnancy':
+    case 'postpartum':
+      if (health >= 0.80)                        return 0.90;
+      if (protein_g >= 20 && health >= 0.65)     return 0.75;
+      if (health >= 0.65)                        return 0.60;
+      return 0.4;
+
+    case 'pcos':
+    case 'diabetes_management':
+      if (labels.includes('low-carb'))   return 0.90;
+      if (labels.includes('high-fibre')) return 0.85;
+      if (carbs_g > 0 && carbs_g <= 30) return 0.70;
+      return 0.35;
+
+    case 'heart_health':
+      if (labels.includes('omega-3'))       return 0.95;
+      if (labels.includes('mediterranean')) return 0.90;
+      if (labels.includes('low-fat'))       return 0.80;
+      if (health >= 0.75)                   return 0.70;
+      return 0.35;
+
+    case 'gut_health':
+      if (labels.includes('high-fibre'))  return 0.90;
+      if (labels.includes('plant-based')) return 0.80;
+      if (health >= 0.70)                 return 0.65;
+      return 0.35;
+
+    case 'longevity':
+    case 'anti_inflammatory':
+      if (labels.includes('antioxidant-rich')) return 0.95;
+      if (labels.includes('mediterranean'))    return 0.90;
+      if (labels.includes('omega-3'))          return 0.85;
+      if (labels.includes('plant-based'))      return 0.75;
+      if (health >= 0.75)                      return 0.65;
+      return 0.30;
+
+    default:
+      return health * 0.5;
+  }
 }
 
 function noveltyScore(meal: DiscoverMeal, profile: UserProfile): number {
@@ -426,11 +526,12 @@ export function buildCarousels(
         )
       : null,
 
-    // C5 — Your kind of healthy
-    (profile.healthTrend === 'indulgent' ||
-     profile.dietaryConstraints.some(c =>
-       ['keto', 'low-carb', 'low_carb', 'high-protein', 'high_protein'].includes(c.toLowerCase())
-     ))
+    // C5 — Goal-specific carousel (personalGoal != 'balanced') OR fallback 'Your kind of healthy'
+    getGoalCarousel(available, profile) ??
+    ((profile.healthTrend === 'indulgent' ||
+      profile.dietaryConstraints.some(c =>
+        ['keto', 'low-carb', 'low_carb', 'high-protein', 'high_protein'].includes(c.toLowerCase())
+      ))
       ? buildCarousel('c5_your_healthy', 'Your kind of healthy', '🥗',
           'Lighter options that still taste great', false,
           sortBy(
@@ -438,7 +539,7 @@ export function buildCarousels(
             m => tasteScore(m, profile) * (m.health_score / 100)
           ),
         )
-      : null,
+      : null),
 
     // C10 — Protein switch (when one protein dominates)
     profile.dominantProtein
@@ -512,6 +613,101 @@ function buildLovedCarousel(
       })
       .slice(0, MAX_CAROUSEL_MEALS),
   };
+}
+
+function getGoalCarousel(
+  available: DiscoverMeal[],
+  profile:   UserProfile,
+): DiscoverCarousel | null {
+  const goal = profile.personalGoal;
+
+  type GoalConfig = {
+    title:    string;
+    subtitle: string;
+    emoji:    string;
+    filter:   (m: DiscoverMeal) => boolean;
+  };
+
+  const configs: Partial<Record<PersonalGoal, GoalConfig>> = {
+    weight_loss: {
+      title: 'Light & Satisfying', subtitle: 'Fewer calories, full flavour', emoji: '🥗',
+      filter: m => m.health_score >= 70 || (m.diet_labels ?? []).includes('low-calorie'),
+    },
+    muscle_gain: {
+      title: 'Power Meals', subtitle: 'High protein, serious fuel', emoji: '💪',
+      filter: m => (m.protein_per_serving_g ?? 0) >= 20 || (m.diet_labels ?? []).includes('high-protein'),
+    },
+    recomposition: {
+      title: 'Lean & Strong', subtitle: 'High protein, calorie-smart', emoji: '🎯',
+      filter: m => (m.protein_per_serving_g ?? 0) >= 20 && m.health_score >= 65,
+    },
+    keto: {
+      title: 'Keto Kitchen', subtitle: 'Low-carb, high-fat picks', emoji: '🥩',
+      filter: m => (m.diet_labels ?? []).includes('keto') || (m.carbs_per_serving_g ?? 99) <= 25,
+    },
+    paleo: {
+      title: 'Paleo Picks', subtitle: 'Whole foods, nothing processed', emoji: '🦕',
+      filter: m => (m.diet_labels ?? []).includes('paleo'),
+    },
+    whole30: {
+      title: 'Whole30 Ready', subtitle: 'Clean eating, done right', emoji: '🌿',
+      filter: m => (m.diet_labels ?? []).includes('whole30'),
+    },
+    carnivore: {
+      title: 'Meat-Forward', subtitle: 'Protein-packed, animal-based', emoji: '🔪',
+      filter: m => ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'seafood'].includes(m.protein_source),
+    },
+    pregnancy: {
+      title: 'Nourishing Picks', subtitle: 'Nutrient-dense meals for two', emoji: '🤰',
+      filter: m => m.health_score >= 70,
+    },
+    postpartum: {
+      title: 'Recovery & Energy', subtitle: 'Nourishing meals to rebuild strength', emoji: '🤱',
+      filter: m => m.health_score >= 65 && (m.protein_per_serving_g ?? 0) >= 15,
+    },
+    pcos: {
+      title: 'Hormone-Friendly', subtitle: 'Low GI, anti-inflammatory picks', emoji: '🩺',
+      filter: m => (m.diet_labels ?? []).includes('high-fibre') || (m.diet_labels ?? []).includes('low-carb'),
+    },
+    diabetes_management: {
+      title: 'Blood Sugar Balance', subtitle: 'Low GI, fibre-forward meals', emoji: '🩸',
+      filter: m => (m.carbs_per_serving_g ?? 99) <= 40 && m.health_score >= 65,
+    },
+    heart_health: {
+      title: 'Heart-Healthy', subtitle: 'Mediterranean & omega-3 rich', emoji: '❤️',
+      filter: m =>
+        (m.diet_labels ?? []).includes('mediterranean') ||
+        (m.diet_labels ?? []).includes('omega-3') ||
+        m.health_score >= 75,
+    },
+    gut_health: {
+      title: 'Gut-Friendly', subtitle: 'Fibre-rich, diverse plant foods', emoji: '🌱',
+      filter: m =>
+        (m.diet_labels ?? []).includes('high-fibre') ||
+        (m.diet_labels ?? []).includes('plant-based'),
+    },
+    longevity: {
+      title: 'Eat to Thrive', subtitle: 'Polyphenol-rich, Mediterranean picks', emoji: '🧬',
+      filter: m =>
+        (m.diet_labels ?? []).includes('mediterranean') ||
+        (m.diet_labels ?? []).includes('antioxidant-rich') ||
+        m.health_score >= 75,
+    },
+    anti_inflammatory: {
+      title: 'Anti-Inflammatory', subtitle: 'Omega-3s & antioxidants', emoji: '🔥',
+      filter: m =>
+        (m.diet_labels ?? []).includes('omega-3') ||
+        (m.diet_labels ?? []).includes('antioxidant-rich') ||
+        m.health_score >= 72,
+    },
+  };
+
+  // 'balanced' has no dedicated carousel — falls through to original C5 logic
+  const config = configs[goal];
+  if (!config) return null;
+
+  const meals = sortBy(available.filter(config.filter), m => goalAndHealthScore(m, profile));
+  return buildCarousel('c5_your_healthy', config.title, config.emoji, config.subtitle, false, meals);
 }
 
 function buildFillWeekCarousels(

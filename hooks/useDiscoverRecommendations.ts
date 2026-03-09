@@ -29,7 +29,7 @@ export interface UseDiscoverRecommendationsResult {
 export function useDiscoverRecommendations(): UseDiscoverRecommendationsResult {
   const { meals: plannedMeals }              = useMealPlan();
   const { meals: favMeals, recentSearches }  = useFavs();
-  const { familySettings }                   = useFamilySettings();
+  const { familySettings, userSettings }     = useFamilySettings();
   const {
     discoverPrefs,
     viewHistory,
@@ -47,6 +47,7 @@ export function useDiscoverRecommendations(): UseDiscoverRecommendationsResult {
       discoverPrefs,
       viewHistory,
       recentSearches ?? [],
+      userSettings.personal_goal ?? 'balanced',
     );
     return buildCarousels(DISCOVER_MEALS, profile);
   }, [
@@ -56,6 +57,7 @@ export function useDiscoverRecommendations(): UseDiscoverRecommendationsResult {
     discoverPrefs,
     viewHistory,
     recentSearches,
+    userSettings.personal_goal,
   ]);
 
   const isLoading = false; // Phase 2: derive from Supabase query loading state

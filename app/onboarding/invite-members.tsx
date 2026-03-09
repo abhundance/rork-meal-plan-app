@@ -36,21 +36,21 @@ export default function InviteMembersScreen() {
   }, [inviteLink]);
 
   const handleContinue = () => {
-    setStep(6);
+    setStep(7);
     router.push('/onboarding/personal-dietary' as Href);
   };
 
   const handleSkip = () => {
-    setStep(6);
+    setStep(7);
     router.push('/onboarding/personal-dietary' as Href);
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ProgressBar current={5} total={6} />
+      <ProgressBar current={6} total={7} />
 
       <View style={styles.content}>
-        <Text style={styles.stepLabel}>Step 5 of 6</Text>
+        <Text style={styles.stepLabel}>Step 6 of 7</Text>
         <Text style={styles.heading}>Invite your family to join</Text>
 
         <View style={styles.linkBox}>

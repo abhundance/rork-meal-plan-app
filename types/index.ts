@@ -1,3 +1,22 @@
+// ─── Personal health goal (per-user, not per-household) ──────────────────────
+export type PersonalGoal =
+  | 'balanced'            // default — no specific goal
+  | 'weight_loss'         // lower cal, higher fibre & protein
+  | 'muscle_gain'         // high protein, adequate calories
+  | 'recomposition'       // high protein + calorie-controlled
+  | 'keto'                // very low carb, high fat
+  | 'paleo'               // whole foods, no processed
+  | 'whole30'             // elimination protocol
+  | 'carnivore'           // meat-centric
+  | 'pregnancy'           // prenatal nutrition support
+  | 'postpartum'          // postnatal recovery & energy
+  | 'pcos'                // low GI, anti-inflammatory
+  | 'diabetes_management' // blood sugar control, low GI
+  | 'heart_health'        // Mediterranean, low sat-fat, omega-3
+  | 'gut_health'          // high-fibre, plant diversity
+  | 'longevity'           // Mediterranean, antioxidant-rich
+  | 'anti_inflammatory';  // omega-3, polyphenol focus
+
 export interface MealSlot {
   slot_id: string;
   name: string;
@@ -32,6 +51,7 @@ export interface UserSettings {
   avatar_url?: string;
   dietary_preferences_individual: string[];
   is_admin: boolean;
+  personal_goal?: PersonalGoal;   // primary cook's personal health goal
 }
 
 export interface FamilyMember {
@@ -40,6 +60,7 @@ export interface FamilyMember {
   avatar_url?: string;
   is_admin: boolean;
   dietary_preferences: string[];
+  personal_goal?: PersonalGoal;   // each member sets their own goal
 }
 
 export interface NotificationSettings {
@@ -61,6 +82,7 @@ export interface OnboardingData {
   dietary_preferences_family: string[];
   dietary_preferences_individual: string[];
   is_admin: boolean;
+  personal_goal?: PersonalGoal;   // collected during onboarding, written to UserSettings on complete
 }
 
 export interface Ingredient {

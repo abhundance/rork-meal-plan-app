@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
-import { OnboardingData, MealSlot } from '@/types';
+import { OnboardingData, MealSlot, PersonalGoal } from '@/types';
 import { DEFAULT_ONBOARDING } from '@/constants/defaults';
 
 const ONBOARDING_KEY = 'onboarding_data';
@@ -94,6 +94,10 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     updateOnboarding({ dietary_preferences_individual: prefs });
   }, [updateOnboarding]);
 
+  const setPersonalGoal = useCallback((goal: PersonalGoal) => {
+    updateOnboarding({ personal_goal: goal });
+  }, [updateOnboarding]);
+
   const completeOnboarding = useCallback(() => {
     updateOnboarding({ completed: true });
   }, [updateOnboarding]);
@@ -114,6 +118,7 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     setMealSlots,
     setFamilyDietary,
     setPersonalDietary,
+    setPersonalGoal,
     completeOnboarding,
     resetOnboarding,
   };
