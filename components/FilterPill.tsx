@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   pillActive: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.primary,
   },
   label: {
     fontFamily: FontFamily.semiBold,
@@ -53,6 +53,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   labelActive: {
-    color: Colors.primary,
+    color: Colors.white,
   },
 });
