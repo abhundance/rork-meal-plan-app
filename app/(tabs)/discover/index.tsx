@@ -235,8 +235,9 @@ export default function DiscoverScreen() {
     addMeal(planned);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setPendingSlot(null);
-    router.push('/(tabs)');
-  }, [addMeal]);
+    showToast(`${meal.name} added to ${slot.slotName}`);
+    setTimeout(() => router.replace('/(tabs)/(home)' as never), 800);
+  }, [addMeal, showToast]);
 
   const handleMealPress = useCallback((meal: DiscoverMeal) => {
     if (pendingSlot) {

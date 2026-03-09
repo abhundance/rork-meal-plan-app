@@ -44,7 +44,7 @@ import { peekPendingPlanSlot, consumePendingPlanSlot } from '@/services/pendingP
 
 export default function MealPickerScreen() {
   const insets = useSafeAreaInsets();
-  const { meals: favMeals } = useFavs();
+  const { meals: favMeals, incrementPlanCount } = useFavs();
   const { addMeal } = useMealPlan();
 
   const slot = peekPendingPlanSlot();
@@ -91,10 +91,11 @@ export default function MealPickerScreen() {
         meal_id: meal.id,
       };
       addMeal(planned);
+      incrementPlanCount(meal.id);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     },
-    [addMeal]
+    [addMeal, incrementPlanCount]
   );
 
   const handleClose = useCallback(() => {

@@ -214,8 +214,11 @@ export default function FavsScreen() {
   }, [allFilteredMeals]);
 
   const gridData = useMemo(() => {
+    // In slot mode the add tile is hidden — tapping it would navigate to /add-to-favs,
+    // which fires the Favs blur cleanup and destroys the pending slot context.
+    if (pendingSlot) return filteredMeals;
     return [{ id: '__add_tile__', _isAddTile: true } as any, ...filteredMeals];
-  }, [filteredMeals]);
+  }, [filteredMeals, pendingSlot]);
 
   const sortedSlots = useMemo(
     () => [...familySettings.meal_slots].sort((a, b) => a.order - b.order),
@@ -353,8 +356,10 @@ export default function FavsScreen() {
     incrementPlanCount(meal.id);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setPendingSlot(null);
-    router.push('/(tabs)');
-  }, [addMeal, incrementPlanCount]);
+    // Show a brief toast then navigate — gives the user confirmation before the screen changes.
+    showToast(`${meal.name} added to ${slot.slotName}`);
+    setTimeout(() => router.replace('/(tabs)/(home)' as never), 800);
+  }, [addMeal, incrementPlanCount, showToast]);
 
   const handleMealPress = useCallback((meal: Recipe) => {
     if (pendingSlot) {
@@ -457,30 +462,55 @@ export default function FavsScreen() {
       <FavGridCard
         meal={item}
         onPress={() => handleMealPress(item)}
-        onAddToPlan={() => handleAddToPlan(item)}
-        onLongPress={() => item.source === 'family_created' ? handleDeleteMyRecipe(item) : handleRemoveSaved(item)}
+        // In slot mode: CalendarPlus overlay adds to the pending slot directly (Fix 2).
+        // In normal mode: opens the SlotPickerModal as usual.
+        onAddToPlan={() => pendingSlot ? handleSlotModeSelect(item) : handleAddToPlan(item)}
+        // In slot mode: long-press is a no-op — the tap action has changed and an accidental
+        // long-press should never trigger a delete / remove (Fix 6).
+        onLongPress={() => {
+          if (pendingSlot) return;
+          item.source === 'family_created' ? handleDeleteMyRecipe(item) : handleRemoveSaved(item);
+        }}
         deliveryPlatform={item.delivery_platform}
         familyAvatarUrl={undefined}
         familyInitials={!item.delivery_platform && item.source === 'family_created' ? familyInitials : undefined}
       />
     );
-  }, [handleMealPress, handleAddToPlan, handleDeleteMyRecipe, handleRemoveSaved, openAddMethodSheet, familyPhotoUrl, familyInitials]);
+  }, [handleMealPress, handleAddToPlan, handleSlotModeSelect, handleDeleteMyRecipe, handleRemoveSaved, openAddMethodSheet, familyPhotoUrl, familyInitials, pendingSlot]);
 
   const MyRecipesEmptyState = useMemo(() => (
     <View style={styles.segmentEmptyContainer}>
       <Utensils size={64} color={Colors.textSecondary} strokeWidth={1.5} />
       <Text style={styles.segmentEmptyTitle}>No recipes yet</Text>
-      <Text style={styles.segmentEmptySubtitle}>
-        Add your family's favourite meals to keep them all in one place
-      </Text>
-      <TouchableOpacity
-        style={styles.segmentEmptyCta}
-        onPress={openAddMethodSheet}
-      >
-        <Text style={styles.segmentEmptyCtaText}>Add a Meal</Text>
-      </TouchableOpacity>
+      {pendingSlot ? (
+        // In slot mode: adding a new library meal would destroy the slot context.
+        // Guide the user to Discover instead (Fix 8).
+        <>
+          <Text style={styles.segmentEmptySubtitle}>
+            You don't have any saved meals yet. Browse Discover to find something to add.
+          </Text>
+          <TouchableOpacity
+            style={styles.segmentEmptyCta}
+            onPress={() => router.push('/(tabs)/discover')}
+          >
+            <Text style={styles.segmentEmptyCtaText}>Browse Discover</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <Text style={styles.segmentEmptySubtitle}>
+            Add your family's favourite meals to keep them all in one place
+          </Text>
+          <TouchableOpacity
+            style={styles.segmentEmptyCta}
+            onPress={openAddMethodSheet}
+          >
+            <Text style={styles.segmentEmptyCtaText}>Add a Meal</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
-  ), [openAddMethodSheet]);
+  ), [openAddMethodSheet, pendingSlot]);
 
   const SearchEmptyState = useMemo(() => (
     <View style={styles.segmentEmptyContainer}>
@@ -722,14 +752,18 @@ export default function FavsScreen() {
         }}
       />
 
-      <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + 16 }]}
-        onPress={openAddMethodSheet}
-        activeOpacity={0.8}
-        testID="fab-add-meal"
-      >
-        <Plus size={20} color={Colors.white} strokeWidth={2.5} />
-      </TouchableOpacity>
+      {/* FAB hidden in slot mode — navigating to /add-to-favs would fire the blur
+          cleanup and destroy the pending slot context (Fix 3). */}
+      {!pendingSlot && (
+        <TouchableOpacity
+          style={[styles.fab, { bottom: insets.bottom + 16 }]}
+          onPress={openAddMethodSheet}
+          activeOpacity={0.8}
+          testID="fab-add-meal"
+        >
+          <Plus size={20} color={Colors.white} strokeWidth={2.5} />
+        </TouchableOpacity>
+      )}
 
       {toastMsg !== null && (
         <Animated.View
