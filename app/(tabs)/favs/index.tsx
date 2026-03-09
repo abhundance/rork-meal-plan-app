@@ -432,13 +432,19 @@ export default function FavsScreen() {
             height: IMG_H,
             borderRadius: BorderRadius.card,
             backgroundColor: Colors.surface,
-            borderWidth: 1,
-            borderColor: Colors.border,
-            borderStyle: 'dashed',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <Plus size={20} color={Colors.primary} strokeWidth={2} />
+            <View style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: Colors.primary,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Plus size={16} color={Colors.white} strokeWidth={2.5} />
+            </View>
           </View>
           {/* Label below — matches meal name style */}
           <Text style={{ width: CARD_W, paddingTop: Spacing.xs, fontSize: 11, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.textSecondary, lineHeight: 14, textAlign: 'center' }}>
