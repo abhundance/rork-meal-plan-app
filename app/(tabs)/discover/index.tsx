@@ -446,7 +446,7 @@ export default function DiscoverScreen() {
           if (activePrefs.length === 0) return null;
           return (
             <TouchableOpacity
-              onPress={() => router.push('/family-settings' as Href)}
+              onPress={() => router.push('/family-settings?section=dietary' as Href)}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -460,7 +460,7 @@ export default function DiscoverScreen() {
             >
               <ShieldCheck size={14} color={Colors.primary} strokeWidth={2} style={{ marginRight: 6 }} />
               <Text style={{ flex: 1, fontSize: 13, color: Colors.textSecondary }} numberOfLines={1}>
-                <Text style={{ fontFamily: FontFamily.semiBold, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.primary }}>Household filter: </Text>
+                <Text style={{ fontFamily: FontFamily.semiBold, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.primary }}>Dietary preferences: </Text>
                 {activePrefs.join(' · ')}
               </Text>
               <Text style={{ fontSize: 13, fontFamily: FontFamily.semiBold, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.primary, marginLeft: 8 }}>Edit</Text>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Switch, Alert,
@@ -6,7 +6,7 @@ import {
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, Href } from 'expo-router';
+import { router, Href, useLocalSearchParams } from 'expo-router';
 import {
   ChevronLeft, Lock, Users, User, UtensilsCrossed, Ruler, Leaf,
   Globe, LogOut, Trash2, Shield,
@@ -224,6 +224,22 @@ export default function FamilySettingsScreen() {
   const isAdmin = userSettings.is_admin;
   const adminName = familyMembers.find(m => m.is_admin)?.display_name ?? 'Admin';
 
+  const { section } = useLocalSearchParams<{ section?: string }>();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const dietaryYRef = useRef<number>(0);
+
+  // When navigated here with ?section=dietary, expand the dietary section and scroll to it
+  useEffect(() => {
+    if (section === 'dietary') {
+      setShowFamilyDietary(true);
+      // Slight delay to let the section expand and layout before scrolling
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: dietaryYRef.current, animated: true });
+      }, 150);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section]);
+
   const [showMealSlots, setShowMealSlots] = useState<boolean>(false);
   const [showHousehold, setShowHousehold] = useState<boolean>(false);
   const [showFamilyDietary, setShowFamilyDietary] = useState<boolean>(false);
@@ -349,6 +365,7 @@ export default function FamilySettingsScreen() {
       </View>
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
@@ -530,6 +547,7 @@ export default function FamilySettingsScreen() {
         )}
 
         {/* Dietary Preferences */}
+        <View onLayout={(e) => { dietaryYRef.current = e.nativeEvent.layout.y; }}>
         <SectionHeader
           title="Dietary Preferences"
           locked={!isAdmin}
@@ -570,6 +588,7 @@ export default function FamilySettingsScreen() {
             </TouchableOpacity>
           </Card>
         )}
+        </View>
 
         {/* Smart Fill */}
         <SectionHeader
