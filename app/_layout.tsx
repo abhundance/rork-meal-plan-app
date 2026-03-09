@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import * as Clipboard from "expo-clipboard";
 import React, { useEffect, useRef, useState, useCallback } from "react";
@@ -341,6 +342,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1 }}>
+          <StatusBar style="dark" />
           <FamilySettingsProvider>
             <OnboardingProvider>
               <MealPlanProvider>
