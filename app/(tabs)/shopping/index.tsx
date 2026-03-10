@@ -630,42 +630,42 @@ export default function ShoppingScreen() {
     [collapsedSections, shopping.items, toggleSection]
   );
 
-  // ── AppHeader right element — Copy + Share icon buttons ─────────────────────
-  const headerRight = shopping.totalCount > 0 ? (
-    <View style={styles.headerActions}>
-      <TouchableOpacity
-        style={[styles.iconBtn, copyToast && styles.iconBtnSuccess]}
-        onPress={handleCopy}
-        activeOpacity={0.8}
-      >
-        {copyToast
-          ? <Check size={16} color={Colors.success} strokeWidth={3} />
-          : <Copy size={16} color={Colors.textSecondary} strokeWidth={2} />
-        }
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.iconBtn} onPress={handleShare} activeOpacity={0.8}>
-        <Share2 size={16} color={Colors.textSecondary} strokeWidth={2} />
-      </TouchableOpacity>
-    </View>
-  ) : undefined;
-
   // ── List header (lives inside SectionList so it scrolls with items) ──────────
   const ListHeader = (
     <View>
-      {/* Week pills */}
+      {/* Week pills row — Copy + Share live here so they're visually tied to the selected week */}
       <View style={styles.weekRow}>
-        {(['current', 'next'] as const).map((mode) => (
-          <TouchableOpacity
-            key={mode}
-            style={[styles.weekPill, shopping.weekMode === mode && styles.weekPillActive]}
-            onPress={() => shopping.setWeekMode(mode)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.weekPillText, shopping.weekMode === mode && styles.weekPillTextActive]}>
-              {mode === 'current' ? 'This week' : 'Next week'}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <View style={styles.weekPills}>
+          {(['current', 'next'] as const).map((mode) => (
+            <TouchableOpacity
+              key={mode}
+              style={[styles.weekPill, shopping.weekMode === mode && styles.weekPillActive]}
+              onPress={() => shopping.setWeekMode(mode)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.weekPillText, shopping.weekMode === mode && styles.weekPillTextActive]}>
+                {mode === 'current' ? 'This week' : 'Next week'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {shopping.totalCount > 0 && (
+          <View style={styles.weekRowActions}>
+            <TouchableOpacity
+              style={[styles.iconBtn, copyToast && styles.iconBtnSuccess]}
+              onPress={handleCopy}
+              activeOpacity={0.8}
+            >
+              {copyToast
+                ? <Check size={16} color={Colors.success} strokeWidth={3} />
+                : <Copy size={16} color={Colors.textSecondary} strokeWidth={2} />
+              }
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconBtn} onPress={handleShare} activeOpacity={0.8}>
+              <Share2 size={16} color={Colors.textSecondary} strokeWidth={2} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Timestamp + Clear checked row */}
@@ -751,7 +751,7 @@ export default function ShoppingScreen() {
   if (allDone) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <AppHeader title="Shopping" rightElement={headerRight} />
+        <AppHeader title="Shopping" />
         {ListHeader}
         <AllDoneState onClearAll={handleClearAll} />
       </View>
@@ -761,7 +761,7 @@ export default function ShoppingScreen() {
   // ── Main list ────────────────────────────────────────────────────────────────
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <AppHeader title="Shopping" rightElement={headerRight} />
+      <AppHeader title="Shopping" />
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -796,9 +796,6 @@ const styles = StyleSheet.create({
   skeletonWrap: { padding: 16 },
   emptyWrap: { flex: 1 },
 
-  // Header action buttons (passed as AppHeader rightElement)
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-
   iconBtn: {
     width: 36,
     height: 36,
@@ -830,7 +827,16 @@ const styles = StyleSheet.create({
   },
   clearCheckedText: { fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '600' as const, color: Colors.textSecondary },
 
-  weekRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, marginBottom: 6 },
+  weekRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    marginBottom: 6,
+  },
+  weekPills: { flexDirection: 'row', gap: 8 },
+  weekRowActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   weekPill: {
     paddingHorizontal: 14,
     paddingVertical: 6,
