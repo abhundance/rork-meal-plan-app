@@ -37,7 +37,7 @@ Safe checkpoints tagged on GitHub. To restore: `git checkout pre-recipe-type-uni
 | Tag | Commit | Date | What's working | Why it was tagged |
 |-----|--------|------|----------------|-------------------|
 | `pre-recipe-type-unification` | c090906 | 2026-03-06 | Favs grid layout ✅, add-meal tile ✅, chip row removed ✅ | Before Option B: merging `Meal` + `DiscoverMeal` into unified `Recipe` type |
-| *(latest stable)* | 55603f0 | 2026-03-09 | Supreme Red design system ✅, cardless Favs grid ✅, meal name initials ✅, chip consistency ✅, Plan tab action buttons ✅, Repeat sheet double-tap fix ✅ | Post Supreme Red rebrand + Favs grid overhaul |
+| *(latest stable)* | 88d4499 | 2026-03-10 | Pinterest Red design system ✅, cardless Favs grid ✅, meal name initials ✅, chip consistency ✅, Plan tab action buttons ✅, Repeat sheet double-tap fix ✅ | Pinterest Red rebrand (#E60023) |
 
 ---
 
@@ -117,21 +117,21 @@ All stored in Rork's Environment Variables panel (not in `.env` files):
 
 All design tokens live in two files. **Never hardcode hex values or magic numbers.**
 
-> ⚠️ The app uses a **Supreme Red** brand palette — not purple. Any documentation or AI context referring to purple, lavender, or `#7B68CC` is outdated and must be ignored.
+> ⚠️ The app uses a **Pinterest Red** brand palette — not purple and not "Supreme Red". Any documentation or AI context referring to purple, lavender, `#7B68CC`, `#7C3AED`, or `#ED1C16` is outdated and must be ignored.
 
 ### `constants/colors.ts`
 ```
-// Primary — Supreme Red
-Colors.primary         #ED1C16   — buttons, active states, CTAs, icons
-Colors.primaryVibrant  #F53530   — decorative only: hero fills, card tints, filled hearts
-Colors.primaryLight    #FEF0EE   — selected chip bg, highlights, icon container bg
+// Primary — Pinterest Red
+Colors.primary         #E60023   — buttons, active states, CTAs, icons
+Colors.primaryVibrant  #F80020   — decorative only: hero fills, card tints, filled hearts
+Colors.primaryLight    #FDEBED   — selected chip bg, highlights, icon container bg
 
 // Family placeholder gradient (used by MealImagePlaceholder for family-created meals)
 // Update all three values in colors.ts whenever primary changes — never hardcode inline.
-Colors.familyGradient  ['#FEF0EE', '#FDDAD8', '#FCC8C5']  — warm red-tinted gradient
+Colors.familyGradient  ['#FDEBED', '#FBDADF', '#FAC7CF']  — warm red-tinted gradient
 
 // Surfaces — neutral so the red accent pops rather than bleeds
-Colors.background      #FFFFFF   — page background (pure white — Supreme aesthetic)
+Colors.background      #FFFFFF   — page background (pure white)
 Colors.surface         #F8F8F8   — input bg, chip default bg (distinct from white)
 Colors.card            #FFFFFF   — card backgrounds (elevation via shadow, not colour)
 
@@ -148,11 +148,11 @@ Colors.danger          #B91C1C   — errors (darker crimson, distinct from prima
 Colors.white           #FFFFFF
 Colors.border          #E0E0E0   — borders, dividers
 Colors.divider         #E0E0E0   — list dividers
-Colors.shadow          #ED1C16   — red-tinted shadows on cards and tab bar
+Colors.shadow          #E60023   — red-tinted shadows on cards and tab bar
 Colors.inactive        rgba(44,44,44,0.4) — inactive tab icons, disabled elements
 Colors.overlay         rgba(0,0,0,0.3)   — modal/sheet backdrops
-Colors.skeleton1       #F5DCDA   — warm red-tinted skeleton base
-Colors.skeleton2       #FEF0EE   — skeleton shimmer highlight
+Colors.skeleton1       #FACCD3   — warm red-tinted skeleton base
+Colors.skeleton2       #FDEBED   — skeleton shimmer highlight
 Colors.offlineBanner   #F5E6C8
 Colors.offlineText     #8B6914
 Colors.SlotColors      array[7]  — per-slot colour schemes (bg, text, dot) for meal slot differentiation
