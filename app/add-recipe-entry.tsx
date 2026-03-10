@@ -113,24 +113,20 @@ export default function AddRecipeEntryScreen() {
   const aiWordCount  = aiInput.trim() === '' ? 0 : aiInput.trim().split(/\s+/).length;
 
   // ── AI Mode handlers ─────────────────────────────────────────────────────────
-  const isUrl = (text: string) => {
-    const lower = text.toLowerCase();
-    return lower.startsWith('http://') || lower.startsWith('https://');
-  };
-
   const handleAiSend = async () => {
     const input = aiInput.trim();
     if (!input || isExtracting) return;
     setIsExtracting(true);
+    const inputIsUrl = /^https?:\/\//i.test(input);
     try {
-      const result: ExtractedRecipe = isUrl(input)
+      const result: ExtractedRecipe = inputIsUrl
         ? await extractRecipeFromVideoUrl(input)
         : await extractRecipeFromText(input);
       router.push({
         pathname: '/add-recipe-review' as never,
         params: {
-          inputMode: isUrl(input) ? 'url' : 'text',
-          inputUrl: isUrl(input) ? input : undefined,
+          inputMode: inputIsUrl ? 'url' : 'text',
+          inputUrl: inputIsUrl ? input : undefined,
           prefillName: result.name,
           prefillDescription: result.description,
           prefillCuisine: result.cuisine,
@@ -145,8 +141,8 @@ export default function AddRecipeEntryScreen() {
     } catch {
       Alert.alert(
         'Extraction Failed',
-        isUrl(aiInput.trim())
-          ? 'Could not extract a recipe from this link. Try copying the recipe text and typing it here instead.'
+        inputIsUrl
+          ? 'Could not extract a recipe from this link. Try copying the recipe text and pasting it here instead.'
           : 'Could not extract a recipe from your description. Try adding more detail — ingredients, quantities, and cooking steps help.'
       );
     } finally {
@@ -373,14 +369,14 @@ export default function AddRecipeEntryScreen() {
           {/* Spacer mirrors the closeBtn width so the title stays centred */}
           <View style={styles.closeBtnSpacer} />
         </View>
-        {/* Row 2: mode toggle — full-width centred row */}
+        {/* Row 2: mode toggle — full-width centred row. Locked while extracting. */}
         <View style={styles.headerToggleRow}>
-          <View style={styles.headerToggleWrap}>
+          <View style={[styles.headerToggleWrap, isExtracting && styles.headerToggleWrapDisabled]}>
             <View style={[styles.headerTogglePill, mode === 'ai' ? styles.headerTogglePillLeft : styles.headerTogglePillRight]} />
-            <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('ai')} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('ai')} activeOpacity={0.8} disabled={isExtracting}>
               <Text style={[styles.headerToggleLabel, mode === 'ai' && styles.headerToggleLabelActive]}>✨ AI</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('manual')} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('manual')} activeOpacity={0.8} disabled={isExtracting}>
               <Text style={[styles.headerToggleLabel, mode === 'manual' && styles.headerToggleLabelActive]}>✏️ Manual</Text>
             </TouchableOpacity>
           </View>
@@ -413,7 +409,7 @@ export default function AddRecipeEntryScreen() {
                 textAlignVertical="top"
                 scrollEnabled={false}
               />
-              {/* Detection badge — appears once user has entered something */}
+              {/* Detection badge + clear button — appears once user has entered something */}
               {hasAiContent && (
                 <View style={styles.aiDropZoneMeta}>
                   <View style={styles.aiDetectBadge}>
@@ -425,10 +421,21 @@ export default function AddRecipeEntryScreen() {
                       {isUrlInput ? 'Link detected' : 'Text detected'}
                     </Text>
                   </View>
-                  {/* Word count — only meaningful for pasted text, not URLs */}
-                  {!isUrlInput && (
-                    <Text style={styles.aiWordCount}>{aiWordCount} words</Text>
-                  )}
+                  <View style={styles.aiDropZoneMetaRight}>
+                    {/* Word count — only meaningful for pasted text, not URLs */}
+                    {!isUrlInput && (
+                      <Text style={styles.aiWordCount}>{aiWordCount} {aiWordCount === 1 ? 'word' : 'words'}</Text>
+                    )}
+                    {/* Clear button */}
+                    <TouchableOpacity
+                      style={styles.aiClearBtn}
+                      onPress={() => setAiInput('')}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      activeOpacity={0.7}
+                    >
+                      <X size={13} color={Colors.textSecondary} strokeWidth={2} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
@@ -692,7 +699,13 @@ export default function AddRecipeEntryScreen() {
         visible={showVoiceSheet}
         onClose={() => setShowVoiceSheet(false)}
         onExtracted={handleVoiceExtracted}
-        onError={() => setShowVoiceSheet(false)}
+        onError={() => {
+          setShowVoiceSheet(false);
+          Alert.alert(
+            'Voice extraction failed',
+            "We couldn't extract a recipe from your recording. Try speaking clearly with ingredient names and steps, or paste a link instead."
+          );
+        }}
       />
     </View>
   );
@@ -742,6 +755,9 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     padding: 3,
     position: 'relative',
+  },
+  headerToggleWrapDisabled: {
+    opacity: 0.4,
   },
   headerTogglePill: {
     position: 'absolute',
@@ -803,6 +819,14 @@ const styles = StyleSheet.create({
   aiWordCount: {
     fontSize: 12, fontFamily: FontFamily.regular, fontWeight: '400',
     color: Colors.textSecondary,
+  },
+  aiDropZoneMetaRight: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  aiClearBtn: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: Colors.surface,
+    alignItems: 'center', justifyContent: 'center',
   },
   aiDividerRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
