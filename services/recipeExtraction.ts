@@ -398,3 +398,84 @@ export async function extractRecipeMetadata(
     throw new Error('Could not parse metadata — please try again.');
   }
 }
+
+// ─── PDF recipe extraction ────────────────────────────────────────────────────
+// Uploads a PDF file to OpenAI's Files API, then sends it via Chat Completions
+// using the "file" content block — same upload-first pattern as voice/Whisper.
+export async function extractRecipeFromPdf(
+  fileUri: string,
+  filename: string = 'recipe.pdf',
+): Promise<ExtractedRecipe> {
+  // Step 1: Upload the PDF to OpenAI Files API
+  const formData = new FormData();
+  formData.append('file', {
+    uri: fileUri,
+    type: 'application/pdf',
+    name: filename,
+  } as unknown as Blob);
+  formData.append('purpose', 'user_data');
+
+  const uploadResponse = await fetch('https://api.openai.com/v1/files', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${getApiKey()}` },
+    body: formData,
+  });
+
+  if (!uploadResponse.ok) {
+    const errBody = await uploadResponse.text();
+    console.error('[recipeExtraction] PDF upload error:', uploadResponse.status, errBody);
+    throw new Error(`Could not upload PDF (${uploadResponse.status}). Please try pasting the recipe text instead.`);
+  }
+
+  const fileData = await uploadResponse.json();
+  const fileId: string = fileData.id;
+  console.log('[recipeExtraction] PDF uploaded, file_id:', fileId);
+
+  // Step 2: Extract recipe using the uploaded file
+  const extractResponse = await fetch(OPENAI_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getApiKey()}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: EXTRACTION_PROMPT },
+            { type: 'file', file: { file_id: fileId } },
+          ],
+        },
+      ],
+      max_tokens: 2000,
+    }),
+  });
+
+  if (!extractResponse.ok) {
+    const errBody = await extractResponse.text();
+    console.error('[recipeExtraction] PDF extraction error:', extractResponse.status, errBody);
+    throw new Error(`Could not extract recipe from PDF (${extractResponse.status}). Please try pasting the recipe text instead.`);
+  }
+
+  const data = await extractResponse.json();
+  const content: string = data.choices?.[0]?.message?.content ?? '';
+
+  if (!content) {
+    throw new Error('Could not extract recipe from PDF — no response from AI. Please try again.');
+  }
+
+  console.log('[recipeExtraction] PDF extraction raw response:', content);
+
+  let cleaned = content.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  }
+  try {
+    return JSON.parse(cleaned) as ExtractedRecipe;
+  } catch {
+    console.error('[recipeExtraction] Failed to parse PDF extraction response:', cleaned);
+    throw new Error('Could not extract recipe from PDF — unexpected AI response. Please try pasting the recipe text instead.');
+  }
+}

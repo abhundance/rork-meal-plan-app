@@ -23,6 +23,7 @@ import {
   Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
@@ -35,6 +36,7 @@ import {
   extractRecipeMetadata,
   extractRecipeFromVideoUrl,
   extractRecipeFromText,
+  extractRecipeFromPdf,
   ExtractedRecipe,
 } from '@/services/recipeExtraction';
 import { imageStore } from '@/services/imageStore';
@@ -187,6 +189,52 @@ export default function AddRecipeEntryScreen() {
       },
     });
   };
+
+  const handlePdf = useCallback(async () => {
+    let pickerResult;
+    try {
+      pickerResult = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+    } catch {
+      Alert.alert('Error', 'Could not open the file picker. Please try again.');
+      return;
+    }
+    if (pickerResult.canceled) return;
+    const asset = pickerResult.assets[0];
+    if (!asset) return;
+
+    setIsExtracting(true);
+    try {
+      const extracted = await extractRecipeFromPdf(asset.uri, asset.name ?? 'recipe.pdf');
+      imageStore.clear();
+      router.push({
+        pathname: '/add-recipe-review' as never,
+        params: {
+          inputMode: 'pdf',
+          prefillName: extracted.name,
+          prefillDescription: extracted.description,
+          prefillCuisine: extracted.cuisine,
+          prefillMealType: extracted.meal_type,
+          prefillCookingTimeBand: extracted.cooking_time_band,
+          prefillDietaryTags: JSON.stringify(extracted.dietary_tags ?? []),
+          prefillIngredients: JSON.stringify(extracted.ingredients),
+          prefillMethodSteps: JSON.stringify(extracted.method_steps),
+          prefillServingSize: String(extracted.recipe_serving_size),
+        },
+      });
+    } catch (err) {
+      Alert.alert(
+        'Could not extract recipe',
+        err instanceof Error
+          ? err.message
+          : 'Could not extract a recipe from this PDF. Try pasting the recipe text instead.',
+      );
+    } finally {
+      setIsExtracting(false);
+    }
+  }, []);
 
   // ── Manual Mode handlers ─────────────────────────────────────────────────────
   const handlePickImage = useCallback(() => {
@@ -470,6 +518,18 @@ export default function AddRecipeEntryScreen() {
                 </View>
                 <Text style={styles.aiSecondaryTileLabel}>Camera</Text>
                 <Text style={styles.aiSecondaryTileSub}>Photo of a recipe</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.aiSecondaryTile}
+                onPress={handlePdf}
+                activeOpacity={0.8}
+                disabled={isExtracting}
+              >
+                <View style={styles.aiSecondaryTileIcon}>
+                  <FileText size={22} color={Colors.textSecondary} strokeWidth={2} />
+                </View>
+                <Text style={styles.aiSecondaryTileLabel}>PDF</Text>
+                <Text style={styles.aiSecondaryTileSub}>Upload a PDF</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

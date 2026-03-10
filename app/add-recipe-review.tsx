@@ -38,7 +38,7 @@ import ServingStepper from '@/components/ServingStepper';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 
 type Params = {
-  inputMode: 'camera' | 'photos' | 'text' | 'voice' | 'manual' | 'url';
+  inputMode: 'camera' | 'photos' | 'text' | 'voice' | 'manual' | 'url' | 'pdf';
   imageBase64?: string;
   imageUri?: string;
   inputText?: string;
