@@ -272,24 +272,6 @@ export default function MealPickerScreen() {
               <TouchableOpacity
                 style={styles.optionRow}
                 activeOpacity={0.8}
-                onPress={() => router.push('/meal-picker/manual')}
-                testID="add-without-recipe-btn"
-              >
-                <View style={[styles.optionIconCircle, { backgroundColor: Colors.primaryLight }]}>
-                  <Pencil size={16} color={Colors.primary} strokeWidth={2} />
-                </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Add without Recipe</Text>
-                  <Text style={styles.optionSubtitle}>Just a name - add steps later</Text>
-                </View>
-                <ChevronRight size={16} color={Colors.border} strokeWidth={2} />
-              </TouchableOpacity>
-
-              <View style={styles.optionSeparator} />
-
-              <TouchableOpacity
-                style={styles.optionRow}
-                activeOpacity={0.8}
                 onPress={() => router.push('/add-recipe-entry')}
                 testID="add-with-recipe-btn"
               >
@@ -299,6 +281,24 @@ export default function MealPickerScreen() {
                 <View style={styles.optionTextBlock}>
                   <Text style={styles.optionTitle}>Add with Recipe</Text>
                   <Text style={styles.optionSubtitle}>AI mode, manual entry & more</Text>
+                </View>
+                <ChevronRight size={16} color={Colors.border} strokeWidth={2} />
+              </TouchableOpacity>
+
+              <View style={styles.optionSeparator} />
+
+              <TouchableOpacity
+                style={styles.optionRow}
+                activeOpacity={0.8}
+                onPress={() => router.push('/meal-picker/manual')}
+                testID="add-without-recipe-btn"
+              >
+                <View style={[styles.optionIconCircle, { backgroundColor: Colors.primaryLight }]}>
+                  <Pencil size={16} color={Colors.primary} strokeWidth={2} />
+                </View>
+                <View style={styles.optionTextBlock}>
+                  <Text style={styles.optionTitle}>Add without Recipe</Text>
+                  <Text style={styles.optionSubtitle}>Just a name - add steps later</Text>
                 </View>
                 <ChevronRight size={16} color={Colors.border} strokeWidth={2} />
               </TouchableOpacity>
