@@ -9,6 +9,30 @@ function getApiKey(): string {
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
+// ─── Output language ──────────────────────────────────────────────────────────
+// Controls the language used for all AI-generated text fields (recipe name,
+// description, ingredient names, method steps).
+//
+// Currently hardcoded to English. In a future localization pass this constant
+// should be derived from the user's app locale setting so the extracted recipe
+// is returned in the user's preferred language automatically.
+//
+// To add a new locale, add a case to the switch and update the UI language
+// picker in user settings. The value must be a natural-language name that
+// GPT-4o-mini recognises (e.g. "French", "Spanish", "Hindi", "Arabic").
+const OUTPUT_LANGUAGE = 'English';
+
+// System-level instruction injected into every extraction call.
+// Using a dedicated `system` message gives it the highest instruction priority
+// so the model can't be "confused" into replying in the input language even
+// when the recipe content is in a different language (e.g. user dictates a
+// Hindi recipe via voice, or pastes a French recipe URL).
+const LANGUAGE_SYSTEM_MESSAGE = {
+  role: 'system' as const,
+  content: `You are a recipe extraction assistant. Always respond in ${OUTPUT_LANGUAGE}. All text values you produce — including recipe name, description, ingredient names, and method step text — MUST be written in ${OUTPUT_LANGUAGE}, regardless of the language of the input content. Translate non-${OUTPUT_LANGUAGE} content into ${OUTPUT_LANGUAGE} as part of the extraction process.`,
+};
+
+
 export interface ExtractedRecipe {
   // ── Core content ───────────────────────────────────────────────────────────
   name: string;
@@ -81,16 +105,19 @@ export async function extractRecipeFromImage(base64Image: string): Promise<Extra
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: { url: `data:image/jpeg;base64,${base64Image}` },
-          },
-          { type: 'text', text: EXTRACTION_PROMPT },
-        ],
-      }],
+      messages: [
+        LANGUAGE_SYSTEM_MESSAGE,
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/jpeg;base64,${base64Image}` },
+            },
+            { type: 'text', text: EXTRACTION_PROMPT },
+          ],
+        },
+      ],
       max_tokens: 2000,
     }),
   });
@@ -130,10 +157,13 @@ export async function extractRecipeFromText(text: string): Promise<ExtractedReci
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
-      messages: [{
-        role: 'user',
-        content: `${EXTRACTION_PROMPT}\n\nRecipe content to extract:\n${text}`,
-      }],
+      messages: [
+        LANGUAGE_SYSTEM_MESSAGE,
+        {
+          role: 'user',
+          content: `${EXTRACTION_PROMPT}\n\nRecipe content to extract:\n${text}`,
+        },
+      ],
       max_tokens: 2000,
     }),
   });
@@ -367,7 +397,10 @@ export async function extractRecipeMetadata(
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: userContent }],
+      messages: [
+        LANGUAGE_SYSTEM_MESSAGE,
+        { role: 'user', content: userContent },
+      ],
       max_tokens: 500,
     }),
   });
@@ -441,6 +474,7 @@ export async function extractRecipeFromPdf(
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
+        LANGUAGE_SYSTEM_MESSAGE,
         {
           role: 'user',
           content: [
