@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
 } from 'react-native';
@@ -12,29 +12,23 @@ import { Check } from 'lucide-react-native';
 import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
-import { StarterMealPick } from '@/types';
-
-const BREAKFAST_MEALS: StarterMealPick[] = [
-  { id: 'b1', name: 'Kaya Toast & Soft-Boiled Eggs', emoji: '🍳', meal_type: 'breakfast', cuisine: 'Singaporean', cook_time_mins: 10 },
-  { id: 'b2', name: 'Congee',                        emoji: '🥣', meal_type: 'breakfast', cuisine: 'Chinese',     cook_time_mins: 30 },
-  { id: 'b3', name: 'Scrambled Eggs on Toast',        emoji: '🥚', meal_type: 'breakfast', cuisine: 'American',   cook_time_mins: 10 },
-  { id: 'b4', name: 'Overnight Oats',                 emoji: '🌾', meal_type: 'breakfast', cuisine: 'American',   cook_time_mins: 5  },
-  { id: 'b5', name: 'Pancakes',                       emoji: '🥞', meal_type: 'breakfast', cuisine: 'American',   cook_time_mins: 20 },
-  { id: 'b6', name: 'Smoothie Bowl',                  emoji: '🫐', meal_type: 'breakfast', cuisine: 'American',   cook_time_mins: 10 },
-  { id: 'b7', name: 'Nasi Lemak',                     emoji: '🍚', meal_type: 'breakfast', cuisine: 'Malaysian',  cook_time_mins: 40 },
-  { id: 'b8', name: 'Avocado Toast',                  emoji: '🥑', meal_type: 'breakfast', cuisine: 'American',   cook_time_mins: 10 },
-];
-
-const BREAKFAST_IDS = new Set(BREAKFAST_MEALS.map(m => m.id));
+import { BREAKFAST_MEALS_ALL, getRegionalMeals } from '@/constants/starterMeals';
 
 export default function BreakfastPicksScreen() {
   const insets = useSafeAreaInsets();
   const { data, addStarterMeal, setStep } = useOnboarding();
   const selectedIds = new Set((data.starter_meals ?? []).map(m => m.id));
-  // Only count picks from THIS screen, not cross-screen totals
-  const breakfastSelectedCount = [...selectedIds].filter(id => BREAKFAST_IDS.has(id)).length;
 
-  // Single shared navigation — same logic for Continue and "add later" skip
+  // Sort meals so regionally relevant ones surface first based on the country
+  // the user selected in Step 1 (e.g. Indonesia → Malaysian/Singaporean first)
+  const meals = useMemo(
+    () => getRegionalMeals(BREAKFAST_MEALS_ALL, data.region ?? ''),
+    [data.region],
+  );
+
+  const breakfastIds = useMemo(() => new Set(BREAKFAST_MEALS_ALL.map(m => m.id)), []);
+  const breakfastSelectedCount = [...selectedIds].filter(id => breakfastIds.has(id)).length;
+
   const navigateNext = () => {
     setStep(11);
     const enabled = data.enabled_slots ?? ['breakfast', 'lunch', 'dinner'];
@@ -47,15 +41,14 @@ export default function BreakfastPicksScreen() {
     }
   };
 
-  // Calculated footer height so FlatList paddingBottom is always correct
   const FOOTER_HEIGHT = insets.bottom + 120;
 
   return (
-    <View style={[styles.container]}>
+    <View style={styles.container}>
       <OnboardingHeader current={10} total={11} />
 
       <FlatList
-        data={BREAKFAST_MEALS}
+        data={meals}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.listContent, { paddingBottom: FOOTER_HEIGHT }]}
         showsVerticalScrollIndicator={false}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
 } from 'react-native';
@@ -12,42 +12,34 @@ import { Check } from 'lucide-react-native';
 import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
-import { StarterMealPick } from '@/types';
-
-const DINNER_MEALS: StarterMealPick[] = [
-  { id: 'd1', name: 'Butter Chicken',               emoji: '🍗', meal_type: 'lunch_dinner', cuisine: 'Indian',    cook_time_mins: 40 },
-  { id: 'd2', name: 'Stir-Fried Vegetables & Rice', emoji: '🥦', meal_type: 'lunch_dinner', cuisine: 'Chinese',   cook_time_mins: 20 },
-  { id: 'd3', name: 'Grilled Salmon',               emoji: '🐟', meal_type: 'lunch_dinner', cuisine: 'American', cook_time_mins: 20 },
-  { id: 'd4', name: 'Ramen',                        emoji: '🍜', meal_type: 'lunch_dinner', cuisine: 'Japanese', cook_time_mins: 35 },
-  { id: 'd5', name: 'Homemade Pizza',               emoji: '🍕', meal_type: 'lunch_dinner', cuisine: 'Italian',  cook_time_mins: 45 },
-  { id: 'd6', name: 'Beef Rendang',                 emoji: '🥩', meal_type: 'lunch_dinner', cuisine: 'Malaysian',cook_time_mins: 90 },
-  { id: 'd7', name: 'Fried Rice',                   emoji: '🍚', meal_type: 'lunch_dinner', cuisine: 'Chinese',  cook_time_mins: 20 },
-  { id: 'd8', name: 'Spaghetti Bolognese',          emoji: '🍝', meal_type: 'lunch_dinner', cuisine: 'Italian',  cook_time_mins: 40 },
-  { id: 'd9', name: 'Chicken Curry',                emoji: '🍛', meal_type: 'lunch_dinner', cuisine: 'Indian',   cook_time_mins: 45 },
-];
-
-const DINNER_IDS = new Set(DINNER_MEALS.map(m => m.id));
+import { DINNER_MEALS_ALL, getRegionalMeals } from '@/constants/starterMeals';
 
 export default function DinnerPicksScreen() {
   const insets = useSafeAreaInsets();
   const { data, addStarterMeal, setStep } = useOnboarding();
   const selectedIds = new Set((data.starter_meals ?? []).map(m => m.id));
-  const dinnerSelectedCount = [...selectedIds].filter(id => DINNER_IDS.has(id)).length;
 
-  // Single shared navigation
+  const meals = useMemo(
+    () => getRegionalMeals(DINNER_MEALS_ALL, data.region ?? ''),
+    [data.region],
+  );
+
+  const dinnerIds = useMemo(() => new Set(DINNER_MEALS_ALL.map(m => m.id)), []);
+  const dinnerSelectedCount = [...selectedIds].filter(id => dinnerIds.has(id)).length;
+
   const navigateNext = () => {
-    setStep(11); // FIX: was missing entirely
+    setStep(11);
     router.push('/onboarding/welcome' as Href);
   };
 
   const FOOTER_HEIGHT = insets.bottom + 120;
 
   return (
-    <View style={[styles.container]}>
+    <View style={styles.container}>
       <OnboardingHeader current={11} total={11} />
 
       <FlatList
-        data={DINNER_MEALS}
+        data={meals}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.listContent, { paddingBottom: FOOTER_HEIGHT }]}
         showsVerticalScrollIndicator={false}

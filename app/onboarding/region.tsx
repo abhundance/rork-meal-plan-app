@@ -79,17 +79,124 @@ const REGION_CODE_TO_COUNTRY: Record<string, string> = {
   'AE': 'United Arab Emirates',
 };
 
+// Maps IANA timezone → country name. Timezone is set automatically by the OS
+// based on the device's network/SIM — it reflects physical location, not the
+// user's language preference. This makes it far more reliable than locale for
+// detecting where someone actually lives (e.g. "ms-MY" locale on an Indonesian
+// phone would falsely detect Malaysia; "Asia/Jakarta" timezone correctly gives
+// Indonesia regardless of the phone's language setting).
+const TIMEZONE_TO_COUNTRY: Record<string, string> = {
+  // Indonesia — four time zones
+  'Asia/Jakarta':   'Indonesia',
+  'Asia/Pontianak': 'Indonesia',
+  'Asia/Makassar':  'Indonesia',
+  'Asia/Jayapura':  'Indonesia',
+  // Malaysia
+  'Asia/Kuala_Lumpur': 'Malaysia',
+  'Asia/Kuching':      'Malaysia',
+  // Singapore
+  'Asia/Singapore': 'Singapore',
+  // East Asia
+  'Asia/Shanghai':  'China',
+  'Asia/Urumqi':    'China',
+  'Asia/Hong_Kong': 'Hong Kong',
+  'Asia/Taipei':    'Taiwan',
+  'Asia/Tokyo':     'Japan',
+  'Asia/Seoul':     'South Korea',
+  // South Asia
+  'Asia/Kolkata':   'India',
+  'Asia/Dhaka':     'Bangladesh',
+  'Asia/Karachi':   'Pakistan',
+  'Asia/Colombo':   'Sri Lanka',
+  'Asia/Kathmandu': 'Nepal',
+  'Asia/Rangoon':   'Myanmar',
+  'Asia/Yangon':    'Myanmar',
+  // Southeast Asia
+  'Asia/Bangkok':      'Thailand',
+  'Asia/Ho_Chi_Minh':  'Vietnam',
+  'Asia/Saigon':       'Vietnam',
+  'Asia/Manila':       'Philippines',
+  // Middle East
+  'Asia/Riyadh':    'Saudi Arabia',
+  'Asia/Dubai':     'United Arab Emirates',
+  'Asia/Jerusalem': 'Israel',
+  'Asia/Tel_Aviv':  'Israel',
+  'Asia/Istanbul':  'Turkey',
+  'Africa/Cairo':   'Egypt',
+  // Western Europe
+  'Europe/Paris':    'France',
+  'Europe/Rome':     'Italy',
+  'Europe/Madrid':   'Spain',
+  'Europe/Athens':   'Greece',
+  'Europe/Berlin':   'Germany',
+  'Europe/Amsterdam':'Netherlands',
+  'Europe/Brussels': 'Belgium',
+  'Europe/Zurich':   'Switzerland',
+  'Europe/Vienna':   'Austria',
+  'Europe/Lisbon':   'Portugal',
+  // UK & Ireland
+  'Europe/London':   'United Kingdom',
+  'Europe/Dublin':   'Ireland',
+  // Nordic
+  'Europe/Stockholm': 'Sweden',
+  'Europe/Oslo':      'Norway',
+  'Europe/Copenhagen':'Denmark',
+  'Europe/Helsinki':  'Finland',
+  // Eastern Europe
+  'Europe/Warsaw':    'Poland',
+  'Europe/Bucharest': 'Romania',
+  'Europe/Budapest':  'Hungary',
+  // Americas
+  'America/New_York':      'United States',
+  'America/Chicago':       'United States',
+  'America/Denver':        'United States',
+  'America/Los_Angeles':   'United States',
+  'America/Phoenix':       'United States',
+  'America/Anchorage':     'United States',
+  'America/Honolulu':      'United States',
+  'America/Toronto':       'Canada',
+  'America/Vancouver':     'Canada',
+  'America/Winnipeg':      'Canada',
+  'America/Halifax':       'Canada',
+  'America/Mexico_City':   'Mexico',
+  'America/Bogota':        'Colombia',
+  'America/Sao_Paulo':     'Brazil',
+  'America/Santiago':      'Chile',
+  'America/Argentina/Buenos_Aires': 'Argentina',
+  // Africa
+  'Africa/Lagos':        'Nigeria',
+  'Africa/Nairobi':      'Kenya',
+  'Africa/Johannesburg': 'South Africa',
+  // Pacific / Oceania
+  'Pacific/Auckland':    'New Zealand',
+  'Australia/Sydney':    'Australia',
+  'Australia/Melbourne': 'Australia',
+  'Australia/Perth':     'Australia',
+};
+
 /**
- * Attempts to detect the user's country from the device locale string.
- * e.g. "en-ID" → "Indonesia", "ja-JP" → "Japan", "zh-Hans-CN" → "China"
- * Returns null if the region code is not in our country list.
+ * Primary detection method: reads the device's IANA timezone (e.g. "Asia/Jakarta")
+ * and maps it to a country. Timezone is OS-managed and reflects physical location,
+ * not the phone's language setting.
+ */
+function detectCountryFromTimezone(): string | null {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return TIMEZONE_TO_COUNTRY[tz] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fallback detection: parses the language locale string (e.g. "en-ID" → "ID" → "Indonesia").
+ * Less reliable than timezone — a Malay-speaking Indonesian user might have "ms-MY" locale
+ * even though they're physically in Indonesia — so this is only used if timezone fails.
  */
 function detectCountryFromLocale(): string | null {
   try {
     const locale = Intl.DateTimeFormat().resolvedOptions().locale;
     const parts = locale.split('-');
-    // The region code is typically the last segment (2 uppercase letters).
-    // For locales like "zh-Hans-CN", the script tag "Hans" comes before the region "CN".
     for (let i = parts.length - 1; i >= 0; i--) {
       const segment = parts[i].toUpperCase();
       if (segment.length === 2 && REGION_CODE_TO_COUNTRY[segment]) {
@@ -100,6 +207,11 @@ function detectCountryFromLocale(): string | null {
   } catch {
     return null;
   }
+}
+
+/** Detects the user's country — timezone first, locale as fallback. */
+function detectCountry(): string | null {
+  return detectCountryFromTimezone() ?? detectCountryFromLocale();
 }
 
 const COUNTRIES = [
@@ -164,18 +276,14 @@ export default function RegionScreen() {
   const [country, setCountry] = useState<string>(() => {
     // If the user previously saved a region, respect it
     if (data.region) return data.region;
-    // Otherwise auto-detect from device locale — avoids hardcoding any default
-    return detectCountryFromLocale() ?? '';
+    // Otherwise auto-detect: timezone first (most reliable), locale as fallback
+    return detectCountry() ?? '';
   });
   const [units, setUnits] = useState<'metric' | 'imperial'>(() => {
     if (data.measurement_units) return data.measurement_units;
-    // Auto-detect: US uses imperial; most other countries use metric
-    try {
-      const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-      const parts = locale.split('-');
-      const regionCode = parts[parts.length - 1].toUpperCase();
-      if (regionCode === 'US') return 'imperial';
-    } catch { /* fall through */ }
+    // Auto-detect: US uses imperial; everyone else uses metric.
+    // Use timezone for reliability (same reason as country detection).
+    if (detectCountry() === 'United States') return 'imperial';
     return 'metric';
   });
   const [showPicker, setShowPicker] = useState(false);
