@@ -18,26 +18,25 @@ type GoalItem = {
   description: string;
 };
 
-const EAT_WELL_ITEMS: GoalItem[] = [
-  { value: 'balanced',      emoji: '🥗', label: 'Balanced',           description: 'No specific goal — just eating well' },
-  { value: 'weight_loss',   emoji: '⚖️', label: 'Weight Loss',        description: 'Lighter meals, fewer calories' },
-  { value: 'muscle_gain',   emoji: '💪', label: 'Muscle Gain',        description: 'High protein, serious fuel' },
-  { value: 'recomposition', emoji: '🎯', label: 'Body Recomposition', description: 'Lean & strong, calorie-smart' },
+const DIET_STYLE_ITEMS: GoalItem[] = [
+  { value: 'keto',      emoji: '🥩', label: 'Keto',      description: 'Very low carb, high fat' },
+  { value: 'paleo',     emoji: '🌿', label: 'Paleo',     description: 'Whole foods, nothing processed' },
+  { value: 'whole30',   emoji: '✅', label: 'Whole30',   description: 'Clean 30-day elimination protocol' },
+  { value: 'carnivore', emoji: '🔪', label: 'Carnivore', description: 'Meat-forward, animal-based' },
 ];
 
-const EAT_WELL_VALUES: PersonalGoal[] = ['balanced', 'weight_loss', 'muscle_gain', 'recomposition'];
+const DIET_STYLE_VALUES: PersonalGoal[] = ['keto', 'paleo', 'whole30', 'carnivore'];
 
-export default function PersonalGoalScreen() {
+export default function PersonalGoalDietScreen() {
   const insets = useSafeAreaInsets();
   const { data, setPersonalGoal } = useOnboarding();
-  // Only pre-select if the stored goal belongs to this group
   const [selected, setSelected] = useState<PersonalGoal | null>(
-    EAT_WELL_VALUES.includes(data.personal_goal as PersonalGoal) && data.personal_goal !== 'balanced'
+    DIET_STYLE_VALUES.includes(data.personal_goal as PersonalGoal)
       ? (data.personal_goal as PersonalGoal)
       : null
   );
 
-  const advance = () => router.push('/onboarding/personal-goal-diet' as Href);
+  const advance = () => router.push('/onboarding/personal-goal-life' as Href);
 
   const handleContinue = () => {
     if (selected) setPersonalGoal(selected);
@@ -56,14 +55,14 @@ export default function PersonalGoalScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.stepLabel}>Step 5 of 11</Text>
-        <Text style={styles.heading}>What's your main health goal?</Text>
+        <Text style={styles.heading}>Do you follow a specific diet?</Text>
         <Text style={styles.subheading}>
-          We'll personalise your Discover feed. Tap the one that fits you best — or skip if none apply.
+          If you eat a particular way, select it here. We'll filter recipes accordingly.
         </Text>
 
-        <Text style={styles.sectionLabel}>🥗 Eat Well</Text>
+        <Text style={styles.sectionLabel}>🥩 Diet Style</Text>
 
-        {EAT_WELL_ITEMS.map((item) => {
+        {DIET_STYLE_ITEMS.map((item) => {
           const isSelected = selected === item.value;
           return (
             <TouchableOpacity
@@ -96,7 +95,7 @@ export default function PersonalGoalScreen() {
           testID="continue-btn"
         />
         <TouchableOpacity style={styles.skipButton} onPress={handleSkip} testID="skip-btn">
-          <Text style={styles.skipText}>None of these — skip</Text>
+          <Text style={styles.skipText}>I don't follow a diet — skip</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -9,6 +9,7 @@ import { Check } from 'lucide-react-native';
 import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
+import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { PersonalGoal } from '@/types';
 
 type GoalItem = {
@@ -18,33 +19,39 @@ type GoalItem = {
   description: string;
 };
 
-const EAT_WELL_ITEMS: GoalItem[] = [
-  { value: 'balanced',      emoji: '🥗', label: 'Balanced',           description: 'No specific goal — just eating well' },
-  { value: 'weight_loss',   emoji: '⚖️', label: 'Weight Loss',        description: 'Lighter meals, fewer calories' },
-  { value: 'muscle_gain',   emoji: '💪', label: 'Muscle Gain',        description: 'High protein, serious fuel' },
-  { value: 'recomposition', emoji: '🎯', label: 'Body Recomposition', description: 'Lean & strong, calorie-smart' },
+const HEALTH_FOCUS_ITEMS: GoalItem[] = [
+  { value: 'diabetes_management', emoji: '🩸', label: 'Diabetes',          description: 'Blood sugar balance, low GI' },
+  { value: 'heart_health',        emoji: '❤️', label: 'Heart Health',      description: 'Mediterranean & omega-3 rich' },
+  { value: 'gut_health',          emoji: '🌱', label: 'Gut Health',        description: 'Fibre-rich, plant diversity' },
+  { value: 'longevity',           emoji: '🧬', label: 'Longevity',         description: 'Antioxidant-rich, eat to thrive' },
+  { value: 'anti_inflammatory',   emoji: '💊', label: 'Anti-Inflammatory', description: 'Omega-3s & polyphenol focus' },
 ];
 
-const EAT_WELL_VALUES: PersonalGoal[] = ['balanced', 'weight_loss', 'muscle_gain', 'recomposition'];
+const HEALTH_FOCUS_VALUES: PersonalGoal[] = [
+  'diabetes_management', 'heart_health', 'gut_health', 'longevity', 'anti_inflammatory',
+];
 
-export default function PersonalGoalScreen() {
+export default function PersonalGoalHealthScreen() {
   const insets = useSafeAreaInsets();
-  const { data, setPersonalGoal } = useOnboarding();
-  // Only pre-select if the stored goal belongs to this group
+  const { data, setPersonalGoal, setStep } = useOnboarding();
+  const { updateUserSettings } = useFamilySettings();
   const [selected, setSelected] = useState<PersonalGoal | null>(
-    EAT_WELL_VALUES.includes(data.personal_goal as PersonalGoal) && data.personal_goal !== 'balanced'
+    HEALTH_FOCUS_VALUES.includes(data.personal_goal as PersonalGoal)
       ? (data.personal_goal as PersonalGoal)
       : null
   );
 
-  const advance = () => router.push('/onboarding/personal-goal-diet' as Href);
-
-  const handleContinue = () => {
-    if (selected) setPersonalGoal(selected);
-    advance();
+  const finish = (goal?: PersonalGoal) => {
+    const finalGoal = goal ?? data.personal_goal ?? 'balanced';
+    if (goal) setPersonalGoal(goal);
+    // Sync to UserSettings so Discover carousels & Smart Fill reflect the choice immediately
+    updateUserSettings({ personal_goal: finalGoal });
+    setStep(6);
+    router.push('/onboarding/cuisines' as Href);
   };
 
-  const handleSkip = () => advance();
+  const handleContinue = () => finish(selected ?? undefined);
+  const handleSkip = () => finish();
 
   return (
     <View style={styles.container}>
@@ -56,14 +63,14 @@ export default function PersonalGoalScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.stepLabel}>Step 5 of 11</Text>
-        <Text style={styles.heading}>What's your main health goal?</Text>
+        <Text style={styles.heading}>Any health conditions to consider?</Text>
         <Text style={styles.subheading}>
-          We'll personalise your Discover feed. Tap the one that fits you best — or skip if none apply.
+          We'll prioritise recipes that support your needs. This is the last question in this section.
         </Text>
 
-        <Text style={styles.sectionLabel}>🥗 Eat Well</Text>
+        <Text style={styles.sectionLabel}>❤️ Health Focus</Text>
 
-        {EAT_WELL_ITEMS.map((item) => {
+        {HEALTH_FOCUS_ITEMS.map((item) => {
           const isSelected = selected === item.value;
           return (
             <TouchableOpacity
@@ -96,7 +103,7 @@ export default function PersonalGoalScreen() {
           testID="continue-btn"
         />
         <TouchableOpacity style={styles.skipButton} onPress={handleSkip} testID="skip-btn">
-          <Text style={styles.skipText}>None of these — skip</Text>
+          <Text style={styles.skipText}>None of these — skip to cuisines</Text>
         </TouchableOpacity>
       </View>
     </View>

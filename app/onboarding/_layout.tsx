@@ -23,6 +23,9 @@ export default function OnboardingLayout() {
       <Stack.Screen name="household-size" />
       <Stack.Screen name="family-dietary" />
       <Stack.Screen name="personal-goal" />
+      <Stack.Screen name="personal-goal-diet" />
+      <Stack.Screen name="personal-goal-life" />
+      <Stack.Screen name="personal-goal-health" />
       <Stack.Screen name="cuisines" />
       <Stack.Screen name="cooking-time" />
       <Stack.Screen name="planning-style" />

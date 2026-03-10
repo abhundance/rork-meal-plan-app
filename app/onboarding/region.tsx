@@ -21,6 +21,87 @@ import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 
+// Maps ISO 3166-1 alpha-2 region codes (from device locale) to country names
+// in the COUNTRIES list. Used to auto-detect the user's country on first load.
+const REGION_CODE_TO_COUNTRY: Record<string, string> = {
+  'AR': 'Argentina',
+  'AT': 'Austria',
+  'AU': 'Australia',
+  'BD': 'Bangladesh',
+  'BE': 'Belgium',
+  'BR': 'Brazil',
+  'CA': 'Canada',
+  'CH': 'Switzerland',
+  'CL': 'Chile',
+  'CN': 'China',
+  'CO': 'Colombia',
+  'DE': 'Germany',
+  'DK': 'Denmark',
+  'EG': 'Egypt',
+  'ES': 'Spain',
+  'FI': 'Finland',
+  'FR': 'France',
+  'GB': 'United Kingdom',
+  'GR': 'Greece',
+  'HK': 'Hong Kong',
+  'HU': 'Hungary',
+  'ID': 'Indonesia',
+  'IE': 'Ireland',
+  'IL': 'Israel',
+  'IN': 'India',
+  'IT': 'Italy',
+  'JP': 'Japan',
+  'KE': 'Kenya',
+  'KR': 'South Korea',
+  'MM': 'Myanmar',
+  'MX': 'Mexico',
+  'MY': 'Malaysia',
+  'NG': 'Nigeria',
+  'NL': 'Netherlands',
+  'NO': 'Norway',
+  'NP': 'Nepal',
+  'NZ': 'New Zealand',
+  'PH': 'Philippines',
+  'PK': 'Pakistan',
+  'PL': 'Poland',
+  'PT': 'Portugal',
+  'RO': 'Romania',
+  'SA': 'Saudi Arabia',
+  'SE': 'Sweden',
+  'SG': 'Singapore',
+  'LK': 'Sri Lanka',
+  'TH': 'Thailand',
+  'TR': 'Turkey',
+  'TW': 'Taiwan',
+  'US': 'United States',
+  'VN': 'Vietnam',
+  'ZA': 'South Africa',
+  'AE': 'United Arab Emirates',
+};
+
+/**
+ * Attempts to detect the user's country from the device locale string.
+ * e.g. "en-ID" → "Indonesia", "ja-JP" → "Japan", "zh-Hans-CN" → "China"
+ * Returns null if the region code is not in our country list.
+ */
+function detectCountryFromLocale(): string | null {
+  try {
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+    const parts = locale.split('-');
+    // The region code is typically the last segment (2 uppercase letters).
+    // For locales like "zh-Hans-CN", the script tag "Hans" comes before the region "CN".
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const segment = parts[i].toUpperCase();
+      if (segment.length === 2 && REGION_CODE_TO_COUNTRY[segment]) {
+        return REGION_CODE_TO_COUNTRY[segment];
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const COUNTRIES = [
   'Singapore',
   'Australia',
@@ -80,8 +161,23 @@ const COUNTRIES = [
 export default function RegionScreen() {
   const insets = useSafeAreaInsets();
   const { data, setRegion, setStep } = useOnboarding();
-  const [country, setCountry] = useState<string>(data.region ?? 'Singapore');
-  const [units, setUnits] = useState<'metric' | 'imperial'>(data.measurement_units ?? 'metric');
+  const [country, setCountry] = useState<string>(() => {
+    // If the user previously saved a region, respect it
+    if (data.region) return data.region;
+    // Otherwise auto-detect from device locale — avoids hardcoding any default
+    return detectCountryFromLocale() ?? '';
+  });
+  const [units, setUnits] = useState<'metric' | 'imperial'>(() => {
+    if (data.measurement_units) return data.measurement_units;
+    // Auto-detect: US uses imperial; most other countries use metric
+    try {
+      const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+      const parts = locale.split('-');
+      const regionCode = parts[parts.length - 1].toUpperCase();
+      if (regionCode === 'US') return 'imperial';
+    } catch { /* fall through */ }
+    return 'metric';
+  });
   const [showPicker, setShowPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -92,7 +188,7 @@ export default function RegionScreen() {
   }, [searchQuery]);
 
   const handleContinue = () => {
-    setRegion(country.trim() || 'Singapore', units);
+    setRegion(country.trim(), units);
     setStep(2);
     router.push('/onboarding/family-name' as Href);
   };
@@ -124,7 +220,9 @@ export default function RegionScreen() {
           activeOpacity={0.7}
           testID="country-selector"
         >
-          <Text style={styles.selectorText}>{country}</Text>
+          <Text style={[styles.selectorText, !country && styles.selectorPlaceholder]}>
+            {country || 'Select your country…'}
+          </Text>
           <ChevronRight size={18} color={Colors.textSecondary} />
         </TouchableOpacity>
 
@@ -298,6 +396,10 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
+  },
+  selectorPlaceholder: {
+    color: Colors.inactive,
+    fontWeight: '400' as const,
   },
   sectionTitle: {
     fontSize: 14,

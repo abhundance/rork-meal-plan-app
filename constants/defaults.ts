@@ -46,7 +46,7 @@ export const DEFAULT_ONBOARDING: OnboardingData = {
   dietary_preferences_individual: [],
   is_admin: true,
   personal_goal: 'balanced',
-  region: 'Singapore',
+  region: '',
   measurement_units: 'metric',
   cuisine_preferences: [],
   cooking_time_pref: '20_40',

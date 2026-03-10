@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
 } from 'react-native';
@@ -48,10 +48,125 @@ const CUISINE_EMOJIS: Record<string, string> = {
   'Vietnamese': '🥗',
 };
 
+// Cuisines ordered by global popularity (most universally loved first).
+// Alphabetical ordering was removed — it surfaced "African" and "American"
+// first, which are not the cuisines most families eat week-to-week.
+const POPULARITY_ORDER: typeof CUISINE_OPTIONS[number][] = [
+  'Italian',
+  'Chinese',
+  'Japanese',
+  'Mexican',
+  'Indian',
+  'French',
+  'Thai',
+  'Mediterranean',
+  'American',
+  'Spanish',
+  'Greek',
+  'Korean',
+  'Middle Eastern',
+  'Vietnamese',
+  'Malaysian',
+  'Latin American',
+  'Filipino',
+  'Caribbean',
+  'British',
+  'German',
+  'European',
+  'Eastern European',
+  'Singaporean',
+  'African',
+  'Nordic',
+  'Irish',
+  'Southern',
+  'Colombian',
+  'Jewish',
+  'Cajun',
+  'Native American',
+];
+
+// Maps the user's selected country (from region screen) to the cuisine in
+// CUISINE_OPTIONS that best represents it. When a match is found, that cuisine
+// is promoted to the very top of the list so it's the first thing the user sees.
+const REGION_CUISINE_MAP: Partial<Record<string, typeof CUISINE_OPTIONS[number]>> = {
+  // East Asia
+  'China': 'Chinese',
+  'Hong Kong': 'Chinese',
+  'Taiwan': 'Chinese',
+  'Japan': 'Japanese',
+  'South Korea': 'Korean',
+  // Southeast Asia
+  'Singapore': 'Singaporean',
+  'Malaysia': 'Malaysian',
+  'Indonesia': 'Malaysian',   // closest available cuisine
+  'Thailand': 'Thai',
+  'Vietnam': 'Vietnamese',
+  'Philippines': 'Filipino',
+  'Myanmar': 'Malaysian',     // closest available cuisine
+  // South Asia
+  'India': 'Indian',
+  'Pakistan': 'Indian',
+  'Bangladesh': 'Indian',
+  'Nepal': 'Indian',
+  'Sri Lanka': 'Indian',
+  // Western Europe
+  'France': 'French',
+  'Italy': 'Italian',
+  'Spain': 'Spanish',
+  'Greece': 'Greek',
+  'Germany': 'German',
+  'Netherlands': 'European',
+  'Belgium': 'European',
+  'Switzerland': 'European',
+  'Austria': 'European',
+  'Portugal': 'Mediterranean',
+  // UK & Ireland
+  'United Kingdom': 'British',
+  'Ireland': 'Irish',
+  // Nordic
+  'Denmark': 'Nordic',
+  'Norway': 'Nordic',
+  'Sweden': 'Nordic',
+  'Finland': 'Nordic',
+  // Eastern Europe
+  'Poland': 'Eastern European',
+  'Romania': 'Eastern European',
+  'Hungary': 'Eastern European',
+  // Middle East & North Africa
+  'Saudi Arabia': 'Middle Eastern',
+  'United Arab Emirates': 'Middle Eastern',
+  'Israel': 'Middle Eastern',
+  'Turkey': 'Middle Eastern',
+  'Egypt': 'Middle Eastern',
+  // Africa
+  'Nigeria': 'African',
+  'Kenya': 'African',
+  'South Africa': 'African',
+  // North America
+  'United States': 'American',
+  'Canada': 'American',
+  // Latin America
+  'Mexico': 'Mexican',
+  'Colombia': 'Colombian',
+  'Brazil': 'Latin American',
+  'Argentina': 'Latin American',
+  'Chile': 'Latin American',
+};
+
+/** Returns cuisines ordered by: [user's regional cuisine] → [global popularity] */
+function getOrderedCuisines(region?: string): typeof CUISINE_OPTIONS[number][] {
+  const regional = region ? REGION_CUISINE_MAP[region] : undefined;
+  if (!regional) return [...POPULARITY_ORDER];
+  return [regional, ...POPULARITY_ORDER.filter(c => c !== regional)];
+}
+
 export default function CuisinesScreen() {
   const insets = useSafeAreaInsets();
   const { data, setCuisinePreferences, setStep } = useOnboarding();
   const [selected, setSelected] = useState<string[]>(data.cuisine_preferences ?? []);
+
+  // Recompute order only when data.region changes (stable across renders)
+  const orderedCuisines = useMemo(() => getOrderedCuisines(data.region), [data.region]);
 
   const toggleCuisine = (cuisine: string) => {
     setSelected(prev =>
@@ -87,7 +202,7 @@ export default function CuisinesScreen() {
         </Text>
 
         <View style={styles.grid}>
-          {[...CUISINE_OPTIONS].map((cuisine) => {
+          {orderedCuisines.map((cuisine) => {
             const isSelected = selected.includes(cuisine);
             return (
               <TouchableOpacity
