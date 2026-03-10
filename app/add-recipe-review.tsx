@@ -19,7 +19,7 @@ import { ChevronLeft, Camera, XCircle, PlusCircle, ChevronUp, ChevronDown } from
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
-import { extractRecipeFromImage, extractRecipeFromText, detectVideoUrlType, extractRecipeFromVideoUrl } from '@/services/recipeExtraction';
+import { extractRecipeFromImage, extractRecipeFromText, detectVideoUrlType, extractRecipeFromVideoUrl, extractRecipeMetadata } from '@/services/recipeExtraction';
 import { imageStore } from '@/services/imageStore';
 import { useFavs } from '@/providers/FavsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
@@ -152,6 +152,10 @@ export default function AddMealReviewScreen() {
 
   // ── Recipe Details accordion fields ─────────────────────────────────────────
   const [accordionOpen, setAccordionOpen] = useState<boolean>(false);
+  // hasAutoFilled: true once extractRecipeMetadata has run (either via useEffect extraction or on-demand)
+  // Prevents re-triggering auto-fill on every accordion open.
+  const [hasAutoFilled, setHasAutoFilled] = useState<boolean>(false);
+  const [isAutoFillingDetails, setIsAutoFillingDetails] = useState<boolean>(false);
   const [mealType, setMealType] = useState<MealTypeValue | ''>(() => {
     const v = params.prefillMealType ?? '';
     if (v === 'breakfast' || v === 'lunch_dinner' || v === 'light_bites') return v;
@@ -173,8 +177,9 @@ export default function AddMealReviewScreen() {
   const [proteinPerServingG, setProteinPerServingG] = useState<string>('');
   const [carbsPerServingG, setCarbsPerServingG] = useState<string>('');
 
-  // Show "AI filled" badge on accordion header when AI populated at least one detail field
-  const accordionHasAiFill = isAiExtracted && (
+  // Show "AI filled" badge on accordion header when AI populated at least one detail field.
+  // Covers both extraction-path (isAiExtracted) and on-demand auto-fill (hasAutoFilled).
+  const accordionHasAiFill = (isAiExtracted || hasAutoFilled) && (
     !!mealType || !!cuisine || !!dishCategory || !!proteinSource ||
     dietLabels.length > 0 || allergens.length > 0 || occasions.length > 0 ||
     !!caloriesPerServing
@@ -244,6 +249,9 @@ export default function AddMealReviewScreen() {
           setAccordionOpen(true);
         }
 
+        // Mark as already filled so the on-demand accordion auto-fill doesn't retrigger
+        setHasAutoFilled(true);
+
         console.log('[Review] Extraction complete:', result.name);
       } catch (e) {
         console.log('[Review] Extraction failed:', e);
@@ -311,6 +319,47 @@ export default function AddMealReviewScreen() {
     setOccasions(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   }, []);
 
+  // ── Accordion auto-fill ───────────────────────────────────────────────────────
+  // Mirrors the manual-mode accordion behaviour in add-recipe-entry.tsx.
+  // Calls extractRecipeMetadata to populate detail fields (dish type, protein,
+  // diet labels, allergens, occasions, nutrition) that aren't passed as params
+  // from voice extraction or weren't fetched by the main extraction useEffect.
+  const handleAutoFillDetails = useCallback(async () => {
+    if (!name.trim()) return;
+    setIsAutoFillingDetails(true);
+    try {
+      const validIngredients = ingredients.map((i) => ({
+        name: i.name, quantity: i.quantity, unit: i.unit || 'pc',
+      }));
+      const result = await extractRecipeMetadata(name.trim(), validIngredients);
+      if (result.dish_category) setDishCategory(result.dish_category);
+      if (result.protein_source) setProteinSource(result.protein_source);
+      if (result.diet_labels?.length) setDietLabels(result.diet_labels);
+      if (result.allergens?.length) setAllergens(result.allergens);
+      if (result.occasions?.length) setOccasions(result.occasions);
+      if (result.calories_per_serving != null) setCaloriesPerServing(String(result.calories_per_serving));
+      if (result.protein_per_serving_g != null) setProteinPerServingG(String(result.protein_per_serving_g));
+      if (result.carbs_per_serving_g != null) setCarbsPerServingG(String(result.carbs_per_serving_g));
+      // Fill meal_type / cuisine only if not already set from prefill or extraction
+      if (!mealType && result.meal_type) setMealType(result.meal_type as MealTypeValue);
+      if (!cuisine && result.cuisine) setCuisine(result.cuisine);
+    } catch {
+      // Silent fail — accordion remains open, user can fill manually
+    } finally {
+      setIsAutoFillingDetails(false);
+    }
+  }, [name, ingredients, mealType, cuisine]);
+
+  const handleAccordionToggle = useCallback(() => {
+    const opening = !accordionOpen;
+    setAccordionOpen(opening);
+    // Trigger auto-fill the first time the accordion is opened and details are empty
+    if (opening && !hasAutoFilled && !isLoading && name.trim()) {
+      setHasAutoFilled(true);
+      void handleAutoFillDetails();
+    }
+  }, [accordionOpen, hasAutoFilled, isLoading, name, handleAutoFillDetails]);
+
   // ── Save ─────────────────────────────────────────────────────────────────────
   const handleSave = useCallback(() => {
     const trimmedName = name.trim();
@@ -374,7 +423,7 @@ export default function AddMealReviewScreen() {
       addMeal(plannedMeal);
       router.replace('/(tabs)' as never);
     } else {
-      router.replace('/(tabs)/favs' as never);
+      router.replace('/(tabs)/(home)' as never);
     }
   }, [
     name, description, cookTimeBand, prepTime, cookTime,
@@ -626,7 +675,7 @@ export default function AddMealReviewScreen() {
           <View style={styles.card}>
             <TouchableOpacity
               style={styles.accordionHeader}
-              onPress={() => setAccordionOpen(v => !v)}
+              onPress={handleAccordionToggle}
               activeOpacity={0.8}
             >
               <View style={styles.accordionHeaderLeft}>
@@ -645,6 +694,14 @@ export default function AddMealReviewScreen() {
 
             {accordionOpen && (
               <View style={styles.accordionBody}>
+
+                {/* Auto-fill loading state */}
+                {isAutoFillingDetails && (
+                  <View style={styles.autoFillStatus}>
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                    <Text style={styles.autoFillStatusText}>Auto-filling details…</Text>
+                  </View>
+                )}
 
                 {/* Meal Type */}
                 <View style={styles.accordionSection}>
@@ -1030,7 +1087,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   chipActive: {
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
   chipText: {
@@ -1040,7 +1097,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   chipTextActive: {
-    color: Colors.primary,
+    color: Colors.white,
   },
   servingRow: {
     marginTop: 4,
@@ -1192,6 +1249,17 @@ const styles = StyleSheet.create({
   },
   accordionBody: {
     marginTop: Spacing.md,
+  },
+  autoFillStatus: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  autoFillStatusText: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.primary,
   },
   accordionSection: {
     marginBottom: Spacing.lg,

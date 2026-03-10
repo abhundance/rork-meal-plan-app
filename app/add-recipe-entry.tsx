@@ -321,7 +321,7 @@ export default function AddRecipeEntryScreen() {
       addMeal(plannedMeal);
       router.replace('/(tabs)' as never);
     } else {
-      router.replace('/(tabs)/favs' as never);
+      router.replace('/(tabs)/(home)' as never);
     }
   }, [
     name, cookingTimeBand, prepTime, cookTime, mealType, selectedImageUri, cuisine,
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
   chip: { backgroundColor: Colors.surface, borderRadius: BorderRadius.button, paddingHorizontal: 12, paddingVertical: 8 },
   chipActive: { backgroundColor: Colors.primary },
   chipText: { fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.text },
-  chipTextActive: { color: Colors.primary, fontFamily: FontFamily.semiBold, fontWeight: '600' },
+  chipTextActive: { color: Colors.white, fontFamily: FontFamily.semiBold, fontWeight: '600' },
   timeInputRow: { flexDirection: 'row', gap: 12, marginTop: 4 },
   timeInputWrap: { flex: 1 },
   timeInput: { backgroundColor: Colors.white, borderRadius: BorderRadius.button, borderWidth: 1, borderColor: Colors.surface, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: Colors.text },
