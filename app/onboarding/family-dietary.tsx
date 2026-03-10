@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
-import ProgressBar from '@/components/ProgressBar';
-import OnboardingBackButton from '@/components/OnboardingBackButton';
+
+import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import DietaryPillGrid from '@/components/DietaryPillGrid';
 import { useOnboarding } from '@/providers/OnboardingProvider';
@@ -28,11 +28,15 @@ export default function FamilyDietaryScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <OnboardingBackButton />
-      <ProgressBar current={4} total={11} />
+    <View style={[styles.container]}>
+      <OnboardingHeader current={4} total={11} />
 
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.stepLabel}>Step 4 of 11</Text>
         <Text style={styles.heading}>Does your family follow any dietary preferences?</Text>
 
@@ -41,7 +45,7 @@ export default function FamilyDietaryScreen() {
         <Text style={styles.helper}>
           We'll use this to personalise your Discover feed. Each member can also set personal preferences after joining.
         </Text>
-      </View>
+      </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <PrimaryButton
@@ -62,10 +66,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  content: {
+  scroll: {
     flex: 1,
+  },
+  content: {
     paddingHorizontal: 24,
     paddingTop: 32,
+    paddingBottom: 16,
   },
   stepLabel: {
     fontSize: 13,
@@ -99,7 +106,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 15,
-    color: Colors.primary,
+    color: Colors.textSecondary,
     fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
   },

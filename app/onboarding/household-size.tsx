@@ -4,8 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
-import ProgressBar from '@/components/ProgressBar';
-import OnboardingBackButton from '@/components/OnboardingBackButton';
+
+import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import Stepper from '@/components/Stepper';
 import { useOnboarding } from '@/providers/OnboardingProvider';
@@ -22,9 +22,8 @@ export default function HouseholdSizeScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <OnboardingBackButton />
-      <ProgressBar current={3} total={11} />
+    <View style={[styles.container]}>
+      <OnboardingHeader current={3} total={11} />
 
       <View style={styles.content}>
         <Text style={styles.stepLabel}>Step 3 of 11</Text>

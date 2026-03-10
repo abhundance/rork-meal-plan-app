@@ -7,8 +7,8 @@ import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
-import ProgressBar from '@/components/ProgressBar';
-import OnboardingBackButton from '@/components/OnboardingBackButton';
+
+import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 import { CUISINE_OPTIONS } from '@/types';
@@ -72,9 +72,8 @@ export default function CuisinesScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <OnboardingBackButton />
-      <ProgressBar current={6} total={11} />
+    <View style={[styles.container]}>
+      <OnboardingHeader current={6} total={11} />
 
       <ScrollView
         style={styles.scroll}
@@ -204,7 +203,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 15,
-    color: Colors.primary,
+    color: Colors.textSecondary,
     fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
   },

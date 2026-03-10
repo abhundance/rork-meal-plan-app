@@ -270,8 +270,8 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: Colors.warning,
-    backgroundColor: '#FFF8EB',
+    color: Colors.danger,
+    backgroundColor: Colors.primaryLight,
     padding: Spacing.md,
     borderRadius: BorderRadius.input,
     overflow: 'hidden',

@@ -7,8 +7,9 @@ import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
-import ProgressBar from '@/components/ProgressBar';
-import OnboardingBackButton from '@/components/OnboardingBackButton';
+import { Check } from 'lucide-react-native';
+
+import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 import { StarterMealPick } from '@/types';
@@ -42,9 +43,8 @@ export default function DinnerPicksScreen() {
   const FOOTER_HEIGHT = insets.bottom + 120;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <OnboardingBackButton />
-      <ProgressBar current={11} total={11} />
+    <View style={[styles.container]}>
+      <OnboardingHeader current={11} total={11} />
 
       <FlatList
         data={DINNER_MEALS}
@@ -76,7 +76,7 @@ export default function DinnerPicksScreen() {
                 <Text style={styles.mealMeta}>{meal.cuisine} · ~{meal.cook_time_mins} min</Text>
               </View>
               <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-                {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                {isSelected && <Check size={13} color={Colors.white} strokeWidth={3} />}
               </View>
             </TouchableOpacity>
           );
@@ -182,12 +182,6 @@ const styles = StyleSheet.create({
   checkboxSelected: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
-  },
-  checkmark: {
-    color: Colors.white,
-    fontSize: 13,
-    fontFamily: FontFamily.bold,
-    fontWeight: '700' as const,
   },
   footer: {
     position: 'absolute',

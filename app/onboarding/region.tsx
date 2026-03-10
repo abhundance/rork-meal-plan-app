@@ -16,8 +16,8 @@ import { ChevronRight, X, Check } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
-import ProgressBar from '@/components/ProgressBar';
-import OnboardingBackButton from '@/components/OnboardingBackButton';
+
+import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 
@@ -105,11 +105,10 @@ export default function RegionScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={[styles.container]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <OnboardingBackButton />
-      <ProgressBar current={1} total={11} />
+      <OnboardingHeader current={1} total={11} />
 
       <View style={styles.content}>
         <Text style={styles.stepLabel}>Step 1 of 11</Text>

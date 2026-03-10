@@ -5,8 +5,8 @@ import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
-import ProgressBar from '@/components/ProgressBar';
-import OnboardingBackButton from '@/components/OnboardingBackButton';
+import { Check } from 'lucide-react-native';
+import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 
@@ -54,9 +54,8 @@ export default function PlanningStyleScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <OnboardingBackButton />
-      <ProgressBar current={8} total={11} />
+    <View style={[styles.container]}>
+      <OnboardingHeader current={8} total={11} />
 
       <ScrollView
         style={styles.scroll}
@@ -90,7 +89,11 @@ export default function PlanningStyleScreen() {
                       {option.tagline}
                     </Text>
                   </View>
-                  {isSelected && <View style={styles.checkDot} />}
+                  {isSelected && (
+                    <View style={styles.checkDot}>
+                      <Check size={12} color={Colors.white} strokeWidth={3} />
+                    </View>
+                  )}
                 </View>
                 <Text style={styles.optionDesc}>{option.description}</Text>
               </TouchableOpacity>
@@ -200,11 +203,13 @@ const styles = StyleSheet.create({
     paddingLeft: 44,
   },
   checkDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: Colors.primary,
     marginLeft: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footer: {
     paddingHorizontal: 24,

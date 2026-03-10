@@ -5,8 +5,8 @@ import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
-import ProgressBar from '@/components/ProgressBar';
-import OnboardingBackButton from '@/components/OnboardingBackButton';
+import { Check } from 'lucide-react-native';
+import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
@@ -86,9 +86,8 @@ export default function PersonalGoalScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <OnboardingBackButton />
-      <ProgressBar current={5} total={11} />
+    <View style={[styles.container]}>
+      <OnboardingHeader current={5} total={11} />
 
       <ScrollView
         style={styles.scroll}
@@ -120,7 +119,11 @@ export default function PersonalGoalScreen() {
                     </Text>
                     <Text style={styles.goalDesc}>{item.description}</Text>
                   </View>
-                  {isSelected && <View style={styles.checkDot} />}
+                  {isSelected && (
+                    <View style={styles.checkDot}>
+                      <Check size={12} color={Colors.white} strokeWidth={3} />
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -228,11 +231,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   checkDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: Colors.primary,
     marginLeft: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footer: {
     position: 'absolute',
@@ -251,7 +256,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 15,
-    color: Colors.primary,
+    color: Colors.textSecondary,
     fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
   },
