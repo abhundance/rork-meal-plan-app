@@ -319,9 +319,9 @@ export default function AddRecipeEntryScreen() {
         meal_id: newMeal.id,
       };
       addMeal(plannedMeal);
-      router.replace('/(tabs)' as never);
+      router.dismissAll();
     } else {
-      router.replace('/(tabs)/(home)' as never);
+      router.dismissAll();
     }
   }, [
     name, cookingTimeBand, prepTime, cookTime, mealType, selectedImageUri, cuisine,

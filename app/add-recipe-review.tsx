@@ -421,9 +421,9 @@ export default function AddMealReviewScreen() {
         meal_id: meal.id,
       };
       addMeal(plannedMeal);
-      router.replace('/(tabs)' as never);
+      router.dismissAll();
     } else {
-      router.replace('/(tabs)/(home)' as never);
+      router.dismissAll();
     }
   }, [
     name, description, cookTimeBand, prepTime, cookTime,
