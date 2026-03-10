@@ -23,6 +23,7 @@ import { extractRecipeFromImage, extractRecipeFromText, detectVideoUrlType, extr
 import { imageStore } from '@/services/imageStore';
 import { useFavs } from '@/providers/FavsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
+import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { consumePendingPlanSlot, hasPendingPlanSlot, peekPendingPlanSlot } from '@/services/pendingPlanSlot';
 import {
   Recipe,
@@ -76,6 +77,7 @@ export default function AddMealReviewScreen() {
   const params = useLocalSearchParams<Params>();
   const { addFav } = useFavs();
   const { addMeal } = useMealPlan();
+  const { familySettings } = useFamilySettings();
 
   const [isAddingToPlan] = useState<boolean>(() => hasPendingPlanSlot());
   const [pendingSlotName] = useState<string>(() => { const s = peekPendingPlanSlot(); return s ? s.slotName : ''; });
@@ -197,11 +199,11 @@ export default function AddMealReviewScreen() {
         if (inputMode === 'camera' || inputMode === 'photos') {
           const stored = imageStore.get();
           if (!stored?.base64) { setIsLoading(false); return; }
-          result = await extractRecipeFromImage(stored.base64);
+          result = await extractRecipeFromImage(stored.base64, familySettings.language);
           if (stored.uri) setSelectedImageUri(stored.uri);
           imageStore.clear();
         } else if (inputMode === 'text' && params.inputText) {
-          result = await extractRecipeFromText(params.inputText);
+          result = await extractRecipeFromText(params.inputText, familySettings.language);
         } else if (inputMode === 'url' && params.inputUrl) {
           setLoadingLabel('Analysing video description…');
           result = await extractRecipeFromVideoUrl(params.inputUrl);
@@ -331,7 +333,7 @@ export default function AddMealReviewScreen() {
       const validIngredients = ingredients.map((i) => ({
         name: i.name, quantity: i.quantity, unit: i.unit || 'pc',
       }));
-      const result = await extractRecipeMetadata(name.trim(), validIngredients);
+      const result = await extractRecipeMetadata(name.trim(), validIngredients, familySettings.language);
       if (result.dish_category) setDishCategory(result.dish_category);
       if (result.protein_source) setProteinSource(result.protein_source);
       if (result.diet_labels?.length) setDietLabels(result.diet_labels);

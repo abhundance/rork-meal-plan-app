@@ -123,7 +123,7 @@ export default function AddRecipeEntryScreen() {
     try {
       const result: ExtractedRecipe = inputIsUrl
         ? await extractRecipeFromVideoUrl(input)
-        : await extractRecipeFromText(input);
+        : await extractRecipeFromText(input, familySettings.language);
       router.push({
         pathname: '/add-recipe-review' as never,
         params: {
@@ -207,7 +207,7 @@ export default function AddRecipeEntryScreen() {
 
     setIsExtracting(true);
     try {
-      const extracted = await extractRecipeFromPdf(asset.uri, asset.name ?? 'recipe.pdf');
+      const extracted = await extractRecipeFromPdf(asset.uri, asset.name ?? 'recipe.pdf', familySettings.language);
       imageStore.clear();
       router.push({
         pathname: '/add-recipe-review' as never,
@@ -269,7 +269,7 @@ export default function AddRecipeEntryScreen() {
       const validIngredients = ingredients.filter((i) => i.name.trim()).map((i) => ({
         name: i.name.trim(), quantity: parseFloat(i.quantity) || 0, unit: i.unit.trim() || 'pc',
       }));
-      const result = await extractRecipeMetadata(name.trim(), validIngredients);
+      const result = await extractRecipeMetadata(name.trim(), validIngredients, familySettings.language);
       if (result.cuisine) setCuisine(result.cuisine);
       if (result.meal_type) {
         const t = result.meal_type.toLowerCase();

@@ -10,27 +10,41 @@ function getApiKey(): string {
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 // ─── Output language ──────────────────────────────────────────────────────────
-// Controls the language used for all AI-generated text fields (recipe name,
-// description, ingredient names, method steps).
+// Maps the display name stored in FamilySettings.language to the natural-language
+// name that GPT-4o-mini expects in the system prompt (e.g. "Français" → "French").
+// Defaults to English if the language is not in the map or not provided.
 //
-// Currently hardcoded to English. In a future localization pass this constant
-// should be derived from the user's app locale setting so the extracted recipe
-// is returned in the user's preferred language automatically.
-//
-// To add a new locale, add a case to the switch and update the UI language
-// picker in user settings. The value must be a natural-language name that
-// GPT-4o-mini recognises (e.g. "French", "Spanish", "Hindi", "Arabic").
-const OUTPUT_LANGUAGE = 'English';
+// To add a new language: add an entry here AND add it to the language picker
+// in app/family-settings.tsx.
+const LANGUAGE_DISPLAY_MAP: Record<string, string> = {
+  'English':   'English',
+  'Français':  'French',
+  'Español':   'Spanish',
+  'Deutsch':   'German',
+  'Português': 'Portuguese',
+  'Italiano':  'Italian',
+  'हिन्दी':     'Hindi',
+  '日本語':     'Japanese',
+  'العربية':   'Arabic',
+};
 
-// System-level instruction injected into every extraction call.
+function getOutputLanguage(displayName?: string): string {
+  if (!displayName) return 'English';
+  return LANGUAGE_DISPLAY_MAP[displayName] ?? 'English';
+}
+
+// Builds the system-level language instruction for a given extraction call.
 // Using a dedicated `system` message gives it the highest instruction priority
 // so the model can't be "confused" into replying in the input language even
 // when the recipe content is in a different language (e.g. user dictates a
 // Hindi recipe via voice, or pastes a French recipe URL).
-const LANGUAGE_SYSTEM_MESSAGE = {
-  role: 'system' as const,
-  content: `You are a recipe extraction assistant. Always respond in ${OUTPUT_LANGUAGE}. All text values you produce — including recipe name, description, ingredient names, and method step text — MUST be written in ${OUTPUT_LANGUAGE}, regardless of the language of the input content. Translate non-${OUTPUT_LANGUAGE} content into ${OUTPUT_LANGUAGE} as part of the extraction process.`,
-};
+function getLanguageSystemMessage(language?: string) {
+  const lang = getOutputLanguage(language);
+  return {
+    role: 'system' as const,
+    content: `You are a recipe extraction assistant. Always respond in ${lang}. All text values you produce — including recipe name, description, ingredient names, and method step text — MUST be written in ${lang}, regardless of the language of the input content. Translate non-${lang} content into ${lang} as part of the extraction process.`,
+  };
+}
 
 
 export interface ExtractedRecipe {
@@ -96,7 +110,7 @@ nutrition rules: estimate per serving if ingredients are known; use null if not 
 ingredient unit rules: ALWAYS use metric units (g, ml, kg, L). Use singular unit names (clove not cloves, tablespoon not tablespoons, cup not cups). Never use fractions — convert to decimals (0.5 not 1/2). If the source uses imperial, convert to metric.
 ingredient category rules: assign each ingredient to exactly one category from the list. Examples: vegetables/fruit/herbs used fresh → Produce; raw meat/fish/seafood → Meat & Fish; milk/cheese/eggs/butter/cream → Dairy & Eggs; flour/sugar/rice/pasta/canned goods/oil → Pantry; bread/wraps/rolls → Bread & Bakery; frozen items → Frozen; water/juice/stock/wine/spirits → Drinks; ketchup/soy sauce/vinegar/hot sauce/mustard/mayonnaise → Condiments & Sauces; dried spices/dried herbs → Herbs & Spices.`;
 
-export async function extractRecipeFromImage(base64Image: string): Promise<ExtractedRecipe> {
+export async function extractRecipeFromImage(base64Image: string, language?: string): Promise<ExtractedRecipe> {
   const response = await fetch(OPENAI_URL, {
     method: 'POST',
     headers: {
@@ -106,7 +120,7 @@ export async function extractRecipeFromImage(base64Image: string): Promise<Extra
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        LANGUAGE_SYSTEM_MESSAGE,
+        getLanguageSystemMessage(language),
         {
           role: 'user',
           content: [
@@ -148,7 +162,7 @@ export async function extractRecipeFromImage(base64Image: string): Promise<Extra
   }
 }
 
-export async function extractRecipeFromText(text: string): Promise<ExtractedRecipe> {
+export async function extractRecipeFromText(text: string, language?: string): Promise<ExtractedRecipe> {
   const response = await fetch(OPENAI_URL, {
     method: 'POST',
     headers: {
@@ -158,7 +172,7 @@ export async function extractRecipeFromText(text: string): Promise<ExtractedReci
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        LANGUAGE_SYSTEM_MESSAGE,
+        getLanguageSystemMessage(language),
         {
           role: 'user',
           content: `${EXTRACTION_PROMPT}\n\nRecipe content to extract:\n${text}`,
@@ -382,6 +396,7 @@ Unit rules: when reading ingredient quantities, always interpret and normalise t
 export async function extractRecipeMetadata(
   name: string,
   ingredients: { name: string; quantity: number; unit: string }[],
+  language?: string,
 ): Promise<ExtractedMetadata> {
   const ingredientList = ingredients
     .map((i) => `${i.quantity} ${i.unit} ${i.name}`.trim())
@@ -398,7 +413,7 @@ export async function extractRecipeMetadata(
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        LANGUAGE_SYSTEM_MESSAGE,
+        getLanguageSystemMessage(language),
         { role: 'user', content: userContent },
       ],
       max_tokens: 500,
@@ -438,6 +453,7 @@ export async function extractRecipeMetadata(
 export async function extractRecipeFromPdf(
   fileUri: string,
   filename: string = 'recipe.pdf',
+  language?: string,
 ): Promise<ExtractedRecipe> {
   // Step 1: Upload the PDF to OpenAI Files API
   const formData = new FormData();
@@ -474,7 +490,7 @@ export async function extractRecipeFromPdf(
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        LANGUAGE_SYSTEM_MESSAGE,
+        getLanguageSystemMessage(language),
         {
           role: 'user',
           content: [
