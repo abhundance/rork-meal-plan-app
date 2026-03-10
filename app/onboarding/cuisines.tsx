@@ -320,6 +320,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.textSecondary,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
 });

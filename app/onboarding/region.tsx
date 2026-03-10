@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
   toggleSubSelected: {
     color: Colors.primary,
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
   // Modal styles
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: Colors.overlay,
   },
   modalSheet: {
     position: 'absolute',

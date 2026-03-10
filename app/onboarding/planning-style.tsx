@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   optionTagline: {
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
     marginTop: 1,
   },

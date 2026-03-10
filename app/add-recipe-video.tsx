@@ -119,7 +119,7 @@ export default function AddMealVideoScreen() {
 
         <View style={styles.content}>
           <View style={styles.disclaimer}>
-            <Info size={20} color="#D97706" strokeWidth={2} />
+            <Info size={20} color={Colors.warning} strokeWidth={2} />
             <Text style={styles.disclaimerText}>
               This only works if the full recipe — including ingredients and steps — is listed in the video description or caption. If the recipe is only spoken in the video, use Voice or Paste Text instead.
             </Text>
@@ -146,7 +146,7 @@ export default function AddMealVideoScreen() {
             <View style={styles.hintRow}>
               {detectedType === 'youtube' ? (
                 <>
-                  <Ionicons name="logo-youtube" size={16} color="#FF0000" />
+                  <Ionicons name="logo-youtube" size={16} color="#FF0000" /* YouTube brand red — intentional */ />
                   <Text style={styles.hintText}>YouTube link detected</Text>
                 </>
               ) : (
@@ -207,10 +207,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: Colors.offlineBanner,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: Colors.border,
     padding: 12,
     marginBottom: Spacing.lg,
   },
@@ -218,8 +218,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500',
-    color: '#92400E',
+    fontWeight: '600',
+    color: Colors.offlineText,
     lineHeight: 18,
   },
   inputRow: {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   hintText: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500',
+    fontWeight: '600',
     color: Colors.textSecondary,
   },
 });

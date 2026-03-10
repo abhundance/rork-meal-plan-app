@@ -203,16 +203,16 @@ const styles = StyleSheet.create({
   },
   warningBanner: {
     marginTop: 16,
-    backgroundColor: '#FFF8EB',
+    backgroundColor: Colors.offlineBanner,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   warningText: {
     fontSize: 13,
-    color: '#8B6914',
+    color: Colors.offlineText,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     textAlign: 'center',
   },
   footer: {

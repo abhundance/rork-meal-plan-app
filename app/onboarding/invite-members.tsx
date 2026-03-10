@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
   copyIcon: {
     marginLeft: 12,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   shareLabel: {
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.textSecondary,
   },
   helper: {
@@ -196,6 +196,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.primary,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
 });

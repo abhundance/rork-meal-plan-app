@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.primary,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
   contentArea: {
     flex: 1,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 26,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     maxWidth: SCREEN_WIDTH * 0.75,
   },
   bottomArea: {
