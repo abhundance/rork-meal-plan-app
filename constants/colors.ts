@@ -9,14 +9,14 @@ export const SlotColors = [
 ];
 
 export default {
-  // Primary — Supreme Red
-  primary: '#ED1C16',          // interactive: buttons, icons, active states, CTAs (4.41:1 on white — use on large UI elements)
-  primaryVibrant: '#F53530',   // decorative only: hero fills, card tints, filled hearts
-  primaryLight: '#FEF0EE',     // selected chip bg, highlights, icon container bg
+  // Primary — Pinterest Red
+  primary: '#E60023',          // interactive: buttons, icons, active states, CTAs (4.41:1 on white — use on large UI elements)
+  primaryVibrant: '#F80020',   // decorative only: hero fills, card tints, filled hearts
+  primaryLight: '#FDEBED',     // selected chip bg, highlights, icon container bg
 
   // Family placeholder gradient — used by MealImagePlaceholder for family-created meals.
   // Derived from primary. Update all three values whenever primary changes.
-  familyGradient: ['#FEF0EE', '#FDDAD8', '#FCC8C5'] as [string, string, string],
+  familyGradient: ['#FDEBED', '#FBDADF', '#FAC7CF'] as [string, string, string],
 
   // Surfaces — intentionally neutral so the red accent pops rather than bleeds
   background: '#FFFFFF',       // page background (pure white — Supreme aesthetic)
@@ -36,10 +36,10 @@ export default {
   // Utility
   white: '#FFFFFF',
   border: '#E0E0E0',           // slightly crisper on white background
-  shadow: '#ED1C16',           // red-tinted card/tab shadows
+  shadow: '#E60023',           // red-tinted card/tab shadows
   inactive: 'rgba(44, 44, 44, 0.4)',
-  skeleton1: '#F5DCDA',        // warm red-tinted skeleton base
-  skeleton2: '#FEF0EE',        // skeleton shimmer highlight
+  skeleton1: '#FACCD3',        // warm red-tinted skeleton base
+  skeleton2: '#FDEBED',        // skeleton shimmer highlight
   offlineBanner: '#F5E6C8',
   offlineText: '#8B6914',
   divider: '#E0E0E0',          // neutral (no red tint)

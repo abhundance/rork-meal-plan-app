@@ -16,7 +16,7 @@ interface OnboardingHeaderProps {
  *
  * Design contract:
  * - Back zone: 44px fixed width, contains ChevronLeft when navigation.canGoBack()
- * - Progress track: flex:1, height 4px, #ED1C16 fill, #F8F8F8 track, animated spring
+ * - Progress track: flex:1, height 4px, #E60023 fill, #F8F8F8 track, animated spring
  * - Safe area: handles paddingTop: insets.top internally — DO NOT add it to the parent
  * - Replaces both <OnboardingBackButton /> and <ProgressBar /> — use ONE component
  */

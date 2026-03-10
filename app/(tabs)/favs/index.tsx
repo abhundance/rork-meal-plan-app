@@ -998,7 +998,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#FDDAD8',
+    borderBottomColor: Colors.familyGradient[1],
   },
   slotBannerLeft: {
     flexDirection: 'row',
