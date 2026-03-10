@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   familyName: {
     fontSize: 28,
     fontFamily: FontFamily.bold,
-    fontWeight: '800' as const,
+    fontWeight: '700' as const,
     color: Colors.primary,
     textAlign: 'center',
     marginBottom: 8,
