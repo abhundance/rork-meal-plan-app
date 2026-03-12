@@ -50,7 +50,7 @@ export default function PlanningStyleScreen() {
   const handleContinue = () => {
     setPlanningStyle(selected);
     setStep(12);
-    router.push('/onboarding/configure-slots' as Href);
+    router.push('/onboarding/chapter-plan' as Href);
   };
 
   return (

@@ -67,7 +67,7 @@ export default function PersonalGoalScreen() {
 
   const advance = () => {
     setStep(9);
-    router.push('/onboarding/cuisines' as Href);
+    router.push('/onboarding/chapter-style' as Href);
   };
 
   const handleContinue = () => {

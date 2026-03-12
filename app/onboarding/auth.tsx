@@ -1,8 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal,
   TextInput, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import { UtensilsCrossed, Mail, X } from 'lucide-react-native';
@@ -12,17 +14,38 @@ import { BorderRadius, Spacing } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 
+// Beautiful food photography from Unsplash — cycles with crossfade every 4.5 s
+const BG_IMAGES = [
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1080&q=85',
+  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1080&q=85',
+  'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=1080&q=85',
+  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1080&q=85',
+  'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=1080&q=85',
+];
+
+const SLIDE_INTERVAL_MS = 4500;
+const CROSSFADE_MS = 1500;
+
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const { setStep } = useOnboarding();
-  const [showEmailModal, setShowEmailModal] = useState<boolean>(false);
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [error, setError] = useState<string>('');
 
-  const handleSocialAuth = useCallback((provider: string) => {
-    console.log('[Auth] Social auth with:', provider);
+  const [imageIdx, setImageIdx]             = useState(0);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [email, setEmail]                   = useState('');
+  const [password, setPassword]             = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError]                   = useState('');
+
+  // Pre-load the next image so the crossfade is seamless
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setImageIdx(i => (i + 1) % BG_IMAGES.length);
+    }, SLIDE_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleSocialAuth = useCallback((_provider: string) => {
     setStep(1);
     router.push('/onboarding/region' as Href);
   }, [setStep]);
@@ -32,56 +55,82 @@ export default function AuthScreen() {
     if (!email.trim()) { setError('Please enter your email'); return; }
     if (!password || password.length < 6) { setError('Password must be at least 6 characters'); return; }
     if (password !== confirmPassword) { setError('Passwords do not match'); return; }
-    console.log('[Auth] Email signup:', email);
     setShowEmailModal(false);
     setStep(1);
     router.push('/onboarding/region' as Href);
   }, [email, password, confirmPassword, setStep]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}>
-      <View style={styles.heroSection}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <UtensilsCrossed size={40} color={Colors.primary} strokeWidth={2} />
-          </View>
+    <View style={styles.container}>
+
+      {/* ── Cinematic background ── */}
+      <Image
+        source={{ uri: BG_IMAGES[imageIdx] }}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        transition={CROSSFADE_MS}
+        recyclingKey="auth-bg"
+      />
+
+      {/* ── Gradient overlay: light at top, dark at bottom ── */}
+      <LinearGradient
+        colors={[
+          'rgba(0,0,0,0.08)',
+          'rgba(0,0,0,0.25)',
+          'rgba(0,0,0,0.72)',
+          'rgba(0,0,0,0.90)',
+        ]}
+        locations={[0, 0.3, 0.7, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* ── Logo — top-centre, floating over the image ── */}
+      <View style={[styles.logoWrap, { top: insets.top + 44 }]}>
+        <View style={styles.logoCircle}>
+          <UtensilsCrossed size={26} color="#FFFFFF" strokeWidth={2.5} />
         </View>
-        <Text style={styles.appName}>Meal Plan</Text>
-        <Text style={styles.tagline}>Simple family meal planning</Text>
       </View>
 
-      <View style={styles.authSection}>
-        <PrimaryButton
-          label="Continue with Google"
-          onPress={() => handleSocialAuth('google')}
-          testID="auth-google"
-        />
+      {/* ── Bottom content ── */}
+      <View style={[styles.bottomContent, { paddingBottom: insets.bottom + 28 }]}>
 
-        <PrimaryButton
-          label="Continue with Apple"
-          onPress={() => handleSocialAuth('apple')}
-          variant="secondary"
-          testID="auth-apple"
-          style={{ marginTop: 12 }}
-        />
+        <View style={styles.headline}>
+          <Text style={styles.appName}>Meal Plan</Text>
+          <Text style={styles.tagline}>Dinner on the table.{'\n'}Every single week.</Text>
+        </View>
 
-        <TouchableOpacity
-          style={styles.emailLink}
-          onPress={() => setShowEmailModal(true)}
-          testID="auth-email"
-        >
-          <Mail size={16} color={Colors.primary} strokeWidth={2} />
-          <Text style={styles.emailLinkText}>Sign up with Email</Text>
-        </TouchableOpacity>
+        <View style={styles.authButtons}>
+          <PrimaryButton
+            label="Continue with Google"
+            onPress={() => handleSocialAuth('google')}
+            testID="auth-google"
+          />
+          <PrimaryButton
+            label="Continue with Apple"
+            onPress={() => handleSocialAuth('apple')}
+            variant="secondary"
+            testID="auth-apple"
+            style={{ marginTop: 10 }}
+          />
+          <TouchableOpacity
+            style={styles.emailLink}
+            onPress={() => setShowEmailModal(true)}
+            testID="auth-email"
+          >
+            <Mail size={14} color="rgba(255,255,255,0.65)" strokeWidth={2} />
+            <Text style={styles.emailLinkText}>Sign up with Email</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.terms}>
+          By continuing you agree to our{' '}
+          <Text style={styles.termsLink}>Terms</Text>
+          {' '}and{' '}
+          <Text style={styles.termsLink}>Privacy Policy</Text>
+        </Text>
       </View>
 
-      <Text style={styles.terms}>
-        By continuing, you agree to our{' '}
-        <Text style={styles.termsLink}>Terms of Service</Text>
-        {' '}and{' '}
-        <Text style={styles.termsLink}>Privacy Policy</Text>
-      </Text>
-
+      {/* ── Email sign-up modal ── */}
       <Modal
         visible={showEmailModal}
         animationType="slide"
@@ -155,69 +204,92 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
-    paddingHorizontal: 24,
-    justifyContent: 'space-between',
+    backgroundColor: '#111111', // dark fallback while images load
   },
-  heroSection: {
+
+  // Logo
+  logoWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-  },
-  logoContainer: {
-    marginBottom: 20,
   },
   logoCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 28,
-    backgroundColor: Colors.primaryLight,
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    // subtle white glow so it reads on any image
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+
+  // Bottom content block
+  bottomContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    gap: 20,
+  },
+  headline: {
+    gap: 8,
   },
   appName: {
-    fontSize: 32,
+    fontSize: 42,
     fontFamily: FontFamily.bold,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    letterSpacing: -0.5,
-    marginBottom: 8,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -1.2,
+    lineHeight: 46,
   },
   tagline: {
     fontSize: 17,
-    color: Colors.textSecondary,
-    fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontFamily: FontFamily.regular,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.72)',
+    lineHeight: 25,
   },
-  authSection: {
-    paddingBottom: 24,
+
+  // Auth buttons
+  authButtons: {
+    gap: 0,
   },
   emailLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    marginTop: 8,
+    gap: 7,
+    paddingVertical: 14,
+    marginTop: 4,
   },
   emailLinkText: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-    textDecorationLine: 'underline',
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.65)',
   },
+
+  // Terms
   terms: {
-    fontSize: 12,
-    color: Colors.textSecondary,
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
+    color: 'rgba(255,255,255,0.38)',
     textAlign: 'center',
-    lineHeight: 18,
-    paddingBottom: 8,
+    lineHeight: 16,
   },
   termsLink: {
-    color: Colors.primary,
+    color: 'rgba(255,255,255,0.55)',
     textDecorationLine: 'underline',
   },
+
+  // Email modal
   modalContainer: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -230,12 +302,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
+    borderBottomColor: Colors.border,
   },
   modalTitle: {
     fontSize: 20,
     fontFamily: FontFamily.bold,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     color: Colors.text,
   },
   closeButton: {
@@ -253,7 +325,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
+    fontWeight: '600',
     color: Colors.text,
     marginBottom: 6,
     marginTop: 16,

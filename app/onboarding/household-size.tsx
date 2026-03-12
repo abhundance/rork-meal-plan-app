@@ -18,7 +18,7 @@ export default function HouseholdSizeScreen() {
   const handleContinue = () => {
     setHouseholdSize(size);
     setStep(4);
-    router.push('/onboarding/cultural-restrictions' as Href);
+    router.push('/onboarding/chapter-dietary' as Href);
   };
 
   return (
