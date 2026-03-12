@@ -1,54 +1,36 @@
-// services/recipeExtraction.ts
-// Extracts structured recipe data from images and text using OpenAI GPT-4o
+/**
+ * services/recipeExtraction.ts
+ *
+ * All OpenAI calls are now proxied through the `extract-recipe` Supabase Edge
+ * Function so that the OpenAI API key never ships in the app bundle.
+ *
+ * Client → Supabase Edge Function (extract-recipe) → OpenAI
+ *
+ * The function URL is derived from EXPO_PUBLIC_SUPABASE_URL so no extra env
+ * variable is needed.
+ */
 
-function getApiKey(): string {
-  const key = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-  if (!key) throw new Error('OpenAI API key is not configured. Add EXPO_PUBLIC_OPENAI_API_KEY in Rork environment variables.');
-  return key;
+// ── Env readers (lazy pattern — see CLAUDE.md §Architectural Rules) ───────────
+function getSupabaseUrl(): string {
+  return process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+}
+function getSupabaseAnonKey(): string {
+  return process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+}
+function getEdgeFunctionUrl(): string {
+  const url = getSupabaseUrl();
+  if (!url) throw new Error('EXPO_PUBLIC_SUPABASE_URL is not configured.');
+  return `${url}/functions/v1/extract-recipe`;
 }
 
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+// ── Output language ────────────────────────────────────────────────────────────
+// The Edge Function handles the language mapping internally; we just forward the
+// display name (e.g. "Français") in the request body.
 
-// ─── Output language ──────────────────────────────────────────────────────────
-// Maps the display name stored in FamilySettings.language to the natural-language
-// name that GPT-4o-mini expects in the system prompt (e.g. "Français" → "French").
-// Defaults to English if the language is not in the map or not provided.
-//
-// To add a new language: add an entry here AND add it to the language picker
-// in app/family-settings.tsx.
-const LANGUAGE_DISPLAY_MAP: Record<string, string> = {
-  'English':   'English',
-  'Français':  'French',
-  'Español':   'Spanish',
-  'Deutsch':   'German',
-  'Português': 'Portuguese',
-  'Italiano':  'Italian',
-  'हिन्दी':     'Hindi',
-  '日本語':     'Japanese',
-  'العربية':   'Arabic',
-};
-
-function getOutputLanguage(displayName?: string): string {
-  if (!displayName) return 'English';
-  return LANGUAGE_DISPLAY_MAP[displayName] ?? 'English';
-}
-
-// Builds the system-level language instruction for a given extraction call.
-// Using a dedicated `system` message gives it the highest instruction priority
-// so the model can't be "confused" into replying in the input language even
-// when the recipe content is in a different language (e.g. user dictates a
-// Hindi recipe via voice, or pastes a French recipe URL).
-function getLanguageSystemMessage(language?: string) {
-  const lang = getOutputLanguage(language);
-  return {
-    role: 'system' as const,
-    content: `You are a recipe extraction assistant. Always respond in ${lang}. All text values you produce — including recipe name, description, ingredient names, and method step text — MUST be written in ${lang}, regardless of the language of the input content. Translate non-${lang} content into ${lang} as part of the extraction process.`,
-  };
-}
-
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ExtractedRecipe {
-  // ── Core content ───────────────────────────────────────────────────────────
+  // ── Core content ──────────────────────────────────────────────────────────
   name: string;
   description: string;
   ingredients: { name: string; quantity: number; unit: string }[];
@@ -60,152 +42,83 @@ export interface ExtractedRecipe {
   cooking_time_band: 'Under 30' | '30-60' | 'Over 60';
   recipe_serving_size: number;
 
-  // ── Classification (new) ───────────────────────────────────────────────────
-  dish_category?: string;    // main | salad | soup | appetizer | side | dessert | drink | bread | sandwich | sauce | other
-  protein_source?: string;   // chicken | beef | pork | lamb | turkey | seafood | egg | dairy | plant | none
-  occasions?: string[];      // weeknight | weekend | brunch | date-night | meal-prep | etc.
+  // ── Classification ────────────────────────────────────────────────────────
+  dish_category?: string;
+  protein_source?: string;
+  occasions?: string[];
 
-  // ── Dietary & allergens (new) ──────────────────────────────────────────────
-  allergens?: string[];      // what the recipe IS FREE FROM: gluten-free | dairy-free | etc.
-  diet_labels?: string[];    // positive classifications: vegan | vegetarian | high-protein | etc.
+  // ── Dietary & allergens ───────────────────────────────────────────────────
+  allergens?: string[];
+  diet_labels?: string[];
 
-  // ── Nutrition (new, per serving, estimated) ────────────────────────────────
+  // ── Nutrition (per serving, estimated) ───────────────────────────────────
   calories_per_serving?: number;
   protein_per_serving_g?: number;
   carbs_per_serving_g?: number;
 
-  // ── Legacy fields — kept for backward compatibility ────────────────────────
+  // ── Legacy fields ─────────────────────────────────────────────────────────
   cuisine: string;
   meal_type: 'breakfast' | 'lunch_dinner' | 'light_bites';
-  dietary_tags: string[];    // @deprecated — derived from diet_labels + allergens
+  dietary_tags: string[];
 }
 
-const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Extract the recipe from the provided content and return ONLY a valid JSON object with this exact structure. No markdown, no explanation — raw JSON only:
-{
-  "name": "Recipe name",
-  "description": "1-2 sentence description",
-  "cuisine": "e.g. Italian, Asian, Mexican",
-  "meal_type": "breakfast" | "lunch_dinner" | "light_bites",
-  "cooking_time_band": "Under 30" | "30-60" | "Over 60",
-  "prep_time": number (minutes),
-  "cook_time": number (minutes),
-  "recipe_serving_size": number,
-  "dietary_tags": array of applicable values from ["Vegan","Vegetarian","Gluten-Free","Dairy-Free","High Protein"],
-  "ingredients": [{"name": "string", "quantity": number, "unit": "string", "category": "one of: Produce|Meat & Fish|Dairy & Eggs|Pantry|Bread & Bakery|Frozen|Drinks|Condiments & Sauces|Herbs & Spices|Other"}],
-  "method_steps": ["Step 1 text", "Step 2 text"],
-  "dish_category": one of "main"|"salad"|"soup"|"appetizer"|"side"|"dessert"|"drink"|"bread"|"sandwich"|"sauce"|"other",
-  "protein_source": one of "chicken"|"beef"|"pork"|"lamb"|"turkey"|"seafood"|"egg"|"dairy"|"plant"|"none",
-  "allergens": array of values this recipe is genuinely FREE FROM, chosen from ["gluten-free","dairy-free","egg-free","nut-free","peanut-free","soy-free","shellfish-free","wheat-free","sesame-free"],
-  "diet_labels": array of positive dietary classifications that genuinely apply, chosen from ["vegan","vegetarian","high-protein","low-carb","keto","paleo","whole30","plant-based","high-fibre","low-calorie","low-fat","mediterranean","gluten-free","dairy-free","omega-3","antioxidant-rich"],
-  "occasions": array of 1-3 most applicable values from ["weeknight","weekend","brunch","date-night","meal-prep","potluck","game-day","bbq","picnic","summer","christmas","thanksgiving","easter","birthday"],
-  "calories_per_serving": number or null if not determinable,
-  "protein_per_serving_g": number or null if not determinable,
-  "carbs_per_serving_g": number or null if not determinable
+export interface ExtractedMetadata {
+  cuisine?: string;
+  meal_type?: string;
+  dish_category?: string;
+  protein_source?: string;
+  allergens?: string[];
+  diet_labels?: string[];
+  occasions?: string[];
+  calories_per_serving?: number;
+  protein_per_serving_g?: number;
+  carbs_per_serving_g?: number;
 }
-meal_type rules: use "breakfast" for morning meals, "lunch_dinner" for main meals, "light_bites" for snacks/sides.
-cooking_time_band rules: total of prep+cook time: <30min = "Under 30", 30-60min = "30-60", >60min = "Over 60".
-allergens rules: only include values the recipe is genuinely free from — do NOT add speculatively.
-diet_labels rules: only include labels that clearly apply based on the ingredients.
-nutrition rules: estimate per serving if ingredients are known; use null if not determinable.
-ingredient unit rules: ALWAYS use metric units (g, ml, kg, L). Use singular unit names (clove not cloves, tablespoon not tablespoons, cup not cups). Never use fractions — convert to decimals (0.5 not 1/2). If the source uses imperial, convert to metric.
-ingredient category rules: assign each ingredient to exactly one category from the list. Examples: vegetables/fruit/herbs used fresh → Produce; raw meat/fish/seafood → Meat & Fish; milk/cheese/eggs/butter/cream → Dairy & Eggs; flour/sugar/rice/pasta/canned goods/oil → Pantry; bread/wraps/rolls → Bread & Bakery; frozen items → Frozen; water/juice/stock/wine/spirits → Drinks; ketchup/soy sauce/vinegar/hot sauce/mustard/mayonnaise → Condiments & Sauces; dried spices/dried herbs → Herbs & Spices.`;
 
-export async function extractRecipeFromImage(base64Image: string, language?: string): Promise<ExtractedRecipe> {
-  const response = await fetch(OPENAI_URL, {
+// ─── Core Edge Function caller ────────────────────────────────────────────────
+
+async function callEdgeFunction(payload: Record<string, unknown>): Promise<unknown> {
+  const url = getEdgeFunctionUrl();
+  const anonKey = getSupabaseAnonKey();
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getApiKey()}`,
+      'Authorization': `Bearer ${anonKey}`,
+      'apikey': anonKey,
     },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        getLanguageSystemMessage(language),
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: { url: `data:image/jpeg;base64,${base64Image}` },
-            },
-            { type: 'text', text: EXTRACTION_PROMPT },
-          ],
-        },
-      ],
-      max_tokens: 2000,
-    }),
+    body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    console.error('[recipeExtraction] API error:', response.status, errorBody);
-    throw new Error(`OpenAI error: ${response.status}`);
-  }
-  const data = await response.json();
-  const content = data.choices[0].message.content;
-
-  if (!content || typeof content !== 'string') {
-    throw new Error('Could not extract recipe — no response from AI. Please try again.');
-  }
-
-  console.log('[recipeExtraction] Raw response:', content);
-
-  let cleaned = content.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-  }
+  let json: { data?: unknown; error?: string };
   try {
-    return JSON.parse(cleaned) as ExtractedRecipe;
-  } catch (_parseError) {
-    console.error('[recipeExtraction] Failed to parse AI response:', cleaned);
-    throw new Error('Could not extract recipe — the AI returned an unexpected format. Please try again or enter the recipe manually.');
+    json = await response.json();
+  } catch {
+    throw new Error(`Edge Function returned non-JSON response (HTTP ${response.status})`);
   }
+
+  if (!response.ok || json.error) {
+    throw new Error(json.error ?? `Edge Function error: ${response.status}`);
+  }
+
+  return json.data;
 }
 
-export async function extractRecipeFromText(text: string, language?: string): Promise<ExtractedRecipe> {
-  const response = await fetch(OPENAI_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getApiKey()}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        getLanguageSystemMessage(language),
-        {
-          role: 'user',
-          content: `${EXTRACTION_PROMPT}\n\nRecipe content to extract:\n${text}`,
-        },
-      ],
-      max_tokens: 2000,
-    }),
-  });
+// ─── Public API (same signatures as before — no call-site changes needed) ─────
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    console.error('[recipeExtraction] API error:', response.status, errorBody);
-    throw new Error(`OpenAI error: ${response.status}`);
-  }
-  const data = await response.json();
-  const content = data.choices[0].message.content;
+export async function extractRecipeFromImage(
+  base64Image: string,
+  language?: string,
+): Promise<ExtractedRecipe> {
+  return callEdgeFunction({ type: 'image', base64Image, language }) as Promise<ExtractedRecipe>;
+}
 
-  if (!content || typeof content !== 'string') {
-    throw new Error('Could not extract recipe — no response from AI. Please try again.');
-  }
-
-  console.log('[recipeExtraction] Raw response:', content);
-
-  let cleaned = content.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-  }
-  try {
-    return JSON.parse(cleaned) as ExtractedRecipe;
-  } catch (_parseError) {
-    console.error('[recipeExtraction] Failed to parse AI response:', cleaned);
-    throw new Error('Could not extract recipe — the AI returned an unexpected format. Please try again or enter the recipe manually.');
-  }
+export async function extractRecipeFromText(
+  text: string,
+  language?: string,
+): Promise<ExtractedRecipe> {
+  return callEdgeFunction({ type: 'text', text, language }) as Promise<ExtractedRecipe>;
 }
 
 export function detectVideoUrlType(url: string): 'youtube' | 'tiktok' | 'other' {
@@ -228,304 +141,80 @@ export function extractYouTubeVideoId(url: string): string | null {
   return null;
 }
 
-function getYouTubeApiKey(): string {
-  const key = process.env.EXPO_PUBLIC_YOUTUBE_API_KEY;
-  if (!key) throw new Error('YouTube API key is not configured. Add EXPO_PUBLIC_YOUTUBE_API_KEY to Rork environment variables.');
-  return key;
+export async function extractRecipeFromYouTubeUrl(
+  url: string,
+  language?: string,
+): Promise<ExtractedRecipe> {
+  // YouTube API call + GPT extraction both happen server-side in the Edge Function
+  return callEdgeFunction({ type: 'youtube', url, language }) as Promise<ExtractedRecipe>;
 }
 
-export async function extractRecipeFromYouTubeUrl(url: string): Promise<ExtractedRecipe> {
-  const videoId = extractYouTubeVideoId(url);
-  if (!videoId) throw new Error('Could not parse YouTube video ID from URL.');
-
-  const apiKey = getYouTubeApiKey();
-  const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet&key=${apiKey}`;
-
-  const response = await fetch(apiUrl);
-  if (!response.ok) throw new Error(`YouTube API error: ${response.status}`);
-
-  const data = await response.json();
-  const items = data.items;
-  if (!items || items.length === 0) throw new Error('Video not found or is private.');
-
-  const snippet = items[0].snippet;
-  const title = snippet.title || '';
-  const description = snippet.description || '';
-
-  const combinedText = `Video title: ${title}\n\nVideo description:\n${description}`;
-
-  return extractRecipeFromText(combinedText);
+export async function extractRecipeFromTikTokUrl(
+  url: string,
+  language?: string,
+): Promise<ExtractedRecipe> {
+  return callEdgeFunction({ type: 'tiktok', url, language }) as Promise<ExtractedRecipe>;
 }
 
-export async function extractRecipeFromTikTokUrl(url: string): Promise<ExtractedRecipe> {
-  const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
-
-  const response = await fetch(oembedUrl);
-  if (!response.ok) throw new Error(`TikTok oEmbed error: ${response.status}`);
-
-  const data = await response.json();
-  const title = data.title || '';
-  const author = data.author_name || '';
-
-  if (!title) throw new Error('Could not retrieve TikTok video information.');
-
-  const combinedText = `TikTok video by ${author}:\n\nCaption: ${title}`;
-
-  return extractRecipeFromText(combinedText);
-}
-
-async function extractRecipeFromWebUrl(url: string): Promise<ExtractedRecipe> {
-  let response: Response;
-  try {
-    const isWeb = typeof document !== 'undefined';
-    const fetchUrl = isWeb
-      ? `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
-      : url;
-
-    response = await fetch(fetchUrl, {
-      headers: {
-        'Accept': 'text/html,application/xhtml+xml,*/*',
-      },
-    });
-  } catch (e) {
-    console.error('[recipeExtraction] Fetch error:', e);
-    throw new Error('Could not fetch the webpage. Check the URL and try again.');
-  }
-
-  if (!response.ok) {
-    throw new Error(`Could not fetch the webpage (HTTP ${response.status}).`);
-  }
-
-  const html = await response.text();
-
-  const textContent = html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
-    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
-    .replace(/<header[\s\S]*?<\/header>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#\d+;/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 8000);
-
-  if (textContent.length < 50) {
-    throw new Error('The webpage did not contain enough text to extract a recipe.');
-  }
-
-  return extractRecipeFromText(
-    `Recipe from webpage (${url}):\n\n${textContent}`
-  );
-}
-
-export async function extractRecipeFromVideoUrl(url: string): Promise<ExtractedRecipe> {
+export async function extractRecipeFromVideoUrl(
+  url: string,
+  language?: string,
+): Promise<ExtractedRecipe> {
   const type = detectVideoUrlType(url);
-  if (type === 'youtube') return extractRecipeFromYouTubeUrl(url);
-  if (type === 'tiktok') return extractRecipeFromTikTokUrl(url);
-  return extractRecipeFromWebUrl(url);
+  if (type === 'youtube') return extractRecipeFromYouTubeUrl(url, language);
+  if (type === 'tiktok')  return extractRecipeFromTikTokUrl(url, language);
+  // Generic web URL
+  return callEdgeFunction({ type: 'web', url, language }) as Promise<ExtractedRecipe>;
 }
 
-export async function transcribeAndExtract(audioUri: string): Promise<ExtractedRecipe> {
-  const formData = new FormData();
-  formData.append('file', {
-    uri: audioUri,
-    type: 'audio/m4a',
-    name: 'recording.m4a',
-  } as any);
-  formData.append('model', 'whisper-1');
+export async function transcribeAndExtract(
+  audioUri: string,
+  language?: string,
+): Promise<ExtractedRecipe> {
+  // Convert local file URI → base64 so we can send it in the JSON body.
+  // On React Native, fetch() can read local file:// URIs.
+  const audioResponse = await fetch(audioUri);
+  if (!audioResponse.ok) throw new Error('Could not read audio file.');
+  const blob = await audioResponse.blob();
+  const base64Audio = await blobToBase64(blob);
+  const audioMimeType = blob.type || 'audio/m4a';
 
-  const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${getApiKey()}`,
-    },
-    body: formData,
-  });
-
-  if (!whisperResponse.ok) {
-    const errorBody = await whisperResponse.text();
-    console.error('[recipeExtraction] Whisper error:', whisperResponse.status, errorBody);
-    throw new Error(`Whisper error: ${whisperResponse.status}`);
-  }
-
-  const whisperData = await whisperResponse.json();
-  const transcribedText: string = whisperData.text;
-  console.log('[recipeExtraction] Transcribed:', transcribedText);
-
-  return extractRecipeFromText(transcribedText);
+  return callEdgeFunction({ type: 'voice', base64Audio, audioMimeType, language }) as Promise<ExtractedRecipe>;
 }
 
-// ─── Metadata-only extraction (for manual entry AI fill) ─────────────────────
-// Given a recipe name + ingredient list, infers classification / dietary /
-// nutrition metadata without re-extracting the full recipe content.
+export async function extractRecipeFromPdf(
+  fileUri: string,
+  filename = 'recipe.pdf',
+  language?: string,
+): Promise<ExtractedRecipe> {
+  const fileResponse = await fetch(fileUri);
+  if (!fileResponse.ok) throw new Error('Could not read PDF file.');
+  const blob = await fileResponse.blob();
+  const base64Pdf = await blobToBase64(blob);
 
-export interface ExtractedMetadata {
-  cuisine?: string;           // e.g. "Italian", "Mexican", "Asian"
-  meal_type?: string;         // "breakfast" | "lunch" | "dinner" | "snack" | "dessert"
-  dish_category?: string;
-  protein_source?: string;
-  allergens?: string[];
-  diet_labels?: string[];
-  occasions?: string[];
-  calories_per_serving?: number;
-  protein_per_serving_g?: number;
-  carbs_per_serving_g?: number;
+  return callEdgeFunction({ type: 'pdf', base64Pdf, filename, language }) as Promise<ExtractedRecipe>;
 }
-
-const METADATA_PROMPT = `You are a recipe metadata assistant. Given a recipe name and ingredient list, infer the classification and nutritional metadata. Return ONLY a valid JSON object — no markdown, no explanation:
-{
-  "cuisine": the primary cuisine style as a plain string (e.g. "Italian", "Mexican", "Asian", "British", "Indian"), or null if unclear,
-  "meal_type": one of "breakfast"|"lunch"|"dinner"|"snack"|"dessert" — which meal this recipe best suits,
-  "dish_category": one of "main"|"salad"|"soup"|"appetizer"|"side"|"dessert"|"drink"|"bread"|"sandwich"|"sauce"|"other",
-  "protein_source": one of "chicken"|"beef"|"pork"|"lamb"|"turkey"|"seafood"|"egg"|"dairy"|"plant"|"none",
-  "allergens": array of values this recipe is genuinely FREE FROM, chosen from ["gluten-free","dairy-free","egg-free","nut-free","peanut-free","soy-free","shellfish-free","wheat-free","sesame-free"],
-  "diet_labels": array of positive dietary classifications that genuinely apply, chosen from ["vegan","vegetarian","high-protein","low-carb","keto","paleo","whole30","plant-based","high-fibre","low-calorie","low-fat","mediterranean","gluten-free","dairy-free","omega-3","antioxidant-rich"],
-  "occasions": array of 1-3 most applicable values from ["weeknight","weekend","brunch","date-night","meal-prep","potluck","game-day","bbq","picnic","summer","christmas","thanksgiving","easter","birthday"],
-  "calories_per_serving": number or null if not determinable,
-  "protein_per_serving_g": number or null if not determinable,
-  "carbs_per_serving_g": number or null if not determinable
-}
-Rules: cuisine should match one of the standard cuisine names from CUISINE_OPTIONS where possible. meal_type should reflect when this dish is typically eaten. Only include allergens the recipe is genuinely free from. Only include diet_labels that clearly apply. Estimate nutrition from ingredients if possible; use null otherwise.
-Unit rules: when reading ingredient quantities, always interpret and normalise to metric (g, ml, kg, L), singular unit names, no fractions.`;
 
 export async function extractRecipeMetadata(
   name: string,
   ingredients: { name: string; quantity: number; unit: string }[],
   language?: string,
 ): Promise<ExtractedMetadata> {
-  const ingredientList = ingredients
-    .map((i) => `${i.quantity} ${i.unit} ${i.name}`.trim())
-    .join(', ');
-
-  const userContent = `${METADATA_PROMPT}\n\nRecipe name: ${name}\nIngredients: ${ingredientList}`;
-
-  const response = await fetch(OPENAI_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getApiKey()}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        getLanguageSystemMessage(language),
-        { role: 'user', content: userContent },
-      ],
-      max_tokens: 500,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    console.error('[recipeExtraction] Metadata API error:', response.status, errorBody);
-    throw new Error(`OpenAI error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices[0].message.content;
-
-  if (!content || typeof content !== 'string') {
-    throw new Error('Could not extract metadata — no response from AI.');
-  }
-
-  console.log('[recipeExtraction] Metadata response:', content);
-
-  let cleaned = content.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-  }
-  try {
-    return JSON.parse(cleaned) as ExtractedMetadata;
-  } catch (_parseError) {
-    console.error('[recipeExtraction] Failed to parse metadata response:', cleaned);
-    throw new Error('Could not parse metadata — please try again.');
-  }
+  return callEdgeFunction({ type: 'metadata', name, ingredients, language }) as Promise<ExtractedMetadata>;
 }
 
-// ─── PDF recipe extraction ────────────────────────────────────────────────────
-// Uploads a PDF file to OpenAI's Files API, then sends it via Chat Completions
-// using the "file" content block — same upload-first pattern as voice/Whisper.
-export async function extractRecipeFromPdf(
-  fileUri: string,
-  filename: string = 'recipe.pdf',
-  language?: string,
-): Promise<ExtractedRecipe> {
-  // Step 1: Upload the PDF to OpenAI Files API
-  const formData = new FormData();
-  formData.append('file', {
-    uri: fileUri,
-    type: 'application/pdf',
-    name: filename,
-  } as unknown as Blob);
-  formData.append('purpose', 'user_data');
+// ─── Utility ──────────────────────────────────────────────────────────────────
 
-  const uploadResponse = await fetch('https://api.openai.com/v1/files', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${getApiKey()}` },
-    body: formData,
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      // Strip "data:<mime>;base64," prefix
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
   });
-
-  if (!uploadResponse.ok) {
-    const errBody = await uploadResponse.text();
-    console.error('[recipeExtraction] PDF upload error:', uploadResponse.status, errBody);
-    throw new Error(`Could not upload PDF (${uploadResponse.status}). Please try pasting the recipe text instead.`);
-  }
-
-  const fileData = await uploadResponse.json();
-  const fileId: string = fileData.id;
-  console.log('[recipeExtraction] PDF uploaded, file_id:', fileId);
-
-  // Step 2: Extract recipe using the uploaded file
-  const extractResponse = await fetch(OPENAI_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getApiKey()}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        getLanguageSystemMessage(language),
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: EXTRACTION_PROMPT },
-            { type: 'file', file: { file_id: fileId } },
-          ],
-        },
-      ],
-      max_tokens: 2000,
-    }),
-  });
-
-  if (!extractResponse.ok) {
-    const errBody = await extractResponse.text();
-    console.error('[recipeExtraction] PDF extraction error:', extractResponse.status, errBody);
-    throw new Error(`Could not extract recipe from PDF (${extractResponse.status}). Please try pasting the recipe text instead.`);
-  }
-
-  const data = await extractResponse.json();
-  const content: string = data.choices?.[0]?.message?.content ?? '';
-
-  if (!content) {
-    throw new Error('Could not extract recipe from PDF — no response from AI. Please try again.');
-  }
-
-  console.log('[recipeExtraction] PDF extraction raw response:', content);
-
-  let cleaned = content.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-  }
-  try {
-    return JSON.parse(cleaned) as ExtractedRecipe;
-  } catch {
-    console.error('[recipeExtraction] Failed to parse PDF extraction response:', cleaned);
-    throw new Error('Could not extract recipe from PDF — unexpected AI response. Please try pasting the recipe text instead.');
-  }
 }
