@@ -40,14 +40,14 @@ const RESTRICTION_OPTIONS: RestrictionItem[] = [
   {
     value: 'no_meat',
     emoji: '🥩',
-    label: 'Vegetarian',
-    description: 'No meat — fish and dairy may be included',
+    label: 'No meat',
+    description: 'Vegetarian household — fish and dairy may still be included',
   },
   {
     value: 'vegan',
     emoji: '🌱',
-    label: 'Vegan',
-    description: 'No animal products of any kind',
+    label: 'No animal products',
+    description: 'Vegan household — no meat, dairy, eggs, or honey',
   },
   {
     value: 'halal',
