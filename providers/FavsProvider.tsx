@@ -1,47 +1,115 @@
+/**
+ * FavsProvider — manages saved recipes (Favs) and recent searches.
+ *
+ * Storage strategy (dual-write):
+ *   • AsyncStorage is ALWAYS written — works offline / logged-out.
+ *   • When authenticated, recipes are also synced to Supabase in the background.
+ *     Supabase stores recipes in three tables: recipes, recipe_ingredients, recipe_method_steps.
+ *   • queryKey includes userId so TanStack Query re-fetches on sign-in / sign-out.
+ *   • On first sign-in: existing AsyncStorage recipes are upserted to Supabase.
+ *
+ * NOTE: useFilteredFavs (the 300-line filter/sort hook) is unchanged — it lives
+ *       below the provider export and reads from useFavs() as before.
+ */
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
 import { Recipe, DiscoverMeal } from '@/types';
+import { useAuth } from '@/providers/AuthProvider';
+import { getSupabase } from '@/services/supabase';
+import { recipeToRow, rowToRecipe, upsertRecipeToSupabase } from '@/services/db';
 
-const FAVS_KEY = 'favs_meals';
+const FAVS_KEY            = 'favs_meals';
 const RECENT_SEARCHES_KEY = 'favs_recent_searches';
 
 export const [FavsProvider, useFavs] = createContextHook(() => {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? null;
+
   const [meals, setMeals] = useState<Recipe[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
+  // ── Main recipes query ────────────────────────────────────────────────────
   const favsQuery = useQuery({
-    queryKey: ['favsMeals'],
+    queryKey: ['favsMeals', userId],
     queryFn: async (): Promise<Recipe[]> => {
+      if (userId) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase
+          .from('recipes')
+          .select('*, recipe_ingredients(*), recipe_method_steps(*)')
+          .eq('family_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('[Favs] Supabase fetch error:', error.message);
+        } else if (data) {
+          const recipes = data.map((row) => rowToRecipe(row as Record<string, unknown>));
+          const seen = new Set<string>();
+          const unique = recipes.filter((r) => {
+            if (seen.has(r.id)) return false;
+            seen.add(r.id);
+            return true;
+          });
+          console.log('[Favs] Loaded from Supabase:', unique.length, 'recipes');
+          // Keep AsyncStorage in sync
+          AsyncStorage.setItem(FAVS_KEY, JSON.stringify(unique)).catch(console.error);
+          return unique;
+        }
+      }
+
+      // Fallback to AsyncStorage (not authenticated or Supabase error)
       try {
         const stored = await AsyncStorage.getItem(FAVS_KEY);
         if (stored) {
-          console.log('[Favs] Loaded from storage');
+          console.log('[Favs] Loaded from AsyncStorage');
           const parsed = JSON.parse(stored) as Recipe[];
           const seen = new Set<string>();
-          return parsed.filter((m) => {
+          const unique = parsed.filter((m) => {
             if (seen.has(m.id)) return false;
             seen.add(m.id);
             return true;
           });
+
+          // If authenticated and we fell back to AsyncStorage, seed Supabase
+          if (userId && unique.length > 0) {
+            console.log('[Favs] Seeding', unique.length, 'recipes to Supabase');
+            Promise.all(
+              unique.map((r) => upsertRecipeToSupabase(r, userId, getSupabase()))
+            ).catch(console.error);
+          }
+          return unique;
         }
       } catch (e) {
-        console.log('[Favs] Error loading:', e);
+        console.error('[Favs] AsyncStorage load error:', e);
       }
       return [];
     },
   });
 
+  // ── Recent searches query ─────────────────────────────────────────────────
   const searchesQuery = useQuery({
-    queryKey: ['favsRecentSearches'],
+    queryKey: ['favsRecentSearches', userId],
     queryFn: async (): Promise<string[]> => {
+      if (userId) {
+        const supabase = getSupabase();
+        const { data, error } = await supabase
+          .from('recent_searches')
+          .select('search_term')
+          .eq('family_id', userId)
+          .order('searched_at', { ascending: false })
+          .limit(10);
+        if (!error && data) {
+          return data.map((r: Record<string, string>) => r.search_term);
+        }
+      }
       try {
         const stored = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
         if (stored) return JSON.parse(stored);
       } catch (e) {
-        console.log('[Favs] Error loading searches:', e);
+        console.error('[Favs] Error loading searches:', e);
       }
       return [];
     },
@@ -59,14 +127,17 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
   mealsRef.current = meals;
   const recentSearchesRef = useRef(recentSearches);
   recentSearchesRef.current = recentSearches;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
 
+  // ── Save mutation (AsyncStorage + Supabase upsert) ─────────────────────────
   const saveMutation = useMutation({
     mutationFn: async (updated: Recipe[]) => {
       await AsyncStorage.setItem(FAVS_KEY, JSON.stringify(updated));
       console.log('[Favs] Saved, count:', updated.length);
       return updated;
     },
-    onSuccess: (d) => queryClient.setQueryData(['favsMeals'], d),
+    onSuccess: (d) => queryClient.setQueryData(['favsMeals', userIdRef.current], d),
   });
 
   const saveSearchesMutation = useMutation({
@@ -74,13 +145,37 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
       await AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
       return updated;
     },
-    onSuccess: (d) => queryClient.setQueryData(['favsRecentSearches'], d),
+    onSuccess: (d) => queryClient.setQueryData(['favsRecentSearches', userIdRef.current], d),
   });
 
   const saveMutateRef = useRef(saveMutation.mutate);
   saveMutateRef.current = saveMutation.mutate;
   const saveSearchesMutateRef = useRef(saveSearchesMutation.mutate);
   saveSearchesMutateRef.current = saveSearchesMutation.mutate;
+
+  // ── Supabase background sync helper ──────────────────────────────────────
+  const syncToSupabase = useCallback((recipe: Recipe) => {
+    const uid = userIdRef.current;
+    if (!uid) return;
+    upsertRecipeToSupabase(recipe, uid, getSupabase()).catch((e) =>
+      console.error('[Favs] Supabase upsert error:', e)
+    );
+  }, []);
+
+  const deleteFromSupabase = useCallback((recipeId: string) => {
+    const uid = userIdRef.current;
+    if (!uid) return;
+    getSupabase()
+      .from('recipes')
+      .delete()
+      .eq('id', recipeId)
+      .eq('family_id', uid)
+      .then(({ error }) => {
+        if (error) console.error('[Favs] Supabase delete error:', error.message);
+      });
+  }, []);
+
+  // ── Public actions ────────────────────────────────────────────────────────
 
   const addFav = useCallback((meal: Recipe) => {
     const exists = mealsRef.current.find((m) => m.id === meal.id);
@@ -92,29 +187,32 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
     mealsRef.current = updated;
     setMeals(updated);
     saveMutateRef.current(updated);
+    syncToSupabase(meal);
     console.log('[Favs] Added:', meal.name);
     return true;
-  }, []);
+  }, [syncToSupabase]);
 
   const removeFav = useCallback((mealId: string) => {
     const updated = mealsRef.current.filter((m) => m.id !== mealId);
     mealsRef.current = updated;
     setMeals(updated);
     saveMutateRef.current(updated);
+    deleteFromSupabase(mealId);
     console.log('[Favs] Removed:', mealId);
-  }, []);
+  }, [deleteFromSupabase]);
 
   const updateFav = useCallback((mealId: string, partial: Partial<Recipe>) => {
     const updated = mealsRef.current.map((m) => {
       if (m.id !== mealId) return m;
-      // Auto-flag as customized the first time a discover-sourced meal is edited
       const customizedPatch = m.source === 'discover' && !m.is_customized ? { is_customized: true } : {};
       return { ...m, ...partial, ...customizedPatch };
     });
     setMeals(updated);
     saveMutateRef.current(updated);
+    const updatedMeal = updated.find((m) => m.id === mealId);
+    if (updatedMeal) syncToSupabase(updatedMeal);
     console.log('[Favs] Updated:', mealId);
-  }, []);
+  }, [syncToSupabase]);
 
   const incrementPlanCount = useCallback((mealId: string) => {
     const now = new Date().toISOString().split('T')[0];
@@ -125,6 +223,20 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
     );
     setMeals(updated);
     saveMutateRef.current(updated);
+    const updatedMeal = updated.find((m) => m.id === mealId);
+    if (updatedMeal) {
+      const uid = userIdRef.current;
+      if (uid) {
+        getSupabase()
+          .from('recipes')
+          .update({ add_to_plan_count: updatedMeal.add_to_plan_count, last_planned_date: now })
+          .eq('id', mealId)
+          .eq('family_id', uid)
+          .then(({ error }) => {
+            if (error) console.error('[Favs] incrementPlanCount Supabase error:', error.message);
+          });
+      }
+    }
   }, []);
 
   const isFav = useCallback((mealId: string): boolean => {
@@ -137,7 +249,6 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
 
   const addFromDiscover = useCallback((discoverMeal: DiscoverMeal): Recipe => {
     const recipe: Recipe = {
-      // ── Core identity ────────────────────────────────────────────────────
       id: discoverMeal.id,
       name: discoverMeal.name,
       source: 'discover',
@@ -154,8 +265,6 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
       created_at: new Date().toISOString(),
       is_ingredient_complete: discoverMeal.ingredients.length > 0,
       is_recipe_complete: discoverMeal.method_steps.length > 0,
-
-      // ── Optional core ────────────────────────────────────────────────────
       image_url: discoverMeal.image_url,
       description: discoverMeal.description,
       cuisine: discoverMeal.cuisine,
@@ -164,17 +273,11 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
       cooking_time_band: discoverMeal.cooking_time_band,
       prep_time: discoverMeal.prep_time,
       cook_time: discoverMeal.cook_time,
-
-      // ── Rich classification ───────────────────────────────────────────────
       dish_category: discoverMeal.dish_category,
       protein_source: discoverMeal.protein_source,
       occasions: discoverMeal.occasions,
-
-      // ── Dietary & allergens ───────────────────────────────────────────────
       allergens: discoverMeal.allergens,
       diet_labels: discoverMeal.diet_labels,
-
-      // ── Taste profile ─────────────────────────────────────────────────────
       taste_sweetness: discoverMeal.taste_sweetness,
       taste_saltiness: discoverMeal.taste_saltiness,
       taste_sourness: discoverMeal.taste_sourness,
@@ -182,21 +285,13 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
       taste_savoriness: discoverMeal.taste_savoriness,
       taste_fattiness: discoverMeal.taste_fattiness,
       taste_spiciness: discoverMeal.taste_spiciness,
-
-      // ── Nutrition ─────────────────────────────────────────────────────────
       calories_per_serving: discoverMeal.calories_per_serving,
       protein_per_serving_g: discoverMeal.protein_per_serving_g,
       carbs_per_serving_g: discoverMeal.carbs_per_serving_g,
-
-      // ── Scores ───────────────────────────────────────────────────────────
       health_score: discoverMeal.health_score,
-
-      // ── Family interaction (carry over if already rated) ──────────────────
       rating: discoverMeal.rating,
       family_notes: discoverMeal.family_notes,
       last_cooked_at: discoverMeal.last_cooked_at,
-
-      // ── Attribution ───────────────────────────────────────────────────────
       source_url: discoverMeal.source_url,
       credits: discoverMeal.credits,
       spoonacular_id: discoverMeal.spoonacular_id,
@@ -211,11 +306,34 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
     const updated = [trimmed, ...recentSearchesRef.current.filter((s) => s !== trimmed)].slice(0, 10);
     setRecentSearches(updated);
     saveSearchesMutateRef.current(updated);
+    // Also write to Supabase recent_searches table
+    const uid = userIdRef.current;
+    if (uid) {
+      getSupabase()
+        .from('recent_searches')
+        .upsert(
+          { family_id: uid, search_term: trimmed, searched_at: new Date().toISOString() },
+          { onConflict: 'family_id,search_term' }
+        )
+        .then(({ error }) => {
+          if (error) console.error('[Favs] recent_searches Supabase error:', error.message);
+        });
+    }
   }, []);
 
   const clearRecentSearches = useCallback(() => {
     setRecentSearches([]);
     saveSearchesMutateRef.current([]);
+    const uid = userIdRef.current;
+    if (uid) {
+      getSupabase()
+        .from('recent_searches')
+        .delete()
+        .eq('family_id', uid)
+        .then(({ error }) => {
+          if (error) console.error('[Favs] clear recent_searches error:', error.message);
+        });
+    }
   }, []);
 
   const isLoading = favsQuery.isLoading;
@@ -270,9 +388,7 @@ function matchesDietaryKey(
 
 /**
  * Keyword map for ingredient-based protein detection.
- * Used as a fallback when protein_source is not set on a saved meal
- * (e.g. meals saved before the field was introduced, or family-created
- * meals where the user skipped the protein field).
+ * Used as a fallback when protein_source is not set on a saved meal.
  */
 const PROTEIN_INGREDIENT_KEYWORDS: Record<string, string[]> = {
   chicken: ['chicken', 'poultry'],
@@ -283,7 +399,7 @@ const PROTEIN_INGREDIENT_KEYWORDS: Record<string, string[]> = {
   seafood: ['salmon', 'tuna', 'shrimp', 'prawn', 'crab', 'lobster', 'cod', 'tilapia',
             'snapper', 'mackerel', 'anchovy', 'sardine', 'squid', 'halibut', 'sea bass',
             'trout', 'mahi', 'scallop', 'mussel', 'oyster', 'clam', 'seafood', 'fish fillet'],
-  egg:     ['egg', 'eggs'],          // checked with whole-word guard to exclude 'eggplant'
+  egg:     ['egg', 'eggs'],
   dairy:   ['cheese', 'cream', 'milk', 'butter', 'yogurt', 'yoghurt', 'ricotta',
             'brie', 'cheddar', 'mozzarella', 'feta', 'parmesan', 'gouda', 'halloumi'],
   plant:   ['tofu', 'tempeh', 'lentil', 'chickpea', 'kidney bean', 'black bean', 'edamame',
@@ -301,7 +417,6 @@ function deriveProteinFromIngredients(
   const ingredientText = ingredients.map((i) => i.name.toLowerCase()).join(' | ');
 
   if (targetProtein === 'egg') {
-    // Avoid matching 'eggplant' — require 'egg' not followed by 'plant'
     return /\beggs?\b/.test(ingredientText) && !/eggplant/.test(ingredientText);
   }
 
@@ -311,15 +426,10 @@ function deriveProteinFromIngredients(
 export function useFilteredFavs(
   search: string,
   filters: RecipeFilterState & {
-    /**
-     * Inline pill single-select overrides — kept separate from the sheet's multi-select fields.
-     * Use '' or 'all' to mean "no filter from this pill".
-     * Combined with the corresponding sheet fields using AND logic.
-     */
-    inlineMealType?:  string;   // from mealType pill
-    inlineDishType?:  string;   // from dishType pill
-    inlineProtein?:   string;   // from protein pill
-    inlineDietLabel?: string;   // from diet pill (matches diet_labels[] or allergens[])
+    inlineMealType?:  string;
+    inlineDishType?:  string;
+    inlineProtein?:   string;
+    inlineDietLabel?: string;
   }
 ) {
   const { meals } = useFavs();
@@ -338,7 +448,7 @@ export function useFilteredFavs(
       );
     }
 
-    // ── Meal type (sheet single-select + inline pill) ───────────────────────
+    // ── Meal type ───────────────────────────────────────────────────────────
     if (filters.mealType) {
       result = result.filter((m) => m.meal_type === filters.mealType);
     }
@@ -347,7 +457,7 @@ export function useFilteredFavs(
       result = result.filter((m) => m.meal_type === inlineMT);
     }
 
-    // ── Dish type (sheet multi-select + inline pill single-select) ──────────
+    // ── Dish type ───────────────────────────────────────────────────────────
     if (filters.dishTypes.length > 0) {
       result = result.filter((m) => !!m.dish_category && filters.dishTypes.includes(m.dish_category));
     }
@@ -356,14 +466,12 @@ export function useFilteredFavs(
       result = result.filter((m) => m.dish_category === inlineDT);
     }
 
-    // ── Cuisine (multi-select OR logic) ─────────────────────────────────────
+    // ── Cuisine ─────────────────────────────────────────────────────────────
     if (filters.cuisines.length > 0) {
       result = result.filter((m) => !!m.cuisine && filters.cuisines.includes(m.cuisine));
     }
 
-    // ── Protein (sheet multi-select OR logic + inline pill single-select) ───
-    // Falls back to ingredient-based detection when protein_source is not set
-    // (covers meals saved before the field was introduced + family-created meals).
+    // ── Protein ─────────────────────────────────────────────────────────────
     if (filters.protein.length > 0) {
       result = result.filter((m) =>
         m.protein_source
@@ -385,11 +493,10 @@ export function useFilteredFavs(
       result = result.filter((m) => m.cooking_time_band === filters.cookTime);
     }
 
-    // ── Dietary (sheet multi-select AND logic) ──────────────────────────────
+    // ── Dietary ─────────────────────────────────────────────────────────────
     if (filters.dietary.length > 0) {
       result = result.filter((m) => filters.dietary.every((key) => matchesDietaryKey(m, key)));
     }
-    // Inline diet-label pill (single-select, checks diet_labels + allergens)
     const inlineDL = filters.inlineDietLabel;
     if (inlineDL && inlineDL !== 'all') {
       result = result.filter((m) => {
@@ -411,7 +518,7 @@ export function useFilteredFavs(
       result = result.filter((m) => (m.calories_per_serving ?? 0) > 600);
     }
 
-    // ── Source (family_created vs discover) ─────────────────────────────────
+    // ── Source ──────────────────────────────────────────────────────────────
     if (filters.source) {
       result = result.filter((m) => m.source === filters.source);
     }
