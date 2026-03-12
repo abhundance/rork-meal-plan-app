@@ -38,6 +38,7 @@ import { Recipe, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { getCachedDiscoverMeal } from '@/services/discoverMealCache';
 import { getFamilyInitials, isRealPhotoUrl } from '@/utils/familyAvatar';
+import { getSpoonacularDetail } from '@/services/spoonacular';
 
 /** Find a discover meal: check in-memory cache first (covers Spoonacular meals), then fall back to static mocks. */
 function findDiscoverMeal(id: string) {
@@ -62,6 +63,8 @@ export default function MealDetailScreen() {
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [dailyNote, setDailyNote] = useState<string>('');
   const [initialized, setInitialized] = useState<boolean>(false);
+  const [richDetail, setRichDetail] = useState<import('@/types').DiscoverMeal | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState<boolean>(false);
 
   const plannedMeal = useMemo<PlannedMeal | null>(() => {
     if (params.source !== 'plan') return null;
@@ -155,6 +158,20 @@ export default function MealDetailScreen() {
     }
     return null;
   }, [params.source, params.id, plannedMeal]);
+
+  useEffect(() => {
+    if (params.source === 'discover' && typeof discoverData?.spoonacular_id === 'number') {
+      setIsLoadingDetail(true);
+      getSpoonacularDetail(discoverData.spoonacular_id)
+        .then((result) => {
+          setRichDetail(result);
+        })
+        .catch(() => {})
+        .finally(() => {
+          setIsLoadingDetail(false);
+        });
+    }
+  }, [params.source, discoverData?.spoonacular_id]);
 
   const isInFavs = useMemo(() => {
     if (!meal) return false;
@@ -457,29 +474,37 @@ export default function MealDetailScreen() {
             </View>
           )}
 
-          {(meal?.calories_per_serving ?? discoverData?.calories_per_serving) != null && (
-            <View style={styles.nutritionCard}>
-              <View style={styles.nutritionHeader}>
-                <Text style={styles.nutritionTitle}>Nutrition</Text>
-                <Text style={styles.nutritionSubtitle}>per serving</Text>
-              </View>
-              <View style={styles.nutritionRow}>
-                {[
-                  { label: 'Calories', value: meal?.calories_per_serving ?? discoverData?.calories_per_serving, unit: 'kcal' },
-                  { label: 'Protein', value: meal?.protein_per_serving_g ?? discoverData?.protein_per_serving_g, unit: 'g' },
-                  { label: 'Carbs', value: meal?.carbs_per_serving_g ?? discoverData?.carbs_per_serving_g, unit: 'g' },
-                ].map((stat) => (
-                  <View key={stat.label} style={styles.nutritionBox}>
-                    <View style={styles.nutritionValueRow}>
-                      <Text style={styles.nutritionValue}>{stat.value}</Text>
-                      <Text style={styles.nutritionUnit}>{stat.unit}</Text>
+          {(() => {
+            const calories = richDetail?.calories_per_serving || meal?.calories_per_serving || discoverData?.calories_per_serving;
+            const protein = richDetail?.protein_per_serving_g || meal?.protein_per_serving_g || discoverData?.protein_per_serving_g;
+            const carbs = richDetail?.carbs_per_serving_g || meal?.carbs_per_serving_g || discoverData?.carbs_per_serving_g;
+            const hasNutrition = (calories ?? 0) > 0 || (protein ?? 0) > 0 || (carbs ?? 0) > 0;
+            const showLoading = isLoadingDetail && !richDetail && params.source === 'discover';
+            if (!hasNutrition && !showLoading) return null;
+            return (
+              <View style={styles.nutritionCard}>
+                <View style={styles.nutritionHeader}>
+                  <Text style={styles.nutritionTitle}>Nutrition</Text>
+                  <Text style={styles.nutritionSubtitle}>per serving</Text>
+                </View>
+                <View style={styles.nutritionRow}>
+                  {[
+                    { label: 'Calories', value: showLoading ? 'Loading...' : calories, unit: 'kcal' },
+                    { label: 'Protein', value: showLoading ? 'Loading...' : protein, unit: 'g' },
+                    { label: 'Carbs', value: showLoading ? 'Loading...' : carbs, unit: 'g' },
+                  ].map((stat) => (
+                    <View key={stat.label} style={styles.nutritionBox}>
+                      <View style={styles.nutritionValueRow}>
+                        <Text style={styles.nutritionValue}>{stat.value}</Text>
+                        <Text style={styles.nutritionUnit}>{stat.unit}</Text>
+                      </View>
+                      <Text style={styles.nutritionLabel}>{stat.label}</Text>
                     </View>
-                    <Text style={styles.nutritionLabel}>{stat.label}</Text>
-                  </View>
-                ))}
+                  ))}
+                </View>
               </View>
-            </View>
-          )}
+            );
+          })()}
 
 
 
@@ -518,19 +543,23 @@ export default function MealDetailScreen() {
             </View>
           )}
 
-          {meal.method_steps.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Method</Text>
-              {meal.method_steps.map((step, idx) => (
-                <View key={idx} style={styles.stepRow}>
-                  <View style={styles.stepNum}>
-                    <Text style={styles.stepNumText}>{idx + 1}</Text>
+          {(() => {
+            const steps = richDetail?.method_steps?.length ? richDetail.method_steps : meal.method_steps;
+            if (steps.length === 0) return null;
+            return (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Method</Text>
+                {steps.map((step, idx) => (
+                  <View key={idx} style={styles.stepRow}>
+                    <View style={styles.stepNum}>
+                      <Text style={styles.stepNumText}>{idx + 1}</Text>
+                    </View>
+                    <Text style={styles.stepText}>{step}</Text>
                   </View>
-                  <Text style={styles.stepText}>{step}</Text>
-                </View>
-              ))}
-            </View>
-          )}
+                ))}
+              </View>
+            );
+          })()}
 
           {params.source === 'plan' && (
             <View style={styles.section}>
