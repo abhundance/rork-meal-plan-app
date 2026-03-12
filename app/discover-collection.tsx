@@ -21,6 +21,7 @@ import { ArrowLeft } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { DISCOVER_MEALS } from '@/mocks/discover';
+import { getCachedDiscoverMeal } from '@/services/discoverMealCache';
 import DiscoverCarouselCard, {
   CAROUSEL_CARD_WIDTH,
   CAROUSEL_CARD_HEIGHT,
@@ -59,8 +60,11 @@ export default function DiscoverCollectionScreen() {
 
   const meals = useMemo<DiscoverMeal[]>(() => {
     if (!mealIds) return [];
-    const ids = new Set(mealIds.split(','));
-    return DISCOVER_MEALS.filter(m => ids.has(m.id)).slice(0, MAX_ITEMS);
+    const idList = mealIds.split(',');
+    return idList
+      .map(id => getCachedDiscoverMeal(id) ?? DISCOVER_MEALS.find(m => m.id === id))
+      .filter((m): m is DiscoverMeal => m !== undefined)
+      .slice(0, MAX_ITEMS);
   }, [mealIds]);
 
   const screenTitle = [emoji, title].filter(Boolean).join(' ') || 'Collection';

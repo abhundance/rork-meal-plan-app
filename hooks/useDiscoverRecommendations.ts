@@ -3,7 +3,7 @@ import { useMealPlan } from '@/providers/MealPlanProvider';
 import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useDiscover, DiscoverInteraction } from '@/providers/DiscoverProvider';
-import { DISCOVER_MEALS } from '@/mocks/discover';
+import { DiscoverMeal } from '@/types';
 import {
   buildUserProfile,
   buildCarousels,
@@ -21,12 +21,14 @@ export interface UseDiscoverRecommendationsResult {
 
 /**
  * Wires up all providers into the recommendation engine.
- * Drop this into discover/index.tsx — it's the only import you need.
  *
- * Carousels recompute only when underlying data changes (planned meals,
- * favs, family settings, discover prefs, or view history).
+ * Accepts `allMeals` — the live Spoonacular pool to build carousels from.
+ * Pass the array from `useDiscoverMeals()` in discover/index.tsx.
+ * Returns empty carousels while the first fetch is in progress.
  */
-export function useDiscoverRecommendations(): UseDiscoverRecommendationsResult {
+export function useDiscoverRecommendations(
+  allMeals: DiscoverMeal[] = [],
+): UseDiscoverRecommendationsResult {
   const { meals: plannedMeals }              = useMealPlan();
   const { meals: favMeals, recentSearches }  = useFavs();
   const { familySettings, userSettings }     = useFamilySettings();
@@ -40,6 +42,8 @@ export function useDiscoverRecommendations(): UseDiscoverRecommendationsResult {
   } = useDiscover();
 
   const carousels = useMemo(() => {
+    if (allMeals.length === 0) return [];
+
     const profile = buildUserProfile(
       plannedMeals,
       favMeals,
@@ -49,8 +53,9 @@ export function useDiscoverRecommendations(): UseDiscoverRecommendationsResult {
       recentSearches ?? [],
       userSettings.personal_goal ?? 'balanced',
     );
-    return buildCarousels(DISCOVER_MEALS, profile);
+    return buildCarousels(allMeals, profile);
   }, [
+    allMeals,
     plannedMeals,
     favMeals,
     familySettings.dietary_preferences_family,
@@ -60,11 +65,9 @@ export function useDiscoverRecommendations(): UseDiscoverRecommendationsResult {
     userSettings.personal_goal,
   ]);
 
-  const isLoading = false; // Phase 2: derive from Supabase query loading state
-
   return {
     carousels,
-    isLoading,
+    isLoading: allMeals.length === 0,
     recordInteraction,
     dismissMeal,
     isDismissed,

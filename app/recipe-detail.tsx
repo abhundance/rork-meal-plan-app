@@ -36,7 +36,18 @@ import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { Recipe, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
+import { getCachedDiscoverMeal } from '@/services/discoverMealCache';
 import { getFamilyInitials, isRealPhotoUrl } from '@/utils/familyAvatar';
+
+/** Find a discover meal: check in-memory cache first (covers Spoonacular meals), then fall back to static mocks. */
+function findDiscoverMeal(id: string) {
+  return getCachedDiscoverMeal(id) ?? DISCOVER_MEALS.find((m) => m.id === id);
+}
+/** Find a discover meal by name (for plan-source lookups). */
+function findDiscoverMealByName(name: string) {
+  const lower = name.toLowerCase();
+  return DISCOVER_MEALS.find((m) => m.name.toLowerCase() === lower);
+}
 
 const DESTRUCTIVE_RED = Colors.danger;
 
@@ -85,9 +96,7 @@ export default function MealDetailScreen() {
           (f) => f.name.toLowerCase() === plannedMeal.meal_name.toLowerCase()
         );
       }
-      const discMatch = DISCOVER_MEALS.find(
-        (d) => d.name.toLowerCase() === plannedMeal.meal_name.toLowerCase()
-      );
+      const discMatch = findDiscoverMealByName(plannedMeal.meal_name);
       const methodSteps = favMatch?.method_steps ?? discMatch?.method_steps ?? [];
       return {
         id: plannedMeal.id,
@@ -111,7 +120,7 @@ export default function MealDetailScreen() {
       } as Recipe;
     }
 
-    const disc = DISCOVER_MEALS.find((m) => m.id === params.id);
+    const disc = findDiscoverMeal(params.id);
     if (disc) {
       return {
         id: disc.id,
@@ -139,12 +148,10 @@ export default function MealDetailScreen() {
 
   const discoverData = useMemo(() => {
     if (params.source === 'discover') {
-      return DISCOVER_MEALS.find((m) => m.id === params.id) ?? null;
+      return findDiscoverMeal(params.id) ?? null;
     }
     if (params.source === 'plan' && plannedMeal) {
-      return DISCOVER_MEALS.find(
-        (d) => d.name.toLowerCase() === plannedMeal.meal_name.toLowerCase()
-      ) ?? null;
+      return findDiscoverMealByName(plannedMeal.meal_name) ?? null;
     }
     return null;
   }, [params.source, params.id, plannedMeal]);
@@ -189,7 +196,7 @@ export default function MealDetailScreen() {
         },
       ]);
     } else if (!isInFavs && params.source === 'discover') {
-      const disc = DISCOVER_MEALS.find((m) => m.id === params.id);
+      const disc = findDiscoverMeal(params.id);
       if (disc) {
         addFromDiscover(disc);
         Alert.alert('Saved!', `${meal.name} added to your Favs`);

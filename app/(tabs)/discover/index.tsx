@@ -11,6 +11,7 @@ import {
   Dimensions,
   TextInput,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
@@ -101,8 +102,9 @@ import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { DiscoverMeal, PlannedMeal } from '@/types';
-import { DISCOVER_MEALS } from '@/mocks/discover';
+import { useDiscoverMeals } from '@/hooks/useDiscoverMeals';
 import { useDiscoverRecommendations } from '@/hooks/useDiscoverRecommendations';
+import { cacheDiscoverMeal } from '@/services/discoverMealCache';
 import { ShieldCheck, ChevronRight, Search, Compass, ArrowRight } from 'lucide-react-native';
 import { useFocusEffect } from 'expo-router';
 import { peekPendingPlanSlot, consumePendingPlanSlot } from '@/services/pendingPlanSlot';
@@ -244,6 +246,9 @@ export default function DiscoverScreen() {
       handleSlotModeSelect(meal);
       return;
     }
+    // Cache the full meal object so recipe-detail can access it without
+    // re-fetching from Spoonacular (especially important for spoon_* IDs).
+    cacheDiscoverMeal(meal);
     router.push(`/recipe-detail?id=${meal.id}&source=discover` as Href);
   }, [pendingSlot, handleSlotModeSelect]);
 
@@ -256,7 +261,23 @@ export default function DiscoverScreen() {
     setActionSheetVisible(true);
   }, [pendingSlot, handleSlotModeSelect]);
 
-  const { carousels, recordInteraction, recordView } = useDiscoverRecommendations();
+  // ── Live Spoonacular data ─────────────────────────────────────────────────
+  // Default browse pool (no filters, no query) — used for carousels.
+  const {
+    meals: allMeals,
+    isLoading: mealsLoading,
+  } = useDiscoverMeals(DEFAULT_FILTER_STATE, '');
+
+  // Filtered results — used when filters or search are active.
+  const {
+    meals: filteredMeals,
+    isLoading: filteredLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useDiscoverMeals(discoverFilters, searchQuery);
+
+  const { carousels, recordInteraction, recordView } = useDiscoverRecommendations(allMeals);
 
   // Filter carousels using the RecipeFilterSheet state.
   // Drop carousels that end up empty after filtering.
@@ -341,17 +362,9 @@ export default function DiscoverScreen() {
       .filter(carousel => carousel.meals.length > 0);
   }, [carousels, discoverFilters]);
 
-  // Search: filter the full DISCOVER_MEALS list by name, cuisine, description, and ingredients.
-  const searchResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return [];
-    return DISCOVER_MEALS.filter(m =>
-      m.name.toLowerCase().includes(q) ||
-      (m.cuisine && m.cuisine.toLowerCase().includes(q)) ||
-      (m.description && m.description.toLowerCase().includes(q)) ||
-      m.ingredients.some(i => i.name.toLowerCase().includes(q))
-    );
-  }, [searchQuery]);
+  // Search results and filtered browse both come from useDiscoverMeals above.
+  // `filteredMeals` is used for both search mode and filter-active browse mode.
+  const searchResults = filteredMeals;
 
   const MealActionSheet = useCallback(({ visible, meal, onClose }: { visible: boolean; meal: DiscoverMeal | null; onClose: () => void }) => {
     if (!meal) return null;
@@ -547,41 +560,72 @@ export default function DiscoverScreen() {
           );
         })()}
 
-        {/* Search results — shown only when a query is active */}
-        {searchQuery.trim().length > 0 ? (
+        {/* Search results — shown when a query is active OR when filters are applied */}
+        {(searchQuery.trim().length > 0 || discoverFilterCount > 0) ? (
           <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: 100 }}>
-            <Text style={{ fontSize: 13, color: Colors.textSecondary, marginBottom: 12 }}>
-              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &quot;{searchQuery.trim()}&quot;
-            </Text>
-            {searchResults.length === 0 ? (
+            {searchQuery.trim().length > 0 && (
+              <Text style={{ fontSize: 13, color: Colors.textSecondary, marginBottom: 12 }}>
+                {filteredLoading
+                  ? 'Searching…'
+                  : `${searchResults.length} result${searchResults.length !== 1 ? 's' : ''} for "${searchQuery.trim()}"`
+                }
+              </Text>
+            )}
+            {filteredLoading ? (
+              <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
+            ) : searchResults.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Search size={56} color={Colors.textSecondary} strokeWidth={1.5} />
                 <Text style={styles.emptyTitle}>No recipes found</Text>
-                <Text style={styles.emptySubtitle}>Try searching by name, cuisine, or ingredient</Text>
+                <Text style={styles.emptySubtitle}>
+                  {searchQuery.trim().length > 0
+                    ? 'Try a different search term or clear filters'
+                    : 'Try adjusting or clearing your filters'}
+                </Text>
               </View>
             ) : (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                {searchResults.map(meal => (
-                  <DiscoverCarouselCard
-                    key={meal.id}
-                    meal={meal}
-                    onPress={() => handleMealPress(meal)}
-                    width={_GRID_CARD_WIDTH} height={Math.round(_GRID_CARD_WIDTH * 1.35)}
-                  />
-                ))}
-              </View>
+              <>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                  {searchResults.map(meal => (
+                    <DiscoverCarouselCard
+                      key={meal.id}
+                      meal={meal}
+                      onPress={() => handleMealPress(meal)}
+                      width={_GRID_CARD_WIDTH} height={Math.round(_GRID_CARD_WIDTH * 1.35)}
+                    />
+                  ))}
+                </View>
+                {hasNextPage && (
+                  <TouchableOpacity
+                    onPress={fetchNextPage}
+                    disabled={isFetchingNextPage}
+                    style={{ alignItems: 'center', paddingVertical: 16, marginTop: 8 }}
+                  >
+                    {isFetchingNextPage ? (
+                      <ActivityIndicator size="small" color={Colors.primary} />
+                    ) : (
+                      <Text style={{ fontSize: 14, color: Colors.primary, fontWeight: '600' }}>
+                        Load more recipes
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </View>
         ) : (
         <>
-        {filteredCarousels.length === 0 ? (
+        {mealsLoading ? (
+          <View style={[styles.emptyContainer, { marginTop: 60 }]}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={[styles.emptySubtitle, { marginTop: 12 }]}>Loading recipes…</Text>
+          </View>
+        ) : filteredCarousels.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Compass size={64} color={Colors.textSecondary} strokeWidth={1.5} />
             <Text style={styles.emptyTitle}>Discovering your taste</Text>
             <Text style={styles.emptySubtitle}>
-              {discoverFilterCount > 0
-                ? 'Try adjusting or clearing your filters to see more recipes'
-                : 'Add meals to your plan and we will personalise your picks'}
+              Add meals to your plan and we will personalise your picks
             </Text>
           </View>
         ) : (
