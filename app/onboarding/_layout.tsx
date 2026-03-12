@@ -15,6 +15,16 @@ export default function OnboardingLayout() {
       {/* Entry screen — no back gesture (nothing behind it) */}
       <Stack.Screen name="auth" options={{ gestureEnabled: false }} />
 
+      {/* Auth options — slides up as a modal over the cover screen */}
+      <Stack.Screen
+        name="auth-options"
+        options={{
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          contentStyle: { backgroundColor: 'transparent' },
+        }}
+      />
+
       {/* Step 1 */}
       <Stack.Screen name="region" />
 
