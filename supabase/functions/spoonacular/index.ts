@@ -106,6 +106,14 @@ function toDietaryTags(diets: string[]): string[] {
   return tags;
 }
 
+/** Extract a named nutrient's rounded value from Spoonacular's nutrition.nutrients array. */
+// deno-lint-ignore no-explicit-any
+function nutrientValue(nutrition: any, name: string): number {
+  const nutrients: Array<{ name: string; amount: number }> = nutrition?.nutrients ?? [];
+  const hit = nutrients.find((n) => n.name.toLowerCase() === name.toLowerCase());
+  return hit ? Math.round(hit.amount) : 0;
+}
+
 // deno-lint-ignore no-explicit-any
 function mapSpoonacularRecipe(r: any): Record<string, unknown> {
   const dishTypes: string[] = r.dishTypes ?? [];
@@ -167,10 +175,10 @@ function mapSpoonacularRecipe(r: any): Record<string, unknown> {
     taste_fattiness:     50,
     taste_spiciness:     50,
 
-    // Nutrition — not requested in search to save quota; use 0 as default.
-    calories_per_serving:  0,
-    protein_per_serving_g: 0,
-    carbs_per_serving_g:   0,
+    // Nutrition — populated when includeNutrition=true (detail calls); 0 otherwise.
+    calories_per_serving:  nutrientValue(r.nutrition, 'Calories'),
+    protein_per_serving_g: nutrientValue(r.nutrition, 'Protein'),
+    carbs_per_serving_g:   nutrientValue(r.nutrition, 'Carbohydrates'),
 
     health_score:        Math.round((r.healthScore ?? 50) as number),
     add_to_plan_count:   0,
@@ -205,11 +213,12 @@ async function handleSearch(body: any): Promise<Response> {
 
   const params = new URLSearchParams({
     apiKey,
-    addRecipeInformation: 'true',
-    fillIngredients:      'true',
-    number:               String(Math.min(number, 100)),
-    offset:               String(offset),
-    sort:                 'popularity',
+    addRecipeInformation:  'true',
+    addRecipeInstructions: 'true',   // include analyzedInstructions so method_steps are populated
+    fillIngredients:       'true',
+    number:                String(Math.min(number, 100)),
+    offset:                String(offset),
+    sort:                  'popularity',
   });
 
   if (query)        params.set('query', query as string);
@@ -252,7 +261,7 @@ async function handleDetail(body: any): Promise<Response> {
 
   const params = new URLSearchParams({
     apiKey,
-    includeNutrition: 'false',
+    includeNutrition: 'true',
   });
 
   const url = `${SPOONACULAR_BASE}/recipes/${id}/information?${params}`;
