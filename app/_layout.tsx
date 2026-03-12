@@ -11,6 +11,7 @@ import { MealPlanProvider } from "@/providers/MealPlanProvider";
 import { ShoppingProvider } from "@/providers/ShoppingProvider";
 import { FavsProvider } from "@/providers/FavsProvider";
 import { DiscoverProvider } from "@/providers/DiscoverProvider";
+import { AuthProvider } from "@/providers/AuthProvider";
 import { AppState, Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AlertCircle, Bike, X } from 'lucide-react-native';
@@ -343,19 +344,21 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <StatusBar style="dark" />
-          <FamilySettingsProvider>
-            <OnboardingProvider>
-              <MealPlanProvider>
-                <ShoppingProvider>
-                  <FavsProvider>
-                    <DiscoverProvider>
-                      <DeliveryBannerLayout />
-                    </DiscoverProvider>
-                  </FavsProvider>
-                </ShoppingProvider>
-              </MealPlanProvider>
-            </OnboardingProvider>
-          </FamilySettingsProvider>
+          <AuthProvider>
+            <FamilySettingsProvider>
+              <OnboardingProvider>
+                <MealPlanProvider>
+                  <ShoppingProvider>
+                    <FavsProvider>
+                      <DiscoverProvider>
+                        <DeliveryBannerLayout />
+                      </DiscoverProvider>
+                    </FavsProvider>
+                  </ShoppingProvider>
+                </MealPlanProvider>
+              </OnboardingProvider>
+            </FamilySettingsProvider>
+          </AuthProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </ErrorBoundary>
