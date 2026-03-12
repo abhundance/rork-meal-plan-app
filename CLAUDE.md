@@ -14,7 +14,7 @@
 ## Platform & Build Tool
 
 - **Framework:** React Native + Expo Router + TypeScript
-- **Build tool:** [Rork](https://rork.com) — an AI-powered app builder. All code changes are made by prompting Rork in natural language.
+- **Build tool:** [Rork](https://rork.com) — hosts the Expo build and runs the app for live preview/review. **Code changes are made directly in the GitHub repository** (not by prompting Rork). Rork is only used to run and review the app via Expo Go.
 - **Storage:** AsyncStorage (local only — no backend yet)
 - **State management:** React Context + TanStack Query
 
@@ -86,6 +86,40 @@ Family-created meals (`source === 'family_created'`) are stored permanently and 
 
 ### Onboarding & Auth
 Onboarding flow exists at `app/onboarding/`. The home screen redirects to `/onboarding/auth` when `onboardingData.completed === false`.
+
+The flow is **14 steps** (updated March 2026 — was 11). Each screen calls `setStep(N)` then `router.push(...)` on continue.
+
+| Step | File | Screen title | Key data written |
+|------|------|--------------|-----------------|
+| 1 | `auth.tsx` | Welcome / sign in | — |
+| 2 | `family-name.tsx` | What's your household called? | `family_name` |
+| 3 | `household-size.tsx` | How many people are in your household? | `household_size` |
+| 4 | `cultural-restrictions.tsx` | Do you follow any of these? | `cultural_restrictions[]` |
+| 5 | `family-dietary.tsx` | Any food allergies or intolerances? | `intolerances[]` |
+| 6 | `diet-preferences.tsx` | How do you want your meal plan to lean? | `diet_preferences[]` |
+| 7 | `household-type.tsx` | What's your household like? | `household_type` |
+| 8 | `personal-goal.tsx` | Any personal health goals? | `health_goals[]` |
+| 9 | `cuisines.tsx` | Which cuisines do you / does your household love? | `cuisine_preferences[]` |
+| 10 | `cooking-time.tsx` | How much time do you usually have to cook? | `cooking_time_pref` |
+| 11 | `planning-style.tsx` | How do you like to plan meals? | `planning_style` |
+| 12 | `configure-slots.tsx` | Which meal slots do you plan for? | `enabled_slots[]` |
+| 13 | `breakfast-picks.tsx` | Pick some breakfast favourites | `starter_meals[]` |
+| 14 | `lunch-picks.tsx` / `dinner-picks.tsx` | Pick lunch / dinner favourites | `starter_meals[]` |
+
+**Step 4 design rules:**
+- Question is "Do you follow any of these?" — grammatically correct for all option types (No beef, Halal only, No animal products, etc.)
+- Options: `no_beef`, `no_pork`, `no_shellfish`, `no_meat`, `vegan` (labelled "No animal products"), `halal`, `kosher`
+- "No meat" description: "Vegetarian — no meat or fish, eggs and dairy may vary" — deliberately avoids saying fish is included, because many vegetarian households (especially Indian) do not eat fish
+
+**Steps 4–5 are hard gates** — cultural restrictions and intolerances feed directly into `violatesDietaryConstraints()` in `services/recommendationEngine.ts` and are merged with `familyDietaryPrefs` as a single deduplicated constraint list. Smart Fill will never suggest a meal that violates these.
+
+**Steps 6–8 are soft signals** — diet preferences and health goals shape scoring weights in `goalAndHealthScore()` and carousel selection in `buildCarousels()`, but do not hard-exclude meals.
+
+**Step 7 household types:** `solo`, `young_family`, `school_age`, `adults_only`, `seniors`, `mixed`. `solo` is a first-class option and appears first in the list.
+
+**Dead routes (do not navigate to):** `personal-goal-diet.tsx`, `personal-goal-life.tsx`, `personal-goal-health.tsx` — these were the old Steps 5b–5d, collapsed into the new Step 8. Files remain for safety but are no longer reachable from the flow.
+
+**Solo user adaptive copy:** Import `useHouseholdCopy` from `hooks/useHouseholdCopy.ts` in any onboarding screen that references the household. Returns `isSolo`, `noneLabel`, `subject`, `possessive`, and `object` that switch between singular ("you / me") and plural ("your household / us") based on `household_size === 1`. Applied to Steps 4–9.
 
 ---
 
@@ -169,6 +203,7 @@ Shadows.card / header / tabBar  — all use Colors.shadow (red-tinted)
 - `AppHeader` — top navigation bar with title and optional right element
 - `FilterPill` — horizontal chip for filter rows. Active state: `Colors.primary` bg + white text. Inactive: `Colors.surface` bg + `Colors.text`.
 - `MealImagePlaceholder` — image placeholder for meals without a photo. Renders in three modes: (1) **delivery platform logo** (when `deliveryPlatform` prop is set), (2) **meal name initials** on a hashed muted background (when `familyInitials` prop is set — used for family-created meals without a photo; initials are derived from `name` prop, e.g. "MC" for Masala Chai), (3) **emoji + colour gradient** fallback. Never pass `familyAvatarUrl` to Favs grid cards — only `familyInitials` is used there.
+- `NoneButton` — equal-weight secondary button used on all onboarding dietary screens (Steps 4–8). Visually equivalent to `PrimaryButton` but with `Colors.surface` bg, `Colors.border` border, and `Colors.textSecondary` text. Replaces hidden skip labels so users clearly see "none apply" as a real option, not an afterthought. Always pair with `PrimaryButton` ("Continue") above it. Label should adapt via `useHouseholdCopy` — e.g. "None of these apply to me" vs "…to us".
 - `SlotPickerModal` — meal slot selection modal
 - ~~`MealPickerSheet`~~ — **deleted**. Replaced by `/meal-picker` and `/add-to-favs` Expo Router screens. See "Add-Meal Navigation Architecture" section above.
 - `MealSlotEditor` — add/remove/rename meal slots in settings
@@ -187,17 +222,24 @@ Shadows.card / header / tabBar  — all use Colors.shadow (red-tinted)
 - `OfflineBanner` — network status banner
 - `VoiceRecordSheet` — mic recording sheet for voice recipe input
 
+### Custom Hooks (`hooks/`)
+- `useHouseholdCopy` — returns copy variants that adapt to solo vs multi-person households. Reads `household_size` from `useOnboarding()`. Use on any screen that references the household in copy. Returns: `isSolo` (bool), `subject` ("you" / "your household"), `possessive` ("your" / "your household's"), `noneLabel` ("None of these apply to me" / "…to us"), `object` ("me" / "us"), `followVerb` ("I follow" / "We follow"). **Rule:** never hardcode "your family" or "your household" in onboarding screens — always use this hook.
+- `useDiscoverRecommendations` — builds a `UserProfile` and returns ranked carousels for the Discover tab.
+- `useWeekRatings` — aggregates meal ratings for the current week.
+
 ---
 
-## Rork Prompt Submission Rules
+## Development Workflow
 
-> ⚠️ **Critical:** Rork's chat input treats the Enter/Return key as "send message". Never use the `type` tool to enter multi-line prompts — every newline will submit a separate prompt and flood the queue.
+All code changes are made **directly in the GitHub repo** — never by prompting Rork's chat. Rork is only used to run and hot-reload the app via Expo Go for visual review.
 
-The correct way to submit a prompt to Rork via browser automation:
-1. Use `form_input` to set the textarea value (pastes the full text without triggering Enter)
-2. Then click the Send button once
+**Standard workflow:**
+1. Clone / pull the repo: `git clone https://github.com/abhundance/rork-meal-plan-app` (or `git pull` if already cloned)
+2. Make code changes directly to source files
+3. Commit and push to `main` (or a feature branch)
+4. Open Rork to review the live Expo preview — Rork picks up changes automatically from GitHub
 
-Always submit prompts as a **single message** — no newlines in the submitted text if using the `type` tool.
+> **Rule:** Never navigate Rork's browser file tree to read or edit code. GitHub is always the source of truth.
 
 ---
 
@@ -205,7 +247,7 @@ Always submit prompts as a **single message** — no newlines in the submitted t
 
 These patterns were established through development and must be followed:
 
-1. **Lazy API key pattern** — Never assign `process.env.EXPO_PUBLIC_*` to a module-level `const`. Always wrap in a function called at use time. Rork's bundler caches module-level values and breaks env var reads.
+1. **Lazy API key pattern** — Never assign `process.env.EXPO_PUBLIC_*` to a module-level `const`. Always wrap in a function called at use time. Expo/Metro's bundler caches module-level values and breaks env var reads.
    ```ts
    // ✅ Correct
    function getApiKey() { return process.env.EXPO_PUBLIC_OPENAI_API_KEY ?? ''; }
