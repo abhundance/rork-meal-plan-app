@@ -40,9 +40,6 @@ export function getSupabase(): SupabaseClient {
   return _supabase;
 }
 
-// Convenience default export — use getSupabase() in providers for testability
-export const supabase = getSupabase();
-
 // ── Type helpers ───────────────────────────────────────────────────────────────
 // Re-export for convenience so consumers don't need to import from supabase-js
 export type { SupabaseClient } from '@supabase/supabase-js';
