@@ -45,3 +45,5 @@ rork-eslint.config.js
 core
 node_modules
 .expopackage-lock.json
+
+.expo
