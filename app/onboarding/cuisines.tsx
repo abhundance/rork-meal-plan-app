@@ -176,26 +176,26 @@ export default function CuisinesScreen() {
 
   const handleContinue = () => {
     setCuisinePreferences(selected);
-    setStep(7);
+    setStep(10);
     router.push('/onboarding/cooking-time' as Href);
   };
 
   const handleSkip = () => {
     setCuisinePreferences([]);
-    setStep(7);
+    setStep(10);
     router.push('/onboarding/cooking-time' as Href);
   };
 
   return (
     <View style={[styles.container]}>
-      <OnboardingHeader current={6} total={11} />
+      <OnboardingHeader current={9} total={14} />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.stepLabel}>Step 6 of 11</Text>
+        <Text style={styles.stepLabel}>Step 9 of 14</Text>
         <Text style={styles.heading}>Which cuisines does your family love?</Text>
         <Text style={styles.subheading}>
           We'll use this to personalise your Discover feed. Pick as many as you like.

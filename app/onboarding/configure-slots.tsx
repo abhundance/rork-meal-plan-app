@@ -46,7 +46,7 @@ export default function ConfigureSlotsScreen() {
   const handleContinue = () => {
     const slots = ALL_SLOTS.map(s => s.id).filter(id => enabled.has(id));
     setEnabledSlots(slots);
-    setStep(10);
+    setStep(13);
     // Navigate to first enabled picks screen (snacks has no picks screen)
     if (enabled.has('breakfast')) {
       router.push('/onboarding/breakfast-picks' as Href);
@@ -61,7 +61,7 @@ export default function ConfigureSlotsScreen() {
 
   return (
     <View style={[styles.container]}>
-      <OnboardingHeader current={9} total={11} />
+      <OnboardingHeader current={12} total={14} />
 
       <ScrollView
         style={styles.scroll}
@@ -69,7 +69,7 @@ export default function ConfigureSlotsScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.stepLabel}>Step 9 of 11</Text>
+        <Text style={styles.stepLabel}>Step 12 of 14</Text>
         <Text style={styles.heading}>Which meal slots do you plan for?</Text>
         <Text style={styles.subheading}>
           We'll set up your weekly planner with these slots. You can always add or remove them later in Settings.

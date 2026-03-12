@@ -16,6 +16,9 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   language: 'English',
   region: 'US',
   smart_fill_novelty_pct: 30,  // 30% new meals by default (Balanced)
+  cultural_restrictions: [],
+  intolerances: [],
+  diet_preferences: [],
 };
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -46,6 +49,11 @@ export const DEFAULT_ONBOARDING: OnboardingData = {
   dietary_preferences_individual: [],
   is_admin: true,
   personal_goal: 'balanced',
+  cultural_restrictions: [],
+  intolerances: [],
+  diet_preferences: [],
+  household_type: undefined,
+  health_goals: [],
   region: '',
   measurement_units: 'metric',
   cuisine_preferences: [],

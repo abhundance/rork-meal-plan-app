@@ -11,68 +11,62 @@ import PrimaryButton from '@/components/PrimaryButton';
 import NoneButton from '@/components/NoneButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 
-type IntoleranceItem = {
+type DietItem = {
   value: string;
   emoji: string;
   label: string;
   description: string;
 };
 
-const INTOLERANCE_OPTIONS: IntoleranceItem[] = [
+const DIET_OPTIONS: DietItem[] = [
   {
-    value: 'gluten-free',
-    emoji: '🌾',
-    label: 'Gluten-free',
-    description: 'Coeliac disease or gluten sensitivity',
+    value: 'high_protein',
+    emoji: '💪',
+    label: 'High protein',
+    description: 'Prioritise protein-rich meals to build and maintain muscle',
   },
   {
-    value: 'dairy-free',
-    emoji: '🥛',
-    label: 'Dairy-free',
-    description: 'Lactose intolerance or dairy allergy',
+    value: 'low_carb',
+    emoji: '🥦',
+    label: 'Low carb',
+    description: 'Limit starchy foods, breads, and sugars',
   },
   {
-    value: 'nut-free',
-    emoji: '🥜',
-    label: 'Nut-free',
-    description: 'Tree nut or peanut allergy',
+    value: 'mediterranean',
+    emoji: '🫒',
+    label: 'Mediterranean',
+    description: 'Heart-healthy, olive oil, fish, fresh vegetables',
   },
   {
-    value: 'egg-free',
-    emoji: '🥚',
-    label: 'Egg-free',
-    description: 'Egg allergy or intolerance',
+    value: 'plant_forward',
+    emoji: '🌱',
+    label: 'Plant-forward',
+    description: 'Mostly plants — some animal products are OK',
   },
   {
-    value: 'soy-free',
+    value: 'keto',
+    emoji: '🥑',
+    label: 'Keto',
+    description: 'Very low carb, high fat, moderate protein',
+  },
+  {
+    value: 'paleo',
+    emoji: '🦕',
+    label: 'Paleo',
+    description: 'Whole, unprocessed foods — ancestral eating',
+  },
+  {
+    value: 'whole30',
     emoji: '🌿',
-    label: 'Soy-free',
-    description: 'Soy allergy or intolerance',
-  },
-  {
-    value: 'shellfish-free',
-    emoji: '🦐',
-    label: 'Shellfish-free',
-    description: 'Shellfish or crustacean allergy',
-  },
-  {
-    value: 'sesame-free',
-    emoji: '🌰',
-    label: 'Sesame-free',
-    description: 'Sesame seed allergy',
-  },
-  {
-    value: 'wheat-free',
-    emoji: '🍞',
-    label: 'Wheat-free',
-    description: 'Wheat allergy (distinct from gluten)',
+    label: 'Whole30',
+    description: '30-day elimination protocol — clean reset',
   },
 ];
 
-export default function IntolerancesScreen() {
+export default function DietPreferencesScreen() {
   const insets = useSafeAreaInsets();
-  const { data, setIntolerances, setStep } = useOnboarding();
-  const [selected, setSelected] = useState<string[]>(data.intolerances ?? []);
+  const { data, setDietPreferences, setStep } = useOnboarding();
+  const [selected, setSelected] = useState<string[]>(data.diet_preferences ?? []);
 
   const toggle = (value: string) => {
     setSelected(prev =>
@@ -81,36 +75,36 @@ export default function IntolerancesScreen() {
   };
 
   const advance = () => {
-    setStep(6);
-    router.push('/onboarding/diet-preferences' as Href);
+    setStep(7);
+    router.push('/onboarding/household-type' as Href);
   };
 
   const handleContinue = () => {
-    setIntolerances(selected);
+    setDietPreferences(selected);
     advance();
   };
 
   const handleNone = () => {
-    setIntolerances([]);
+    setDietPreferences([]);
     advance();
   };
 
   return (
     <View style={styles.container}>
-      <OnboardingHeader current={5} total={14} />
+      <OnboardingHeader current={6} total={14} />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 160 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.stepLabel}>Step 5 of 14</Text>
-        <Text style={styles.heading}>Any food allergies or intolerances?</Text>
+        <Text style={styles.stepLabel}>Step 6 of 14</Text>
+        <Text style={styles.heading}>How do you want your meal plan to lean?</Text>
         <Text style={styles.subheading}>
-          Select all that apply. These are treated as hard limits — we'll never suggest a meal that contains these ingredients.
+          Pick any that fit your household's eating style. These shape your Discover feed — you can always change them later.
         </Text>
 
-        {INTOLERANCE_OPTIONS.map((item) => {
+        {DIET_OPTIONS.map((item) => {
           const isSelected = selected.includes(item.value);
           return (
             <TouchableOpacity
@@ -143,7 +137,7 @@ export default function IntolerancesScreen() {
           testID="continue-btn"
         />
         <NoneButton
-          label="No allergies or intolerances"
+          label="No specific preference — keep it balanced"
           onPress={handleNone}
           testID="none-btn"
         />

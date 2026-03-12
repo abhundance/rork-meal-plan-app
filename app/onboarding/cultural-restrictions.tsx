@@ -11,68 +11,62 @@ import PrimaryButton from '@/components/PrimaryButton';
 import NoneButton from '@/components/NoneButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 
-type IntoleranceItem = {
+type RestrictionItem = {
   value: string;
   emoji: string;
   label: string;
   description: string;
 };
 
-const INTOLERANCE_OPTIONS: IntoleranceItem[] = [
+const RESTRICTION_OPTIONS: RestrictionItem[] = [
   {
-    value: 'gluten-free',
-    emoji: '🌾',
-    label: 'Gluten-free',
-    description: 'Coeliac disease or gluten sensitivity',
+    value: 'no_beef',
+    emoji: '🐄',
+    label: 'No beef',
+    description: 'Common in Hindu, Jain, and some Asian households',
   },
   {
-    value: 'dairy-free',
-    emoji: '🥛',
-    label: 'Dairy-free',
-    description: 'Lactose intolerance or dairy allergy',
+    value: 'no_pork',
+    emoji: '🐷',
+    label: 'No pork',
+    description: 'Common in Muslim and Jewish households',
   },
   {
-    value: 'nut-free',
-    emoji: '🥜',
-    label: 'Nut-free',
-    description: 'Tree nut or peanut allergy',
+    value: 'no_shellfish',
+    emoji: '🦞',
+    label: 'No shellfish',
+    description: 'Common in Kosher and some religious practices',
   },
   {
-    value: 'egg-free',
-    emoji: '🥚',
-    label: 'Egg-free',
-    description: 'Egg allergy or intolerance',
+    value: 'no_meat',
+    emoji: '🥩',
+    label: 'Vegetarian',
+    description: 'No meat — fish and dairy may be included',
   },
   {
-    value: 'soy-free',
-    emoji: '🌿',
-    label: 'Soy-free',
-    description: 'Soy allergy or intolerance',
+    value: 'vegan',
+    emoji: '🌱',
+    label: 'Vegan',
+    description: 'No animal products of any kind',
   },
   {
-    value: 'shellfish-free',
-    emoji: '🦐',
-    label: 'Shellfish-free',
-    description: 'Shellfish or crustacean allergy',
+    value: 'halal',
+    emoji: '☪️',
+    label: 'Halal only',
+    description: 'Meat must be halal-certified',
   },
   {
-    value: 'sesame-free',
-    emoji: '🌰',
-    label: 'Sesame-free',
-    description: 'Sesame seed allergy',
-  },
-  {
-    value: 'wheat-free',
-    emoji: '🍞',
-    label: 'Wheat-free',
-    description: 'Wheat allergy (distinct from gluten)',
+    value: 'kosher',
+    emoji: '✡️',
+    label: 'Kosher only',
+    description: 'Follows kosher dietary laws',
   },
 ];
 
-export default function IntolerancesScreen() {
+export default function CulturalRestrictionsScreen() {
   const insets = useSafeAreaInsets();
-  const { data, setIntolerances, setStep } = useOnboarding();
-  const [selected, setSelected] = useState<string[]>(data.intolerances ?? []);
+  const { data, setCulturalRestrictions, setStep } = useOnboarding();
+  const [selected, setSelected] = useState<string[]>(data.cultural_restrictions ?? []);
 
   const toggle = (value: string) => {
     setSelected(prev =>
@@ -81,36 +75,36 @@ export default function IntolerancesScreen() {
   };
 
   const advance = () => {
-    setStep(6);
-    router.push('/onboarding/diet-preferences' as Href);
+    setStep(5);
+    router.push('/onboarding/family-dietary' as Href);
   };
 
   const handleContinue = () => {
-    setIntolerances(selected);
+    setCulturalRestrictions(selected);
     advance();
   };
 
   const handleNone = () => {
-    setIntolerances([]);
+    setCulturalRestrictions([]);
     advance();
   };
 
   return (
     <View style={styles.container}>
-      <OnboardingHeader current={5} total={14} />
+      <OnboardingHeader current={4} total={14} />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 160 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.stepLabel}>Step 5 of 14</Text>
-        <Text style={styles.heading}>Any food allergies or intolerances?</Text>
+        <Text style={styles.stepLabel}>Step 4 of 14</Text>
+        <Text style={styles.heading}>Anything your household doesn't eat?</Text>
         <Text style={styles.subheading}>
-          Select all that apply. These are treated as hard limits — we'll never suggest a meal that contains these ingredients.
+          Select all that apply. We'll make sure Smart Fill and your Discover feed never suggest meals that don't fit.
         </Text>
 
-        {INTOLERANCE_OPTIONS.map((item) => {
+        {RESTRICTION_OPTIONS.map((item) => {
           const isSelected = selected.includes(item.value);
           return (
             <TouchableOpacity
@@ -143,7 +137,7 @@ export default function IntolerancesScreen() {
           testID="continue-btn"
         />
         <NoneButton
-          label="No allergies or intolerances"
+          label="None of these apply to us"
           onPress={handleNone}
           testID="none-btn"
         />

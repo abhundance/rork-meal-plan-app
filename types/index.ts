@@ -36,6 +36,11 @@ export interface FamilySettings {
   region: string;
   // Smart Fill preferences
   smart_fill_novelty_pct: number;  // 0–100: % of slots to fill with meals not in Favs. Default 30.
+  // ── Dietary data (onboarding overhaul) ────────────────────────────────────
+  cultural_restrictions: string[];   // hard gates: no_beef, no_pork, no_shellfish, vegetarian, vegan, halal, kosher
+  intolerances: string[];            // hard gates: gluten-free, dairy-free, nut-free, egg-free, soy-free, etc.
+  diet_preferences: string[];        // soft signals: high_protein, low_carb, mediterranean, plant_forward, keto, paleo, whole30
+  household_type?: string;           // young_family | school_age | adults_only | seniors | mixed
 }
 
 export interface PantryItem {
@@ -51,7 +56,8 @@ export interface UserSettings {
   avatar_url?: string;
   dietary_preferences_individual: string[];
   is_admin: boolean;
-  personal_goal?: PersonalGoal;   // primary cook's personal health goal
+  personal_goal?: PersonalGoal;   // primary cook's personal health goal (legacy — use health_goals)
+  health_goals?: string[];         // multi-select health goals from onboarding Step 8
 }
 
 export interface FamilyMember {
@@ -91,8 +97,14 @@ export interface OnboardingData {
   dietary_preferences_family: string[];
   dietary_preferences_individual: string[];
   is_admin: boolean;
-  personal_goal?: PersonalGoal;   // collected during onboarding, written to UserSettings on complete
-  // ── New fields (onboarding overhaul) ─────────────────────────────────────
+  personal_goal?: PersonalGoal;   // legacy single-select — kept for backward compat
+  // ── Onboarding overhaul — dietary & household (Steps 4–8) ─────────────────
+  cultural_restrictions?: string[];  // Step 4 — hard gates: no_beef, no_pork, no_shellfish, vegetarian, vegan, halal, kosher
+  intolerances?: string[];           // Step 5 — hard gates: gluten-free, dairy-free, nut-free, egg-free, soy-free, etc.
+  diet_preferences?: string[];       // Step 6 — soft signals: high_protein, low_carb, mediterranean, plant_forward, keto, paleo, whole30
+  household_type?: string;           // Step 7 — young_family | school_age | adults_only | seniors | mixed
+  health_goals?: string[];           // Step 8 — multi-select: weight_loss, muscle_gain, pregnancy, heart_health, etc.
+  // ── Onboarding overhaul — downstream steps ────────────────────────────────
   region?: string;
   measurement_units?: 'metric' | 'imperial';
   cuisine_preferences?: string[];

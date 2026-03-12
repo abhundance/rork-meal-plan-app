@@ -18,15 +18,15 @@ export default function HouseholdSizeScreen() {
   const handleContinue = () => {
     setHouseholdSize(size);
     setStep(4);
-    router.push('/onboarding/family-dietary' as Href);
+    router.push('/onboarding/cultural-restrictions' as Href);
   };
 
   return (
     <View style={[styles.container]}>
-      <OnboardingHeader current={3} total={11} />
+      <OnboardingHeader current={3} total={14} />
 
       <View style={styles.content}>
-        <Text style={styles.stepLabel}>Step 3 of 11</Text>
+        <Text style={styles.stepLabel}>Step 3 of 14</Text>
         <Text style={styles.heading}>How many people are in your household?</Text>
 
         <View style={styles.stepperContainer}>

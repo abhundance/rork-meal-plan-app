@@ -30,7 +30,7 @@ export default function BreakfastPicksScreen() {
   const breakfastSelectedCount = [...selectedIds].filter(id => breakfastIds.has(id)).length;
 
   const navigateNext = () => {
-    setStep(11);
+    setStep(14);
     const enabled = data.enabled_slots ?? ['breakfast', 'lunch', 'dinner'];
     if (enabled.includes('lunch')) {
       router.push('/onboarding/lunch-picks' as Href);
@@ -45,7 +45,7 @@ export default function BreakfastPicksScreen() {
 
   return (
     <View style={styles.container}>
-      <OnboardingHeader current={10} total={11} />
+      <OnboardingHeader current={13} total={14} />
 
       <FlatList
         data={meals}
@@ -54,7 +54,7 @@ export default function BreakfastPicksScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.stepLabel}>Step 10 of 11</Text>
+            <Text style={styles.stepLabel}>Step 13 of 14</Text>
             <Text style={styles.heading}>Pick some breakfast favourites</Text>
             <Text style={styles.subheading}>
               These get added to your Favs so Smart Fill has meals to work with from day one.

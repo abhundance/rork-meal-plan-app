@@ -49,13 +49,13 @@ export default function PlanningStyleScreen() {
 
   const handleContinue = () => {
     setPlanningStyle(selected);
-    setStep(9);
+    setStep(12);
     router.push('/onboarding/configure-slots' as Href);
   };
 
   return (
     <View style={[styles.container]}>
-      <OnboardingHeader current={8} total={11} />
+      <OnboardingHeader current={11} total={14} />
 
       <ScrollView
         style={styles.scroll}
@@ -63,7 +63,7 @@ export default function PlanningStyleScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.stepLabel}>Step 8 of 11</Text>
+        <Text style={styles.stepLabel}>Step 11 of 14</Text>
         <Text style={styles.heading}>How do you like to plan meals?</Text>
         <Text style={styles.subheading}>
           This sets how often Smart Fill suggests new recipes versus your family favourites.

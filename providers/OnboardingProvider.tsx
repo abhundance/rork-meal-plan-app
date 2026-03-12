@@ -5,6 +5,9 @@ import createContextHook from '@nkzw/create-context-hook';
 import { OnboardingData, MealSlot, PersonalGoal, StarterMealPick } from '@/types';
 import { DEFAULT_ONBOARDING } from '@/constants/defaults';
 
+// ─── Type for setters ─────────────────────────────────────────────────────────
+type DietaryStringArray = string[];
+
 const ONBOARDING_KEY = 'onboarding_data';
 
 // ─── DEV BYPASS ─────────────────────────────────────────────────────────────
@@ -98,6 +101,28 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     updateOnboarding({ personal_goal: goal });
   }, [updateOnboarding]);
 
+  // ── New dietary setters (onboarding overhaul Steps 4–8) ───────────────────
+
+  const setCulturalRestrictions = useCallback((restrictions: DietaryStringArray) => {
+    updateOnboarding({ cultural_restrictions: restrictions });
+  }, [updateOnboarding]);
+
+  const setIntolerances = useCallback((intolerances: DietaryStringArray) => {
+    updateOnboarding({ intolerances });
+  }, [updateOnboarding]);
+
+  const setDietPreferences = useCallback((prefs: DietaryStringArray) => {
+    updateOnboarding({ diet_preferences: prefs });
+  }, [updateOnboarding]);
+
+  const setHouseholdType = useCallback((type: string) => {
+    updateOnboarding({ household_type: type });
+  }, [updateOnboarding]);
+
+  const setHealthGoals = useCallback((goals: DietaryStringArray) => {
+    updateOnboarding({ health_goals: goals });
+  }, [updateOnboarding]);
+
   const setRegion = useCallback((region: string, units: 'metric' | 'imperial') => {
     updateOnboarding({ region, measurement_units: units });
   }, [updateOnboarding]);
@@ -153,6 +178,13 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     setFamilyDietary,
     setPersonalDietary,
     setPersonalGoal,
+    // ── New dietary setters (onboarding overhaul Steps 4–8) ─────────────────
+    setCulturalRestrictions,
+    setIntolerances,
+    setDietPreferences,
+    setHouseholdType,
+    setHealthGoals,
+    // ── Existing downstream setters ─────────────────────────────────────────
     setRegion,
     setCuisinePreferences,
     setCookingTimePref,

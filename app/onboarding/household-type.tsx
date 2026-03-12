@@ -8,115 +8,89 @@ import { BorderRadius } from '@/constants/theme';
 import { Check } from 'lucide-react-native';
 import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
-import NoneButton from '@/components/NoneButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 
-type IntoleranceItem = {
+type HouseholdItem = {
   value: string;
   emoji: string;
   label: string;
   description: string;
 };
 
-const INTOLERANCE_OPTIONS: IntoleranceItem[] = [
+const HOUSEHOLD_OPTIONS: HouseholdItem[] = [
   {
-    value: 'gluten-free',
-    emoji: '🌾',
-    label: 'Gluten-free',
-    description: 'Coeliac disease or gluten sensitivity',
+    value: 'young_family',
+    emoji: '👶',
+    label: 'Young family',
+    description: 'Kids under 10 — mild flavours, familiar favourites',
   },
   {
-    value: 'dairy-free',
-    emoji: '🥛',
-    label: 'Dairy-free',
-    description: 'Lactose intolerance or dairy allergy',
+    value: 'school_age',
+    emoji: '🧒',
+    label: 'School-age kids',
+    description: 'Kids 10–17 — more adventurous, bigger portions',
   },
   {
-    value: 'nut-free',
-    emoji: '🥜',
-    label: 'Nut-free',
-    description: 'Tree nut or peanut allergy',
+    value: 'adults_only',
+    emoji: '👫',
+    label: 'Adults only',
+    description: 'No kids at home — full flavour, any cuisine',
   },
   {
-    value: 'egg-free',
-    emoji: '🥚',
-    label: 'Egg-free',
-    description: 'Egg allergy or intolerance',
+    value: 'seniors',
+    emoji: '👴',
+    label: 'Seniors at home',
+    description: 'Softer textures, lighter portions, heart-friendly',
   },
   {
-    value: 'soy-free',
-    emoji: '🌿',
-    label: 'Soy-free',
-    description: 'Soy allergy or intolerance',
-  },
-  {
-    value: 'shellfish-free',
-    emoji: '🦐',
-    label: 'Shellfish-free',
-    description: 'Shellfish or crustacean allergy',
-  },
-  {
-    value: 'sesame-free',
-    emoji: '🌰',
-    label: 'Sesame-free',
-    description: 'Sesame seed allergy',
-  },
-  {
-    value: 'wheat-free',
-    emoji: '🍞',
-    label: 'Wheat-free',
-    description: 'Wheat allergy (distinct from gluten)',
+    value: 'mixed',
+    emoji: '🌍',
+    label: 'Mixed household',
+    description: 'All ages — broad appeal, something for everyone',
   },
 ];
 
-export default function IntolerancesScreen() {
+export default function HouseholdTypeScreen() {
   const insets = useSafeAreaInsets();
-  const { data, setIntolerances, setStep } = useOnboarding();
-  const [selected, setSelected] = useState<string[]>(data.intolerances ?? []);
-
-  const toggle = (value: string) => {
-    setSelected(prev =>
-      prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
-    );
-  };
+  const { data, setHouseholdType, setStep } = useOnboarding();
+  const [selected, setSelected] = useState<string | null>(data.household_type ?? null);
 
   const advance = () => {
-    setStep(6);
-    router.push('/onboarding/diet-preferences' as Href);
+    setStep(8);
+    router.push('/onboarding/personal-goal' as Href);
+  };
+
+  const handleSelect = (value: string) => {
+    setSelected(value);
   };
 
   const handleContinue = () => {
-    setIntolerances(selected);
-    advance();
-  };
-
-  const handleNone = () => {
-    setIntolerances([]);
+    setHouseholdType(selected ?? 'mixed');
     advance();
   };
 
   return (
     <View style={styles.container}>
-      <OnboardingHeader current={5} total={14} />
+      <OnboardingHeader current={7} total={14} />
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 160 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.stepLabel}>Step 5 of 14</Text>
-        <Text style={styles.heading}>Any food allergies or intolerances?</Text>
+        <Text style={styles.stepLabel}>Step 7 of 14</Text>
+        <Text style={styles.heading}>What's your household like?</Text>
         <Text style={styles.subheading}>
-          Select all that apply. These are treated as hard limits — we'll never suggest a meal that contains these ingredients.
+          This helps us tailor recipes to your family's age range and taste preferences.
         </Text>
 
-        {INTOLERANCE_OPTIONS.map((item) => {
-          const isSelected = selected.includes(item.value);
+        {HOUSEHOLD_OPTIONS.map((item) => {
+          const isSelected = selected === item.value;
           return (
             <TouchableOpacity
               key={item.value}
               style={[styles.optionRow, isSelected && styles.optionRowSelected]}
-              onPress={() => toggle(item.value)}
+              onPress={() => handleSelect(item.value)}
               activeOpacity={0.7}
             >
               <Text style={styles.optionEmoji}>{item.emoji}</Text>
@@ -138,14 +112,9 @@ export default function IntolerancesScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <PrimaryButton
-          label="Continue"
+          label={selected ? 'Continue' : 'Skip for now'}
           onPress={handleContinue}
           testID="continue-btn"
-        />
-        <NoneButton
-          label="No allergies or intolerances"
-          onPress={handleNone}
-          testID="none-btn"
         />
       </View>
     </View>

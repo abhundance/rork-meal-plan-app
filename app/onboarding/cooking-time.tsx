@@ -26,13 +26,13 @@ export default function CookingTimeScreen() {
 
   const handleContinue = () => {
     setCookingTimePref(selected);
-    setStep(8);
+    setStep(11);
     router.push('/onboarding/planning-style' as Href);
   };
 
   return (
     <View style={[styles.container]}>
-      <OnboardingHeader current={7} total={11} />
+      <OnboardingHeader current={10} total={14} />
 
       <ScrollView
         style={styles.scroll}
@@ -40,7 +40,7 @@ export default function CookingTimeScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.stepLabel}>Step 7 of 11</Text>
+        <Text style={styles.stepLabel}>Step 10 of 14</Text>
         <Text style={styles.heading}>How much time do you usually have to cook?</Text>
         <Text style={styles.subheading}>
           We'll prioritise recipes that fit your schedule.

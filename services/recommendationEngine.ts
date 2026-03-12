@@ -63,14 +63,23 @@ export interface DiscoverCarousel {
 // ─── Build UserProfile ────────────────────────────────────────────────────────
 
 export function buildUserProfile(
-  plannedMeals:         PlannedMeal[],
-  favMeals:             Recipe[],
-  familyDietaryPrefs:   string[],
-  discoverPrefs:        DiscoverPreference[],
-  viewHistory:          ViewHistoryEntry[],
-  recentSearches:       string[],
-  personalGoal:         PersonalGoal = 'balanced',  // 7th param — optional, safe default
+  plannedMeals:          PlannedMeal[],
+  favMeals:              Recipe[],
+  familyDietaryPrefs:    string[],
+  discoverPrefs:         DiscoverPreference[],
+  viewHistory:           ViewHistoryEntry[],
+  recentSearches:        string[],
+  personalGoal:          PersonalGoal = 'balanced',  // 7th param — optional, safe default
+  culturalRestrictions?: string[],                   // Step 4: no_beef, no_pork, halal, kosher, etc.
+  intolerances?:         string[],                   // Step 5: gluten-free, dairy-free, nut-free, etc.
 ): UserProfile {
+  // Merge all hard-gate dietary constraints into a single deduplicated list.
+  // familyDietaryPrefs is kept for backward compat; cultural + intolerance are additive.
+  const mergedConstraints = [
+    ...familyDietaryPrefs,
+    ...(culturalRestrictions ?? []),
+    ...(intolerances ?? []),
+  ].filter((v, i, arr) => arr.indexOf(v) === i); // deduplicate
   const now       = new Date();
   const todayStr  = now.toISOString().split('T')[0];
   const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
@@ -210,7 +219,7 @@ export function buildUserProfile(
     proteinAffinity: proteinAffinityMap,
     timeBandAffinity,
     tasteVector,
-    dietaryConstraints: familyDietaryPrefs,
+    dietaryConstraints: mergedConstraints,
     recentlyCooked: cookedRecently,
     viewedMeals: viewedSet,
     loved: lovedSet,
@@ -260,13 +269,64 @@ export function scoreMeal(meal: DiscoverMeal, profile: UserProfile): number {
 function violatesDietaryConstraints(meal: DiscoverMeal, constraints: string[]): boolean {
   for (const c of constraints) {
     const lower = c.toLowerCase();
+
+    // ── Legacy / Step 6 diet prefs that double as hard gates ─────────────────
     if (lower === 'vegan' && !meal.diet_labels.includes('vegan')) return true;
     if (lower === 'vegetarian' && !meal.diet_labels.includes('vegetarian')
         && !meal.diet_labels.includes('vegan')) return true;
+
+    // ── Step 5 intolerances (allergen hard gates) ────────────────────────────
     if ((lower === 'gluten-free' || lower === 'gluten_free')
         && !meal.allergens.includes('gluten-free')) return true;
     if ((lower === 'dairy-free' || lower === 'dairy_free')
         && !meal.allergens.includes('dairy-free')) return true;
+    if ((lower === 'nut-free' || lower === 'nut_free')
+        && !meal.allergens.includes('nut-free')) return true;
+    if ((lower === 'egg-free' || lower === 'egg_free')
+        && !meal.allergens.includes('egg-free')) return true;
+    if ((lower === 'soy-free' || lower === 'soy_free')
+        && !meal.allergens.includes('soy-free')) return true;
+    if ((lower === 'shellfish-free' || lower === 'shellfish_free')
+        && !meal.allergens.includes('shellfish-free')) return true;
+    if ((lower === 'sesame-free' || lower === 'sesame_free')
+        && !meal.allergens.includes('sesame-free')) return true;
+    if ((lower === 'wheat-free' || lower === 'wheat_free')
+        && !meal.allergens.includes('wheat-free')) return true;
+
+    // ── Step 4 cultural / religious restrictions (protein_source hard gates) ─
+    // no_beef: exclude meals where protein_source is beef
+    if (lower === 'no_beef' && meal.protein_source === 'beef') return true;
+
+    // no_pork: exclude meals where protein_source is pork
+    if (lower === 'no_pork' && meal.protein_source === 'pork') return true;
+
+    // no_shellfish: exclude meals where protein_source is seafood (shellfish proxy)
+    // Note: Spoonacular will give us a more granular field; this is best-effort for now.
+    if (lower === 'no_shellfish' && meal.protein_source === 'seafood') return true;
+
+    // no_meat (vegetarian): exclude all animal protein except egg and dairy
+    if (lower === 'no_meat') {
+      const meatProteins = ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'seafood'];
+      if (meatProteins.includes(meal.protein_source)) return true;
+      // Also require at least vegetarian label (belt-and-suspenders)
+      if (!meal.diet_labels.includes('vegetarian') && !meal.diet_labels.includes('vegan')) {
+        return true;
+      }
+    }
+
+    // vegan (also cultural in some communities): no animal products at all
+    // Already handled above, but kept here for explicitness via cultural path.
+    if (lower === 'no_animal_products' && !meal.diet_labels.includes('vegan')) return true;
+
+    // halal: exclude pork. True halal would need a 'halal-certified' allergen tag
+    // from Spoonacular; until then, we exclude pork as a minimum safe gate.
+    if (lower === 'halal' && meal.protein_source === 'pork') return true;
+
+    // kosher: exclude pork + shellfish minimum gates (full kosher is more complex)
+    if (lower === 'kosher') {
+      if (meal.protein_source === 'pork') return true;
+      if (meal.protein_source === 'seafood') return true;
+    }
   }
   return false;
 }
