@@ -19,6 +19,12 @@ type HouseholdItem = {
 
 const HOUSEHOLD_OPTIONS: HouseholdItem[] = [
   {
+    value: 'solo',
+    emoji: '🙋',
+    label: 'Just me',
+    description: 'Solo — variety, meal prep, and portion control matter most',
+  },
+  {
     value: 'young_family',
     emoji: '👶',
     label: 'Young family',

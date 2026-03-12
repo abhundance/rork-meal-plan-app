@@ -10,6 +10,7 @@ import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import NoneButton from '@/components/NoneButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
+import { useHouseholdCopy } from '@/hooks/useHouseholdCopy';
 
 type IntoleranceItem = {
   value: string;
@@ -72,6 +73,7 @@ const INTOLERANCE_OPTIONS: IntoleranceItem[] = [
 export default function IntolerancesScreen() {
   const insets = useSafeAreaInsets();
   const { data, setIntolerances, setStep } = useOnboarding();
+  const { isSolo } = useHouseholdCopy();
   const [selected, setSelected] = useState<string[]>(data.intolerances ?? []);
 
   const toggle = (value: string) => {
@@ -107,7 +109,7 @@ export default function IntolerancesScreen() {
         <Text style={styles.stepLabel}>Step 5 of 14</Text>
         <Text style={styles.heading}>Any food allergies or intolerances?</Text>
         <Text style={styles.subheading}>
-          Select all that apply. These are treated as hard limits — we'll never suggest a meal that contains these ingredients.
+          Select all that apply. These are hard limits — {isSolo ? 'we\'ll' : 'we\'ll'} never suggest a meal that contains these ingredients.
         </Text>
 
         {INTOLERANCE_OPTIONS.map((item) => {
@@ -143,7 +145,7 @@ export default function IntolerancesScreen() {
           testID="continue-btn"
         />
         <NoneButton
-          label="No allergies or intolerances"
+          label={isSolo ? 'No allergies or intolerances for me' : 'No allergies or intolerances for us'}
           onPress={handleNone}
           testID="none-btn"
         />

@@ -10,6 +10,7 @@ import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import NoneButton from '@/components/NoneButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
+import { useHouseholdCopy } from '@/hooks/useHouseholdCopy';
 
 type RestrictionItem = {
   value: string;
@@ -41,7 +42,7 @@ const RESTRICTION_OPTIONS: RestrictionItem[] = [
     value: 'no_meat',
     emoji: '🥩',
     label: 'No meat',
-    description: 'Vegetarian household — fish and dairy may still be included',
+    description: 'Vegetarian — no meat or fish, eggs and dairy may vary',
   },
   {
     value: 'vegan',
@@ -66,6 +67,7 @@ const RESTRICTION_OPTIONS: RestrictionItem[] = [
 export default function CulturalRestrictionsScreen() {
   const insets = useSafeAreaInsets();
   const { data, setCulturalRestrictions, setStep } = useOnboarding();
+  const { noneLabel } = useHouseholdCopy();
   const [selected, setSelected] = useState<string[]>(data.cultural_restrictions ?? []);
 
   const toggle = (value: string) => {
@@ -99,9 +101,9 @@ export default function CulturalRestrictionsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.stepLabel}>Step 4 of 14</Text>
-        <Text style={styles.heading}>Anything your household doesn't eat?</Text>
+        <Text style={styles.heading}>Do you follow any of these?</Text>
         <Text style={styles.subheading}>
-          Select all that apply. We'll make sure Smart Fill and your Discover feed never suggest meals that don't fit.
+          Select all that apply. Smart Fill and your Discover feed will never suggest meals that don't fit.
         </Text>
 
         {RESTRICTION_OPTIONS.map((item) => {
@@ -137,7 +139,7 @@ export default function CulturalRestrictionsScreen() {
           testID="continue-btn"
         />
         <NoneButton
-          label="None of these apply to us"
+          label={noneLabel}
           onPress={handleNone}
           testID="none-btn"
         />

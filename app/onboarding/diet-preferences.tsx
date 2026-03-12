@@ -10,6 +10,7 @@ import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import NoneButton from '@/components/NoneButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
+import { useHouseholdCopy } from '@/hooks/useHouseholdCopy';
 
 type DietItem = {
   value: string;
@@ -66,6 +67,7 @@ const DIET_OPTIONS: DietItem[] = [
 export default function DietPreferencesScreen() {
   const insets = useSafeAreaInsets();
   const { data, setDietPreferences, setStep } = useOnboarding();
+  const { isSolo } = useHouseholdCopy();
   const [selected, setSelected] = useState<string[]>(data.diet_preferences ?? []);
 
   const toggle = (value: string) => {
@@ -137,7 +139,7 @@ export default function DietPreferencesScreen() {
           testID="continue-btn"
         />
         <NoneButton
-          label="No specific preference — keep it balanced"
+          label={isSolo ? 'No specific preference for me' : 'No specific preference — keep it balanced'}
           onPress={handleNone}
           testID="none-btn"
         />

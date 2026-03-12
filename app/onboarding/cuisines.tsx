@@ -11,6 +11,7 @@ import { BorderRadius } from '@/constants/theme';
 import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
+import { useHouseholdCopy } from '@/hooks/useHouseholdCopy';
 import { CUISINE_OPTIONS } from '@/types';
 
 // Emoji map for cuisines
@@ -163,6 +164,7 @@ function getOrderedCuisines(region?: string): typeof CUISINE_OPTIONS[number][] {
 export default function CuisinesScreen() {
   const insets = useSafeAreaInsets();
   const { data, setCuisinePreferences, setStep } = useOnboarding();
+  const { isSolo } = useHouseholdCopy();
   const [selected, setSelected] = useState<string[]>(data.cuisine_preferences ?? []);
 
   // Recompute order only when data.region changes (stable across renders)
@@ -196,7 +198,9 @@ export default function CuisinesScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.stepLabel}>Step 9 of 14</Text>
-        <Text style={styles.heading}>Which cuisines does your family love?</Text>
+        <Text style={styles.heading}>
+          {isSolo ? 'Which cuisines do you love?' : 'Which cuisines does your household love?'}
+        </Text>
         <Text style={styles.subheading}>
           We'll use this to personalise your Discover feed. Pick as many as you like.
         </Text>

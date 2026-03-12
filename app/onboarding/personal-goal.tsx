@@ -10,6 +10,7 @@ import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import NoneButton from '@/components/NoneButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
+import { useHouseholdCopy } from '@/hooks/useHouseholdCopy';
 
 type GoalItem = {
   value: string;
@@ -55,6 +56,7 @@ const GOAL_SECTIONS: GoalSection[] = [
 export default function PersonalGoalScreen() {
   const insets = useSafeAreaInsets();
   const { data, setHealthGoals, setStep } = useOnboarding();
+  const { isSolo } = useHouseholdCopy();
   const [selected, setSelected] = useState<string[]>(data.health_goals ?? []);
 
   const toggle = (value: string) => {
@@ -132,7 +134,7 @@ export default function PersonalGoalScreen() {
           testID="continue-btn"
         />
         <NoneButton
-          label="No specific health goals"
+          label={isSolo ? 'No specific goals for me' : 'No specific goals for us'}
           onPress={handleNone}
           testID="none-btn"
         />

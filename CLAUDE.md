@@ -6,8 +6,8 @@
 ## App Overview
 
 **Name:** Meal Plan
-**Purpose:** A family meal planning app for busy parents (2–6 person households). Solves the daily problem of deciding what to cook, building shopping lists, and organising family recipes in one place.
-**Target user:** Parents managing household meals who want a fast, warm, and low-friction experience.
+**Purpose:** A meal planning app for anyone managing a household — solo planners, couples, and families alike. Solves the daily problem of deciding what to cook, building shopping lists, and organising recipes in one place.
+**Target user:** Anyone cooking for themselves or others who wants a fast, warm, and low-friction experience. Originally focused on busy parents (2–6 person households); now intentionally inclusive of single-person households. Household size = 1 is a first-class use case — onboarding copy adapts dynamically via the `useHouseholdCopy` hook (`hooks/useHouseholdCopy.ts`).
 
 ---
 
