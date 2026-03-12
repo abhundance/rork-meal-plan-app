@@ -1,7 +1,30 @@
-import React, { useState, useEffect, useCallback } from 'react';
+/**
+ * Auth screen — cinematic split-screen mosaic
+ *
+ * TOP ~52%  : 3-column photo grid. Each column scrolls upward independently
+ *             at a different speed and starting offset, so the grid feels
+ *             alive and organic rather than mechanical. No dark overlay —
+ *             photos show at full, warm natural brightness.
+ *
+ * BOTTOM ~48%: Pure white brand + auth section. A soft gradient dissolves
+ *              the photos into white at the seam, keeping the palette light.
+ *
+ * Uses only expo-image + expo-linear-gradient (already installed).
+ */
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Modal,
-  TextInput, KeyboardAvoidingView, Platform, ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Animated,
+  Easing,
+  Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,35 +37,122 @@ import { BorderRadius, Spacing } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 
-// Beautiful food photography from Unsplash — cycles with crossfade every 4.5 s
-const BG_IMAGES = [
-  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1080&q=85',
-  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1080&q=85',
-  'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=1080&q=85',
-  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1080&q=85',
-  'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=1080&q=85',
+// ─── Layout constants ────────────────────────────────────────────────────────
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+
+const COL_GAP       = 3;
+const COL_COUNT     = 3;
+const COL_W         = (SCREEN_W - COL_GAP * (COL_COUNT - 1)) / COL_COUNT;
+const IMG_H         = Math.round(COL_W * 1.38);   // slightly taller than wide
+const IMGS_PER_COL  = 6;                           // images per column
+const CYCLE_H       = IMGS_PER_COL * IMG_H;        // one full scroll cycle
+
+// How much of the screen the photo mosaic occupies (rest is the white panel)
+const PHOTO_SECTION_H = Math.round(SCREEN_H * 0.52);
+
+// ─── Photo sets ──────────────────────────────────────────────────────────────
+// Three independent sets so each column tells a different food story.
+// Doubled arrays enable seamless infinite scroll (no visible seam on loop).
+
+const COL_1 = [
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=480&q=80',
+  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=480&q=80',
+  'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=480&q=80',
+  'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=480&q=80',
+  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=480&q=80',
+  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=480&q=80',
 ];
 
-const SLIDE_INTERVAL_MS = 4500;
-const CROSSFADE_MS = 1500;
+const COL_2 = [
+  'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=480&q=80',
+  'https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=480&q=80',
+  'https://images.unsplash.com/photo-1547592180-85f173990554?w=480&q=80',
+  'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=480&q=80',
+  'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=480&q=80',
+  'https://images.unsplash.com/photo-1432139509613-5c4255815697?w=480&q=80',
+];
+
+const COL_3 = [
+  'https://images.unsplash.com/photo-1466637574441-749b8f19452f?w=480&q=80',
+  'https://images.unsplash.com/photo-1543353071-873f17a7a088?w=480&q=80',
+  'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=480&q=80',
+  'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=480&q=80',
+  'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=480&q=80',
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=480&q=80',
+];
+
+// Each column starts at a different vertical offset so they look staggered
+const INITIAL_OFFSETS = [0, -IMG_H * 1.7, -IMG_H * 0.85] as const;
+// Each column scrolls at a different speed for an organic, living feel
+const SCROLL_DURATIONS = [24000, 30000, 19000] as const;
+
+// ─── ScrollingColumn component ───────────────────────────────────────────────
+
+interface ScrollingColumnProps {
+  images: string[];
+  animY: Animated.Value;
+}
+
+function ScrollingColumn({ images, animY }: ScrollingColumnProps) {
+  // Duplicate the array so the loop is seamless: when translateY resets to
+  // the initial offset, the doubled images visually continue where they left off.
+  const doubled = [...images, ...images];
+
+  return (
+    <Animated.View style={{ transform: [{ translateY: animY }] }}>
+      {doubled.map((uri, i) => (
+        <Image
+          key={i}
+          source={{ uri }}
+          style={{ width: COL_W, height: IMG_H }}
+          contentFit="cover"
+          recyclingKey={`col-img-${i}`}
+        />
+      ))}
+    </Animated.View>
+  );
+}
+
+// ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const { setStep } = useOnboarding();
 
-  const [imageIdx, setImageIdx]             = useState(0);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [email, setEmail]                   = useState('');
   const [password, setPassword]             = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError]                   = useState('');
 
-  // Pre-load the next image so the crossfade is seamless
+  // One Animated.Value per column, pre-set to its staggered starting offset
+  const animY0 = useRef(new Animated.Value(INITIAL_OFFSETS[0])).current;
+  const animY1 = useRef(new Animated.Value(INITIAL_OFFSETS[1])).current;
+  const animY2 = useRef(new Animated.Value(INITIAL_OFFSETS[2])).current;
+  const columns = [
+    { anim: animY0, images: COL_1, offset: INITIAL_OFFSETS[0], duration: SCROLL_DURATIONS[0] },
+    { anim: animY1, images: COL_2, offset: INITIAL_OFFSETS[1], duration: SCROLL_DURATIONS[1] },
+    { anim: animY2, images: COL_3, offset: INITIAL_OFFSETS[2], duration: SCROLL_DURATIONS[2] },
+  ];
+
   useEffect(() => {
-    const timer = setInterval(() => {
-      setImageIdx(i => (i + 1) % BG_IMAGES.length);
-    }, SLIDE_INTERVAL_MS);
-    return () => clearInterval(timer);
+    columns.forEach(({ anim, offset, duration }) => {
+      const loop = () => {
+        // Reset to starting offset, then animate up by one full cycle
+        anim.setValue(offset);
+        Animated.timing(anim, {
+          toValue: offset - CYCLE_H,
+          duration,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }).start(({ finished }) => {
+          if (finished) loop();
+        });
+      };
+      loop();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSocialAuth = useCallback((_provider: string) => {
@@ -61,45 +171,55 @@ export default function AuthScreen() {
   }, [email, password, confirmPassword, setStep]);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
 
-      {/* ── Cinematic background ── */}
-      <Image
-        source={{ uri: BG_IMAGES[imageIdx] }}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        transition={CROSSFADE_MS}
-        recyclingKey="auth-bg"
-      />
+      {/* ── Photo mosaic — top section ─────────────────────────────────── */}
+      <View style={[styles.photoSection, { paddingTop: insets.top }]}>
 
-      {/* ── Gradient overlay: light at top, dark at bottom ── */}
-      <LinearGradient
-        colors={[
-          'rgba(0,0,0,0.08)',
-          'rgba(0,0,0,0.25)',
-          'rgba(0,0,0,0.72)',
-          'rgba(0,0,0,0.90)',
-        ]}
-        locations={[0, 0.3, 0.7, 1]}
-        style={StyleSheet.absoluteFill}
-      />
+        {/* Status-bar dimmer — just the very top 40px so text stays readable */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.28)', 'rgba(0,0,0,0)']}
+          style={styles.statusBarDim}
+          pointerEvents="none"
+        />
 
-      {/* ── Logo — top-centre, floating over the image ── */}
-      <View style={[styles.logoWrap, { top: insets.top + 44 }]}>
-        <View style={styles.logoCircle}>
-          <UtensilsCrossed size={26} color="#FFFFFF" strokeWidth={2.5} />
+        {/* Three independently scrolling columns */}
+        <View style={styles.grid}>
+          {columns.map(({ anim, images }, idx) => (
+            <View key={idx} style={styles.colClip}>
+              <ScrollingColumn images={images} animY={anim} />
+            </View>
+          ))}
         </View>
+
+        {/* Gentle fade from photos → white at the bottom of the photo section */}
+        <LinearGradient
+          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.6)', '#FFFFFF']}
+          locations={[0, 0.55, 1]}
+          style={styles.photoFade}
+          pointerEvents="none"
+        />
       </View>
 
-      {/* ── Bottom content ── */}
-      <View style={[styles.bottomContent, { paddingBottom: insets.bottom + 28 }]}>
+      {/* ── Brand + auth panel — white section ────────────────────────── */}
+      <View style={[styles.panel, { paddingBottom: insets.bottom + 16 }]}>
 
-        <View style={styles.headline}>
-          <Text style={styles.appName}>Meal Plan</Text>
-          <Text style={styles.tagline}>Dinner on the table.{'\n'}Every single week.</Text>
+        {/* Logo + wordmark */}
+        <View style={styles.brandRow}>
+          <View style={styles.logoMark}>
+            <UtensilsCrossed size={18} color="#FFFFFF" strokeWidth={2.5} />
+          </View>
+          <Text style={styles.wordmark}>Meal Plan</Text>
         </View>
 
-        <View style={styles.authButtons}>
+        {/* Headline */}
+        <Text style={styles.headline}>
+          Dinner on the table,{'\n'}
+          <Text style={styles.headlineAccent}>every single week.</Text>
+        </Text>
+
+        {/* Auth buttons */}
+        <View style={styles.authStack}>
           <PrimaryButton
             label="Continue with Google"
             onPress={() => handleSocialAuth('google')}
@@ -117,7 +237,7 @@ export default function AuthScreen() {
             onPress={() => setShowEmailModal(true)}
             testID="auth-email"
           >
-            <Mail size={14} color="rgba(255,255,255,0.65)" strokeWidth={2} />
+            <Mail size={14} color={Colors.textSecondary} strokeWidth={2} />
             <Text style={styles.emailLinkText}>Sign up with Email</Text>
           </TouchableOpacity>
         </View>
@@ -130,7 +250,7 @@ export default function AuthScreen() {
         </Text>
       </View>
 
-      {/* ── Email sign-up modal ── */}
+      {/* ── Email sign-up modal ────────────────────────────────────────── */}
       <Modal
         visible={showEmailModal}
         animationType="slide"
@@ -201,65 +321,102 @@ export default function AuthScreen() {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
+
+  // Root
+  root: {
     flex: 1,
-    backgroundColor: '#111111', // dark fallback while images load
+    backgroundColor: Colors.white,
   },
 
-  // Logo
-  logoWrap: {
+  // ── Photo section ──────────────────────────────────────────────────────────
+
+  photoSection: {
+    height: PHOTO_SECTION_H,
+    overflow: 'hidden',
+  },
+  grid: {
+    flexDirection: 'row',
+    gap: COL_GAP,
+    flex: 1,
+  },
+  colClip: {
+    width: COL_W,
+    overflow: 'hidden',
+    flex: 0,
+  },
+  statusBarDim: {
     position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
-    alignItems: 'center',
+    height: 64,
+    zIndex: 1,
   },
-  logoCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // subtle white glow so it reads on any image
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-
-  // Bottom content block
-  bottomContent: {
+  photoFade: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 24,
-    gap: 20,
-  },
-  headline: {
-    gap: 8,
-  },
-  appName: {
-    fontSize: 42,
-    fontFamily: FontFamily.bold,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -1.2,
-    lineHeight: 46,
-  },
-  tagline: {
-    fontSize: 17,
-    fontFamily: FontFamily.regular,
-    fontWeight: '400',
-    color: 'rgba(255,255,255,0.72)',
-    lineHeight: 25,
+    height: 96,
   },
 
-  // Auth buttons
-  authButtons: {
+  // ── Brand panel ────────────────────────────────────────────────────────────
+
+  panel: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    justifyContent: 'space-between',
+  },
+
+  // Logo + wordmark row
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  logoMark: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wordmark: {
+    fontSize: 22,
+    fontFamily: FontFamily.bold,
+    fontWeight: '700',
+    color: Colors.text,
+    letterSpacing: -0.4,
+  },
+
+  // Headline
+  headline: {
+    fontSize: 24,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    lineHeight: 32,
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  headlineAccent: {
+    color: Colors.text,
+    fontFamily: FontFamily.bold,
+    fontWeight: '700',
+  },
+
+  // Auth stack
+  authStack: {
     gap: 0,
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingBottom: 4,
   },
   emailLink: {
     flexDirection: 'row',
@@ -273,23 +430,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.65)',
+    color: Colors.textSecondary,
   },
 
   // Terms
   terms: {
     fontSize: 11,
     fontFamily: FontFamily.regular,
-    color: 'rgba(255,255,255,0.38)',
+    color: Colors.inactive,
     textAlign: 'center',
     lineHeight: 16,
   },
   termsLink: {
-    color: 'rgba(255,255,255,0.55)',
+    color: Colors.textSecondary,
     textDecorationLine: 'underline',
   },
 
-  // Email modal
+  // ── Email modal ────────────────────────────────────────────────────────────
+
   modalContainer: {
     flex: 1,
     backgroundColor: Colors.background,
