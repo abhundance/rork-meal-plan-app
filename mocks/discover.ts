@@ -5932,9 +5932,8 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
         'Drain pasta, reserving 200ml water. Add pasta to sauce, toss well.',
         'Add pasta water if needed for silky sauce. Season and top with fresh parsley.'
       ]
-    }
-  ];
-  
+    },
+
     // Chinese cuisine (disc_109–118)
     {
       id: 'disc_109',
@@ -9270,9 +9269,8 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
         'Mix well and serve immediately.',
       ],
     },
-  
+
     // Japanese desserts (disc_170–173, 175, 178)
-  ];
     {
       id: 'disc_170',
       name: 'Mochi Ice Cream',
