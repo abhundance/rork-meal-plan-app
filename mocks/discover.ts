@@ -8093,7 +8093,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
         'Add blanched spinach. Mix well and cook 5 minutes.',
         'Season with salt. Serve hot with roti or rice.'
       ]
-    }
+    },
   
   // Italian desserts (disc_149–153)
     {
