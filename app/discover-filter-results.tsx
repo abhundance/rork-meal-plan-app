@@ -26,7 +26,7 @@ import { DISCOVER_MEALS } from '@/mocks/discover';
 export default function FilteredMealsScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ cuisine?: string; dietary?: string }>();
-  const { isFav, addFromDiscover } = useFavs();
+  const { isFavByName, addFromDiscover } = useFavs();
   const { familySettings } = useFamilySettings();
   const { addMeal, getMealsForSlot } = useMealPlan();
 
@@ -107,7 +107,7 @@ export default function FilteredMealsScreen() {
         renderItem={({ item }) => (
           <FilteredMealCard
             meal={item}
-            isSaved={isFav(item.id)}
+            isSaved={isFavByName(item.name)}
             onPress={() => router.push(`/recipe-detail?id=${item.id}&source=discover` as Href)}
             onSave={() => handleSave(item)}
             onAddToPlan={() => handleAddToPlan(item)}

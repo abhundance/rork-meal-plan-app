@@ -118,7 +118,7 @@ const _GRID_CARD_WIDTH = (screenWidth - 48) / 3;
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
-  const { isFav, addFromDiscover, removeFav } = useFavs();
+  const { isFavByName, meals: favMeals, addFromDiscover, removeFav } = useFavs();
   const { familySettings } = useFamilySettings();
   const { addMeal, getMealsForSlot } = useMealPlan();
 
@@ -182,14 +182,19 @@ export default function DiscoverScreen() {
   const handleSaveFav = useCallback(
     (meal: DiscoverMeal) => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      if (isFav(meal.id)) {
-        removeFav(meal.id);
+      // Use name-based lookup because saved discover meals have fav_disc_* IDs,
+      // not the original discover UUID / disc_X ID.
+      const favMatch = favMeals.find(
+        (m) => m.name.toLowerCase() === meal.name.toLowerCase()
+      );
+      if (favMatch) {
+        removeFav(favMatch.id);
       } else {
         addFromDiscover(meal);
         showToast(`${meal.name} added to Favs`);
       }
     },
-    [isFav, addFromDiscover, removeFav, showToast]
+    [favMeals, addFromDiscover, removeFav, showToast]
   );
 
   const handleAddToPlan = useCallback((meal: DiscoverMeal) => {
@@ -278,6 +283,13 @@ export default function DiscoverScreen() {
   } = useDiscoverMeals(discoverFilters, searchQuery);
 
   const { carousels, recordInteraction, recordView } = useDiscoverRecommendations(allMeals);
+
+  // Warm the in-memory discover meal cache whenever the full meal list is fetched.
+  // This ensures the carousel "See all" screen (discover-collection) can resolve
+  // Supabase UUIDs via getCachedDiscoverMeal() even without a prior individual tap.
+  useEffect(() => {
+    allMeals.forEach((m) => cacheDiscoverMeal(m));
+  }, [allMeals]);
 
   // Filter carousels using the RecipeFilterSheet state.
   // Drop carousels that end up empty after filtering.
@@ -368,7 +380,7 @@ export default function DiscoverScreen() {
 
   const MealActionSheet = useCallback(({ visible, meal, onClose }: { visible: boolean; meal: DiscoverMeal | null; onClose: () => void }) => {
     if (!meal) return null;
-    const saved = isFav(meal.id);
+    const saved = isFavByName(meal.name);
     const timeLabel = meal.cook_time ? meal.cook_time + 'm' : meal.prep_time ? meal.prep_time + 'm' : '?';
     return (
       <Modal
@@ -428,7 +440,7 @@ export default function DiscoverScreen() {
         </View>
       </Modal>
     );
-  }, [isFav, handleAddToPlan, handleSaveFav, handleMealPress]);
+  }, [isFavByName, handleAddToPlan, handleSaveFav, handleMealPress]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

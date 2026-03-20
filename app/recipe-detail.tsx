@@ -274,8 +274,11 @@ export default function MealDetailScreen() {
 
   const isInFavs = useMemo(() => {
     if (!meal) return false;
+    // For discover-sourced meals saved via addFromDiscover(), the stored fav has a
+    // fav_disc_* id — not the original discover UUID. Use name-based lookup instead.
+    if (params.source === 'discover') return isFavByName(meal.name);
     return isFav(meal.id) || params.source === 'favs';
-  }, [meal, isFav, params.source]);
+  }, [meal, isFav, isFavByName, params.source]);
 
   const isPlanMealFav = useMemo(() => {
     if (params.source !== 'plan' || !meal) return false;
@@ -475,7 +478,10 @@ export default function MealDetailScreen() {
             <TouchableOpacity
               style={{ position: 'absolute', top: insets.top + 8, right: 8, backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
               onPress={() => {
-                const savedMeal = favMeals.find((m) => m.id === meal.id);
+                // Saved discover meals have fav_disc_* ids — look up by name
+                const savedMeal = favMeals.find(
+                  (m) => m.name.toLowerCase() === meal.name.toLowerCase()
+                );
                 if (savedMeal) {
                   // Already saved — go straight to editor
                   router.push({ pathname: '/add-recipe-manual', params: { editId: savedMeal.id } });
@@ -487,7 +493,7 @@ export default function MealDetailScreen() {
               }}
             >
               <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>
-                {favMeals.find((m) => m.id === meal.id)?.is_customized ? 'Edit my version' : 'Customize'}
+                {favMeals.find((m) => m.name.toLowerCase() === meal.name.toLowerCase())?.is_customized ? 'Edit my version' : 'Customize'}
               </Text>
             </TouchableOpacity>
           )}
