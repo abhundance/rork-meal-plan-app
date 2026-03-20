@@ -22,8 +22,6 @@
  *   500 { error: string }
  */
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-
 // ─── Types (mirror of services/recipeExtraction.ts) ──────────────────────────
 
 type ExtractionType = 'text' | 'image' | 'voice' | 'metadata' | 'pdf' | 'youtube' | 'tiktok' | 'web';
@@ -355,7 +353,7 @@ async function handleWeb(body: RequestBody, openaiKey: string): Promise<unknown>
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders() });
