@@ -99,9 +99,15 @@ export function buildUserProfile(
   // ── Cold-start seed: prime cuisine + time affinity from onboarding selections ──
   // Without this, a new user with no meal history gets the same generic "For You"
   // carousel regardless of whether they said they love Italian vs Japanese food.
+  //
+  // Seed weight = 8: equivalent to ~4 weeks of cooking one cuisine, so the
+  // explicit onboarding declaration dominates until the user has built real
+  // history. Fav meals (weight 2) will overtake it naturally after ~4 favs per
+  // cuisine; planned meals (weight 1) after ~8. This is the right decay curve.
+  const SEED_WEIGHT = 8;
   if (seedCuisinePreferences && seedCuisinePreferences.length > 0) {
     for (const cuisine of seedCuisinePreferences) {
-      cuisineCounts[cuisine.toLowerCase()] = 1; // weight 1 — behavioural data overrides at 2+
+      cuisineCounts[cuisine.toLowerCase()] = SEED_WEIGHT;
     }
   }
   const COOKING_TIME_TO_BAND: Record<string, string> = {
@@ -363,8 +369,15 @@ function cuisineScore(meal: DiscoverMeal, profile: UserProfile): number {
   const best = meal.cuisines.reduce((max, c) => {
     return Math.max(max, profile.cuisineAffinity[c.toLowerCase()] ?? 0);
   }, 0);
-  // Exploration bonus for untried cuisines
-  return best > 0 ? best : 0.25;
+  if (best > 0) return best;
+
+  // Exploration fallback for cuisines not in the user's affinity map.
+  // When the user has explicit cuisine seeds (onboarding), use a near-zero
+  // fallback (0.05) so non-preferred cuisines are essentially invisible in
+  // "For You". When there are no seeds at all (zero history), use a generous
+  // fallback (0.25) so the feed isn't empty on day 1 with a blank profile.
+  const hasExplicitPreference = Object.keys(profile.cuisineAffinity).length > 0;
+  return hasExplicitPreference ? 0.05 : 0.25;
 }
 
 function proteinScore(meal: DiscoverMeal, profile: UserProfile): number {
