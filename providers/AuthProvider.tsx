@@ -5,11 +5,19 @@
  * - No deep-link / magic-link setup needed (works in Expo Go and native builds).
  * - User enters email → receives 6-digit code → enters code → authenticated.
  *
+ * Anonymous auth (Phase 4):
+ * - If no persisted session exists, we call signInAnonymously() so every device
+ *   has a real auth.uid() from first launch. This makes RLS work pre-onboarding
+ *   and allows Supabase to be the single source of truth for recipes.
+ * - Requires "Enable anonymous sign-ins" to be ON in Supabase Auth settings.
+ * - When Phase 2 full auth ships, the anonymous user will be upgraded via
+ *   supabase.auth.linkIdentity() — no data loss.
+ *
  * Session is persisted to AsyncStorage by the Supabase client in services/supabase.ts
  * (autoRefreshToken: true, persistSession: true), so users stay signed in across restarts.
  *
  * Usage:
- *   const { session, user, isLoading, signInWithOtp, verifyOtp, signOut } = useAuth();
+ *   const { session, user, isAnonymous, isLoading, signInWithOtp, verifyOtp, signOut } = useAuth();
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -45,14 +53,24 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   useEffect(() => {
     const supabase = getSupabase();
 
-    // Restore persisted session (AsyncStorage)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthState({
-        session,
-        user: session?.user ?? null,
-        isLoading: false,
-      });
-      console.log('[Auth] Session restored:', session ? 'yes' : 'none');
+    // Restore persisted session, or sign in anonymously if none exists.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        console.log('[Auth] Session restored:', session.user.is_anonymous ? 'anonymous' : 'authenticated');
+        setAuthState({ session, user: session.user, isLoading: false });
+      } else {
+        // No session — sign in anonymously so auth.uid() is always available.
+        // This satisfies RLS policies (family_id = auth.uid()) from first launch.
+        console.log('[Auth] No session — signing in anonymously');
+        const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+        if (!anonError && anonData.session) {
+          console.log('[Auth] Anonymous sign-in OK:', anonData.session.user.id);
+          // onAuthStateChange will fire and update state automatically
+        } else {
+          console.error('[Auth] Anonymous sign-in failed:', anonError?.message);
+          setAuthState({ session: null, user: null, isLoading: false });
+        }
+      }
     });
 
     // Subscribe to future auth changes (sign-in, sign-out, token refresh)
@@ -135,6 +153,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     user: authState.user,
     isLoading: authState.isLoading,
     isAuthenticated: authState.session !== null,
+    isAnonymous: authState.user?.is_anonymous ?? true,
     signInWithOtp,
     verifyOtp,
     signOut,

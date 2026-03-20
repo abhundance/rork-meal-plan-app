@@ -1,12 +1,15 @@
 /**
  * FavsProvider — manages saved recipes (Favs) and recent searches.
  *
- * Storage strategy (dual-write):
- *   • AsyncStorage is ALWAYS written — works offline / logged-out.
- *   • When authenticated, recipes are also synced to Supabase in the background.
- *     Supabase stores recipes in three tables: recipes, recipe_ingredients, recipe_method_steps.
+ * Storage strategy (Phase 4 — Supabase primary):
+ *   • Supabase is the single source of truth. Every device has a real auth.uid()
+ *     thanks to anonymous sign-in in AuthProvider, so RLS (family_id = auth.uid())
+ *     always passes.
+ *   • AsyncStorage is used as a write-through cache only — Supabase is read on
+ *     mount, AsyncStorage is written to keep the cache warm for fast re-renders.
  *   • queryKey includes userId so TanStack Query re-fetches on sign-in / sign-out.
- *   • On first sign-in: existing AsyncStorage recipes are upserted to Supabase.
+ *   • One-time cleanup (PHASE4_CLEANUP_KEY): on first launch after Phase 4, legacy
+ *     AsyncStorage recipe data is wiped so the app starts fresh from Supabase.
  *
  * NOTE: useFilteredFavs (the 300-line filter/sort hook) is unchanged — it lives
  *       below the provider export and reads from useFavs() as before.
@@ -22,11 +25,29 @@ import { recipeToRow, rowToRecipe, upsertRecipeToSupabase } from '@/services/db'
 
 const FAVS_KEY            = 'favs_meals';
 const RECENT_SEARCHES_KEY = 'favs_recent_searches';
+const PHASE4_CLEANUP_KEY  = 'phase4_cleanup_v1';
 
 export const [FavsProvider, useFavs] = createContextHook(() => {
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
+
+  // ── One-time Phase 4 cleanup ──────────────────────────────────────────────
+  // Wipes legacy AsyncStorage recipe data on first launch after Phase 4 so the
+  // app starts with a clean slate. Runs exactly once per install.
+  useEffect(() => {
+    AsyncStorage.getItem(PHASE4_CLEANUP_KEY).then((done) => {
+      if (!done) {
+        console.log('[Favs] Phase 4 cleanup: wiping legacy AsyncStorage data');
+        Promise.all([
+          AsyncStorage.removeItem(FAVS_KEY),
+          AsyncStorage.removeItem(RECENT_SEARCHES_KEY),
+        ])
+          .then(() => AsyncStorage.setItem(PHASE4_CLEANUP_KEY, 'done'))
+          .catch(console.error);
+      }
+    });
+  }, []);
 
   const [meals, setMeals] = useState<Recipe[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -73,13 +94,6 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
             return true;
           });
 
-          // If authenticated and we fell back to AsyncStorage, seed Supabase
-          if (userId && unique.length > 0) {
-            console.log('[Favs] Seeding', unique.length, 'recipes to Supabase');
-            Promise.all(
-              unique.map((r) => upsertRecipeToSupabase(r, userId, getSupabase()))
-            ).catch(console.error);
-          }
           return unique;
         }
       } catch (e) {
