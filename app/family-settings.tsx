@@ -248,6 +248,7 @@ export default function FamilySettingsScreen() {
   const [showAdminSettings, setShowAdminSettings] = useState<boolean>(false);
   const [showLanguagePicker, setShowLanguagePicker] = useState<boolean>(false);
   const [showRegionPicker, setShowRegionPicker] = useState<boolean>(false);
+  const [showHealthDiet, setShowHealthDiet] = useState<boolean>(false);
   // Emoji picker removed — replaced by real photo picker
 
   const [deleteConfirmText, setDeleteConfirmText] = useState<string>('');
@@ -529,6 +530,9 @@ export default function FamilySettingsScreen() {
             <Text style={styles.cardHelper}>
               This is used as the default serving size for every meal. You can always override it per meal in your plan.
             </Text>
+            <Text style={[styles.cardHelper, { marginTop: 0, marginBottom: 4 }]}>
+              Applies to new meals only — tap <Text style={{ color: Colors.primary, fontFamily: FontFamily.semiBold }}>Reshuffle</Text> on the Plan tab to update your existing plan.
+            </Text>
             <View style={{ paddingVertical: 16 }}>
               <Stepper
                 value={familySettings.default_serving_size}
@@ -589,6 +593,179 @@ export default function FamilySettingsScreen() {
           </Card>
         )}
         </View>
+
+        {/* Health & Diet */}
+        <SectionHeader title="Health & Diet" locked={!isAdmin} adminName={adminName} />
+        {!showHealthDiet ? (
+          <Card>
+            <SettingRow
+              icon={<Leaf size={18} color={Colors.primary} />}
+              label="Goals, diet style & intolerances"
+              value={(() => {
+                const all = [
+                  ...(familySettings.cultural_restrictions ?? []),
+                  ...(familySettings.intolerances ?? []),
+                  ...(familySettings.diet_preferences ?? []),
+                  ...(userSettings.health_goals ?? []),
+                ];
+                return all.length > 0 ? `${all.length} selected` : 'None set';
+              })()}
+              onPress={() => setShowHealthDiet(true)}
+            />
+          </Card>
+        ) : (
+          <Card>
+            <Text style={styles.dietarySubLabel}>Health goals</Text>
+            <View style={styles.pillWrap}>
+              {([
+                { value: 'weight_loss', label: '⚖️ Weight loss' },
+                { value: 'muscle_gain', label: '💪 Muscle gain' },
+                { value: 'recomposition', label: '🎯 Body recomposition' },
+                { value: 'heart_health', label: '❤️ Heart health' },
+                { value: 'gut_health', label: '🌱 Gut health' },
+                { value: 'anti_inflammatory', label: '🔥 Anti-inflammatory' },
+                { value: 'diabetes_management', label: '🩸 Blood sugar' },
+                { value: 'longevity', label: '🧬 Longevity' },
+                { value: 'pregnancy', label: '🤰 Pregnancy' },
+                { value: 'postpartum', label: '🤱 Postpartum' },
+                { value: 'pcos', label: '🩺 PCOS' },
+              ] as const).map((opt) => {
+                const active = (userSettings.health_goals ?? []).includes(opt.value);
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.settingsPill, active && styles.settingsPillActive]}
+                    onPress={() => {
+                      const current = userSettings.health_goals ?? [];
+                      updateUserSettings({
+                        health_goals: active
+                          ? current.filter((v) => v !== opt.value)
+                          : [...current, opt.value],
+                      });
+                    }}
+                  >
+                    <Text style={[styles.settingsPillText, active && styles.settingsPillTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.pillDivider} />
+            <Text style={styles.dietarySubLabel}>Diet style</Text>
+            <View style={styles.pillWrap}>
+              {([
+                { value: 'high_protein', label: 'High protein' },
+                { value: 'low_carb', label: 'Low carb' },
+                { value: 'mediterranean', label: 'Mediterranean' },
+                { value: 'plant_forward', label: 'Plant-forward' },
+                { value: 'keto', label: 'Keto' },
+                { value: 'paleo', label: 'Paleo' },
+                { value: 'whole30', label: 'Whole30' },
+              ] as const).map((opt) => {
+                const active = (familySettings.diet_preferences ?? []).includes(opt.value);
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.settingsPill, active && styles.settingsPillActive]}
+                    onPress={() => {
+                      const current = familySettings.diet_preferences ?? [];
+                      updateFamilySettings({
+                        diet_preferences: active
+                          ? current.filter((v) => v !== opt.value)
+                          : [...current, opt.value],
+                      });
+                    }}
+                  >
+                    <Text style={[styles.settingsPillText, active && styles.settingsPillTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.pillDivider} />
+            <Text style={styles.dietarySubLabel}>Intolerances & allergies</Text>
+            <View style={styles.pillWrap}>
+              {([
+                { value: 'gluten-free', label: 'Gluten-free' },
+                { value: 'dairy-free', label: 'Dairy-free' },
+                { value: 'nut-free', label: 'Nut-free' },
+                { value: 'egg-free', label: 'Egg-free' },
+                { value: 'soy-free', label: 'Soy-free' },
+                { value: 'shellfish-free', label: 'Shellfish-free' },
+                { value: 'sesame-free', label: 'Sesame-free' },
+                { value: 'wheat-free', label: 'Wheat-free' },
+              ] as const).map((opt) => {
+                const active = (familySettings.intolerances ?? []).includes(opt.value);
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.settingsPill, active && styles.settingsPillActive]}
+                    onPress={() => {
+                      const current = familySettings.intolerances ?? [];
+                      updateFamilySettings({
+                        intolerances: active
+                          ? current.filter((v) => v !== opt.value)
+                          : [...current, opt.value],
+                      });
+                    }}
+                  >
+                    <Text style={[styles.settingsPillText, active && styles.settingsPillTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.pillDivider} />
+            <Text style={styles.dietarySubLabel}>Cultural & religious</Text>
+            <View style={styles.pillWrap}>
+              {([
+                { value: 'no_beef', label: 'No beef' },
+                { value: 'no_pork', label: 'No pork' },
+                { value: 'no_shellfish', label: 'No shellfish' },
+                { value: 'no_meat', label: 'No meat' },
+                { value: 'vegan', label: 'No animal products' },
+                { value: 'halal', label: 'Halal only' },
+                { value: 'kosher', label: 'Kosher only' },
+              ] as const).map((opt) => {
+                const active = (familySettings.cultural_restrictions ?? []).includes(opt.value);
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.settingsPill, active && styles.settingsPillActive]}
+                    onPress={() => {
+                      const current = familySettings.cultural_restrictions ?? [];
+                      updateFamilySettings({
+                        cultural_restrictions: active
+                          ? current.filter((v) => v !== opt.value)
+                          : [...current, opt.value],
+                      });
+                    }}
+                  >
+                    <Text style={[styles.settingsPillText, active && styles.settingsPillTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={[styles.dietaryHelperText, { marginTop: 12 }]}>
+              Smart Fill uses these as hard filters — meals that don't fit won't be suggested.
+            </Text>
+            <TouchableOpacity
+              style={[styles.cancelButton, { marginTop: 16 }]}
+              onPress={() => setShowHealthDiet(false)}
+            >
+              <Text style={styles.cancelText}>Done</Text>
+            </TouchableOpacity>
+          </Card>
+        )}
 
         {/* Smart Fill */}
         <SectionHeader
@@ -1340,5 +1517,37 @@ const styles = StyleSheet.create({
   emojiRemoveText: {
     fontSize: 14,
     color: Colors.textSecondary,
+  },
+  pillWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingVertical: 8,
+  },
+  settingsPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.pill,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  settingsPillActive: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primary,
+  },
+  settingsPillText: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    color: Colors.text,
+  },
+  settingsPillTextActive: {
+    color: Colors.primary,
+    fontFamily: FontFamily.semiBold,
+  },
+  pillDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: 4,
   },
 });
