@@ -11,8 +11,5 @@
       "distribution": "internal"
     },
     "production": {}
-  },
-  "update": {
-    "url": "https://u.expo.dev/9fae20d6-1501-42d8-ba9f-98a42ffa4a0d"
   }
 }
