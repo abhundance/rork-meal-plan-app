@@ -323,6 +323,10 @@ export function rowToFamilySettings(
     intolerances: (familyRow.intolerances as string[]) ?? [],
     diet_preferences: (familyRow.diet_preferences as string[]) ?? [],
     household_type: (familyRow.household_type as string) ?? undefined,
+    // Cold-start seeds (added in onboarding overhaul — columns may not exist on
+    // older Supabase rows; default to empty so the engine degrades gracefully).
+    cuisine_preferences: (familyRow.cuisine_preferences as string[]) ?? [],
+    cooking_time_pref: (familyRow.cooking_time_pref as FamilySettings['cooking_time_pref']) ?? undefined,
   };
 }
 

@@ -72,6 +72,8 @@ export function buildUserProfile(
   personalGoal:          PersonalGoal = 'balanced',  // 7th param — optional, safe default
   culturalRestrictions?: string[],                   // Step 4: no_beef, no_pork, halal, kosher, etc.
   intolerances?:         string[],                   // Step 5: gluten-free, dairy-free, nut-free, etc.
+  seedCuisinePreferences?: string[],                 // Step 9: cold-start cuisine prefs (no history yet)
+  seedCookingTimePref?:    'under_20' | '20_40' | '40_60' | 'over_60', // Step 10: cold-start time pref
 ): UserProfile {
   // Merge all hard-gate dietary constraints into a single deduplicated list.
   // familyDietaryPrefs is kept for backward compat; cultural + intolerance are additive.
@@ -85,9 +87,31 @@ export function buildUserProfile(
   const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
 
   // ── Affinity from planned meal history ──────────────────────────────────────
+  // Seed with onboarding prefs at weight 1.0 so Day 1 has meaningful affinity.
+  // Behavioural data (favs, plan history) is weighted 2× for favs so it quickly
+  // overtakes the seed as the user builds up history.
   const cuisineCounts:   Record<string, number> = {};
   const proteinCounts:   Record<string, number> = {};
   const timeBandCounts:  Record<string, number> = {};
+
+  // ── Cold-start seed: prime cuisine + time affinity from onboarding selections ──
+  // Without this, a new user with no meal history gets the same generic "For You"
+  // carousel regardless of whether they said they love Italian vs Japanese food.
+  if (seedCuisinePreferences && seedCuisinePreferences.length > 0) {
+    for (const cuisine of seedCuisinePreferences) {
+      cuisineCounts[cuisine.toLowerCase()] = 1; // weight 1 — behavioural data overrides at 2+
+    }
+  }
+  const COOKING_TIME_TO_BAND: Record<string, string> = {
+    under_20: 'Under 30',
+    '20_40':  'Under 30',   // maps to the closest DiscoverMeal.cooking_time_band value
+    '40_60':  '30-60 min',
+    over_60:  '60+ min',
+  };
+  if (seedCookingTimePref) {
+    const band = COOKING_TIME_TO_BAND[seedCookingTimePref];
+    if (band) timeBandCounts[band] = 1;
+  }
   const tasteAccum:      number[] = [0, 0, 0, 0, 0, 0, 0];
   let   tasteCount = 0;
   let   healthSum  = 0;

@@ -52,10 +52,13 @@ export function useDiscoverRecommendations(
       viewHistory,
       recentSearches ?? [],
       userSettings.personal_goal ?? 'balanced',
-      // Pass the newer onboarding dietary constraint fields so the engine's
-      // hard dietary gates (no_beef, no_pork, gluten-free, etc.) are applied.
+      // Onboarding dietary constraint fields — hard gates for the engine.
       familySettings.cultural_restrictions,
       familySettings.intolerances,
+      // Cold-start seeds — prime cuisineAffinity + timeBandAffinity before the
+      // user has any meal history. Behavioural data quickly overtakes these.
+      familySettings.cuisine_preferences,
+      familySettings.cooking_time_pref,
     );
     return buildCarousels(allMeals, profile);
   }, [
@@ -65,6 +68,8 @@ export function useDiscoverRecommendations(
     familySettings.dietary_preferences_family,
     familySettings.cultural_restrictions,
     familySettings.intolerances,
+    familySettings.cuisine_preferences,
+    familySettings.cooking_time_pref,
     discoverPrefs,
     viewHistory,
     recentSearches,

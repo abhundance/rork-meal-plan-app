@@ -51,6 +51,8 @@ async function seedSupabaseFromLocal(
     intolerances: localFamily.intolerances,
     diet_preferences: localFamily.diet_preferences,
     household_type: localFamily.household_type ?? null,
+    cuisine_preferences: localFamily.cuisine_preferences ?? [],
+    cooking_time_pref: localFamily.cooking_time_pref ?? null,
   });
   if (fErr && fErr.code !== '23505') {
     console.error('[FamilySettings] Failed to create families row:', fErr.message);
@@ -278,6 +280,8 @@ export const [FamilySettingsProvider, useFamilySettings] = createContextHook(() 
           intolerances: updated.intolerances,
           diet_preferences: updated.diet_preferences,
           household_type: updated.household_type ?? null,
+          cuisine_preferences: updated.cuisine_preferences ?? [],
+          cooking_time_pref: updated.cooking_time_pref ?? null,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'id' }).then(({ error }) => {
           if (error) console.error('[FamilySettings] Supabase save error:', error.message);

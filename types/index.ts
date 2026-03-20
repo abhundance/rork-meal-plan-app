@@ -41,6 +41,10 @@ export interface FamilySettings {
   intolerances: string[];            // hard gates: gluten-free, dairy-free, nut-free, egg-free, soy-free, etc.
   diet_preferences: string[];        // soft signals: high_protein, low_carb, mediterranean, plant_forward, keto, paleo, whole30
   household_type?: string;           // young_family | school_age | adults_only | seniors | mixed
+  // Cold-start recommendation seeds — collected in onboarding Steps 9 & 10.
+  // Prime cuisineAffinity + timeBandAffinity before any meal history exists.
+  cuisine_preferences: string[];     // e.g. ['Italian', 'Japanese', 'Indian']
+  cooking_time_pref?: 'under_20' | '20_40' | '40_60' | 'over_60';
 }
 
 export interface PantryItem {

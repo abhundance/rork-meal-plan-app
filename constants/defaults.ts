@@ -19,6 +19,7 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   cultural_restrictions: [],
   intolerances: [],
   diet_preferences: [],
+  cuisine_preferences: [],
 };
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {

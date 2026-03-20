@@ -12,7 +12,48 @@ import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useFavs } from '@/providers/FavsProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { getSupabase } from '@/services/supabase';
-import { Recipe, MealSlot } from '@/types';
+import { Recipe, MealSlot, PersonalGoal } from '@/types';
+
+// ─── personal_goal derivation helpers ────────────────────────────────────────
+// In the new 14-step flow, the user sets `health_goals` (multi-select, Step 8)
+// and `diet_preferences` (soft signals, Step 6). The recommendation engine and
+// Smart Fill both read `userSettings.personal_goal` (a single PersonalGoal).
+// These helpers bridge the gap so Day 1 recommendations already reflect the
+// user's stated goals rather than always defaulting to 'balanced'.
+
+const VALID_PERSONAL_GOALS: string[] = [
+  'weight_loss', 'muscle_gain', 'recomposition', 'keto', 'paleo', 'whole30', 'carnivore',
+  'pregnancy', 'postpartum', 'pcos', 'diabetes_management', 'heart_health', 'gut_health',
+  'longevity', 'anti_inflammatory',
+];
+
+// Maps diet_preferences soft-signal values that don't appear verbatim in
+// PersonalGoal to the closest goal. Pure goal-name values (keto, paleo, whole30)
+// are handled by VALID_PERSONAL_GOALS already.
+const DIET_PREF_TO_GOAL: Partial<Record<string, PersonalGoal>> = {
+  high_protein:  'muscle_gain',
+  low_carb:      'weight_loss',
+  mediterranean: 'heart_health',
+  plant_forward: 'gut_health',
+};
+
+function derivePersonalGoal(
+  legacyGoal: PersonalGoal | undefined,
+  healthGoals: string[],
+  dietPrefs: string[],
+): PersonalGoal {
+  // 1. Respect the explicit legacy single-select if already set (backward compat)
+  if (legacyGoal && legacyGoal !== 'balanced') return legacyGoal;
+  // 2. Use first valid goal from health_goals (new multi-select flow, Step 8)
+  const fromHealth = healthGoals.find(g => VALID_PERSONAL_GOALS.includes(g));
+  if (fromHealth) return fromHealth as PersonalGoal;
+  // 3. Map diet_preferences soft signals to a goal (Step 6)
+  for (const pref of dietPrefs) {
+    if (VALID_PERSONAL_GOALS.includes(pref)) return pref as PersonalGoal;
+    if (DIET_PREF_TO_GOAL[pref]) return DIET_PREF_TO_GOAL[pref]!;
+  }
+  return 'balanced';
+}
 
 const NOVELTY_MAP: Record<string, number> = {
   familiar:    10,
@@ -100,6 +141,16 @@ export default function WelcomeScreen() {
       .filter(slot => enabledSlotIds.includes(slot.slot_id))
       .map((slot, idx) => ({ ...slot, order: idx }));
 
+    // Derive personal_goal from new health_goals / diet_preferences if no legacy value is set.
+    // The new 14-step flow uses health_goals (multi-select, Step 8) and diet_preferences
+    // (soft signals, Step 6). The recommendation engine and Smart Fill only read a single
+    // personal_goal — without this derivation they would always see 'balanced' for new users.
+    const derivedPersonalGoal = derivePersonalGoal(
+      data.personal_goal,
+      data.health_goals ?? [],
+      data.diet_preferences ?? [],
+    );
+
     // Sync all onboarding data → FamilySettings (AsyncStorage + Supabase via provider)
     updateFamilySettings({
       family_name:                data.family_name || 'My Family',
@@ -110,17 +161,21 @@ export default function WelcomeScreen() {
       meal_slots:                 mealSlots,
       default_serving_size:       data.household_size ?? 4,
       // Dietary constraint fields — these power Smart Fill eligibility filters
-      // and the recommendation engine's hard dietary gates. Without syncing
-      // them here the user's Step 4–6 selections are silently discarded.
+      // and the recommendation engine's hard dietary gates.
       cultural_restrictions:      data.cultural_restrictions ?? [],
       intolerances:               data.intolerances ?? [],
       diet_preferences:           data.diet_preferences ?? [],
       household_type:             data.household_type,
+      // Cuisine / time prefs — used as cold-start seed for the recommendation
+      // engine before the user has any meal history (Day 1).
+      cuisine_preferences:        data.cuisine_preferences ?? [],
+      cooking_time_pref:          data.cooking_time_pref,
     });
 
-    // Sync user settings — health_goals drives goal-specific recommendation carousels
+    // Sync user settings — personal_goal drives goal-specific carousels and Smart Fill scoring.
+    // health_goals is stored for future multi-goal support.
     updateUserSettings({
-      personal_goal:                  data.personal_goal ?? 'balanced',
+      personal_goal:                  derivedPersonalGoal,
       dietary_preferences_individual: data.dietary_preferences_individual,
       health_goals:                   data.health_goals ?? [],
     });
