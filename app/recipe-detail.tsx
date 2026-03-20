@@ -480,7 +480,7 @@ export default function MealDetailScreen() {
           )}
           {params.source === 'discover' && discoverData !== null && (
             <TouchableOpacity
-              style={{ position: 'absolute', top: insets.top + 8, right: 8, backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
+              style={[styles.editBtn, { top: insets.top + 8 }]}
               onPress={() => {
                 // Saved discover meals have fav_disc_* ids — look up by name
                 const savedMeal = favMeals.find(
@@ -496,9 +496,7 @@ export default function MealDetailScreen() {
                 }
               }}
             >
-              <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>
-                {favMeals.find((m) => m.name.toLowerCase() === meal.name.toLowerCase())?.is_customized ? 'Edit my version' : 'Customize'}
-              </Text>
+              <Pencil size={18} color={Colors.text} strokeWidth={2} />
             </TouchableOpacity>
           )}
           {params.source === 'plan' && (
