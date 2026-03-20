@@ -96,7 +96,25 @@ export default function MealDetailScreen() {
 
   const meal = useMemo<Recipe | null>(() => {
     if (params.source === 'favs') {
-      return favMeals.find((m) => m.id === params.id) ?? null;
+      const favMeal = favMeals.find((m) => m.id === params.id) ?? null;
+      // If this fav was hearted from a Discover card (not the detail view), it was saved
+      // with card-only data (ingredients: []). Once fetchedDiscover is loaded, merge in
+      // the full ingredient + method data so the detail screen shows correctly.
+      if (
+        favMeal &&
+        favMeal.source === 'discover' &&
+        favMeal.ingredients.length === 0 &&
+        fetchedDiscover
+      ) {
+        return {
+          ...favMeal,
+          ingredients: fetchedDiscover.ingredients,
+          method_steps: fetchedDiscover.method_steps,
+          is_ingredient_complete: fetchedDiscover.ingredients.length > 0,
+          is_recipe_complete: fetchedDiscover.method_steps.length > 0,
+        };
+      }
+      return favMeal;
     }
 
     if (params.source === 'plan') {
@@ -174,9 +192,20 @@ export default function MealDetailScreen() {
    * Fast path: in-memory cache (populated when user has browsed the Discover tab this session).
    * Slow path: fetch from Supabase by UUID — needed on cold start when the Discover tab hasn't
    * been visited yet (so the cache is empty) and the ID is a Supabase UUID, not a disc_X mock ID.
+   *
+   * Also handles source=favs when the fav was hearted from a Discover card (not the detail view):
+   * those favs are saved with card-only data (ingredients: []) because useDiscoverMeals no longer
+   * fetches joins for the list. In that case we fetch by name from Supabase to fill in the gaps.
    */
   useEffect(() => {
-    if (params.source !== 'discover') return;
+    // Favs saved from a Discover card have source='discover' but empty ingredients.
+    const isFavsNeedingFetch =
+      params.source === 'favs' &&
+      !!meal &&
+      meal.source === 'discover' &&
+      meal.ingredients.length === 0;
+
+    if (params.source !== 'discover' && !isFavsNeedingFetch) return;
 
     // Check cache first — only use it if it has full recipe data (ingredients loaded).
     // The discover list now fetches card-only data, so the cache may hold a
@@ -188,12 +217,14 @@ export default function MealDetailScreen() {
     }
 
     // If the ID looks like a mock disc_X id, the DISCOVER_MEALS fallback will handle it
-    if (params.id.startsWith('disc_')) return;
+    if (params.source === 'discover' && params.id.startsWith('disc_')) return;
 
-    // UUID path: fetch from Supabase
+    // UUID path: fetch from Supabase.
+    // For discover source: look up by UUID (params.id).
+    // For favs source: the fav has a fav_disc_* id, not the Supabase UUID — look up by name.
     setIsLoadingDiscover(true);
     const sb = getSupabase();
-    sb.from('recipes')
+    const selectQuery = sb.from('recipes')
       .select(`
         id, name, image_url, description, source,
         cuisine, cuisines, meal_type, cooking_time_band, prep_time, cook_time,
@@ -206,8 +237,11 @@ export default function MealDetailScreen() {
         health_score, recipe_serving_size, add_to_plan_count, created_at,
         recipe_ingredients ( id, name, quantity, unit, category, position ),
         recipe_method_steps ( id, step_text, position )
-      `)
-      .eq('id', params.id)
+      `);
+    const queryWithFilter = isFavsNeedingFetch && meal
+      ? selectQuery.eq('name', meal.name).eq('source', 'curated')
+      : selectQuery.eq('id', params.id);
+    queryWithFilter
       .single()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then(({ data, error }: { data: any; error: any }) => {
@@ -274,7 +308,8 @@ export default function MealDetailScreen() {
       })
       .catch(() => {})
       .finally(() => setIsLoadingDiscover(false));
-  }, [params.id, params.source]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id, params.source, meal?.source, meal?.ingredients?.length]);
 
   const isInFavs = useMemo(() => {
     if (!meal) return false;
