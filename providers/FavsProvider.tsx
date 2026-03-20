@@ -263,7 +263,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
 
   const addFromDiscover = useCallback((discoverMeal: DiscoverMeal): Recipe => {
     const recipe: Recipe = {
-      id: `fav_disc_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: crypto.randomUUID(),
       name: discoverMeal.name,
       source: 'discover',
       ingredients: discoverMeal.ingredients,

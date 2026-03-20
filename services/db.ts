@@ -362,16 +362,30 @@ export function rowToNotificationSettings(
   };
 }
 
+/** Returns true if the string is a valid UUID v4 (or any UUID variant). */
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isValidUUID(id: string): boolean {
+  return UUID_REGEX.test(id);
+}
+
 /**
  * Upsert a full recipe (row + ingredients + steps) to Supabase.
  * Uses delete-and-reinsert for ingredients/steps to keep things simple.
  * Exported so both FavsProvider and add-recipe flows can call it.
+ *
+ * Skips silently if recipe.id is not a valid UUID (e.g. legacy string IDs
+ * like "d_nasipadang" from old mocks data) — Postgres uuid columns reject them.
  */
 export async function upsertRecipeToSupabase(
   recipe: Recipe,
   familyId: string,
   supabase: ReturnType<typeof import('@/services/supabase').getSupabase>
 ): Promise<void> {
+  if (!isValidUUID(recipe.id)) {
+    console.warn('[DB] upsertRecipe skipped — non-UUID id:', recipe.id);
+    return;
+  }
+
   // 1. Upsert the recipe row
   const { error: recipeErr } = await supabase
     .from('recipes')
