@@ -634,6 +634,7 @@ export default function FamilySettingsScreen() {
                 return (
                   <TouchableOpacity
                     key={opt.value}
+                    activeOpacity={1}
                     style={[styles.settingsPill, active && styles.settingsPillActive]}
                     onPress={() => {
                       const current = userSettings.health_goals ?? [];
@@ -668,6 +669,7 @@ export default function FamilySettingsScreen() {
                 return (
                   <TouchableOpacity
                     key={opt.value}
+                    activeOpacity={1}
                     style={[styles.settingsPill, active && styles.settingsPillActive]}
                     onPress={() => {
                       const current = familySettings.diet_preferences ?? [];
@@ -703,6 +705,7 @@ export default function FamilySettingsScreen() {
                 return (
                   <TouchableOpacity
                     key={opt.value}
+                    activeOpacity={1}
                     style={[styles.settingsPill, active && styles.settingsPillActive]}
                     onPress={() => {
                       const current = familySettings.intolerances ?? [];
@@ -737,6 +740,7 @@ export default function FamilySettingsScreen() {
                 return (
                   <TouchableOpacity
                     key={opt.value}
+                    activeOpacity={1}
                     style={[styles.settingsPill, active && styles.settingsPillActive]}
                     onPress={() => {
                       const current = familySettings.cultural_restrictions ?? [];
