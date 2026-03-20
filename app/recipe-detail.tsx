@@ -596,10 +596,14 @@ export default function MealDetailScreen() {
                 <Text style={styles.tagText}>{dt}</Text>
               </View>
             ))}
-            {meal.source === 'discover' && params.source !== 'plan' && (
+            {params.source === 'favs' && (
               <View style={[styles.tag, styles.sourceTag]}>
                 <Text style={styles.tagText}>
-                  {meal.is_customized ? 'Customised' : 'From Discover'}
+                  {meal.is_customized
+                    ? 'Customised'
+                    : meal.source === 'family_created'
+                    ? 'Your recipe'
+                    : 'Curated recipe'}
                 </Text>
               </View>
             )}
