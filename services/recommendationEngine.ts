@@ -50,6 +50,7 @@ export interface UserProfile {
   totalMealsPlanned:  number;
   seasonalTag:        string | null;            // e.g. 'christmas', 'summer'
   personalGoal:       PersonalGoal;             // always set — defaults to 'balanced'
+  householdType:      string | null;            // young_family | school_age | adults_only | seniors | solo | mixed
 }
 
 export interface DiscoverCarousel {
@@ -74,6 +75,7 @@ export function buildUserProfile(
   intolerances?:         string[],                   // Step 5: gluten-free, dairy-free, nut-free, etc.
   seedCuisinePreferences?: string[],                 // Step 9: cold-start cuisine prefs (no history yet)
   seedCookingTimePref?:    'under_20' | '20_40' | '40_60' | 'over_60', // Step 10: cold-start time pref
+  householdType?:          string,                   // Step 7: young_family | school_age | adults_only | seniors | solo | mixed
 ): UserProfile {
   // Merge all hard-gate dietary constraints into a single deduplicated list.
   // familyDietaryPrefs is kept for backward compat; cultural + intolerance are additive.
@@ -259,6 +261,7 @@ export function buildUserProfile(
     totalMealsPlanned: plannedMeals.length,
     seasonalTag,
     personalGoal,
+    householdType: householdType ?? null,
   };
 }
 
@@ -499,6 +502,36 @@ function noveltyScore(meal: DiscoverMeal, profile: UserProfile): number {
 }
 
 function contextScore(meal: DiscoverMeal, profile: UserProfile): number {
+  // ── Household-type adjustments ─────────────────────────────────────────────
+  // Applied before occasion/day context so they can boost or suppress meals
+  // based on the household composition set during onboarding (Step 7).
+  const ht = profile.householdType;
+  if (ht === 'young_family') {
+    // Young children: heavily prefer mild, family-friendly meals.
+    // taste_spiciness is 0–100; > 65 is genuinely hot for young kids.
+    if (meal.taste_spiciness > 65) return 0.05;
+    if (meal.occasions.includes('family-friendly')) return 1.0;
+    if (meal.taste_spiciness <= 25) return 0.85; // mild bonus
+  }
+  if (ht === 'school_age') {
+    // Older kids: slightly penalise very spicy; mild boost for family-friendly.
+    if (meal.taste_spiciness > 80) return 0.15;
+    if (meal.occasions.includes('family-friendly')) return 0.9;
+  }
+  if (ht === 'seniors') {
+    // Seniors: prefer heart-healthy, lighter, easier-to-prepare meals.
+    if (meal.health_score >= 75) return 0.9;
+    if (meal.diet_labels.includes('mediterranean')) return 0.85;
+    if (meal.cooking_time_band === 'Under 30') return 0.75;
+    if (meal.taste_spiciness > 70) return 0.15; // avoid very spicy for seniors
+  }
+  if (ht === 'solo') {
+    // Solo cooks: boost meal-prep on Sundays and quick weeknight meals.
+    if (profile.isSunday && meal.occasions.includes('meal-prep')) return 1.0;
+    if (!profile.isWeekend && meal.cooking_time_band === 'Under 30') return 0.85;
+  }
+
+  // ── Standard occasion / day-of-week context ────────────────────────────────
   if (profile.isSunday && meal.occasions.includes('meal-prep'))     return 1.0;
   if (profile.isWeekend && meal.occasions.includes('weekend'))       return 1.0;
   if (profile.isWeekend && meal.occasions.includes('date-night'))    return 0.9;

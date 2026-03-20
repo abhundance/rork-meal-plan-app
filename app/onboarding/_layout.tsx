@@ -28,14 +28,14 @@ export default function OnboardingLayout() {
       {/* Step 1 */}
       <Stack.Screen name="region" />
 
-      {/* Steps 2–11 */}
+      {/* Steps 2–14 (new flow) */}
       <Stack.Screen name="family-name" />
       <Stack.Screen name="household-size" />
+      <Stack.Screen name="cultural-restrictions" />
       <Stack.Screen name="family-dietary" />
+      <Stack.Screen name="diet-preferences" />
+      <Stack.Screen name="household-type" />
       <Stack.Screen name="personal-goal" />
-      <Stack.Screen name="personal-goal-diet" />
-      <Stack.Screen name="personal-goal-life" />
-      <Stack.Screen name="personal-goal-health" />
       <Stack.Screen name="cuisines" />
       <Stack.Screen name="cooking-time" />
       <Stack.Screen name="planning-style" />

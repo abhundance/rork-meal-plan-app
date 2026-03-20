@@ -28,6 +28,7 @@ import {
   CalendarPlus,
   Utensils,
   ChevronRight,
+  PenLine,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
@@ -435,6 +436,12 @@ export default function FavsScreen() {
         deliveryPlatform={item.delivery_platform}
         familyAvatarUrl={undefined}
         familyInitials={!item.delivery_platform && item.source === 'family_created' ? familyInitials : undefined}
+        // Show the "Add recipe" badge for incomplete family_created meals (e.g. seeded from onboarding).
+        isIncomplete={
+          item.source === 'family_created' &&
+          !item.is_recipe_complete &&
+          !item.is_ingredient_complete
+        }
       />
     );
   }, [handleMealPress, handleAddToPlan, handleSlotModeSelect, handleDeleteMyRecipe, handleRemoveSaved, openAddMethodSheet, familyPhotoUrl, familyInitials, pendingSlot]);
@@ -823,10 +830,12 @@ interface FavGridCardProps {
   familyInitials?: string;
   /** Delivery platform key — when set, shows the platform logo */
   deliveryPlatform?: string;
+  /** When true, shows a small "Add recipe" badge — family_created meals seeded from onboarding have no ingredients yet */
+  isIncomplete?: boolean;
 }
 
 const FavGridCard = React.memo(function FavGridCard({
-  meal, onPress, onAddToPlan, onLongPress, showAddToPlan = true, familyAvatarUrl, familyInitials, deliveryPlatform,
+  meal, onPress, onAddToPlan, onLongPress, showAddToPlan = true, familyAvatarUrl, familyInitials, deliveryPlatform, isIncomplete,
 }: FavGridCardProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -890,6 +899,27 @@ const FavGridCard = React.memo(function FavGridCard({
             >
               <CalendarPlus size={9} color={Colors.primary} strokeWidth={3.5} />
             </TouchableOpacity>
+          )}
+          {/* Incomplete recipe badge — top-left corner. Shown for family_created meals
+              that were seeded from onboarding and still have no ingredients or method. */}
+          {isIncomplete && (
+            <View style={{
+              position: 'absolute' as const,
+              top: Spacing.xs,
+              left: Spacing.xs,
+              flexDirection: 'row' as const,
+              alignItems: 'center' as const,
+              gap: 3,
+              backgroundColor: Colors.warning,
+              borderRadius: BorderRadius.pill,
+              paddingHorizontal: 6,
+              paddingVertical: 3,
+            }}>
+              <PenLine size={8} color={Colors.white} strokeWidth={2.5} />
+              <Text style={{ fontSize: 9, color: Colors.white, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>
+                Add recipe
+              </Text>
+            </View>
           )}
         </View>
         {/* Meal name — sits directly on the page background */}
