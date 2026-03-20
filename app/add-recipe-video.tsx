@@ -21,7 +21,7 @@ import { BorderRadius, Spacing } from '@/constants/theme';
 import {
   detectVideoUrlType,
   extractRecipeFromVideoUrl,
-  ExtractedRecipe,
+  type ExtractedRecipe,
 } from '@/services/recipeExtraction';
 
 export default function AddMealVideoScreen() {
@@ -121,7 +121,7 @@ export default function AddMealVideoScreen() {
           <View style={styles.disclaimer}>
             <Info size={20} color={Colors.warning} strokeWidth={2} />
             <Text style={styles.disclaimerText}>
-              This only works if the full recipe — including ingredients and steps — is listed in the video description or caption. If the recipe is only spoken in the video, use Voice or Paste Text instead.
+              Paste a YouTube, TikTok, or Instagram link. We'll extract the recipe from the description, caption, or spoken audio — even if it's not written down.
             </Text>
           </View>
 
@@ -131,7 +131,7 @@ export default function AddMealVideoScreen() {
               style={styles.textInput}
               value={url}
               onChangeText={setUrl}
-              placeholder="https://youtube.com/... or tiktok.com/..."
+              placeholder="youtube.com, tiktok.com, or instagram.com/reel/..."
               placeholderTextColor={Colors.textSecondary}
               autoCapitalize="none"
               autoCorrect={false}
@@ -149,10 +149,15 @@ export default function AddMealVideoScreen() {
                   <Ionicons name="logo-youtube" size={16} color="#FF0000" /* YouTube brand red — intentional */ />
                   <Text style={styles.hintText}>YouTube link detected</Text>
                 </>
-              ) : (
+              ) : detectedType === 'tiktok' ? (
                 <>
                   <Ionicons name="logo-tiktok" size={16} color={Colors.text} />
                   <Text style={styles.hintText}>TikTok link detected</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="logo-instagram" size={16} color="#E1306C" /* Instagram brand pink — intentional */ />
+                  <Text style={styles.hintText}>Instagram link detected</Text>
                 </>
               )}
             </View>

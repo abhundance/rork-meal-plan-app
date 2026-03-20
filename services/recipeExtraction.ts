@@ -121,10 +121,19 @@ export async function extractRecipeFromText(
   return callEdgeFunction({ type: 'text', text, language }) as Promise<ExtractedRecipe>;
 }
 
-export function detectVideoUrlType(url: string): 'youtube' | 'tiktok' | 'other' {
+export function detectVideoUrlType(url: string): 'youtube' | 'tiktok' | 'instagram' | 'other' {
   const lower = url.toLowerCase();
-  if (lower.includes('youtube.com/watch') || lower.includes('youtu.be/')) return 'youtube';
+  if (
+    lower.includes('youtube.com/watch') ||
+    lower.includes('youtu.be/') ||
+    lower.includes('youtube.com/shorts/')
+  ) return 'youtube';
   if (lower.includes('tiktok.com/')) return 'tiktok';
+  if (
+    lower.includes('instagram.com/reel/') ||
+    lower.includes('instagram.com/p/') ||
+    lower.includes('instagram.com/tv/')
+  ) return 'instagram';
   return 'other';
 }
 
@@ -133,6 +142,7 @@ export function extractYouTubeVideoId(url: string): string | null {
     /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
     /youtu\.be\/([a-zA-Z0-9_-]{11})/,
     /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
   ];
   for (const pattern of patterns) {
     const match = url.match(pattern);
@@ -156,13 +166,21 @@ export async function extractRecipeFromTikTokUrl(
   return callEdgeFunction({ type: 'tiktok', url, language }) as Promise<ExtractedRecipe>;
 }
 
+export async function extractRecipeFromInstagramUrl(
+  url: string,
+  language?: string,
+): Promise<ExtractedRecipe> {
+  return callEdgeFunction({ type: 'instagram', url, language }) as Promise<ExtractedRecipe>;
+}
+
 export async function extractRecipeFromVideoUrl(
   url: string,
   language?: string,
 ): Promise<ExtractedRecipe> {
   const type = detectVideoUrlType(url);
-  if (type === 'youtube') return extractRecipeFromYouTubeUrl(url, language);
-  if (type === 'tiktok')  return extractRecipeFromTikTokUrl(url, language);
+  if (type === 'youtube')   return extractRecipeFromYouTubeUrl(url, language);
+  if (type === 'tiktok')    return extractRecipeFromTikTokUrl(url, language);
+  if (type === 'instagram') return extractRecipeFromInstagramUrl(url, language);
   // Generic web URL
   return callEdgeFunction({ type: 'web', url, language }) as Promise<ExtractedRecipe>;
 }
