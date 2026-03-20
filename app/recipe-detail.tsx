@@ -38,11 +38,16 @@ import { Recipe, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { getCachedDiscoverMeal } from '@/services/discoverMealCache';
 import { getFamilyInitials, isRealPhotoUrl } from '@/utils/familyAvatar';
-import { getSpoonacularDetail } from '@/services/spoonacular';
+import { getSupabase } from '@/services/supabase';
 
-/** Find a discover meal: check in-memory cache first (covers Spoonacular meals), then fall back to static mocks. */
-function findDiscoverMeal(id: string) {
-  return getCachedDiscoverMeal(id) ?? DISCOVER_MEALS.find((m) => m.id === id);
+/**
+ * Find a discover meal. Resolution order:
+ *   1. `override` — asynchronously fetched from Supabase (covers UUID-based IDs from the main Discover tab)
+ *   2. In-memory cache — populated when user browses the Discover tab in the current session
+ *   3. Static mock fallback — covers disc_X IDs coming from discover-search / discover-collection
+ */
+function findDiscoverMeal(id: string, override?: import('@/types').DiscoverMeal | null) {
+  return override ?? getCachedDiscoverMeal(id) ?? DISCOVER_MEALS.find((m) => m.id === id);
 }
 /** Find a discover meal by name (for plan-source lookups). */
 function findDiscoverMealByName(name: string) {
@@ -63,8 +68,13 @@ export default function MealDetailScreen() {
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [dailyNote, setDailyNote] = useState<string>('');
   const [initialized, setInitialized] = useState<boolean>(false);
-  const [richDetail, setRichDetail] = useState<import('@/types').DiscoverMeal | null>(null);
-  const [isLoadingDetail, setIsLoadingDetail] = useState<boolean>(false);
+  // richDetail kept for nutrition display (always null now — Spoonacular removed)
+  const richDetail = null;
+  const isLoadingDetail = false;
+  // Asynchronously fetched discover meal — used when source=discover and the ID is a Supabase UUID
+  // that is not yet in the in-memory cache (i.e. cold start, first open of this meal).
+  const [fetchedDiscover, setFetchedDiscover] = useState<import('@/types').DiscoverMeal | null>(null);
+  const [isLoadingDiscover, setIsLoadingDiscover] = useState<boolean>(false);
 
   const plannedMeal = useMemo<PlannedMeal | null>(() => {
     if (params.source !== 'plan') return null;
@@ -123,7 +133,7 @@ export default function MealDetailScreen() {
       } as Recipe;
     }
 
-    const disc = findDiscoverMeal(params.id);
+    const disc = findDiscoverMeal(params.id, fetchedDiscover);
     if (disc) {
       return {
         id: disc.id,
@@ -147,31 +157,120 @@ export default function MealDetailScreen() {
       } as Recipe;
     }
     return null;
-  }, [params.id, params.source, favMeals, plannedMeal]);
+  }, [params.id, params.source, favMeals, plannedMeal, fetchedDiscover]);
 
   const discoverData = useMemo(() => {
     if (params.source === 'discover') {
-      return findDiscoverMeal(params.id) ?? null;
+      return findDiscoverMeal(params.id, fetchedDiscover) ?? null;
     }
     if (params.source === 'plan' && plannedMeal) {
       return findDiscoverMealByName(plannedMeal.meal_name) ?? null;
     }
     return null;
-  }, [params.source, params.id, plannedMeal]);
+  }, [params.source, params.id, plannedMeal, fetchedDiscover]);
 
+  /**
+   * When source=discover, resolve the meal data.
+   * Fast path: in-memory cache (populated when user has browsed the Discover tab this session).
+   * Slow path: fetch from Supabase by UUID — needed on cold start when the Discover tab hasn't
+   * been visited yet (so the cache is empty) and the ID is a Supabase UUID, not a disc_X mock ID.
+   */
   useEffect(() => {
-    if (params.source === 'discover' && typeof discoverData?.spoonacular_id === 'number') {
-      setIsLoadingDetail(true);
-      getSpoonacularDetail(discoverData.spoonacular_id)
-        .then((result) => {
-          setRichDetail(result);
-        })
-        .catch(() => {})
-        .finally(() => {
-          setIsLoadingDetail(false);
-        });
+    if (params.source !== 'discover') return;
+
+    // Check cache first — instant, no network
+    const cached = getCachedDiscoverMeal(params.id);
+    if (cached) {
+      setFetchedDiscover(cached);
+      return;
     }
-  }, [params.source, discoverData?.spoonacular_id]);
+
+    // If the ID looks like a mock disc_X id, the DISCOVER_MEALS fallback will handle it
+    if (params.id.startsWith('disc_')) return;
+
+    // UUID path: fetch from Supabase
+    setIsLoadingDiscover(true);
+    const sb = getSupabase();
+    sb.from('recipes')
+      .select(`
+        id, name, image_url, description, source,
+        cuisine, cuisines, meal_type, cooking_time_band, prep_time, cook_time,
+        dish_category, protein_source, occasions,
+        is_vegan, is_vegetarian, is_gluten_free, is_dairy_free,
+        allergens, diet_labels, dietary_tags,
+        taste_sweetness, taste_saltiness, taste_sourness, taste_bitterness,
+        taste_savoriness, taste_fattiness, taste_spiciness,
+        calories_per_serving, protein_per_serving_g, carbs_per_serving_g,
+        health_score, recipe_serving_size, add_to_plan_count, created_at,
+        recipe_ingredients ( id, name, quantity, unit, category, position ),
+        recipe_method_steps ( id, step_text, position )
+      `)
+      .eq('id', params.id)
+      .single()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then(({ data, error }: { data: any; error: any }) => {
+        if (!error && data) {
+          const mapped: import('@/types').DiscoverMeal = {
+            id: data.id,
+            name: data.name,
+            image_url: data.image_url ?? undefined,
+            description: data.description ?? '',
+            source: data.source,
+            created_at: data.created_at,
+            cuisine: data.cuisine ?? '',
+            cuisines: data.cuisines ?? [],
+            meal_type: data.meal_type ?? 'lunch_dinner',
+            cooking_time_band: data.cooking_time_band ?? 'Under 30',
+            prep_time: data.prep_time ?? 0,
+            cook_time: data.cook_time ?? 0,
+            dish_category: data.dish_category ?? 'main',
+            protein_source: data.protein_source ?? 'none',
+            occasions: data.occasions ?? [],
+            is_vegan: data.is_vegan ?? false,
+            is_vegetarian: data.is_vegetarian ?? false,
+            is_gluten_free: data.is_gluten_free ?? false,
+            is_dairy_free: data.is_dairy_free ?? false,
+            allergens: data.allergens ?? [],
+            diet_labels: data.diet_labels ?? [],
+            dietary_tags: data.dietary_tags ?? [],
+            taste_sweetness: data.taste_sweetness ?? 0,
+            taste_saltiness: data.taste_saltiness ?? 0,
+            taste_sourness: data.taste_sourness ?? 0,
+            taste_bitterness: data.taste_bitterness ?? 0,
+            taste_savoriness: data.taste_savoriness ?? 0,
+            taste_fattiness: data.taste_fattiness ?? 0,
+            taste_spiciness: data.taste_spiciness ?? 0,
+            calories_per_serving: data.calories_per_serving ?? 0,
+            protein_per_serving_g: data.protein_per_serving_g ?? 0,
+            carbs_per_serving_g: data.carbs_per_serving_g ?? 0,
+            health_score: data.health_score ?? 0,
+            recipe_serving_size: data.recipe_serving_size ?? 2,
+            add_to_plan_count: data.add_to_plan_count ?? 0,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ingredients: (data.recipe_ingredients ?? [])
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .sort((a: any, b: any) => a.position - b.position)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .map((i: any) => ({
+                id: i.id,
+                name: i.name,
+                quantity: i.quantity,
+                unit: i.unit,
+                category: i.category,
+              })),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            method_steps: (data.recipe_method_steps ?? [])
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .sort((a: any, b: any) => a.position - b.position)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .map((s: any) => s.step_text),
+          };
+          setFetchedDiscover(mapped);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingDiscover(false));
+  }, [params.id, params.source]);
 
   const isInFavs = useMemo(() => {
     if (!meal) return false;
@@ -213,13 +312,13 @@ export default function MealDetailScreen() {
         },
       ]);
     } else if (!isInFavs && params.source === 'discover') {
-      const disc = findDiscoverMeal(params.id);
+      const disc = findDiscoverMeal(params.id, fetchedDiscover);
       if (disc) {
         addFromDiscover(disc);
         Alert.alert('Saved!', `${meal.name} added to your Favs`);
       }
     }
-  }, [meal, isInFavs, params, removeFav, addFromDiscover]);
+  }, [meal, isInFavs, params, removeFav, addFromDiscover, fetchedDiscover]);
 
   const handleToggleFavFromPlan = useCallback(() => {
     if (!meal) return;
@@ -322,10 +421,16 @@ export default function MealDetailScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.notFound}>
-          <Text style={styles.notFoundText}>Meal not found</Text>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.backLink}>Go back</Text>
-          </TouchableOpacity>
+          {isLoadingDiscover ? (
+            <Text style={styles.notFoundText}>Loading recipe…</Text>
+          ) : (
+            <>
+              <Text style={styles.notFoundText}>Meal not found</Text>
+              <TouchableOpacity onPress={() => router.back()}>
+                <Text style={styles.backLink}>Go back</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
     );
