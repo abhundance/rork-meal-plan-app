@@ -36,7 +36,7 @@ import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { Recipe, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
-import { getCachedDiscoverMeal } from '@/services/discoverMealCache';
+import { getCachedDiscoverMeal, cacheDiscoverMeal } from '@/services/discoverMealCache';
 import { getFamilyInitials, isRealPhotoUrl } from '@/utils/familyAvatar';
 import { getSupabase } from '@/services/supabase';
 
@@ -178,9 +178,11 @@ export default function MealDetailScreen() {
   useEffect(() => {
     if (params.source !== 'discover') return;
 
-    // Check cache first — instant, no network
+    // Check cache first — only use it if it has full recipe data (ingredients loaded).
+    // The discover list now fetches card-only data, so the cache may hold a
+    // lightweight copy without ingredients. In that case fall through to Supabase.
     const cached = getCachedDiscoverMeal(params.id);
-    if (cached) {
+    if (cached && cached.ingredients && cached.ingredients.length > 0) {
       setFetchedDiscover(cached);
       return;
     }
@@ -265,6 +267,8 @@ export default function MealDetailScreen() {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               .map((s: any) => s.step_text),
           };
+          // Warm the cache with the full recipe so subsequent taps are instant.
+          cacheDiscoverMeal(mapped);
           setFetchedDiscover(mapped);
         }
       })

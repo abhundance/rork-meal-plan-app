@@ -47,6 +47,9 @@ async function fetchCuratedRecipes(
   const sb = getSupabase();
 
   // ── Build query ────────────────────────────────────────────────────────────
+  // Fetch only card-level fields — no ingredients or method steps.
+  // Those are fetched on-demand in recipe-detail when a card is tapped.
+  // count:'planned' uses Postgres stats instead of a full COUNT(*) scan.
   let q = sb
     .from('recipes')
     .select(`
@@ -59,10 +62,8 @@ async function fetchCuratedRecipes(
       taste_savoriness, taste_fattiness, taste_spiciness,
       calories_per_serving, protein_per_serving_g, carbs_per_serving_g,
       health_score, recipe_serving_size, add_to_plan_count,
-      created_at,
-      recipe_ingredients ( id, name, quantity, unit, category, position ),
-      recipe_method_steps ( id, step_text, position )
-    `, { count: 'exact' })
+      created_at
+    `, { count: 'planned' })
     .eq('source', 'curated')
     .order('health_score', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -177,31 +178,20 @@ async function fetchCuratedRecipes(
     recipe_serving_size: row.recipe_serving_size ?? 2,
     add_to_plan_count:   row.add_to_plan_count   ?? 0,
 
-    ingredients: (row.recipe_ingredients ?? [])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .sort((a: any, b: any) => a.position - b.position)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((i: any) => ({
-        id:       i.id,
-        name:     i.name,
-        quantity: i.quantity,
-        unit:     i.unit,
-        category: i.category,
-      })),
-
-    method_steps: (row.recipe_method_steps ?? [])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .sort((a: any, b: any) => a.position - b.position)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((s: any) => s.step_text),
+    // Ingredients and method steps are not fetched in the list query.
+    // They are loaded on-demand by recipe-detail when a card is tapped.
+    ingredients:  [],
+    method_steps: [],
   }));
 
-  const totalCount = count ?? 0;
+  // Use actual returned page size to determine if more pages exist.
+  // (count:'planned' gives a Postgres estimate, not a precise total.)
+  const hasMore = meals.length === limit;
   return {
     meals,
     offset,
-    count: totalCount,
-    hasMore: offset + meals.length < totalCount,
+    count: count ?? 0,
+    hasMore,
   };
 }
 
