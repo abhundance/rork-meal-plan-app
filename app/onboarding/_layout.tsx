@@ -41,8 +41,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="planning-style" />
       <Stack.Screen name="configure-slots" />
       <Stack.Screen name="breakfast-picks" />
-      <Stack.Screen name="lunch-picks" />
-      <Stack.Screen name="dinner-picks" />
+      <Stack.Screen name="lunch-dinner-picks" />
 
       {/* Chapter interstitial screens — cinematic fade transitions between onboarding chapters */}
       <Stack.Screen name="chapter-dietary" options={{ animation: 'fade', gestureEnabled: false }} />

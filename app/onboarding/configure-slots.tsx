@@ -47,13 +47,11 @@ export default function ConfigureSlotsScreen() {
     const slots = ALL_SLOTS.map(s => s.id).filter(id => enabled.has(id));
     setEnabledSlots(slots);
     setStep(13);
-    // Navigate to first enabled picks screen (snacks has no picks screen)
+    // Navigate to picks screens — breakfast first, then lunch/dinner combined, then welcome
     if (enabled.has('breakfast')) {
       router.push('/onboarding/breakfast-picks' as Href);
-    } else if (enabled.has('lunch')) {
-      router.push('/onboarding/lunch-picks' as Href);
-    } else if (enabled.has('dinner')) {
-      router.push('/onboarding/dinner-picks' as Href);
+    } else if (enabled.has('lunch') || enabled.has('dinner')) {
+      router.push('/onboarding/lunch-dinner-picks' as Href);
     } else {
       router.push('/onboarding/welcome' as Href);
     }

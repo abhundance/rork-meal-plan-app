@@ -194,13 +194,17 @@ export default function WelcomeScreen() {
         });
     }
 
-    // Seed starter meals as Favs
+    // Seed starter meals as Favs — use real Supabase UUID and source='discover'
+    // so the recipe detail screen can fetch full data (ingredients, method) from Supabase.
     const picks = data.starter_meals ?? [];
     picks.forEach((pick) => {
       const recipe: Recipe = {
-        id:                     `starter_${pick.id}`,
+        id:                     pick.id,          // real Supabase UUID
         name:                   pick.name,
-        source:                 'family_created',
+        source:                 'discover',        // enables Supabase detail fetch
+        image_url:              pick.image_url,
+        cuisine:                pick.cuisine,
+        cook_time:              pick.cook_time,
         ingredients:            [],
         recipe_serving_size:    data.household_size ?? 4,
         method_steps:           [],
@@ -211,8 +215,6 @@ export default function WelcomeScreen() {
         is_ingredient_complete: false,
         is_recipe_complete:     false,
         meal_type:              pick.meal_type,
-        cuisine:                pick.cuisine,
-        cook_time:              pick.cook_time_mins,
       };
       addFav(recipe);
     });

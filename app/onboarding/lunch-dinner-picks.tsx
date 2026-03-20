@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, FlatList,
+  View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';
@@ -12,26 +13,24 @@ import { Check } from 'lucide-react-native';
 import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
-import { DINNER_MEALS_ALL, filterAndSortStarterMeals } from '@/constants/starterMeals';
+import { useOnboardingMeals } from '@/hooks/useOnboardingMeals';
 
-export default function DinnerPicksScreen() {
+export default function LunchDinnerPicksScreen() {
   const insets = useSafeAreaInsets();
   const { data, addStarterMeal, setStep } = useOnboarding();
   const selectedIds = new Set((data.starter_meals ?? []).map(m => m.id));
 
-  const meals = useMemo(
-    () => filterAndSortStarterMeals(
-      DINNER_MEALS_ALL,
-      data.region ?? '',
-      data.cultural_restrictions ?? [],
-      data.intolerances ?? [],
-      data.cuisine_preferences ?? [],
-    ),
-    [data.region, data.cultural_restrictions, data.intolerances, data.cuisine_preferences],
-  );
+  const { meals, loading, error } = useOnboardingMeals('lunch_dinner', {
+    cultural: data.cultural_restrictions ?? [],
+    intolerances: data.intolerances ?? [],
+    cuisinePrefs: data.cuisine_preferences ?? [],
+  });
 
-  const dinnerIds = useMemo(() => new Set(DINNER_MEALS_ALL.map(m => m.id)), []);
-  const dinnerSelectedCount = [...selectedIds].filter(id => dinnerIds.has(id)).length;
+  const selectedCount = useMemo(
+    () => meals.filter(m => selectedIds.has(m.id)).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [meals, data.starter_meals],
+  );
 
   const navigateNext = () => {
     setStep(14);
@@ -52,11 +51,20 @@ export default function DinnerPicksScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.stepLabel}>Step 14 of 14</Text>
-            <Text style={styles.heading}>Pick some dinner favourites</Text>
+            <Text style={styles.heading}>Pick some lunch & dinner favourites</Text>
             <Text style={styles.subheading}>
               These get added to your Favs so Smart Fill has meals to work with from day one.
             </Text>
           </View>
+        }
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color={Colors.primary} />
+            </View>
+          ) : error ? (
+            <Text style={styles.errorText}>{error}</Text>
+          ) : null
         }
         renderItem={({ item: meal }) => {
           const isSelected = selectedIds.has(meal.id);
@@ -66,12 +74,24 @@ export default function DinnerPicksScreen() {
               onPress={() => addStarterMeal(meal)}
               activeOpacity={0.7}
             >
-              <Text style={styles.mealEmoji}>{meal.emoji}</Text>
+              {meal.image_url ? (
+                <Image
+                  source={{ uri: meal.image_url }}
+                  style={styles.mealThumb}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={styles.mealInitials}>
+                  <Text style={styles.mealInitialsText}>
+                    {meal.name.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()}
+                  </Text>
+                </View>
+              )}
               <View style={styles.mealText}>
                 <Text style={[styles.mealName, isSelected && styles.mealNameSelected]}>
                   {meal.name}
                 </Text>
-                <Text style={styles.mealMeta}>{meal.cuisine} · ~{meal.cook_time_mins} min</Text>
+                <Text style={styles.mealMeta}>{meal.cuisine} · ~{meal.cook_time} min</Text>
               </View>
               <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
                 {isSelected && <Check size={13} color={Colors.white} strokeWidth={3} />}
@@ -84,12 +104,12 @@ export default function DinnerPicksScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <PrimaryButton
-          label={dinnerSelectedCount > 0 ? `Continue (${dinnerSelectedCount} selected)` : 'Continue'}
+          label={selectedCount > 0 ? `Continue (${selectedCount} selected)` : 'Continue'}
           onPress={navigateNext}
           testID="continue-btn"
         />
         <TouchableOpacity style={styles.skipButton} onPress={navigateNext} testID="skip-btn">
-          <Text style={styles.skipText}>I'll add dinner meals later</Text>
+          <Text style={styles.skipText}>I'll add meals later</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -129,6 +149,17 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 20,
   },
+  loadingWrap: {
+    paddingTop: 60,
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 24,
+  },
   mealRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -143,11 +174,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryLight,
     borderColor: Colors.primary,
   },
-  mealEmoji: {
-    fontSize: 28,
+  mealThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
     marginRight: 14,
-    width: 36,
-    textAlign: 'center',
+  },
+  mealInitials: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  mealInitialsText: {
+    fontSize: 14,
+    fontFamily: FontFamily.bold,
+    fontWeight: '700' as const,
+    color: Colors.primary,
   },
   mealText: {
     flex: 1,

@@ -84,18 +84,12 @@ export interface NotificationSettings {
 }
 
 export interface StarterMealPick {
-  id: string;
+  id: string;             // Supabase UUID
   name: string;
-  emoji: string;
   meal_type: 'breakfast' | 'lunch_dinner';
   cuisine: string;
-  cook_time_mins: number;
-  // Dietary flags — used to filter the picks screens based on onboarding restrictions
-  has_beef?: boolean;       // contains beef
-  has_pork?: boolean;       // contains pork
-  has_shellfish?: boolean;  // contains prawns / shrimp / crab / lobster
-  is_vegetarian?: boolean;  // no meat or fish (eggs/dairy OK)
-  is_vegan?: boolean;       // no animal products at all
+  cook_time: number;      // minutes
+  image_url?: string;
 }
 
 export interface OnboardingData {
