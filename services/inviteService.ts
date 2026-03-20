@@ -15,9 +15,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSupabase } from './supabase';
 
 // ── AsyncStorage keys ────────────────────────────────────────────────────────
-export const GUEST_USER_ID_KEY   = '@mealplan/guest_user_id';
+export const GUEST_USER_ID_KEY    = '@mealplan/guest_user_id';
 export const JOINED_FAMILY_ID_KEY = '@mealplan/joined_family_id';
-const CACHED_INVITE_CODE_KEY      = '@mealplan/invite_code';
+export const CACHED_INVITE_CODE_KEY = '@mealplan/invite_code';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -108,13 +108,15 @@ export async function getOrCreateInvite(
     { onConflict: 'family_id,user_id' }
   );
 
-  // 4. Look for an existing valid invite in Supabase
+  // 4. Look for an existing valid invite in Supabase.
+  // Note: we do NOT filter by used_at IS NULL — invites are multi-use so
+  // the whole family can join with the same link. used_at only records
+  // who joined first (audit log), it does not expire the code.
   const { data: existing } = await sb
     .from('family_invites')
     .select('invite_code')
     .eq('family_id', familyId)
     .eq('is_active', true)
-    .is('used_at', null)
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(1)

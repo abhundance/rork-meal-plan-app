@@ -10,7 +10,7 @@
  *  3. User enters their display name
  *  4. Tap Join → acceptInvite → save family_id locally → navigate to main app
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -48,6 +48,14 @@ export default function JoinScreen() {
   const [displayName, setDisplayName] = useState('');
   const [nameError, setNameError]   = useState<string | null>(null);
   const [joinError, setJoinError]   = useState<string | null>(null);
+  const navTimerRef                 = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up nav timer if component unmounts before it fires
+  useEffect(() => {
+    return () => {
+      if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    };
+  }, []);
 
   // ── Resolve the invite on mount ──────────────────────────────────────────
 
@@ -94,7 +102,7 @@ export default function JoinScreen() {
       setState('joined');
 
       // Navigate to main app after a brief celebration pause
-      setTimeout(() => {
+      navTimerRef.current = setTimeout(() => {
         router.replace('/(tabs)');
       }, 1800);
     } catch (e: unknown) {

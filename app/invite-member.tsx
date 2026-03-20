@@ -32,7 +32,8 @@ import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
-import { getOrCreateInvite, getGuestUserId } from '@/services/inviteService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getOrCreateInvite, getGuestUserId, CACHED_INVITE_CODE_KEY } from '@/services/inviteService';
 
 export default function InviteMemberScreen() {
   const insets = useSafeAreaInsets();
@@ -60,8 +61,7 @@ export default function InviteMemberScreen() {
 
       if (forceRefresh) {
         // Clear cached code so a new one is generated
-        const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
-        await AsyncStorage.removeItem('@mealplan/invite_code');
+        await AsyncStorage.removeItem(CACHED_INVITE_CODE_KEY);
       }
 
       const code = await getOrCreateInvite(
@@ -109,7 +109,7 @@ export default function InviteMemberScreen() {
   const handleiMessage = useCallback(async () => {
     if (!inviteCode) return;
     const text = encodeURIComponent(shareMessage);
-    const url  = `sms:&body=${text}`;
+    const url  = `sms:?body=${text}`;
     const canOpen = await Linking.canOpenURL(url);
     if (canOpen) {
       await Linking.openURL(url);
