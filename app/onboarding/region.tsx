@@ -214,60 +214,206 @@ function detectCountry(): string | null {
   return detectCountryFromTimezone() ?? detectCountryFromLocale();
 }
 
+// Full A–Z world country list (UN members + widely-recognised territories).
+// Keep sorted alphabetically — this is the canonical order used in the picker.
 const COUNTRIES = [
-  'Singapore',
+  'Afghanistan',
+  'Albania',
+  'Algeria',
+  'Andorra',
+  'Angola',
+  'Antigua and Barbuda',
+  'Argentina',
+  'Armenia',
   'Australia',
+  'Austria',
+  'Azerbaijan',
+  'Bahamas',
+  'Bahrain',
+  'Bangladesh',
+  'Barbados',
+  'Belarus',
+  'Belgium',
+  'Belize',
+  'Benin',
+  'Bhutan',
+  'Bolivia',
+  'Bosnia and Herzegovina',
+  'Botswana',
+  'Brazil',
+  'Brunei',
+  'Bulgaria',
+  'Burkina Faso',
+  'Burundi',
+  'Cabo Verde',
+  'Cambodia',
+  'Cameroon',
   'Canada',
+  'Central African Republic',
+  'Chad',
+  'Chile',
   'China',
+  'Colombia',
+  'Comoros',
+  'Congo',
+  'Costa Rica',
+  'Croatia',
+  'Cuba',
+  'Cyprus',
+  'Czech Republic',
+  'Denmark',
+  'Djibouti',
+  'Dominica',
+  'Dominican Republic',
+  'DR Congo',
+  'Ecuador',
+  'Egypt',
+  'El Salvador',
+  'Equatorial Guinea',
+  'Eritrea',
+  'Estonia',
+  'Eswatini',
+  'Ethiopia',
+  'Fiji',
+  'Finland',
   'France',
+  'Gabon',
+  'Gambia',
+  'Georgia',
   'Germany',
+  'Ghana',
+  'Greece',
+  'Grenada',
+  'Guatemala',
+  'Guinea',
+  'Guinea-Bissau',
+  'Guyana',
+  'Haiti',
+  'Honduras',
   'Hong Kong',
+  'Hungary',
+  'Iceland',
   'India',
   'Indonesia',
+  'Iran',
+  'Iraq',
   'Ireland',
+  'Israel',
   'Italy',
+  'Ivory Coast',
+  'Jamaica',
   'Japan',
+  'Jordan',
+  'Kazakhstan',
+  'Kenya',
+  'Kiribati',
+  'Kuwait',
+  'Kyrgyzstan',
+  'Laos',
+  'Latvia',
+  'Lebanon',
+  'Lesotho',
+  'Liberia',
+  'Libya',
+  'Liechtenstein',
+  'Lithuania',
+  'Luxembourg',
+  'Madagascar',
+  'Malawi',
   'Malaysia',
+  'Maldives',
+  'Mali',
+  'Malta',
+  'Marshall Islands',
+  'Mauritania',
+  'Mauritius',
   'Mexico',
+  'Micronesia',
+  'Moldova',
+  'Monaco',
+  'Mongolia',
+  'Montenegro',
+  'Morocco',
+  'Mozambique',
+  'Myanmar',
+  'Namibia',
+  'Nauru',
+  'Nepal',
   'Netherlands',
   'New Zealand',
+  'Nicaragua',
+  'Niger',
+  'Nigeria',
+  'North Korea',
+  'North Macedonia',
+  'Norway',
+  'Oman',
+  'Pakistan',
+  'Palau',
+  'Palestine',
+  'Panama',
+  'Papua New Guinea',
+  'Paraguay',
+  'Peru',
   'Philippines',
+  'Poland',
+  'Portugal',
+  'Qatar',
+  'Romania',
+  'Russia',
+  'Rwanda',
+  'Saint Kitts and Nevis',
+  'Saint Lucia',
+  'Saint Vincent and the Grenadines',
+  'Samoa',
+  'San Marino',
+  'São Tomé and Príncipe',
+  'Saudi Arabia',
+  'Senegal',
+  'Serbia',
+  'Seychelles',
+  'Sierra Leone',
+  'Singapore',
+  'Slovakia',
+  'Slovenia',
+  'Solomon Islands',
+  'Somalia',
+  'South Africa',
   'South Korea',
+  'South Sudan',
   'Spain',
+  'Sri Lanka',
+  'Sudan',
+  'Suriname',
+  'Sweden',
+  'Switzerland',
+  'Syria',
   'Taiwan',
+  'Tajikistan',
+  'Tanzania',
   'Thailand',
+  'Timor-Leste',
+  'Togo',
+  'Tonga',
+  'Trinidad and Tobago',
+  'Tunisia',
+  'Turkey',
+  'Turkmenistan',
+  'Tuvalu',
+  'Uganda',
+  'Ukraine',
   'United Arab Emirates',
   'United Kingdom',
   'United States',
+  'Uruguay',
+  'Uzbekistan',
+  'Vanuatu',
+  'Vatican City',
+  'Venezuela',
   'Vietnam',
-  'Austria',
-  'Belgium',
-  'Brazil',
-  'Denmark',
-  'Finland',
-  'Greece',
-  'Hungary',
-  'Israel',
-  'Norway',
-  'Poland',
-  'Portugal',
-  'Romania',
-  'Saudi Arabia',
-  'South Africa',
-  'Sweden',
-  'Switzerland',
-  'Turkey',
-  'Argentina',
-  'Chile',
-  'Colombia',
-  'Egypt',
-  'Kenya',
-  'Nigeria',
-  'Pakistan',
-  'Sri Lanka',
-  'Bangladesh',
-  'Nepal',
-  'Myanmar',
+  'Yemen',
+  'Zambia',
+  'Zimbabwe',
 ];
 
 export default function RegionScreen() {
@@ -289,11 +435,30 @@ export default function RegionScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredCountries = useMemo(() => {
-    if (!searchQuery.trim()) return COUNTRIES;
-    const q = searchQuery.toLowerCase();
-    return COUNTRIES.filter(c => c.toLowerCase().includes(q));
-  }, [searchQuery]);
+  // The country auto-detected from timezone (may be null if unknown).
+  const detectedCountry = useMemo(() => detectCountry(), []);
+
+  // When searching: filter the full A–Z list.
+  // When not searching: detected country floats to the top (Apple-style suggested row),
+  // followed by the rest of the list in A–Z order.
+  const { listData } = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      return {
+        listData: COUNTRIES.filter(c => c.toLowerCase().includes(q)).map(c => ({ type: 'country' as const, name: c })),
+        hasSuggested: false,
+      };
+    }
+    const suggested = detectedCountry && COUNTRIES.includes(detectedCountry) ? detectedCountry : null;
+    const items: { type: 'header' | 'country'; name: string }[] = [];
+    if (suggested) {
+      items.push({ type: 'header', name: 'Suggested' });
+      items.push({ type: 'country', name: suggested });
+      items.push({ type: 'header', name: 'All Countries' });
+    }
+    COUNTRIES.forEach(c => items.push({ type: 'country', name: c }));
+    return { listData: items, hasSuggested: !!suggested };
+  }, [searchQuery, detectedCountry]);
 
   const handleContinue = () => {
     setRegion(country.trim(), units);
@@ -419,22 +584,27 @@ export default function RegionScreen() {
 
           {/* Country list */}
           <FlatList
-            data={filteredCountries}
-            keyExtractor={(item) => item}
+            data={listData}
+            keyExtractor={(item, index) => `${item.type}-${item.name}-${index}`}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.countryRow}
-                onPress={() => handleSelectCountry(item)}
-                activeOpacity={0.6}
-              >
-                <Text style={styles.countryName}>{item}</Text>
-                {item === country && (
-                  <Check size={18} color={Colors.primary} />
-                )}
-              </TouchableOpacity>
-            )}
+            renderItem={({ item }) => {
+              if (item.type === 'header') {
+                return <Text style={styles.sectionHeader}>{item.name}</Text>;
+              }
+              return (
+                <TouchableOpacity
+                  style={styles.countryRow}
+                  onPress={() => handleSelectCountry(item.name)}
+                  activeOpacity={0.6}
+                >
+                  <Text style={styles.countryName}>{item.name}</Text>
+                  {item.name === country && (
+                    <Check size={18} color={Colors.primary} />
+                  )}
+                </TouchableOpacity>
+              );
+            }}
             ListEmptyComponent={
               <View style={styles.emptySearch}>
                 <Text style={styles.emptySearchText}>No countries found</Text>
@@ -630,6 +800,18 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontFamily: FontFamily.semiBold,
     fontWeight: '400' as const,
+  },
+  sectionHeader: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 6,
+    backgroundColor: Colors.background,
   },
   emptySearch: {
     paddingVertical: 40,
