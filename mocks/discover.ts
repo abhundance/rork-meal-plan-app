@@ -14931,7 +14931,7 @@ export const DISCOVER_MEALS: DiscoverMeal[] = [
         'Make gula melaka syrup by melting palm sugar in 100ml water with a pinch of salt',
         'In tall glasses: layer shaved ice, pandan cendol, red beans, coconut milk, and a generous drizzle of gula melaka syrup'
       ]
-    }
+    },
   
   // MALAYSIAN DESSERTS (disc_276–278)
     {
