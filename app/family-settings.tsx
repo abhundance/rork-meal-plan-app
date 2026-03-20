@@ -462,11 +462,10 @@ export default function FamilySettingsScreen() {
         </View>
 
         <PrimaryButton
-          label="Invite New Member — Coming soon"
-          onPress={() => console.log('[Settings] Invite member')}
+          label="Invite a New Member"
+          onPress={() => router.push('/invite-member')}
           variant="secondary"
           style={{ marginTop: 8 }}
-          disabled={true}
           testID="invite-member"
         />
 

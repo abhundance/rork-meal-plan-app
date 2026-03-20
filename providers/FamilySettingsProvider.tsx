@@ -24,6 +24,7 @@ import {
   rowToUserSettings,
   rowToNotificationSettings,
 } from '@/services/db';
+import { getGuestUserId, JOINED_FAMILY_ID_KEY } from '@/services/inviteService';
 
 const FAMILY_SETTINGS_KEY       = 'family_settings';
 const USER_SETTINGS_KEY         = 'user_settings';
@@ -115,6 +116,25 @@ export const [FamilySettingsProvider, useFamilySettings] = createContextHook(() 
   const [familySettings, setFamilySettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
   const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
+
+  // ── Family ID (auth uid, or joined-family id for guests, or guest uid) ────
+  const [familyId, setFamilyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (userId) {
+      setFamilyId(userId);
+      return;
+    }
+    // Pre-auth: use joined family if they accepted an invite, else their own guest UUID
+    Promise.all([
+      AsyncStorage.getItem(JOINED_FAMILY_ID_KEY),
+      getGuestUserId(),
+    ]).then(([joinedId, guestId]) => {
+      setFamilyId(joinedId ?? guestId);
+    }).catch(() => {
+      getGuestUserId().then(setFamilyId).catch(console.error);
+    });
+  }, [userId]);
 
   const familyMembers: FamilyMember[] = [
     {
@@ -406,6 +426,7 @@ export const [FamilySettingsProvider, useFamilySettings] = createContextHook(() 
     userSettings,
     notificationSettings,
     familyMembers,
+    familyId,
     isLoading,
     updateFamilySettings,
     updateUserSettings,

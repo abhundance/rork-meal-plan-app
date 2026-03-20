@@ -157,6 +157,14 @@ function RootLayoutNav() {
         name="add-to-favs"
         options={{ headerShown: false, presentation: "modal" }}
       />
+      <Stack.Screen
+        name="invite-member"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="join"
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
       <Stack.Screen name="+not-found" />
     </Stack>
   );
