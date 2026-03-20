@@ -12,18 +12,24 @@ import { Check } from 'lucide-react-native';
 import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
-import { BREAKFAST_MEALS_ALL, getRegionalMeals } from '@/constants/starterMeals';
+import { BREAKFAST_MEALS_ALL, filterAndSortStarterMeals } from '@/constants/starterMeals';
 
 export default function BreakfastPicksScreen() {
   const insets = useSafeAreaInsets();
   const { data, addStarterMeal, setStep } = useOnboarding();
   const selectedIds = new Set((data.starter_meals ?? []).map(m => m.id));
 
-  // Sort meals so regionally relevant ones surface first based on the country
-  // the user selected in Step 1 (e.g. Indonesia → Malaysian/Singaporean first)
+  // Filter out meals that violate dietary/cultural restrictions, then sort by:
+  // 1. Explicit cuisine preferences (Step 9)  2. Regional preferences (Step 1)
   const meals = useMemo(
-    () => getRegionalMeals(BREAKFAST_MEALS_ALL, data.region ?? ''),
-    [data.region],
+    () => filterAndSortStarterMeals(
+      BREAKFAST_MEALS_ALL,
+      data.region ?? '',
+      data.cultural_restrictions ?? [],
+      data.intolerances ?? [],
+      data.cuisine_preferences ?? [],
+    ),
+    [data.region, data.cultural_restrictions, data.intolerances, data.cuisine_preferences],
   );
 
   const breakfastIds = useMemo(() => new Set(BREAKFAST_MEALS_ALL.map(m => m.id)), []);

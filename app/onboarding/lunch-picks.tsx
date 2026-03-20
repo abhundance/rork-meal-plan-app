@@ -12,7 +12,7 @@ import { Check } from 'lucide-react-native';
 import OnboardingHeader from '@/components/OnboardingHeader';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
-import { LUNCH_MEALS_ALL, getRegionalMeals } from '@/constants/starterMeals';
+import { LUNCH_MEALS_ALL, filterAndSortStarterMeals } from '@/constants/starterMeals';
 
 export default function LunchPicksScreen() {
   const insets = useSafeAreaInsets();
@@ -20,8 +20,14 @@ export default function LunchPicksScreen() {
   const selectedIds = new Set((data.starter_meals ?? []).map(m => m.id));
 
   const meals = useMemo(
-    () => getRegionalMeals(LUNCH_MEALS_ALL, data.region ?? ''),
-    [data.region],
+    () => filterAndSortStarterMeals(
+      LUNCH_MEALS_ALL,
+      data.region ?? '',
+      data.cultural_restrictions ?? [],
+      data.intolerances ?? [],
+      data.cuisine_preferences ?? [],
+    ),
+    [data.region, data.cultural_restrictions, data.intolerances, data.cuisine_preferences],
   );
 
   const lunchIds = useMemo(() => new Set(LUNCH_MEALS_ALL.map(m => m.id)), []);
