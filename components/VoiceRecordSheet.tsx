@@ -25,6 +25,8 @@ type Props = {
   onClose: () => void;
   onExtracted: (result: ExtractedRecipe) => void;
   onError: () => void;
+  /** Language display name from family settings (e.g. "Français"). Defaults to English. */
+  language?: string;
 };
 
 function formatTime(seconds: number): string {
@@ -33,7 +35,7 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function VoiceRecordSheet({ visible, onClose, onExtracted, onError }: Props) {
+export default function VoiceRecordSheet({ visible, onClose, onExtracted, onError, language }: Props) {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [elapsed, setElapsed] = useState<number>(0);
 
@@ -96,7 +98,7 @@ export default function VoiceRecordSheet({ visible, onClose, onExtracted, onErro
         if (!uri) throw new Error('No URI from recording');
 
         console.log('[VoiceRecordSheet] Processing audio from:', uri);
-        const result = await transcribeAndExtract(uri);
+        const result = await transcribeAndExtract(uri, language);
         onExtracted(result);
       } catch (err) {
         console.error('[VoiceRecordSheet] Error processing recording:', err);

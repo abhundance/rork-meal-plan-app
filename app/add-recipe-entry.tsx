@@ -122,7 +122,7 @@ export default function AddRecipeEntryScreen() {
     const inputIsUrl = /^https?:\/\//i.test(input);
     try {
       const result: ExtractedRecipe = inputIsUrl
-        ? await extractRecipeFromVideoUrl(input)
+        ? await extractRecipeFromVideoUrl(input, familySettings.language)
         : await extractRecipeFromText(input, familySettings.language);
       router.push({
         pathname: '/add-recipe-review' as never,
@@ -759,6 +759,7 @@ export default function AddRecipeEntryScreen() {
         visible={showVoiceSheet}
         onClose={() => setShowVoiceSheet(false)}
         onExtracted={handleVoiceExtracted}
+        language={familySettings.language}
         onError={() => {
           setShowVoiceSheet(false);
           Alert.alert(

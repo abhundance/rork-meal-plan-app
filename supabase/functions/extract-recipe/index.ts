@@ -198,18 +198,39 @@ async function handleMetadata(body: RequestBody, openaiKey: string): Promise<unk
   return parseJsonResponse(content);
 }
 
+// Maps non-standard or platform-specific audio MIME sub-types to extensions
+// that OpenAI Whisper actually accepts (mp3, mp4, m4a, wav, webm, ogg, flac, mpeg).
+const WHISPER_EXT_MAP: Record<string, string> = {
+  'x-m4a': 'm4a',
+  'mpeg4': 'm4a',
+  'aac': 'm4a',
+  'x-aac': 'm4a',
+  '3gpp': 'mp4',
+  '3gp': 'mp4',
+  'mp4a-latm': 'm4a',
+};
+
+function normaliseAudioExt(mimeType: string): string {
+  const sub = mimeType.split('/')[1] ?? 'm4a';
+  return WHISPER_EXT_MAP[sub] ?? sub;
+}
+
 async function handleVoice(body: RequestBody, openaiKey: string): Promise<unknown> {
   if (!body.base64Audio) throw new Error('base64Audio field is required');
   const mimeType = body.audioMimeType ?? 'audio/m4a';
-  const ext = mimeType.split('/')[1] ?? 'm4a';
+  const ext = normaliseAudioExt(mimeType);
 
   // Decode base64 → binary
   const binaryStr = atob(body.base64Audio);
   const bytes = new Uint8Array(binaryStr.length);
   for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
 
+  // Normalise the MIME type for the Blob too — some platforms send 'audio/x-m4a'
+  // which confuses Whisper. Always use a canonical type that matches the ext.
+  const canonicalMime = ext === 'm4a' ? 'audio/m4a' : ext === 'mp4' ? 'audio/mp4' : mimeType;
+
   const formData = new FormData();
-  formData.append('file', new Blob([bytes], { type: mimeType }), `recording.${ext}`);
+  formData.append('file', new Blob([bytes], { type: canonicalMime }), `recording.${ext}`);
   formData.append('model', 'whisper-1');
 
   const whisperResp = await fetch(OPENAI_WHISPER_URL, {

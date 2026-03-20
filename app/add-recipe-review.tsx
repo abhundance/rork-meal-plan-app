@@ -205,8 +205,12 @@ export default function AddMealReviewScreen() {
         } else if (inputMode === 'text' && params.inputText) {
           result = await extractRecipeFromText(params.inputText, familySettings.language);
         } else if (inputMode === 'url' && params.inputUrl) {
+          // The entry screen already extracted and passed prefill params — don't
+          // extract again. Only re-extract if the review screen was opened directly
+          // without prefill data (edge case, e.g. deep link).
+          if (params.prefillName) { setIsLoading(false); return; }
           setLoadingLabel('Analysing video description…');
-          result = await extractRecipeFromVideoUrl(params.inputUrl);
+          result = await extractRecipeFromVideoUrl(params.inputUrl, familySettings.language);
         } else {
           setIsLoading(false);
           return;
