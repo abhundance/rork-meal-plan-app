@@ -148,15 +148,23 @@ export async function getOrCreateInvite(
 /**
  * Resolve an invite code → its details.
  * Returns null if not found, already used, or expired.
+ * Throws with a user-facing message if the network is unreachable after 10 s.
  */
 export async function resolveInvite(code: string): Promise<InviteInfo | null> {
   const sb = getSupabase();
-  const { data, error } = await sb
+
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Could not reach the server. Please check your internet connection and try again.')), 10_000)
+  );
+
+  const query = sb
     .from('family_invites')
     .select('*')
     .eq('invite_code', code.toUpperCase().trim())
     .eq('is_active', true)
     .maybeSingle();
+
+  const { data, error } = await Promise.race([query, timeout]);
 
   if (error || !data) return null;
   if (new Date(data.expires_at) < new Date()) return null;

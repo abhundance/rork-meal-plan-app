@@ -37,11 +37,13 @@ import {
   InviteInfo,
 } from '@/services/inviteService';
 
-type ScreenState = 'loading' | 'invite_found' | 'invalid' | 'joining' | 'joined';
+type ScreenState = 'loading' | 'invite_found' | 'invalid' | 'network_error' | 'joining' | 'joined';
 
 export default function JoinScreen() {
   const insets = useSafeAreaInsets();
-  const { code } = useLocalSearchParams<{ code: string }>();
+  const rawCode = useLocalSearchParams<{ code: string }>().code;
+  // NOTE-02: Expo Router can return string | string[] — always coerce to string
+  const code = Array.isArray(rawCode) ? rawCode[0] : rawCode;
 
   const [state, setState]           = useState<ScreenState>('loading');
   const [invite, setInvite]         = useState<InviteInfo | null>(null);
@@ -73,7 +75,7 @@ export default function JoinScreen() {
           setState('invalid');
         }
       })
-      .catch(() => setState('invalid'));
+      .catch(() => setState('network_error'));
   }, [code]);
 
   // ── Handle join ──────────────────────────────────────────────────────────
@@ -140,6 +142,33 @@ export default function JoinScreen() {
             onPress={() => router.replace('/(tabs)')}
           >
             <Text style={styles.secondaryBtnText}>Go to App</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // ── Network timeout / offline ──
+    if (state === 'network_error') {
+      const retryResolve = () => {
+        setState('loading');
+        resolveInvite(code ?? '')
+          .then((info) => {
+            if (info) { setInvite(info); setState('invite_found'); }
+            else { setState('invalid'); }
+          })
+          .catch(() => setState('network_error'));
+      };
+      return (
+        <View style={styles.centreWrap}>
+          <View style={styles.iconCircle}>
+            <AlertCircle size={36} color={Colors.warning} strokeWidth={1.5} />
+          </View>
+          <Text style={styles.heroTitle}>No Connection</Text>
+          <Text style={styles.heroSubtitle}>
+            Couldn't reach the server. Please check your internet connection and try again.
+          </Text>
+          <TouchableOpacity style={styles.joinBtn} onPress={retryResolve} activeOpacity={0.85}>
+            <Text style={styles.joinBtnText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       );

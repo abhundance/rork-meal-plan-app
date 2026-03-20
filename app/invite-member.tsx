@@ -87,7 +87,15 @@ export default function InviteMemberScreen() {
   const handleNativeShare = useCallback(async () => {
     if (!inviteCode) return;
     try {
-      await Share.share({ message: shareMessage, url: inviteLink });
+      // Android ignores the `url` field in Share.share — the link must live
+      // inside `message`. On iOS we pass `url` separately so the system can
+      // render a rich link preview; the message text already contains the link
+      // so Android gets it either way.
+      await Share.share(
+        Platform.OS === 'ios'
+          ? { message: shareMessage, url: inviteLink }
+          : { message: shareMessage },
+      );
     } catch {
       // user cancelled — do nothing
     }
