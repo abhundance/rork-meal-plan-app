@@ -87,7 +87,7 @@ export interface StarterMealPick {
   id: string;
   name: string;
   emoji: string;
-  meal_type: 'breakfast' | 'lunch_dinner' | 'snack' | 'dessert' | 'drink';
+  meal_type: 'breakfast' | 'lunch_dinner';
   cuisine: string;
   cook_time_mins: number;
   // Dietary flags — used to filter the picks screens based on onboarding restrictions
