@@ -425,14 +425,26 @@ export default function MealPlanScreen() {
     // ── Eligibility helper ───────────────────────────────────────────────────
     // Hard filter: disliked meals, already-used meals, and dietary mismatches never appear.
     const combinedPrefs = [...(familySettings.dietary_preferences_family ?? []), ...(userSettings.dietary_preferences_individual ?? [])];
+    const culturalRestrictions = familySettings.cultural_restrictions ?? [];
+    const intolerances = familySettings.intolerances ?? [];
     const eligible = (pool: PoolEntry[], usedSet: Set<string>) =>
       pool.filter((m) => {
         if (m.rating === 'disliked') return false;
         if (usedSet.has(m.name.toLowerCase())) return false;
+        // Legacy dietary preference strings (from dietary_preferences_family / individual)
         if (combinedPrefs.includes('Vegan') && !m.is_vegan) return false;
         if (combinedPrefs.includes('Vegetarian') && !m.is_vegan && !m.is_vegetarian) return false;
         if (combinedPrefs.includes('Gluten-Free') && !m.is_gluten_free) return false;
         if (combinedPrefs.includes('Dairy-Free') && !m.is_dairy_free) return false;
+        // Onboarding cultural restriction gates (protein-based hard filters)
+        if (culturalRestrictions.includes('vegan') && !m.is_vegan) return false;
+        if (culturalRestrictions.includes('vegetarian') && !m.is_vegan && !m.is_vegetarian) return false;
+        if (culturalRestrictions.includes('no_beef') && m.protein_source === 'beef') return false;
+        if (culturalRestrictions.includes('no_pork') && m.protein_source === 'pork') return false;
+        if (culturalRestrictions.includes('no_shellfish') && m.protein_source === 'seafood') return false;
+        // Onboarding intolerance gates (allergen hard filters)
+        if (intolerances.includes('gluten-free') && !m.is_gluten_free) return false;
+        if (intolerances.includes('dairy-free') && !m.is_dairy_free) return false;
         return true;
       });
 
@@ -647,14 +659,26 @@ export default function MealPlanScreen() {
 
     // ── Eligibility + slot match helpers ────────────────────────────────────
     const combinedPrefs = [...(familySettings.dietary_preferences_family ?? []), ...(userSettings.dietary_preferences_individual ?? [])];
+    const culturalRestrictions = familySettings.cultural_restrictions ?? [];
+    const intolerances = familySettings.intolerances ?? [];
     const eligible = (pool: PoolEntry[], usedSet: Set<string>) =>
       pool.filter((m) => {
         if (m.rating === 'disliked') return false;
         if (usedSet.has(m.name.toLowerCase())) return false;
+        // Legacy dietary preference strings (from dietary_preferences_family / individual)
         if (combinedPrefs.includes('Vegan') && !m.is_vegan) return false;
         if (combinedPrefs.includes('Vegetarian') && !m.is_vegan && !m.is_vegetarian) return false;
         if (combinedPrefs.includes('Gluten-Free') && !m.is_gluten_free) return false;
         if (combinedPrefs.includes('Dairy-Free') && !m.is_dairy_free) return false;
+        // Onboarding cultural restriction gates (protein-based hard filters)
+        if (culturalRestrictions.includes('vegan') && !m.is_vegan) return false;
+        if (culturalRestrictions.includes('vegetarian') && !m.is_vegan && !m.is_vegetarian) return false;
+        if (culturalRestrictions.includes('no_beef') && m.protein_source === 'beef') return false;
+        if (culturalRestrictions.includes('no_pork') && m.protein_source === 'pork') return false;
+        if (culturalRestrictions.includes('no_shellfish') && m.protein_source === 'seafood') return false;
+        // Onboarding intolerance gates (allergen hard filters)
+        if (intolerances.includes('gluten-free') && !m.is_gluten_free) return false;
+        if (intolerances.includes('dairy-free') && !m.is_dairy_free) return false;
         return true;
       });
 

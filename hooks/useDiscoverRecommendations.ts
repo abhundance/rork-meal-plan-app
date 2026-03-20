@@ -52,6 +52,10 @@ export function useDiscoverRecommendations(
       viewHistory,
       recentSearches ?? [],
       userSettings.personal_goal ?? 'balanced',
+      // Pass the newer onboarding dietary constraint fields so the engine's
+      // hard dietary gates (no_beef, no_pork, gluten-free, etc.) are applied.
+      familySettings.cultural_restrictions,
+      familySettings.intolerances,
     );
     return buildCarousels(allMeals, profile);
   }, [
@@ -59,6 +63,8 @@ export function useDiscoverRecommendations(
     plannedMeals,
     favMeals,
     familySettings.dietary_preferences_family,
+    familySettings.cultural_restrictions,
+    familySettings.intolerances,
     discoverPrefs,
     viewHistory,
     recentSearches,

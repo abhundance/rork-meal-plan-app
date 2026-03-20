@@ -10,6 +10,8 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useFavs } from '@/providers/FavsProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import { getSupabase } from '@/services/supabase';
 import { Recipe, MealSlot } from '@/types';
 
 const NOVELTY_MAP: Record<string, number> = {
@@ -31,6 +33,7 @@ export default function WelcomeScreen() {
   const { data, completeOnboarding } = useOnboarding();
   const { updateFamilySettings, updateUserSettings } = useFamilySettings();
   const { addFav } = useFavs();
+  const { session } = useAuth();
 
   const [isSeeding, setIsSeeding] = useState(false);
 
@@ -97,23 +100,44 @@ export default function WelcomeScreen() {
       .filter(slot => enabledSlotIds.includes(slot.slot_id))
       .map((slot, idx) => ({ ...slot, order: idx }));
 
-    // FIX 2: Sync household_size → default_serving_size so every recipe
-    // defaults to the correct serving count for the family
+    // Sync all onboarding data → FamilySettings (AsyncStorage + Supabase via provider)
     updateFamilySettings({
-      family_name:             data.family_name || 'My Family',
-      region:                  data.region ?? 'Singapore',
-      measurement_units:       data.measurement_units ?? 'metric',
-      smart_fill_novelty_pct:  NOVELTY_MAP[data.planning_style ?? 'balanced'] ?? 30,
+      family_name:                data.family_name || 'My Family',
+      region:                     data.region ?? 'Singapore',
+      measurement_units:          data.measurement_units ?? 'metric',
+      smart_fill_novelty_pct:     NOVELTY_MAP[data.planning_style ?? 'balanced'] ?? 30,
       dietary_preferences_family: data.dietary_preferences_family,
-      meal_slots:              mealSlots,
-      default_serving_size:    data.household_size ?? 4,
+      meal_slots:                 mealSlots,
+      default_serving_size:       data.household_size ?? 4,
+      // Dietary constraint fields — these power Smart Fill eligibility filters
+      // and the recommendation engine's hard dietary gates. Without syncing
+      // them here the user's Step 4–6 selections are silently discarded.
+      cultural_restrictions:      data.cultural_restrictions ?? [],
+      intolerances:               data.intolerances ?? [],
+      diet_preferences:           data.diet_preferences ?? [],
+      household_type:             data.household_type,
     });
 
-    // Sync user settings
+    // Sync user settings — health_goals drives goal-specific recommendation carousels
     updateUserSettings({
       personal_goal:                  data.personal_goal ?? 'balanced',
       dietary_preferences_individual: data.dietary_preferences_individual,
+      health_goals:                   data.health_goals ?? [],
     });
+
+    // Mark onboarding as completed in Supabase (for multi-device support).
+    // The local OnboardingProvider handles the in-app flag; this writes the
+    // server-side flag so the families row reflects completion status.
+    const userId = session?.user?.id;
+    if (userId) {
+      getSupabase()
+        .from('families')
+        .update({ onboarding_completed: true, onboarding_step: 99 })
+        .eq('id', userId)
+        .then(({ error }) => {
+          if (error) console.warn('[Welcome] onboarding_completed sync error:', error.message);
+        });
+    }
 
     // Seed starter meals as Favs
     const picks = data.starter_meals ?? [];
