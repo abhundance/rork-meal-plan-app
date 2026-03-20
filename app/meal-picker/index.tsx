@@ -80,7 +80,7 @@ export default function MealPickerScreen() {
       const pendingSlot = consumePendingPlanSlot();
       if (!pendingSlot) return;
       const planned: PlannedMeal = {
-        id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: crypto.randomUUID(),
         slot_id: pendingSlot.slotId,
         date: pendingSlot.date,
         meal_name: meal.name,

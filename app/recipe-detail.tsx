@@ -382,7 +382,7 @@ export default function MealDetailScreen() {
       }
     } else {
       const newFav: Recipe = {
-        id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: crypto.randomUUID(),
         name: meal.name,
         image_url: meal.image_url,
         cuisine: meal.cuisine,
@@ -430,7 +430,7 @@ export default function MealDetailScreen() {
     (date: string, slotId: string) => {
       if (!meal) return;
       const planned: PlannedMeal = {
-        id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: crypto.randomUUID(),
         slot_id: slotId,
         date,
         meal_name: meal.name,

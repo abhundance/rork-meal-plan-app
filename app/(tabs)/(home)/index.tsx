@@ -311,7 +311,7 @@ export default function MealPlanScreen() {
     const mapped = sourceMeals.map(m => {
       const srcIdx = sourceWeekDates.findIndex(d => formatDateKey(d) === m.date);
       if (srcIdx === -1) return null;
-      return { ...m, id: Date.now().toString() + Math.random().toString(36).slice(2), date: formatDateKey(currentWeekDates[srcIdx]) };
+      return { ...m, id: crypto.randomUUID(), date: formatDateKey(currentWeekDates[srcIdx]) };
     }).filter(Boolean);
     const filtered = (mapped as any[]).filter(m => getMealsForSlot(m.date, m.slot_id).length === 0);
     if (filtered.length === 0) {
@@ -327,7 +327,7 @@ export default function MealPlanScreen() {
     const targetDateKey = formatDateKey(currentDate);
     const mapped = sourceMeals.map(m => ({
       ...m,
-      id: Date.now().toString() + Math.random().toString(36).slice(2),
+      id: crypto.randomUUID(),
       date: targetDateKey,
     }));
     addMeals(mapped as any);
@@ -538,7 +538,7 @@ export default function MealPlanScreen() {
         }
 
         newMeals.push({
-          id: `meal_${Date.now()}_${newMeals.length}_${Math.random().toString(36).slice(2, 7)}`,
+          id: crypto.randomUUID(),
           slot_id: slot.slot_id,
           date: dateKey,
           meal_name: picked.name,
@@ -758,7 +758,7 @@ export default function MealPlanScreen() {
       }
 
       newMeals.push({
-        id: `meal_${Date.now()}_${newMeals.length}_${Math.random().toString(36).slice(2, 7)}`,
+        id: crypto.randomUUID(),
         slot_id: slot.slot_id,
         date: dateKey,
         meal_name: picked.name,

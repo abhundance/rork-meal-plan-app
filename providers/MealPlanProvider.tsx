@@ -1,11 +1,10 @@
 /**
  * MealPlanProvider — manages PlannedMeal[] and view preference.
  *
- * Storage strategy (dual-write):
- *   • AsyncStorage is ALWAYS written — works offline / logged-out.
- *   • When authenticated, meals are also synced to Supabase (planned_meals table).
+ * Storage strategy (Supabase-primary, Phase 5):
+ *   • Reads from Supabase first (anonymous auth guarantees userId from first launch).
+ *   • AsyncStorage is written as a local cache for offline resilience.
  *   • queryKey includes userId so TanStack Query re-fetches on sign-in / sign-out.
- *   • On first sign-in with existing local data: existing meals are seeded to Supabase.
  *
  * NOTE: The planned_meals table does NOT store a snapshot of ingredients.
  *       Ingredients are looked up at render time via meal_id → recipes table.
@@ -21,13 +20,28 @@ import { useAuth } from '@/providers/AuthProvider';
 import { getSupabase } from '@/services/supabase';
 import { plannedMealToRow, rowToPlannedMeal } from '@/services/db';
 
-const MEAL_PLAN_KEY = 'meal_plan_data';
-const VIEW_PREF_KEY = 'meal_plan_view_pref';
+const MEAL_PLAN_KEY     = 'meal_plan_data';
+const VIEW_PREF_KEY     = 'meal_plan_view_pref';
+const PHASE5_CLEANUP_KEY = 'phase5_cleanup_v1';
 
 export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
+
+  // ── One-time cleanup: wipe AsyncStorage test data on first Phase 5 launch ─
+  useEffect(() => {
+    AsyncStorage.getItem(PHASE5_CLEANUP_KEY).then((done) => {
+      if (!done) {
+        Promise.all([
+          AsyncStorage.removeItem(MEAL_PLAN_KEY),
+          AsyncStorage.removeItem(VIEW_PREF_KEY),
+        ])
+          .then(() => AsyncStorage.setItem(PHASE5_CLEANUP_KEY, 'done'))
+          .catch(console.error);
+      }
+    });
+  }, []);
 
   const [meals, setMeals] = useState<PlannedMeal[]>([]);
   const [viewMode, setViewModeState] = useState<'week' | 'day'>('day');
@@ -60,19 +74,6 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
         if (stored) {
           console.log('[MealPlan] Loaded meals from AsyncStorage');
           const parsed = JSON.parse(stored) as PlannedMeal[];
-
-          // First sign-in: seed Supabase with existing local data
-          if (userId && parsed.length > 0) {
-            console.log('[MealPlan] Seeding', parsed.length, 'meals to Supabase');
-            const supabase = getSupabase();
-            supabase.from('planned_meals').insert(
-              parsed.map((m) => plannedMealToRow(m, userId))
-            ).then(({ error }) => {
-              if (error && error.code !== '23505') {
-                console.error('[MealPlan] Supabase seed error:', error.message);
-              }
-            });
-          }
           return parsed;
         }
       } catch (e) {

@@ -65,7 +65,7 @@ export default function FilteredMealsScreen() {
     (date: string, slotId: string) => {
       if (!selectedMeal) return;
       const planned: PlannedMeal = {
-        id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: crypto.randomUUID(),
         slot_id: slotId,
         date,
         meal_name: selectedMeal.name,

@@ -75,11 +75,11 @@ export default function MealPickerDeliveryScreen() {
     if (!pendingSlot) return;
 
     const favId = saveToFavs
-      ? `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+      ? crypto.randomUUID()
       : undefined;
 
     const planned: PlannedMeal = {
-      id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: crypto.randomUUID(),
       slot_id: pendingSlot.slotId,
       date: pendingSlot.date,
       meal_name: mealName.trim(),

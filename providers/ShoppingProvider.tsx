@@ -1,9 +1,9 @@
 /**
  * ShoppingProvider — manages shopping list items and ingredient sources.
  *
- * Storage strategy (dual-write):
- *   • AsyncStorage is ALWAYS written — works offline / logged-out.
- *   • When authenticated, items are also synced to Supabase in the background.
+ * Storage strategy (Supabase-primary, Phase 6):
+ *   • Reads from Supabase first (anonymous auth guarantees userId from first launch).
+ *   • AsyncStorage is written as a local cache for offline resilience.
  *     Tables: shopping_list, ingredient_sources.
  *   • queryKey includes userId so TanStack Query re-fetches on sign-in / sign-out.
  *   • generateList replaces the entire shopping_list in Supabase (delete-and-insert).
@@ -17,13 +17,28 @@ import { useAuth } from '@/providers/AuthProvider';
 import { getSupabase } from '@/services/supabase';
 import { shoppingItemToRow, rowToShoppingItem } from '@/services/db';
 
-const SHOPPING_KEY = 'shopping_list';
-const SOURCES_KEY  = 'ingredient_sources';
+const SHOPPING_KEY      = 'shopping_list';
+const SOURCES_KEY       = 'ingredient_sources';
+const PHASE6_CLEANUP_KEY = 'phase6_cleanup_v1';
 
 export const [ShoppingProvider, useShopping] = createContextHook(() => {
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
+
+  // ── One-time cleanup: wipe AsyncStorage test data on first Phase 6 launch ─
+  useEffect(() => {
+    AsyncStorage.getItem(PHASE6_CLEANUP_KEY).then((done) => {
+      if (!done) {
+        Promise.all([
+          AsyncStorage.removeItem(SHOPPING_KEY),
+          AsyncStorage.removeItem(SOURCES_KEY),
+        ])
+          .then(() => AsyncStorage.setItem(PHASE6_CLEANUP_KEY, 'done'))
+          .catch(console.error);
+      }
+    });
+  }, []);
 
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [sources, setSources] = useState<Record<string, string>>({});
@@ -210,7 +225,7 @@ export const [ShoppingProvider, useShopping] = createContextHook(() => {
         );
 
         newItems.push({
-          id: `shop_${key}_${Date.now()}`,
+          id: crypto.randomUUID(),
           name: val.name,
           quantity: Math.round(val.quantity * 100) / 100,
           unit: val.unit,
@@ -239,7 +254,7 @@ export const [ShoppingProvider, useShopping] = createContextHook(() => {
   const addManualItem = useCallback(
     (name: string, category = 'Other', quantity = 1, unit = '') => {
       const newItem: ShoppingItem = {
-        id: `manual_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: crypto.randomUUID(),
         name,
         quantity,
         unit,

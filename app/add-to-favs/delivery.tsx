@@ -40,7 +40,7 @@ export default function AddToFavsDeliveryScreen() {
     const trimmedUrl = deliveryUrl.trim();
 
     const favMeal: Recipe = {
-      id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: crypto.randomUUID(),
       name: mealName.trim(),
       source: 'family_created',
       ingredients: [],

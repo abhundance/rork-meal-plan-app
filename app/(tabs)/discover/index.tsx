@@ -207,7 +207,7 @@ export default function DiscoverScreen() {
     (date: string, slotId: string) => {
       if (!selectedMeal) return;
       const planned: PlannedMeal = {
-        id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: crypto.randomUUID(),
         slot_id: slotId,
         date,
         meal_name: selectedMeal.name,
@@ -229,7 +229,7 @@ export default function DiscoverScreen() {
     const slot = consumePendingPlanSlot();
     if (!slot) return;
     const planned: PlannedMeal = {
-      id: `meal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: crypto.randomUUID(),
       slot_id: slot.slotId,
       date: slot.date,
       meal_name: meal.name,

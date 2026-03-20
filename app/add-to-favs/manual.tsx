@@ -37,7 +37,7 @@ export default function AddToFavsManualScreen() {
     if (!name.trim()) return;
 
     const favMeal: Recipe = {
-      id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: crypto.randomUUID(),
       name: name.trim(),
       source: 'family_created',
       ingredients: [],

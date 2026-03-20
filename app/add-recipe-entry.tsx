@@ -325,7 +325,7 @@ export default function AddRecipeEntryScreen() {
 
   const saveMeal = useCallback((validIngredients: Ingredient[], validSteps: string[], derivedDietaryTags: string[]) => {
     const newMeal: Recipe = {
-      id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: crypto.randomUUID(),
       name: name.trim(),
       image_url: selectedImageUri || undefined,
       cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
@@ -358,7 +358,7 @@ export default function AddRecipeEntryScreen() {
     const pending = consumePendingPlanSlot();
     if (pending) {
       const plannedMeal: PlannedMeal = {
-        id: `fav_plan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: crypto.randomUUID(),
         slot_id: pending.slotId, date: pending.date,
         meal_name: newMeal.name, meal_image_url: newMeal.image_url,
         serving_size: pending.defaultServing,

@@ -375,7 +375,7 @@ export default function AddMealReviewScreen() {
     const derivedDietaryTags = [...new Set([...dietLabels, ...allergens])];
 
     const meal: Recipe = {
-      id: `fav_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      id: crypto.randomUUID(),
       name: trimmedName,
       image_url: selectedImageUri || undefined,
       description: description.trim() || undefined,
@@ -414,7 +414,7 @@ export default function AddMealReviewScreen() {
     const pending = consumePendingPlanSlot();
     if (pending) {
       const plannedMeal: PlannedMeal = {
-        id: `fav_plan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: crypto.randomUUID(),
         slot_id: pending.slotId,
         date: pending.date,
         meal_name: meal.name,
