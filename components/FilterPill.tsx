@@ -33,8 +33,8 @@ export default function FilterPill({ label, active, onPress, testID }: FilterPil
 
 const styles = StyleSheet.create({
   pill: {
-    height: 32,
     paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 999,
     backgroundColor: Colors.surface,
     justifyContent: 'center',
@@ -48,7 +48,6 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: FontFamily.semiBold,
     fontSize: 13,
-    lineHeight: 13,
     fontWeight: '600',
     color: Colors.text,
   },
