@@ -147,8 +147,6 @@ function RootLayoutNav() {
         name="discover-filter-results"
         options={{ headerShown: false, presentation: "card" }}
       />
-      <Stack.Screen name="add-recipe-video" options={{ headerShown: false }} />
-      <Stack.Screen name="add-recipe-paste" options={{ headerShown: false }} />
       <Stack.Screen
         name="meal-picker"
         options={{ headerShown: false, presentation: "modal" }}

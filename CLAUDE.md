@@ -71,9 +71,16 @@ Entry via `router.push('/add-to-favs')`. No slot context. No "From My Favourites
 ---
 
 ### Add a Recipe Flow
-Single entry point: `app/add-recipe-entry.tsx`. The screen has two sections: a **Paste a Link** field at the top (handles recipe blogs, YouTube, TikTok — extracts recipe automatically), and a **Choose a Method** grid below with six options: Paste Text (`add-recipe-paste.tsx`), Manual Entry (`add-recipe-manual.tsx`), Photos, Video Link (`add-recipe-video.tsx`), Voice, and Camera. All paths eventually write to `app/add-recipe-review.tsx`.
+Single entry point: `app/add-recipe-entry.tsx`. The screen has two modes toggled by a header control:
 
-> **Rule:** All navigation to the Add a Recipe flow must go to `/add-recipe-entry`. The only exception is editing an existing meal, which navigates directly to `/add-recipe-review?editId={id}` to bypass the entry chooser.
+- **✨ AI mode (default):** Large drop zone accepting a URL (recipe blog, website, YouTube, TikTok, Instagram) or pasted recipe text. Detects platform from the URL and shows a specific badge ("YouTube detected", "TikTok detected", etc.). Secondary tiles for Voice, Camera, and PDF. All paths navigate to `app/add-recipe-review.tsx`.
+- **✏️ Manual mode:** Full inline form (name, ingredients, steps, metadata). Saves directly via `FavsProvider`.
+
+`app/add-recipe-manual.tsx` still exists as a **dedicated edit screen** — `recipe-detail.tsx` navigates here with `editId` to edit an existing saved meal, and `add-recipe-review.tsx` uses it as a "Fill Manually" escape hatch.
+
+> **Rule:** All navigation to the Add a Recipe flow must go to `/add-recipe-entry`. The only exception is **editing** an existing meal, which navigates directly to `/add-recipe-manual?editId={id}`.
+
+> ⚠️ **Dead screens removed (2026-03-21):** `add-recipe-video.tsx` and `add-recipe-paste.tsx` were deleted. Their functionality is fully covered by the AI drop zone in `add-recipe-entry.tsx`. Do not recreate them.
 
 ### Recipe Extraction
 AI-powered extraction from YouTube URLs, TikTok URLs, pasted text, and images. Handled by `services/recipeExtraction.ts` using `gpt-4o-mini`. Extracts name, ingredients, method, cuisine, and cook time.
