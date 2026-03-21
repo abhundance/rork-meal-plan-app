@@ -25,6 +25,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
+import ExtractionLoadingOverlay from '@/components/ExtractionLoadingOverlay';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import {
@@ -419,6 +420,9 @@ export default function AddRecipeEntryScreen() {
     <View style={styles.root}>
       <Stack.Screen options={{ headerShown: false }} />
 
+      {/* ─── Full-screen extraction loading overlay ───────── */}
+      <ExtractionLoadingOverlay visible={isExtracting} />
+
       {/* ─── Header ───────────────────────────────────────── */}
       <View style={[styles.headerWrap, { paddingTop: insets.top + Spacing.sm }]}>
         {/* Row 1: back button + title */}
@@ -555,16 +559,9 @@ export default function AddRecipeEntryScreen() {
               disabled={!hasAiContent || isExtracting}
               activeOpacity={0.85}
             >
-              {isExtracting ? (
-                <>
-                  <ActivityIndicator size="small" color={Colors.white} />
-                  <Text style={styles.aiExtractBtnText}>Extracting recipe…</Text>
-                </>
-              ) : (
-                <Text style={[styles.aiExtractBtnText, !hasAiContent && styles.aiExtractBtnTextDisabled]}>
-                  Extract Recipe
-                </Text>
-              )}
+              <Text style={[styles.aiExtractBtnText, !hasAiContent && styles.aiExtractBtnTextDisabled]}>
+                Extract Recipe
+              </Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
