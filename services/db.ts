@@ -23,6 +23,9 @@ import {
   DEFAULT_NOTIFICATION_SETTINGS,
 } from '@/constants/defaults';
 
+/** Matches any standard UUID (all variants). Used in multiple mappers below. */
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // ── Recipe ────────────────────────────────────────────────────────────────────
 
 /**
@@ -204,7 +207,10 @@ export function plannedMealToRow(
   return {
     id: meal.id,
     family_id: familyId,
-    recipe_id: meal.meal_id ?? null,
+    // Only pass recipe_id if it's a valid UUID — legacy string IDs like
+    // "l_gadogado" pre-date the UUID migration and must be stored as null
+    // to avoid Postgres rejecting the row with "invalid input syntax for type uuid".
+    recipe_id: meal.meal_id && UUID_REGEX.test(meal.meal_id) ? meal.meal_id : null,
     slot_id: meal.slot_id,
     date: meal.date, // 'YYYY-MM-DD' string — matches Postgres date type
     meal_name: meal.meal_name,
@@ -361,8 +367,7 @@ export function rowToNotificationSettings(
   };
 }
 
-/** Returns true if the string is a valid UUID v4 (or any UUID variant). */
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Returns true if the string is a valid UUID (any variant). */
 function isValidUUID(id: string): boolean {
   return UUID_REGEX.test(id);
 }
