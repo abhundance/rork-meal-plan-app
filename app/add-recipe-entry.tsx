@@ -37,7 +37,8 @@ import {
   extractRecipeFromVideoUrl,
   extractRecipeFromText,
   extractRecipeFromPdf,
-  ExtractedRecipe,
+  detectVideoUrlType,
+  type ExtractedRecipe,
 } from '@/services/recipeExtraction';
 import { imageStore } from '@/services/imageStore';
 import Colors from '@/constants/colors';
@@ -110,9 +111,18 @@ export default function AddRecipeEntryScreen() {
   const [newTag, setNewTag] = useState('');
 
   // ── AI Mode derived values ────────────────────────────────────────────────────
-  const hasAiContent = aiInput.trim().length > 0;
-  const isUrlInput   = /^https?:\/\//i.test(aiInput.trim());
-  const aiWordCount  = aiInput.trim() === '' ? 0 : aiInput.trim().split(/\s+/).length;
+  const hasAiContent    = aiInput.trim().length > 0;
+  const isUrlInput      = /^https?:\/\//i.test(aiInput.trim());
+  const aiWordCount     = aiInput.trim() === '' ? 0 : aiInput.trim().split(/\s+/).length;
+  const detectedPlatform = isUrlInput ? detectVideoUrlType(aiInput.trim()) : null;
+
+  // Detection badge label — specific platform name beats generic "Link detected"
+  const detectionLabel = !isUrlInput
+    ? 'Text detected'
+    : detectedPlatform === 'youtube'   ? 'YouTube detected'
+    : detectedPlatform === 'tiktok'    ? 'TikTok detected'
+    : detectedPlatform === 'instagram' ? 'Instagram detected'
+    : 'Link detected';
 
   // ── AI Mode handlers ─────────────────────────────────────────────────────────
   const handleAiSend = async () => {
@@ -140,13 +150,15 @@ export default function AddRecipeEntryScreen() {
           prefillServingSize: String(result.recipe_serving_size),
         },
       });
-    } catch {
-      Alert.alert(
-        'Extraction Failed',
-        inputIsUrl
-          ? 'Could not extract a recipe from this link. Try copying the recipe text and pasting it here instead.'
-          : 'Could not extract a recipe from your description. Try adding more detail — ingredients, quantities, and cooking steps help.'
-      );
+    } catch (err) {
+      // Surface the server's error message — it contains quota feedback, platform-
+      // specific guidance (Instagram fallback tips, private video notices), and
+      // actionable context. Only fall back to a generic string when err has no message.
+      const serverMessage = err instanceof Error && err.message ? err.message : null;
+      const fallback = inputIsUrl
+        ? 'Could not extract a recipe from this link. Please try again.'
+        : 'Could not extract a recipe from your description. Try adding more detail — ingredients, quantities, and cooking steps help.';
+      Alert.alert('Extraction Failed', serverMessage ?? fallback);
     } finally {
       setIsExtracting(false);
     }
@@ -447,7 +459,7 @@ export default function AddRecipeEntryScreen() {
             <View style={[styles.aiDropZone, hasAiContent && styles.aiDropZoneActive]}>
               <TextInput
                 style={styles.aiTextInput}
-                placeholder={"Paste a recipe link or recipe text here…\n\nWorks with recipe websites, YouTube links, copied text, or your own notes."}
+                placeholder={"Paste a link or recipe text here…\n\nWorks with recipe blogs & websites, YouTube, TikTok, and Instagram — including recipes that are only spoken in the video, not written down."}
                 placeholderTextColor={Colors.textSecondary}
                 value={aiInput}
                 onChangeText={setAiInput}
@@ -466,7 +478,7 @@ export default function AddRecipeEntryScreen() {
                       : <FileText size={11} color={Colors.primary} strokeWidth={2} />
                     }
                     <Text style={styles.aiDetectBadgeText}>
-                      {isUrlInput ? 'Link detected' : 'Text detected'}
+                      {detectionLabel}
                     </Text>
                   </View>
                   <View style={styles.aiDropZoneMetaRight}>
