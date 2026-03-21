@@ -46,7 +46,7 @@ import {
 export default function AddMealScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ editId?: string }>();
-  const { meals, addFav, updateFav, isFavByName } = useFavs();
+  const { meals, addFav, updateFav, isFavByName, syncRecipeNow } = useFavs();
   const { familySettings } = useFamilySettings();
   const { addMeal } = useMealPlan();
 
@@ -291,7 +291,9 @@ export default function AddMealScreen() {
         recipe_serving_size: newMeal.recipe_serving_size,
         meal_id: newMeal.id,
       };
-      addMeal(plannedMeal);
+      syncRecipeNow(newMeal)
+        .then(() => addMeal(plannedMeal))
+        .catch(() => addMeal(plannedMeal));
       console.log('[AddMeal] Auto-added to plan slot:', pending.slotId, pending.date);
       router.replace('/(tabs)' as never);
     } else {
@@ -302,7 +304,7 @@ export default function AddMealScreen() {
     cuisine, dishCategory, proteinSource, occasions,
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
-    customTags, description, servingSize, addFav, addMeal,
+    customTags, description, servingSize, addFav, syncRecipeNow, addMeal,
   ]);
 
   const handleSave = useCallback(() => {

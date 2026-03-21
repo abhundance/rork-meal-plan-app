@@ -76,7 +76,7 @@ export default function AddMealReviewScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<Params>();
-  const { addFav } = useFavs();
+  const { addFav, syncRecipeNow } = useFavs();
   const { addMeal } = useMealPlan();
   const { familySettings } = useFamilySettings();
 
@@ -427,7 +427,12 @@ export default function AddMealReviewScreen() {
         delivery_platform: undefined,
         meal_id: meal.id,
       };
-      addMeal(plannedMeal);
+      // Sequence the writes: recipe row must exist in Supabase before
+      // planned_meals can reference it via FK. syncRecipeNow returns the
+      // in-flight upsert Promise. On failure (offline) we still add locally.
+      syncRecipeNow(meal)
+        .then(() => addMeal(plannedMeal))
+        .catch(() => addMeal(plannedMeal));
       router.dismissAll();
     } else {
       router.dismissAll();
@@ -438,7 +443,7 @@ export default function AddMealReviewScreen() {
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
     ingredients, servingSize, methodSteps,
-    addFav, addMeal, router,
+    addFav, syncRecipeNow, addMeal, router,
   ]);
 
   if (isLoading) {

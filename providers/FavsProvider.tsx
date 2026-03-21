@@ -169,10 +169,13 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
   saveSearchesMutateRef.current = saveSearchesMutation.mutate;
 
   // ── Supabase background sync helper ──────────────────────────────────────
-  const syncToSupabase = useCallback((recipe: Recipe) => {
+  // Returns the upsert Promise so callers that need write-ordering (e.g. adding
+  // to the meal plan immediately after saving a new recipe) can await it before
+  // writing FK-dependent rows like planned_meals.
+  const syncToSupabase = useCallback((recipe: Recipe): Promise<void> => {
     const uid = userIdRef.current;
-    if (!uid) return;
-    upsertRecipeToSupabase(recipe, uid, getSupabase()).catch((e) =>
+    if (!uid) return Promise.resolve();
+    return upsertRecipeToSupabase(recipe, uid, getSupabase()).catch((e) =>
       console.error('[Favs] Supabase upsert error:', e)
     );
   }, []);
@@ -366,6 +369,11 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
     addFromDiscover,
     addRecentSearch,
     clearRecentSearches,
+    // Exposed so call sites that immediately follow addFav with addMeal can
+    // sequence the writes: syncRecipeNow(recipe).then(() => addMeal(...))
+    // This prevents the planned_meals FK violation that occurs when the recipe
+    // hasn't landed in Supabase yet when the planned_meal row is inserted.
+    syncRecipeNow: syncToSupabase,
   };
 });
 
