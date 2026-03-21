@@ -16,6 +16,7 @@ import { ShoppingItem } from '@/types';
 import { useAuth } from '@/providers/AuthProvider';
 import { getSupabase } from '@/services/supabase';
 import { shoppingItemToRow, rowToShoppingItem } from '@/services/db';
+import { generateUUID } from '@/utils/uuid';
 
 const SHOPPING_KEY      = 'shopping_list';
 const SOURCES_KEY       = 'ingredient_sources';
@@ -225,7 +226,7 @@ export const [ShoppingProvider, useShopping] = createContextHook(() => {
         );
 
         newItems.push({
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           name: val.name,
           quantity: Math.round(val.quantity * 100) / 100,
           unit: val.unit,
@@ -254,7 +255,7 @@ export const [ShoppingProvider, useShopping] = createContextHook(() => {
   const addManualItem = useCallback(
     (name: string, category = 'Other', quantity = 1, unit = '') => {
       const newItem: ShoppingItem = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         name,
         quantity,
         unit,

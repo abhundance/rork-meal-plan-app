@@ -25,6 +25,7 @@ import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
 import PrimaryButton from '@/components/PrimaryButton';
+import { generateUUID } from '@/utils/uuid';
 
 export default function AddToFavsDeliveryScreen() {
   const insets = useSafeAreaInsets();
@@ -40,7 +41,7 @@ export default function AddToFavsDeliveryScreen() {
     const trimmedUrl = deliveryUrl.trim();
 
     const favMeal: Recipe = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name: mealName.trim(),
       source: 'family_created',
       ingredients: [],

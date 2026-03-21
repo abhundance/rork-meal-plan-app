@@ -113,6 +113,7 @@ const { width: screenWidth } = Dimensions.get('window');
 
 
 import DiscoverCarouselCard, { CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_HEIGHT } from '@/components/DiscoverCarouselCard';
+import { generateUUID } from '@/utils/uuid';
 
 const _GRID_CARD_WIDTH = (screenWidth - 48) / 3;
 
@@ -207,7 +208,7 @@ export default function DiscoverScreen() {
     (date: string, slotId: string) => {
       if (!selectedMeal) return;
       const planned: PlannedMeal = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         slot_id: slotId,
         date,
         meal_name: selectedMeal.name,
@@ -229,7 +230,7 @@ export default function DiscoverScreen() {
     const slot = consumePendingPlanSlot();
     if (!slot) return;
     const planned: PlannedMeal = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       slot_id: slot.slotId,
       date: slot.date,
       meal_name: meal.name,

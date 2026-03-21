@@ -263,7 +263,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
 
   const addFromDiscover = useCallback((discoverMeal: DiscoverMeal): Recipe => {
     const recipe: Recipe = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name: discoverMeal.name,
       source: 'discover',
       ingredients: discoverMeal.ingredients,
@@ -369,6 +369,7 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
 });
 
 import { RecipeFilterState } from '@/components/RecipeFilterSheet';
+import { generateUUID } from '@/utils/uuid';
 
 // ─── Dietary filter helper ───────────────────────────────────────────────────
 

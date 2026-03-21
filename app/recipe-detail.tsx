@@ -39,6 +39,7 @@ import { DISCOVER_MEALS } from '@/mocks/discover';
 import { getCachedDiscoverMeal, cacheDiscoverMeal } from '@/services/discoverMealCache';
 import { getFamilyInitials, isRealPhotoUrl } from '@/utils/familyAvatar';
 import { getSupabase } from '@/services/supabase';
+import { generateUUID } from '@/utils/uuid';
 
 /**
  * Find a discover meal. Resolution order:
@@ -382,7 +383,7 @@ export default function MealDetailScreen() {
       }
     } else {
       const newFav: Recipe = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         name: meal.name,
         image_url: meal.image_url,
         cuisine: meal.cuisine,
@@ -430,7 +431,7 @@ export default function MealDetailScreen() {
     (date: string, slotId: string) => {
       if (!meal) return;
       const planned: PlannedMeal = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         slot_id: slotId,
         date,
         meal_name: meal.name,

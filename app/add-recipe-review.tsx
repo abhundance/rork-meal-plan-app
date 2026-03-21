@@ -37,6 +37,7 @@ import {
 } from '@/types';
 import ServingStepper from '@/components/ServingStepper';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
+import { generateUUID } from '@/utils/uuid';
 
 type Params = {
   inputMode: 'camera' | 'photos' | 'text' | 'voice' | 'manual' | 'url' | 'pdf';
@@ -375,7 +376,7 @@ export default function AddMealReviewScreen() {
     const derivedDietaryTags = [...new Set([...dietLabels, ...allergens])];
 
     const meal: Recipe = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name: trimmedName,
       image_url: selectedImageUri || undefined,
       description: description.trim() || undefined,
@@ -414,7 +415,7 @@ export default function AddMealReviewScreen() {
     const pending = consumePendingPlanSlot();
     if (pending) {
       const plannedMeal: PlannedMeal = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         slot_id: pending.slotId,
         date: pending.date,
         meal_name: meal.name,

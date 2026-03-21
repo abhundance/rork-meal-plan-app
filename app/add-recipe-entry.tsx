@@ -53,6 +53,7 @@ import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { consumePendingPlanSlot } from '@/services/pendingPlanSlot';
 import {
+import { generateUUID } from '@/utils/uuid';
   Recipe,
   Ingredient,
   PlannedMeal,
@@ -337,7 +338,7 @@ export default function AddRecipeEntryScreen() {
 
   const saveMeal = useCallback((validIngredients: Ingredient[], validSteps: string[], derivedDietaryTags: string[]) => {
     const newMeal: Recipe = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name: name.trim(),
       image_url: selectedImageUri || undefined,
       cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
@@ -370,7 +371,7 @@ export default function AddRecipeEntryScreen() {
     const pending = consumePendingPlanSlot();
     if (pending) {
       const plannedMeal: PlannedMeal = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         slot_id: pending.slotId, date: pending.date,
         meal_name: newMeal.name, meal_image_url: newMeal.image_url,
         serving_size: pending.defaultServing,

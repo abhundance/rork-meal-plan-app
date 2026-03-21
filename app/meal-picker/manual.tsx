@@ -27,6 +27,7 @@ import { useFavs } from '@/providers/FavsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { peekPendingPlanSlot, consumePendingPlanSlot } from '@/services/pendingPlanSlot';
 import PrimaryButton from '@/components/PrimaryButton';
+import { generateUUID } from '@/utils/uuid';
 
 export default function MealPickerManualScreen() {
   const insets = useSafeAreaInsets();
@@ -46,11 +47,11 @@ export default function MealPickerManualScreen() {
     if (!pendingSlot) return;
 
     const newMealId = saveToFavs
-      ? crypto.randomUUID()
+      ? generateUUID()
       : undefined;
 
     const planned: PlannedMeal = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       slot_id: pendingSlot.slotId,
       date: pendingSlot.date,
       meal_name: name.trim(),

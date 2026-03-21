@@ -24,6 +24,7 @@ import { Recipe } from '@/types';
 import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import PrimaryButton from '@/components/PrimaryButton';
+import { generateUUID } from '@/utils/uuid';
 
 export default function AddToFavsManualScreen() {
   const insets = useSafeAreaInsets();
@@ -37,7 +38,7 @@ export default function AddToFavsManualScreen() {
     if (!name.trim()) return;
 
     const favMeal: Recipe = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name: name.trim(),
       source: 'family_created',
       ingredients: [],

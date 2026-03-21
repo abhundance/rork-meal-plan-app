@@ -46,6 +46,7 @@ import RecipeFilterSheet, {
 } from '@/components/RecipeFilterSheet';
 import { getFamilyInitials, isRealPhotoUrl } from '@/utils/familyAvatar';
 import { peekPendingPlanSlot, consumePendingPlanSlot } from '@/services/pendingPlanSlot';
+import { generateUUID } from '@/utils/uuid';
 
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -275,7 +276,7 @@ export default function FavsScreen() {
     (date: string, slotId: string) => {
       if (!selectedMealForPlan) return;
       const planned: PlannedMeal = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         slot_id: slotId,
         date,
         meal_name: selectedMealForPlan.name,
@@ -302,7 +303,7 @@ export default function FavsScreen() {
     const slot = consumePendingPlanSlot();
     if (!slot) return;
     const planned: PlannedMeal = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       slot_id: slot.slotId,
       date: slot.date,
       meal_name: meal.name,

@@ -22,6 +22,7 @@ import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { DiscoverMeal, PlannedMeal } from '@/types';
 import { DISCOVER_MEALS } from '@/mocks/discover';
+import { generateUUID } from '@/utils/uuid';
 
 export default function FilteredMealsScreen() {
   const insets = useSafeAreaInsets();
@@ -65,7 +66,7 @@ export default function FilteredMealsScreen() {
     (date: string, slotId: string) => {
       if (!selectedMeal) return;
       const planned: PlannedMeal = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         slot_id: slotId,
         date,
         meal_name: selectedMeal.name,

@@ -41,6 +41,7 @@ import { DISCOVER_MEALS } from '@/mocks/discover';
 import { useFavs } from '@/providers/FavsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { peekPendingPlanSlot, consumePendingPlanSlot } from '@/services/pendingPlanSlot';
+import { generateUUID } from '@/utils/uuid';
 
 export default function MealPickerScreen() {
   const insets = useSafeAreaInsets();
@@ -80,7 +81,7 @@ export default function MealPickerScreen() {
       const pendingSlot = consumePendingPlanSlot();
       if (!pendingSlot) return;
       const planned: PlannedMeal = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         slot_id: pendingSlot.slotId,
         date: pendingSlot.date,
         meal_name: meal.name,
