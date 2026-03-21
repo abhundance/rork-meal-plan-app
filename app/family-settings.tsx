@@ -1304,8 +1304,8 @@ const styles = StyleSheet.create({
   unitsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: 14,
+    gap: 12,
   },
   unitsToggle: {
     flexDirection: 'row',
