@@ -19,6 +19,7 @@ import { useMealPlan } from '@/providers/MealPlanProvider';
 import { useFavs } from '@/providers/FavsProvider';
 import { DISCOVER_MEALS } from '@/mocks/discover';
 import { Recipe, PlannedMeal, PersonalGoal } from '@/types';
+import { resolveGoal } from '@/utils/goalUtils';
 import { getWeekDates, formatDateKey, getDayName, isToday } from '@/utils/dates';
 import { setPendingPlanSlot } from '@/services/pendingPlanSlot';
 import { CalendarDays } from 'lucide-react-native';
@@ -517,7 +518,7 @@ export default function MealPlanScreen() {
         if (candidates.length === 0) continue;
 
         // ── Score + weighted pick ──────────────────────────────────────────
-        const ctx: ScoringContext = { proteinsUsedToday, cuisinesUsedToday, proteinCountsThisWeek, personalGoal: userSettings.personal_goal };
+        const ctx: ScoringContext = { proteinsUsedToday, cuisinesUsedToday, proteinCountsThisWeek, personalGoal: resolveGoal(userSettings.health_goals, familySettings.diet_preferences) };
         const scores = candidates.map((m) => scoreCandidate(m, ctx));
         const picked = weightedPick(candidates, scores);
 
@@ -561,7 +562,7 @@ export default function MealPlanScreen() {
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for this week already have meals. Clear some first to use Smart Fill.');
     }
-  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, userSettings.personal_goal, addMeals, getMealsForSlot, showSmartPlanToast]);
+  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, userSettings.health_goals, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   const handleClearWeek = useCallback(() => {
     Alert.alert('Clear this week?', 'All meals for this week will be removed.', [
@@ -738,7 +739,7 @@ export default function MealPlanScreen() {
       if (candidates.length === 0) continue;
 
       // ── Score + weighted pick ────────────────────────────────────────────
-      const ctx: ScoringContext = { proteinsUsedToday, cuisinesUsedToday, proteinCountsThisWeek, personalGoal: userSettings.personal_goal };
+      const ctx: ScoringContext = { proteinsUsedToday, cuisinesUsedToday, proteinCountsThisWeek, personalGoal: resolveGoal(userSettings.health_goals, familySettings.diet_preferences) };
       const scores = candidates.map((m) => scoreCandidate(m, ctx));
       const picked = weightedPick(candidates, scores);
 
@@ -780,7 +781,7 @@ export default function MealPlanScreen() {
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for today already have meals. Clear some first to use Smart Fill.');
     }
-  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, userSettings.personal_goal, addMeals, getMealsForSlot, showSmartPlanToast]);
+  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, userSettings.health_goals, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   if (isLoading) {
     return (

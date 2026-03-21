@@ -342,7 +342,6 @@ export function rowToUserSettings(
     email: (row.email as string) ?? undefined,
     dietary_preferences_individual: (row.dietary_preferences_individual as string[]) ?? [],
     is_admin: (row.is_admin as boolean) ?? true,
-    personal_goal: (row.personal_goal as string) ?? 'balanced',
     health_goals: (row.health_goals as string[]) ?? [],
   };
 }

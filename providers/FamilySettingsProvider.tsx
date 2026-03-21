@@ -88,7 +88,6 @@ async function seedSupabaseFromLocal(
     avatar_url: localUser.avatar_url ?? null,
     dietary_preferences_individual: localUser.dietary_preferences_individual,
     is_admin: localUser.is_admin,
-    personal_goal: localUser.personal_goal ?? 'balanced',
     health_goals: localUser.health_goals ?? [],
   });
 
@@ -349,7 +348,6 @@ export const [FamilySettingsProvider, useFamilySettings] = createContextHook(() 
           avatar_url: updated.avatar_url ?? null,
           dietary_preferences_individual: updated.dietary_preferences_individual,
           is_admin: updated.is_admin,
-          personal_goal: updated.personal_goal ?? 'balanced',
           health_goals: updated.health_goals ?? [],
         }, { onConflict: 'id' }).then(({ error }) => {
           if (error) console.error('[UserSettings] Supabase save error:', error.message);

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
-import { OnboardingData, MealSlot, PersonalGoal, StarterMealPick } from '@/types';
+import { OnboardingData, MealSlot, StarterMealPick } from '@/types';
 import { DEFAULT_ONBOARDING } from '@/constants/defaults';
 
 // ─── Type for setters ─────────────────────────────────────────────────────────
@@ -97,10 +97,6 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     updateOnboarding({ dietary_preferences_individual: prefs });
   }, [updateOnboarding]);
 
-  const setPersonalGoal = useCallback((goal: PersonalGoal) => {
-    updateOnboarding({ personal_goal: goal });
-  }, [updateOnboarding]);
-
   // ── New dietary setters (onboarding overhaul Steps 4–8) ───────────────────
 
   const setCulturalRestrictions = useCallback((restrictions: DietaryStringArray) => {
@@ -177,7 +173,6 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     setMealSlots,
     setFamilyDietary,
     setPersonalDietary,
-    setPersonalGoal,
     // ── New dietary setters (onboarding overhaul Steps 4–8) ─────────────────
     setCulturalRestrictions,
     setIntolerances,

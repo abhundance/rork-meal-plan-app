@@ -12,48 +12,8 @@ import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useFavs } from '@/providers/FavsProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { getSupabase } from '@/services/supabase';
-import { Recipe, MealSlot, PersonalGoal } from '@/types';
-
-// ─── personal_goal derivation helpers ────────────────────────────────────────
-// In the new 14-step flow, the user sets `health_goals` (multi-select, Step 8)
-// and `diet_preferences` (soft signals, Step 6). The recommendation engine and
-// Smart Fill both read `userSettings.personal_goal` (a single PersonalGoal).
-// These helpers bridge the gap so Day 1 recommendations already reflect the
-// user's stated goals rather than always defaulting to 'balanced'.
-
-const VALID_PERSONAL_GOALS: string[] = [
-  'weight_loss', 'muscle_gain', 'recomposition', 'keto', 'paleo', 'whole30', 'carnivore',
-  'pregnancy', 'postpartum', 'pcos', 'diabetes_management', 'heart_health', 'gut_health',
-  'longevity', 'anti_inflammatory',
-];
-
-// Maps diet_preferences soft-signal values that don't appear verbatim in
-// PersonalGoal to the closest goal. Pure goal-name values (keto, paleo, whole30)
-// are handled by VALID_PERSONAL_GOALS already.
-const DIET_PREF_TO_GOAL: Partial<Record<string, PersonalGoal>> = {
-  high_protein:  'muscle_gain',
-  low_carb:      'weight_loss',
-  mediterranean: 'heart_health',
-  plant_forward: 'gut_health',
-};
-
-function derivePersonalGoal(
-  legacyGoal: PersonalGoal | undefined,
-  healthGoals: string[],
-  dietPrefs: string[],
-): PersonalGoal {
-  // 1. Respect the explicit legacy single-select if already set (backward compat)
-  if (legacyGoal && legacyGoal !== 'balanced') return legacyGoal;
-  // 2. Use first valid goal from health_goals (new multi-select flow, Step 8)
-  const fromHealth = healthGoals.find(g => VALID_PERSONAL_GOALS.includes(g));
-  if (fromHealth) return fromHealth as PersonalGoal;
-  // 3. Map diet_preferences soft signals to a goal (Step 6)
-  for (const pref of dietPrefs) {
-    if (VALID_PERSONAL_GOALS.includes(pref)) return pref as PersonalGoal;
-    if (DIET_PREF_TO_GOAL[pref]) return DIET_PREF_TO_GOAL[pref]!;
-  }
-  return 'balanced';
-}
+import { Recipe, MealSlot } from '@/types';
+import { resolveGoal } from '@/utils/goalUtils';
 
 const NOVELTY_MAP: Record<string, number> = {
   familiar:    10,
@@ -125,8 +85,8 @@ export default function WelcomeScreen() {
     data.planning_style
       ? `🎯 ${data.planning_style === 'familiar' ? 'Familiar meals' : data.planning_style === 'adventurous' ? 'Adventurous picks' : 'Balanced mix'}`
       : null,
-    data.personal_goal && data.personal_goal !== 'balanced'
-      ? `💪 Goal: ${data.personal_goal.replace(/_/g, ' ')}`
+    (data.health_goals ?? []).length > 0
+      ? `💪 ${data.health_goals!.map(g => g.replace(/_/g, ' ')).join(' · ')}`
       : null,
   ].filter(Boolean) as string[];
 
@@ -141,14 +101,11 @@ export default function WelcomeScreen() {
       .filter(slot => enabledSlotIds.includes(slot.slot_id))
       .map((slot, idx) => ({ ...slot, order: idx }));
 
-    // Derive personal_goal from new health_goals / diet_preferences if no legacy value is set.
-    // The new 14-step flow uses health_goals (multi-select, Step 8) and diet_preferences
-    // (soft signals, Step 6). The recommendation engine and Smart Fill only read a single
-    // personal_goal — without this derivation they would always see 'balanced' for new users.
-    const derivedPersonalGoal = derivePersonalGoal(
-      data.personal_goal,
-      data.health_goals ?? [],
-      data.diet_preferences ?? [],
+    // Resolve a single PersonalGoal from health_goals + diet_preferences for the
+    // recommendation engine and Smart Fill (which need a single scalar goal).
+    const derivedPersonalGoal = resolveGoal(
+      data.health_goals,
+      data.diet_preferences,
     );
 
     // Sync all onboarding data → FamilySettings (AsyncStorage + Supabase via provider)
@@ -172,10 +129,9 @@ export default function WelcomeScreen() {
       cooking_time_pref:          data.cooking_time_pref,
     });
 
-    // Sync user settings — personal_goal drives goal-specific carousels and Smart Fill scoring.
-    // health_goals is stored for future multi-goal support.
+    // Sync user settings — health_goals is the canonical field.
+    // resolveGoal() derives the single PersonalGoal for the engine at read-time.
     updateUserSettings({
-      personal_goal:                  derivedPersonalGoal,
       dietary_preferences_individual: data.dietary_preferences_individual,
       health_goals:                   data.health_goals ?? [],
     });

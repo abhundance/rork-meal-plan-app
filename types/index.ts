@@ -60,8 +60,7 @@ export interface UserSettings {
   avatar_url?: string;
   dietary_preferences_individual: string[];
   is_admin: boolean;
-  personal_goal?: PersonalGoal;   // primary cook's personal health goal (legacy — use health_goals)
-  health_goals?: string[];         // multi-select health goals from onboarding Step 8
+  health_goals?: string[];         // multi-select health goals from onboarding Step 8 — use resolveGoal() to get a single PersonalGoal
 }
 
 export interface FamilyMember {
@@ -70,7 +69,7 @@ export interface FamilyMember {
   avatar_url?: string;
   is_admin: boolean;
   dietary_preferences: string[];
-  personal_goal?: PersonalGoal;   // each member sets their own goal
+  health_goals?: string[];         // member's own health goals (same values as UserSettings.health_goals)
 }
 
 export interface NotificationSettings {
@@ -101,7 +100,6 @@ export interface OnboardingData {
   dietary_preferences_family: string[];
   dietary_preferences_individual: string[];
   is_admin: boolean;
-  personal_goal?: PersonalGoal;   // legacy single-select — kept for backward compat
   // ── Onboarding overhaul — dietary & household (Steps 4–8) ─────────────────
   cultural_restrictions?: string[];  // Step 4 — hard gates: no_beef, no_pork, no_shellfish, vegetarian, vegan, halal, kosher
   intolerances?: string[];           // Step 5 — hard gates: gluten-free, dairy-free, nut-free, egg-free, soy-free, etc.
