@@ -385,13 +385,40 @@ export async function upsertRecipeToSupabase(
     return;
   }
 
-  // 1. Upsert the recipe row
-  const { error: recipeErr } = await supabase
-    .from('recipes')
-    .upsert(recipeToRow(recipe, familyId), { onConflict: 'id' });
-  if (recipeErr) {
-    console.error('[DB] upsertRecipe error:', recipeErr.message);
-    return;
+  // 1. Write the recipe row.
+  //
+  // WHY not .upsert({ onConflict: 'id' }):
+  //   upsert resolves a conflict via UPDATE on the existing row.  PostgreSQL's
+  //   RLS USING expression (`family_id = auth.uid()`) is evaluated against the
+  //   EXISTING row before the update is allowed.  If the existing row was written
+  //   by a previous anonymous session (different auth.uid()), the USING check
+  //   fails with "new row violates row-level security policy (USING expression)".
+  //   This happens when onboarding is re-run: starter-meal picks carry stable
+  //   Supabase UUIDs, so the same id can already exist under a different owner.
+  //
+  // FIX — INSERT-first, UPDATE-on-conflict:
+  //   • INSERT: always passes RLS WITH CHECK (`family_id = auth.uid()` on new row).
+  //   • 23505 conflict: fall back to UPDATE with `.eq('family_id', familyId)`.
+  //     The `.eq()` ensures we only update rows we own.  If the conflict row
+  //     belongs to a different user, the UPDATE matches 0 rows — silent skip.
+  const row = recipeToRow(recipe, familyId);
+  const { error: insertErr } = await supabase.from('recipes').insert(row);
+  if (insertErr) {
+    if (insertErr.code === '23505') {
+      // id already exists — update only if we own the row
+      const { error: updateErr } = await supabase
+        .from('recipes')
+        .update(row)
+        .eq('id', recipe.id)
+        .eq('family_id', familyId);
+      if (updateErr) {
+        console.error('[DB] upsertRecipe update error:', updateErr.message);
+        return;
+      }
+    } else {
+      console.error('[DB] upsertRecipe error:', insertErr.message);
+      return;
+    }
   }
 
   // 2. Delete existing ingredients/steps then re-insert
