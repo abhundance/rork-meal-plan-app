@@ -22,6 +22,7 @@ import { Recipe, DiscoverMeal } from '@/types';
 import { useAuth } from '@/providers/AuthProvider';
 import { getSupabase } from '@/services/supabase';
 import { recipeToRow, rowToRecipe, upsertRecipeToSupabase } from '@/services/db';
+import { generateUUID } from '@/utils/uuid';
 
 const FAVS_KEY            = 'favs_meals';
 const RECENT_SEARCHES_KEY = 'favs_recent_searches';
@@ -369,7 +370,6 @@ export const [FavsProvider, useFavs] = createContextHook(() => {
 });
 
 import { RecipeFilterState } from '@/components/RecipeFilterSheet';
-import { generateUUID } from '@/utils/uuid';
 
 // ─── Dietary filter helper ───────────────────────────────────────────────────
 
