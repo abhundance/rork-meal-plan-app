@@ -435,7 +435,7 @@ export default function FavsScreen() {
         }}
         deliveryPlatform={item.delivery_platform}
         familyAvatarUrl={undefined}
-        familyInitials={!item.delivery_platform && item.source === 'family_created' ? familyInitials : undefined}
+        familyInitials={!item.delivery_platform && !item.image_url ? familyInitials : undefined}
       />
     );
   }, [handleMealPress, handleAddToPlan, handleSlotModeSelect, handleDeleteMyRecipe, handleRemoveSaved, openAddMethodSheet, familyPhotoUrl, familyInitials, pendingSlot]);
