@@ -56,30 +56,44 @@ export default function AddMealVideoScreen() {
     console.log('[add-recipe-video] Extracting from URL:', trimmed);
     setIsExtracting(true);
     try {
-      const result: ExtractedRecipe = await extractRecipeFromVideoUrl(trimmed);
-      console.log('[add-recipe-video] Extraction success:', result.name);
+      // 90s client-side timeout — Whisper transcription can take up to 60s on
+      // the server side; we give a bit of headroom before telling the user.
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 90_000);
+      let result: ExtractedRecipe;
+      try {
+        result = await extractRecipeFromVideoUrl(trimmed);
+      } finally {
+        clearTimeout(timer);
+      }
+      console.log('[add-recipe-video] Extraction success:', result!.name);
       router.push({
         pathname: '/add-recipe-review' as never,
         params: {
           inputMode: 'url',
           inputUrl: trimmed,
-          prefillName: result.name,
-          prefillDescription: result.description,
-          prefillCuisine: result.cuisine,
-          prefillMealType: result.meal_type,
-          prefillCookingTimeBand: result.cooking_time_band,
-          prefillDietaryTags: JSON.stringify(result.dietary_tags),
-          prefillIngredients: JSON.stringify(result.ingredients),
-          prefillMethodSteps: JSON.stringify(result.method_steps),
-          prefillServingSize: String(result.recipe_serving_size),
+          prefillName: result!.name,
+          prefillDescription: result!.description,
+          prefillCuisine: result!.cuisine,
+          prefillMealType: result!.meal_type,
+          prefillCookingTimeBand: result!.cooking_time_band,
+          prefillDietaryTags: JSON.stringify(result!.dietary_tags),
+          prefillIngredients: JSON.stringify(result!.ingredients),
+          prefillMethodSteps: JSON.stringify(result!.method_steps),
+          prefillServingSize: String(result!.recipe_serving_size),
         },
       });
     } catch (err) {
       console.error('[add-recipe-video] Extraction failed:', err);
-      Alert.alert(
-        'Extraction Failed',
-        'We could not extract a recipe from that link. For video links, make sure the recipe is in the description. For websites, make sure the page contains a full recipe.',
-      );
+      // Surface the server's error message — it contains quota feedback, platform-
+      // specific guidance (e.g. Instagram fallback tips), and actionable context.
+      const isAbort  = err instanceof Error && err.name === 'AbortError';
+      const message  = isAbort
+        ? 'This is taking too long — the video may be too large or the server is busy. Try again in a moment.'
+        : err instanceof Error && err.message
+          ? err.message
+          : 'We could not extract a recipe from that link. Please try again.';
+      Alert.alert('Extraction Failed', message);
     } finally {
       setIsExtracting(false);
     }
