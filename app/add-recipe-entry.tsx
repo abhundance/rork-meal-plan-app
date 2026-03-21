@@ -52,8 +52,8 @@ import { useFavs } from '@/providers/FavsProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { consumePendingPlanSlot } from '@/services/pendingPlanSlot';
-import {
 import { generateUUID } from '@/utils/uuid';
+import {
   Recipe,
   Ingredient,
   PlannedMeal,
