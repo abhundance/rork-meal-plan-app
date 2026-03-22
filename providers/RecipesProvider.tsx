@@ -187,12 +187,12 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
   // Returns the upsert Promise so callers that need write-ordering (e.g. adding
   // to the meal plan immediately after saving a new recipe) can await it before
   // writing FK-dependent rows like planned_meals.
+  // Returns a Promise that rejects on failure — callers that need write-ordering
+  // (syncRecipeNow) can catch and decide whether to skip downstream FK writes.
   const syncToSupabase = useCallback((recipe: Recipe): Promise<void> => {
     const uid = userIdRef.current;
     if (!uid) return Promise.resolve();
-    return upsertRecipeToSupabase(recipe, uid, getSupabase()).catch((e) =>
-      console.error('[Recipes] Supabase upsert error:', e)
-    );
+    return upsertRecipeToSupabase(recipe, uid, getSupabase());
   }, []);
 
   const deleteFromSupabase = useCallback((recipeId: string) => {
@@ -220,7 +220,11 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
     mealsRef.current = updated;
     setMeals(updated);
     saveMutateRef.current(updated);
-    syncToSupabase(meal);
+    // Fire-and-forget — errors logged but not propagated.
+    // Callers needing write-ordering should use syncRecipeNow() separately.
+    syncToSupabase(meal).catch((e) =>
+      console.error('[Recipes] Background Supabase upsert error:', e)
+    );
     console.log('[Recipes] Added:', meal.name);
     return true;
   }, [syncToSupabase]);

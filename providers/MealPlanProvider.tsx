@@ -234,6 +234,21 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     console.log('[MealPlan] Added meal:', meal.meal_name, 'to', meal.date, meal.slot_id);
   }, [upsertMealsToSupabase]);
 
+  // Like addMeal but skips the Supabase upsert. Used when the recipe FK
+  // target hasn't landed in Supabase yet (offline, sync error). The meal
+  // will be synced on next full reconciliation.
+  const addMealLocalOnly = useCallback((meal: PlannedMeal) => {
+    const slotMeals = mealsRef.current.filter(
+      (m) => m.slot_id === meal.slot_id && m.date === meal.date
+    );
+    if (slotMeals.length >= 10) return;
+    const mealWithPosition = { ...meal, position: slotMeals.length };
+    const updated = [...mealsRef.current, mealWithPosition];
+    setMeals(updated);
+    saveMutateRef.current(updated);
+    console.log('[MealPlan] Added meal (local only, Supabase skipped):', meal.meal_name);
+  }, []);
+
   const removeMeal = useCallback((mealId: string) => {
     const updated = mealsRef.current.filter((m) => m.id !== mealId);
     setMeals(updated);
@@ -418,6 +433,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     isLoading,
     setViewMode,
     addMeal,
+    addMealLocalOnly,
     addMeals,
     removeMeal,
     removeMealById,

@@ -31,8 +31,8 @@ import { generateUUID } from '@/utils/uuid';
 
 export default function MealPickerManualScreen() {
   const insets = useSafeAreaInsets();
-  const { addRecipe } = useRecipes();
-  const { addMeal } = useMealPlan();
+  const { addRecipe, syncRecipeNow } = useRecipes();
+  const { addMeal, addMealLocalOnly } = useMealPlan();
 
   const slot = peekPendingPlanSlot();
   const slotName = slot?.slotName ?? 'Meal';
@@ -61,8 +61,6 @@ export default function MealPickerManualScreen() {
       ...(newMealId ? { meal_id: newMealId } : {}),
     };
 
-    addMeal(planned);
-
     if (saveToRecipes && newMealId) {
       const favMeal: Recipe = {
         id: newMealId,
@@ -79,6 +77,13 @@ export default function MealPickerManualScreen() {
         created_at: new Date().toISOString(),
       };
       addRecipe(favMeal);
+      // Recipe must land in Supabase before planned_meals can FK-reference it.
+      syncRecipeNow(favMeal)
+        .then(() => addMeal(planned))
+        .catch(() => addMealLocalOnly(planned));
+    } else {
+      // No recipe being created — meal_id is undefined, no FK to violate
+      addMeal(planned);
     }
 
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -86,7 +91,7 @@ export default function MealPickerManualScreen() {
     // router.back() pops manual → index; router.dismiss() then closes index → Plan tab.
     router.back();
     router.dismiss();
-  }, [name, saveToRecipes, addMeal, addRecipe]);
+  }, [name, saveToRecipes, addMeal, addMealLocalOnly, addRecipe, syncRecipeNow]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

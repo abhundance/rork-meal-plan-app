@@ -418,11 +418,11 @@ export async function upsertRecipeToSupabase(
         .eq('family_id', familyId);
       if (updateErr) {
         console.error('[DB] upsertRecipe update error:', updateErr.message);
-        return;
+        throw new Error(updateErr.message);
       }
     } else {
       console.error('[DB] upsertRecipe error:', insertErr.message);
-      return;
+      throw new Error(insertErr.message);
     }
   }
 

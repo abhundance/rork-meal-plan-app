@@ -77,7 +77,7 @@ export default function AddMealReviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<Params>();
   const { addRecipe, syncRecipeNow } = useRecipes();
-  const { addMeal } = useMealPlan();
+  const { addMeal, addMealLocalOnly } = useMealPlan();
   const { familySettings } = useFamilySettings();
 
   const [isAddingToPlan] = useState<boolean>(() => hasPendingPlanSlot());
@@ -429,10 +429,12 @@ export default function AddMealReviewScreen() {
       };
       // Sequence the writes: recipe row must exist in Supabase before
       // planned_meals can reference it via FK. syncRecipeNow returns the
-      // in-flight upsert Promise. On failure (offline) we still add locally.
+      // upsert Promise that rejects on failure. On failure (offline/error)
+      // we add the meal locally only — no Supabase sync — to avoid the FK
+      // violation. The planned meal will sync on next reconciliation.
       syncRecipeNow(meal)
         .then(() => addMeal(plannedMeal))
-        .catch(() => addMeal(plannedMeal));
+        .catch(() => addMealLocalOnly(plannedMeal));
       router.dismissAll();
     } else {
       router.dismissAll();
@@ -443,7 +445,7 @@ export default function AddMealReviewScreen() {
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
     ingredients, servingSize, methodSteps,
-    addRecipe, syncRecipeNow, addMeal, router,
+    addRecipe, syncRecipeNow, addMeal, addMealLocalOnly, router,
   ]);
 
   if (isLoading) {
