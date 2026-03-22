@@ -54,7 +54,6 @@ export default function MealPickerScreen() {
   const slot = peekPendingPlanSlot();
   const slotName = slot?.slotName ?? 'Meal';
   const date = slot?.date ?? '';
-  const defaultServing = slot?.defaultServing ?? 2;
 
   const [searchQuery, setSearchQuery] = useState('');
 

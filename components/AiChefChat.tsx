@@ -20,9 +20,9 @@ import {
   Platform,
   Alert,
   Keyboard,
-  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Send, Camera, ImageIcon, Mic, Link2, ChevronDown, ChevronUp } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -31,10 +31,8 @@ import { FontFamily, FontSize } from '@/constants/typography';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import { getSupabase } from '@/services/supabase';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
-import { imageStore } from '@/services/imageStore';
 import {
   ExtractedRecipe,
-  detectVideoUrlType,
   extractRecipeFromVideoUrl,
 } from '@/services/recipeExtraction';
 import VoiceRecordSheet from '@/components/VoiceRecordSheet';
@@ -69,15 +67,9 @@ interface ChatMessage {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getSupabaseUrl(): string {
-  return process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-}
-
 function getSupabaseAnonKey(): string {
   return process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 }
-
-const URL_REGEX = /https?:\/\/[^\s]+/i;
 
 let messageCounter = 0;
 function nextId(): string {
@@ -123,6 +115,7 @@ const INSPIRATIONS = [
 
 export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefChatProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { familySettings } = useFamilySettings();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -132,6 +125,10 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const [showVoiceSheet, setShowVoiceSheet] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
 
+  // Ref to always have latest messages (avoids stale closure in callbacks)
+  const messagesRef = useRef<ChatMessage[]>([]);
+  messagesRef.current = messages;
+
   const flatListRef = useRef<FlatList<ChatMessage> | null>(null);
   const inputRef = useRef<TextInput | null>(null);
   const hasAutoSent = useRef(false);
@@ -140,7 +137,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   useEffect(() => {
     if (initialPrompt && !hasAutoSent.current && messages.length === 0) {
       hasAutoSent.current = true;
-      handleSend(initialPrompt);
+      void handleSend(initialPrompt);
     }
   }, [initialPrompt]);
 
@@ -279,13 +276,12 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       scrollToBottom();
 
       try {
-        const allMessages = [...messages, userMsg];
+        const allMessages = [...messagesRef.current, userMsg];
         const result = await callAiChef(allMessages);
 
         // Handle URL extraction delegation
         if (result.extractUrl) {
           await handleUrlExtraction(result.extractUrl, userMsg.id);
-          setIsThinking(false);
           return;
         }
 
@@ -300,7 +296,6 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
           };
           setMessages((prev) => [...prev, quotaMsg]);
           scrollToBottom();
-          setIsThinking(false);
           return;
         }
 
@@ -332,7 +327,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         setIsThinking(false);
       }
     },
-    [inputText, pendingImage, isThinking, messages, callAiChef, handleUrlExtraction, scrollToBottom],
+    [inputText, pendingImage, isThinking, callAiChef, handleUrlExtraction, scrollToBottom],
   );
 
   // ── Image picker ──────────────────────────────────────────────────────────
@@ -397,44 +392,28 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
 
   const handleSaveRecipe = useCallback(
     (recipe: ExtractedRecipe) => {
-      // Store image if the recipe has one
-      // Navigate to review screen with recipe data as params
+      // Navigate to review screen with prefill params
+      // IMPORTANT: param names must match add-recipe-review.tsx Params type
       const params: Record<string, string> = {
-        name: recipe.name || '',
-        description: recipe.description || '',
-        cuisine: recipe.cuisine || '',
-        meal_type: recipe.meal_type || '',
-        cooking_time_band: recipe.cooking_time_band || '',
-        prep_time: String(recipe.prep_time || 0),
-        cook_time: String(recipe.cook_time || 0),
-        recipe_serving_size: String(recipe.recipe_serving_size || 4),
-        ingredients: JSON.stringify(recipe.ingredients || []),
-        method_steps: JSON.stringify(recipe.method_steps || []),
-        dietary_tags: JSON.stringify(recipe.dietary_tags || []),
-        dish_category: recipe.dish_category || '',
-        protein_source: recipe.protein_source || '',
-        allergens: JSON.stringify(recipe.allergens || []),
-        diet_labels: JSON.stringify(recipe.diet_labels || []),
-        occasions: JSON.stringify(recipe.occasions || []),
-        source: 'ai_chef',
+        inputMode: 'text',
+        prefillName: recipe.name || '',
+        prefillDescription: recipe.description || '',
+        prefillCuisine: recipe.cuisine || '',
+        prefillMealType: recipe.meal_type || '',
+        prefillCookingTimeBand: recipe.cooking_time_band || '',
+        prefillServingSize: String(recipe.recipe_serving_size || 4),
+        prefillIngredients: JSON.stringify(recipe.ingredients || []),
+        prefillMethodSteps: JSON.stringify(recipe.method_steps || []),
+        prefillDietaryTags: JSON.stringify(recipe.dietary_tags || []),
       };
 
-      if (recipe.calories_per_serving) params.calories_per_serving = String(recipe.calories_per_serving);
-      if (recipe.protein_per_serving_g) params.protein_per_serving_g = String(recipe.protein_per_serving_g);
-      if (recipe.carbs_per_serving_g) params.carbs_per_serving_g = String(recipe.carbs_per_serving_g);
-
-      // Pass pending plan slot info if present
-      if (pendingPlanSlot) {
-        params.planSlotId = pendingPlanSlot.slotId;
-        params.planDate = pendingPlanSlot.date;
-        params.planSlotName = pendingPlanSlot.slotName;
-        params.planServing = String(pendingPlanSlot.defaultServing);
-      }
+      // Plan slot is handled via the pendingPlanSlot service (already set)
+      // — review screen reads it from peekPendingPlanSlot()
 
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       router.push({ pathname: '/add-recipe-review', params });
     },
-    [pendingPlanSlot, router],
+    [router],
   );
 
   // ── Refine handler ────────────────────────────────────────────────────────
@@ -449,17 +428,18 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const handleRetry = useCallback(
     (errorMsgId: string) => {
       // Find the last user message before this error
-      const errorIdx = messages.findIndex((m) => m.id === errorMsgId);
+      const currentMessages = messagesRef.current;
+      const errorIdx = currentMessages.findIndex((m) => m.id === errorMsgId);
       if (errorIdx < 0) return;
 
       // Remove the error message and re-send
-      const lastUserMsg = [...messages].slice(0, errorIdx).reverse().find((m) => m.role === 'user');
+      const lastUserMsg = currentMessages.slice(0, errorIdx).reverse().find((m) => m.role === 'user');
       if (lastUserMsg) {
         setMessages((prev) => prev.filter((m) => m.id !== errorMsgId));
-        handleSend(lastUserMsg.content);
+        void handleSend(lastUserMsg.content);
       }
     },
-    [messages, handleSend],
+    [handleSend],
   );
 
   // ── Render: Welcome state ─────────────────────────────────────────────────
@@ -495,150 +475,13 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
           >
             <Text style={styles.inspirationIcon}>{item.icon}</Text>
             <Text style={styles.inspirationText} numberOfLines={2}>{item.text}</Text>
-            <Text style={styles.inspirationSubtitle} numberOfLines={1}>{item.subtitle}</Text>
           </TouchableOpacity>
         ))}
       </View>
     </View>
   );
 
-  // ── Render: Recipe card ───────────────────────────────────────────────────
-
-  const RecipeCard = ({ recipe, changesSummary }: { recipe: ExtractedRecipe; changesSummary?: string }) => {
-    const [showIngredients, setShowIngredients] = useState(false);
-    const [showSteps, setShowSteps] = useState(false);
-
-    return (
-      <View style={styles.recipeCard}>
-        {/* Header with emoji placeholder */}
-        <View style={styles.recipeHeader}>
-          <View style={styles.recipeEmojiContainer}>
-            <Text style={styles.recipeEmoji}>🍽️</Text>
-          </View>
-          <View style={styles.recipeHeaderText}>
-            <Text style={styles.recipeName}>{recipe.name}</Text>
-            {recipe.description ? (
-              <Text style={styles.recipeDescription} numberOfLines={2}>{recipe.description}</Text>
-            ) : null}
-          </View>
-        </View>
-
-        {/* Meta chips */}
-        <View style={styles.recipeMetaRow}>
-          {recipe.prep_time ? (
-            <View style={styles.metaChip}>
-              <Text style={styles.metaChipText}>⏱ {recipe.prep_time + (recipe.cook_time || 0)} min</Text>
-            </View>
-          ) : null}
-          {recipe.recipe_serving_size ? (
-            <View style={styles.metaChip}>
-              <Text style={styles.metaChipText}>👥 {recipe.recipe_serving_size} servings</Text>
-            </View>
-          ) : null}
-          {recipe.cuisine ? (
-            <View style={styles.metaChip}>
-              <Text style={styles.metaChipText}>{recipe.cuisine}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Dietary chips */}
-        {recipe.dietary_tags?.length > 0 && (
-          <View style={styles.dietaryRow}>
-            {recipe.dietary_tags.map((tag, i) => (
-              <View key={i} style={styles.dietaryChip}>
-                <Text style={styles.dietaryChipText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Changes summary (for refinements) */}
-        {changesSummary ? (
-          <View style={styles.changesSummary}>
-            <Text style={styles.changesSummaryText}>✏️ {changesSummary}</Text>
-          </View>
-        ) : null}
-
-        {/* Expandable Ingredients */}
-        {recipe.ingredients?.length > 0 && (
-          <View>
-            <TouchableOpacity
-              style={styles.expandableHeader}
-              onPress={() => setShowIngredients(!showIngredients)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.expandableTitle}>
-                Ingredients ({recipe.ingredients.length})
-              </Text>
-              {showIngredients ? (
-                <ChevronUp size={18} color={Colors.textSecondary} />
-              ) : (
-                <ChevronDown size={18} color={Colors.textSecondary} />
-              )}
-            </TouchableOpacity>
-            {showIngredients && (
-              <View style={styles.ingredientsList}>
-                {recipe.ingredients.map((ing, i) => (
-                  <Text key={i} style={styles.ingredientItem}>
-                    • {ing.quantity} {ing.unit} {ing.name}
-                  </Text>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Expandable Method */}
-        {recipe.method_steps?.length > 0 && (
-          <View>
-            <TouchableOpacity
-              style={styles.expandableHeader}
-              onPress={() => setShowSteps(!showSteps)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.expandableTitle}>
-                Method ({recipe.method_steps.length} steps)
-              </Text>
-              {showSteps ? (
-                <ChevronUp size={18} color={Colors.textSecondary} />
-              ) : (
-                <ChevronDown size={18} color={Colors.textSecondary} />
-              )}
-            </TouchableOpacity>
-            {showSteps && (
-              <View style={styles.stepsList}>
-                {recipe.method_steps.map((step, i) => (
-                  <View key={i} style={styles.stepItem}>
-                    <Text style={styles.stepNumber}>{i + 1}</Text>
-                    <Text style={styles.stepText}>{step}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Action buttons */}
-        <View style={styles.recipeActions}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={() => handleSaveRecipe(recipe)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.saveButtonText}>Save Recipe</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.refineButton}
-            onPress={handleRefine}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.refineButtonText}>Refine</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
+  // RecipeCard rendering — uses stable handlers via refs below
 
   // ── Render: Message bubble ────────────────────────────────────────────────
 
@@ -703,7 +546,12 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
           )}
 
           {item.recipe ? (
-            <RecipeCard recipe={item.recipe} changesSummary={item.changesSummary} />
+            <RecipeCard
+              recipe={item.recipe}
+              changesSummary={item.changesSummary}
+              onSave={handleSaveRecipe}
+              onRefine={handleRefine}
+            />
           ) : null}
         </View>
       </View>
@@ -734,7 +582,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   // ── Render: Input bar ─────────────────────────────────────────────────────
 
   const renderInputBar = () => (
-    <View style={styles.inputBarContainer}>
+    <View style={[styles.inputBarContainer, { paddingBottom: insets.bottom }]}>
       {/* Pending image preview */}
       {pendingImage && (
         <View style={styles.pendingImageRow}>
@@ -859,6 +707,144 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   );
 }
 
+// ── RecipeCard (extracted outside main component to preserve expand state) ──
+
+interface RecipeCardProps {
+  recipe: ExtractedRecipe;
+  changesSummary?: string;
+  onSave: (recipe: ExtractedRecipe) => void;
+  onRefine: () => void;
+}
+
+function RecipeCard({ recipe, changesSummary, onSave, onRefine }: RecipeCardProps) {
+  const [showIngredients, setShowIngredients] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
+
+  return (
+    <View style={styles.recipeCard}>
+      <View style={styles.recipeHeader}>
+        <View style={styles.recipeEmojiContainer}>
+          <Text style={styles.recipeEmoji}>🍽️</Text>
+        </View>
+        <View style={styles.recipeHeaderText}>
+          <Text style={styles.recipeName}>{recipe.name}</Text>
+          {recipe.description ? (
+            <Text style={styles.recipeDescription} numberOfLines={2}>{recipe.description}</Text>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.recipeMetaRow}>
+        {recipe.prep_time ? (
+          <View style={styles.metaChip}>
+            <Text style={styles.metaChipText}>⏱ {recipe.prep_time + (recipe.cook_time || 0)} min</Text>
+          </View>
+        ) : null}
+        {recipe.recipe_serving_size ? (
+          <View style={styles.metaChip}>
+            <Text style={styles.metaChipText}>👥 {recipe.recipe_serving_size} servings</Text>
+          </View>
+        ) : null}
+        {recipe.cuisine ? (
+          <View style={styles.metaChip}>
+            <Text style={styles.metaChipText}>{recipe.cuisine}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      {recipe.dietary_tags?.length > 0 && (
+        <View style={styles.dietaryRow}>
+          {recipe.dietary_tags.map((tag, i) => (
+            <View key={i} style={styles.dietaryChip}>
+              <Text style={styles.dietaryChipText}>{tag}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {changesSummary ? (
+        <View style={styles.changesSummary}>
+          <Text style={styles.changesSummaryText}>✏️ {changesSummary}</Text>
+        </View>
+      ) : null}
+
+      {recipe.ingredients?.length > 0 && (
+        <View>
+          <TouchableOpacity
+            style={styles.expandableHeader}
+            onPress={() => setShowIngredients(!showIngredients)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.expandableTitle}>
+              Ingredients ({recipe.ingredients.length})
+            </Text>
+            {showIngredients ? (
+              <ChevronUp size={18} color={Colors.textSecondary} />
+            ) : (
+              <ChevronDown size={18} color={Colors.textSecondary} />
+            )}
+          </TouchableOpacity>
+          {showIngredients && (
+            <View style={styles.ingredientsList}>
+              {recipe.ingredients.map((ing, i) => (
+                <Text key={i} style={styles.ingredientItem}>
+                  • {ing.quantity} {ing.unit} {ing.name}
+                </Text>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {recipe.method_steps?.length > 0 && (
+        <View>
+          <TouchableOpacity
+            style={styles.expandableHeader}
+            onPress={() => setShowSteps(!showSteps)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.expandableTitle}>
+              Method ({recipe.method_steps.length} steps)
+            </Text>
+            {showSteps ? (
+              <ChevronUp size={18} color={Colors.textSecondary} />
+            ) : (
+              <ChevronDown size={18} color={Colors.textSecondary} />
+            )}
+          </TouchableOpacity>
+          {showSteps && (
+            <View style={styles.stepsList}>
+              {recipe.method_steps.map((step, i) => (
+                <View key={i} style={styles.stepItem}>
+                  <Text style={styles.stepNumber}>{i + 1}</Text>
+                  <Text style={styles.stepText}>{step}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      <View style={styles.recipeActions}>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={() => onSave(recipe)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.saveButtonText}>Save Recipe</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.refineButton}
+          onPress={onRefine}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.refineButtonText}>Refine</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 // ── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
@@ -935,12 +921,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.text,
   },
-  inspirationSubtitle: {
-    fontSize: 11,
-    fontFamily: FontFamily.regular,
-    color: Colors.textSecondary,
-    display: 'none', // Hide subtitle to keep cards compact
-  },
+  // inspirationSubtitle removed — cards kept compact without it
 
   // User message
   userRow: {

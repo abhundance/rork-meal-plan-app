@@ -25,7 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
-import { BorderRadius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import SegmentedControl from '@/components/SegmentedControl';
 import AiChefChat from '@/components/AiChefChat';
 import { peekPendingPlanSlot } from '@/services/pendingPlanSlot';
@@ -55,8 +55,9 @@ export default function AddRecipeEntryScreen() {
   useEffect(() => {
     if (activeTab === 1) {
       router.push('/add-recipe-manual');
-      // Reset back to AI Chef tab so user can toggle back
-      setTimeout(() => setActiveTab(0), 300);
+      // Reset back to AI Chef tab so user returns to chat if they come back
+      const timer = setTimeout(() => setActiveTab(0), 300);
+      return () => clearTimeout(timer);
     }
   }, [activeTab]);
 
