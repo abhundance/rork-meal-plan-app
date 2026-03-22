@@ -7,6 +7,7 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
+import { PenLine, Camera, Mic, Bike } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { BorderRadius, Spacing } from '@/constants/theme';
 import { FontFamily } from '@/constants/typography';
@@ -31,7 +32,7 @@ interface SmartBarResultsProps {
 }
 
 interface MethodCard {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   onPress: () => void;
 }
@@ -54,10 +55,26 @@ export default function SmartBarResults({
   // Empty state: method cards
   if (inputType === 'empty') {
     const methodCards: MethodCard[] = [
-      { icon: '📝', label: 'Manual Entry', onPress: onManualEntry },
-      { icon: '📷', label: 'Photo', onPress: onPhoto },
-      { icon: '🎤', label: 'Voice', onPress: onVoice },
-      { icon: '🛵', label: 'Ordering In', onPress: onDelivery },
+      {
+        icon: <PenLine size={20} color={Colors.primary} />,
+        label: 'Manual Entry',
+        onPress: onManualEntry,
+      },
+      {
+        icon: <Camera size={20} color={Colors.primary} />,
+        label: 'Photo',
+        onPress: onPhoto,
+      },
+      {
+        icon: <Mic size={20} color={Colors.primary} />,
+        label: 'Voice',
+        onPress: onVoice,
+      },
+      {
+        icon: <Bike size={20} color={Colors.primary} />,
+        label: 'Ordering In',
+        onPress: onDelivery,
+      },
     ];
 
     return (
@@ -70,7 +87,7 @@ export default function SmartBarResults({
               onPress={card.onPress}
               activeOpacity={0.7}
             >
-              <Text style={styles.methodIcon}>{card.icon}</Text>
+              <View style={styles.methodIconContainer}>{card.icon}</View>
               <Text style={styles.methodLabel}>{card.label}</Text>
             </TouchableOpacity>
           ))}
@@ -204,13 +221,19 @@ const styles = StyleSheet.create({
     minWidth: '45%',
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.card,
-    padding: Spacing.lg,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
   },
-  methodIcon: {
-    fontSize: 32,
+  methodIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   methodLabel: {
     fontFamily: FontFamily.semiBold,
@@ -221,6 +244,7 @@ const styles = StyleSheet.create({
   },
   aiChefSection: {
     gap: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   aiChefTitle: {
     fontFamily: FontFamily.semiBold,
