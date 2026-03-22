@@ -31,12 +31,6 @@ interface SmartBarResultsProps {
   error?: string | null;
 }
 
-interface MethodCard {
-  icon: React.ReactNode;
-  label: string;
-  onPress: () => void;
-}
-
 export default function SmartBarResults({
   inputType,
   inputValue,
@@ -52,48 +46,43 @@ export default function SmartBarResults({
   isLoading = false,
   error,
 }: SmartBarResultsProps) {
-  // Empty state: method cards
+  // Empty state: method cards in explicit 2×2 rows + AI Chef below
   if (inputType === 'empty') {
-    const methodCards: MethodCard[] = [
-      {
-        icon: <PenLine size={20} color={Colors.primary} />,
-        label: 'Manual Entry',
-        onPress: onManualEntry,
-      },
-      {
-        icon: <Camera size={20} color={Colors.primary} />,
-        label: 'Photo',
-        onPress: onPhoto,
-      },
-      {
-        icon: <Mic size={20} color={Colors.primary} />,
-        label: 'Voice',
-        onPress: onVoice,
-      },
-      {
-        icon: <Bike size={20} color={Colors.primary} />,
-        label: 'Ordering In',
-        onPress: onDelivery,
-      },
-    ];
-
     return (
       <View style={styles.emptyContainer}>
-        <View style={styles.methodGrid}>
-          {methodCards.map((card) => (
-            <TouchableOpacity
-              key={card.label}
-              style={styles.methodCard}
-              onPress={card.onPress}
-              activeOpacity={0.7}
-            >
-              <View style={styles.methodIconContainer}>{card.icon}</View>
-              <Text style={styles.methodLabel}>{card.label}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* Row 1 */}
+        <View style={styles.methodRow}>
+          <TouchableOpacity style={styles.methodCard} onPress={onManualEntry} activeOpacity={0.7}>
+            <View style={styles.methodIconContainer}>
+              <PenLine size={20} color={Colors.primary} />
+            </View>
+            <Text style={styles.methodLabel}>Manual Entry</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.methodCard} onPress={onPhoto} activeOpacity={0.7}>
+            <View style={styles.methodIconContainer}>
+              <Camera size={20} color={Colors.primary} />
+            </View>
+            <Text style={styles.methodLabel}>Photo</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Try asking AI Chef section */}
+        {/* Row 2 */}
+        <View style={styles.methodRow}>
+          <TouchableOpacity style={styles.methodCard} onPress={onVoice} activeOpacity={0.7}>
+            <View style={styles.methodIconContainer}>
+              <Mic size={20} color={Colors.primary} />
+            </View>
+            <Text style={styles.methodLabel}>Voice</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.methodCard} onPress={onDelivery} activeOpacity={0.7}>
+            <View style={styles.methodIconContainer}>
+              <Bike size={20} color={Colors.primary} />
+            </View>
+            <Text style={styles.methodLabel}>Ordering In</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* AI Chef section — fully separated from the grid */}
         <View style={styles.aiChefSection}>
           <Text style={styles.aiChefTitle}>Try asking AI Chef...</Text>
           <ScrollView
@@ -205,24 +194,22 @@ export default function SmartBarResults({
 }
 
 const styles = StyleSheet.create({
-  // Empty state
+  // ── Empty state ────────────────────────────────────────────────────────
   emptyContainer: {
-    padding: Spacing.lg,
-    gap: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
   },
-  methodGrid: {
+  methodRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: Spacing.md,
-    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
   },
   methodCard: {
     flex: 1,
-    minWidth: '45%',
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.card,
-    paddingVertical: 14,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
@@ -243,26 +230,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   aiChefSection: {
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
   },
   aiChefTitle: {
     fontFamily: FontFamily.semiBold,
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text,
-    paddingHorizontal: Spacing.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
   },
   exampleChipsScroll: {
-    marginHorizontal: -Spacing.lg,
-    paddingHorizontal: Spacing.lg,
+    height: 38,
   },
   exampleChipsContent: {
     gap: Spacing.sm,
-    paddingRight: Spacing.lg,
+    alignItems: 'center',
   },
 
-  // URL state
+  // ── URL state ──────────────────────────────────────────────────────────
   urlContainer: {
     padding: Spacing.lg,
     gap: Spacing.md,
@@ -295,7 +280,7 @@ const styles = StyleSheet.create({
     color: Colors.danger,
   },
 
-  // Name state
+  // ── Name state ─────────────────────────────────────────────────────────
   nameContainer: {
     padding: Spacing.lg,
     gap: Spacing.md,
@@ -321,7 +306,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Conversation state
+  // ── Conversation state ─────────────────────────────────────────────────
   conversationContainer: {
     padding: Spacing.lg,
   },
