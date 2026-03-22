@@ -9,7 +9,7 @@ import { BorderRadius } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
-import { useFavs } from '@/providers/FavsProvider';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { getSupabase } from '@/services/supabase';
 import { Recipe, MealSlot } from '@/types';
@@ -33,7 +33,7 @@ export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
   const { data, completeOnboarding } = useOnboarding();
   const { updateFamilySettings, updateUserSettings } = useFamilySettings();
-  const { addFav } = useFavs();
+  const { addRecipe } = useRecipes();
   const { session } = useAuth();
 
   const [isSeeding, setIsSeeding] = useState(false);
@@ -150,14 +150,13 @@ export default function WelcomeScreen() {
         });
     }
 
-    // Seed starter meals as Favs — use real Supabase UUID and source='discover'
-    // so the recipe detail screen can fetch full data (ingredients, method) from Supabase.
+    // Seed starter meals as Recipes — use real Supabase UUID and source='family_created'.
     const picks = data.starter_meals ?? [];
     picks.forEach((pick) => {
       const recipe: Recipe = {
         id:                     pick.id,          // real Supabase UUID
         name:                   pick.name,
-        source:                 'discover',        // enables Supabase detail fetch
+        source:                 'family_created',
         image_url:              pick.image_url,
         cuisine:                pick.cuisine,
         cook_time:              pick.cook_time,
@@ -172,7 +171,7 @@ export default function WelcomeScreen() {
         is_recipe_complete:     false,
         meal_type:              pick.meal_type,
       };
-      addFav(recipe);
+      addRecipe(recipe);
     });
 
     // Mark complete THEN navigate so the completed flag is in state before
@@ -200,7 +199,7 @@ export default function WelcomeScreen() {
             <View style={styles.pillRow}>
               <View style={styles.pill}>
                 <Text style={styles.pillText}>
-                  🍽️ {totalPicks} meal{totalPicks !== 1 ? 's' : ''} ready to add to Favs
+                  🍽️ {totalPicks} meal{totalPicks !== 1 ? 's' : ''} ready to add to Recipes
                 </Text>
               </View>
             </View>

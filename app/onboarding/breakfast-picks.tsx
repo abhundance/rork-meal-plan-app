@@ -53,7 +53,7 @@ export default function BreakfastPicksScreen() {
             <Text style={styles.stepLabel}>Step 13 of 14</Text>
             <Text style={styles.heading}>Pick some breakfast favourites</Text>
             <Text style={styles.subheading}>
-              These get added to your Favs so Smart Fill has meals to work with from day one.
+              These get added to your Recipes so Smart Fill has meals to work with from day one.
             </Text>
           </View>
         }

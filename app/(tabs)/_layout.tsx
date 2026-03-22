@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { Tabs } from 'expo-router';
-import { CalendarDays, ShoppingBasket, Heart, Sparkles } from 'lucide-react-native';
+import { CalendarDays, ShoppingBasket, Heart } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { Shadows } from '@/constants/theme';
@@ -34,12 +34,8 @@ function ShoppingIcon({ color }: { color: string }) {
   return <TabBarIcon icon={<ShoppingBasket size={22} color={color} strokeWidth={2} />} />;
 }
 
-function FavsIcon({ color }: { color: string }) {
+function RecipesIcon({ color }: { color: string }) {
   return <TabBarIcon icon={<Heart size={22} color={color} strokeWidth={2} />} />;
-}
-
-function DiscoverIcon({ color }: { color: string }) {
-  return <TabBarIcon icon={<Sparkles size={22} color={color} strokeWidth={2} />} showBadge />;
 }
 
 const homeOptions = {
@@ -52,14 +48,9 @@ const shoppingOptions = {
   tabBarIcon: ShoppingIcon,
 };
 
-const favsOptions = {
-  title: 'Favs',
-  tabBarIcon: FavsIcon,
-};
-
-const discoverOptions = {
-  title: 'Discover',
-  tabBarIcon: DiscoverIcon,
+const recipesOptions = {
+  title: 'Recipes',
+  tabBarIcon: RecipesIcon,
 };
 
 export default function TabLayout() {
@@ -67,8 +58,7 @@ export default function TabLayout() {
     <Tabs screenOptions={screenOptions}>
       <Tabs.Screen name="(home)" options={homeOptions} />
       <Tabs.Screen name="shopping" options={shoppingOptions} />
-      <Tabs.Screen name="favs" options={favsOptions} />
-      <Tabs.Screen name="discover" options={discoverOptions} />
+      <Tabs.Screen name="recipes" options={recipesOptions} />
     </Tabs>
   );
 }

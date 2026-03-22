@@ -14,9 +14,11 @@
 ## Platform & Build Tool
 
 - **Framework:** React Native + Expo Router + TypeScript
-- **Build tool:** [Rork](https://rork.com) — hosts the Expo build and runs the app for live preview/review. **Code changes are made directly in the GitHub repository** (not by prompting Rork). Rork is only used to run and review the app via Expo Go.
-- **Storage:** AsyncStorage (local only — no backend yet)
+- **Build tool:** [Rork](https://rork.com) — an AI-powered app builder. All code changes are made by prompting Rork in natural language.
+- **Backend:** Supabase (Postgres + Row-Level Security + Edge Functions). Anonymous auth on first launch; email OTP for full auth.
+- **Local cache:** AsyncStorage (persists Supabase auth session; no longer the primary data store)
 - **State management:** React Context + TanStack Query
+- **Discover content:** AI-generated curated recipes stored in Supabase (`source = 'curated'`). No external recipe API.
 
 > ⚠️ When building any UI, always reuse existing design system components and patterns. Never create one-off custom components for individual screens. See Design System section below.
 
@@ -36,63 +38,61 @@ Safe checkpoints tagged on GitHub. To restore: `git checkout pre-recipe-type-uni
 
 | Tag | Commit | Date | What's working | Why it was tagged |
 |-----|--------|------|----------------|-------------------|
-| `pre-recipe-type-unification` | c090906 | 2026-03-06 | Favs grid layout ✅, add-meal tile ✅, chip row removed ✅ | Before Option B: merging `Meal` + `DiscoverMeal` into unified `Recipe` type |
-| *(latest stable)* | 88d4499 | 2026-03-10 | Pinterest Red design system ✅, cardless Favs grid ✅, meal name initials ✅, chip consistency ✅, Plan tab action buttons ✅, Repeat sheet double-tap fix ✅ | Pinterest Red rebrand (#E60023) |
+| `pre-recipe-type-unification` | c090906 | 2026-03-06 | Recipes grid layout ✅, add-meal tile ✅, chip row removed ✅ | Before Option B: merging `Meal` + `DiscoverMeal` into unified `Recipe` type |
+| *(latest stable)* | 88d4499 | 2026-03-10 | Pinterest Red design system ✅, cardless Recipes grid ✅, meal name initials ✅, chip consistency ✅, Plan tab action buttons ✅, Repeat sheet double-tap fix ✅ | Pinterest Red rebrand (#E60023) |
+| `post-supabase-migration` | 8bea588 | 2026-03-21 | Supabase-primary for all data ✅, anonymous auth ✅, video extraction (YT/TikTok/IG) ✅, family invite flow ✅, quota enforcement ✅, UUID IDs ✅ | After full Supabase migration + video extraction |
 
 ---
 
-## Four Main Tabs
+## Three Main Tabs
 
 | Tab | Purpose |
 |-----|---------|
-| **Meal Plan** | Weekly calendar grid. Assign meals to Breakfast / Lunch / Dinner / Snack slots across 7 days. Supports serving-size scaling per slot. |
+| **Plan** | Weekly calendar grid. Assign meals to Breakfast / Lunch / Dinner / Snack slots across 7 days. Supports serving-size scaling per slot. |
+| **Recipes** | Single unified grid of all saved meals (family-created + saved from onboarding/extraction), searchable and filterable by meal type, dish type, protein, and diet. Previously called "Favs". |
 | **Shopping** | Auto-generated shopping list aggregated from all planned meals. Items grouped by ingredient category with check-off functionality. |
-| **Favs** | Single unified grid of all saved meals (family-created + hearted from Discover), searchable and filterable by meal type, dish type, protein, and diet. No SegmentedControl — the segment was removed. |
-| **Discover** | Browse 38+ curated recipes. Filter by meal type, cuisine, cook time, and dietary needs. Includes chef profiles and curated collections. |
+
+> **Note:** The Discover tab was removed. The app is a meal planner, not a recipe browser. AI recipe generation is now built into the Add Recipe flow via the Smart Bar.
 
 ---
 
 ## Key Features
 
-### Add-Meal Navigation Architecture
-
-There are **two distinct add-meal entry points** with different intents. They share child screens but must never be confused:
-
-**1. Plan tab / Recipe detail — slot-aware flow (`/meal-picker`)**
-Entry via `router.push('/meal-picker')` after calling `setPendingPlanSlot({slotId, date, slotName, defaultServing})`. The choose screen includes "From My Favourites" and "Try Something New" browse cards (because the user is picking a meal for a specific slot and may want to browse). Sub-screens: `/meal-picker/manual`, `/meal-picker/delivery`. All use `consumePendingPlanSlot()` to read slot context. Back navigation is native Expo Router — `router.back()` returns to the choose screen, and from the choose screen returns to the plan tab.
-
-**2. Favs tab — library-only flow (`/add-to-favs`)**
-Entry via `router.push('/add-to-favs')`. No slot context. No "From My Favourites" card (user is already there). No "Try Something New". Options: "Add with Recipe", "Add Without Recipe", "Add from Delivery App". Saves directly to the favourites library. Sub-screens: `/add-to-favs/manual`, `/add-to-favs/delivery`.
-
-> ⚠️ **Never add "From My Favourites" to the `/add-to-favs` flow.** The user is already on the Favs tab — it would be nonsensical.
-
-> ⚠️ **`MealPickerSheet` (RN Modal component) has been deleted.** Do not recreate it. All add-meal flows use Expo Router screens.
-
----
-
 ### Add a Recipe Flow
-Single entry point: `app/add-recipe-entry.tsx`. The screen has two modes toggled by a header control:
+Single entry point: `app/add-recipe-entry.tsx`. The screen has a **SmartBar** that detects input type and shows context-aware actions:
 
-- **✨ AI mode (default):** Large drop zone accepting a URL (recipe blog, website, YouTube, TikTok, Instagram) or pasted recipe text. Detects platform from the URL and shows a specific badge ("YouTube detected", "TikTok detected", etc.). Secondary tiles for Voice, Camera, and PDF. All paths navigate to `app/add-recipe-review.tsx`.
-- **✏️ Manual mode:** Full inline form (name, ingredients, steps, metadata). Saves directly via `FavsProvider`.
+- **Empty (default state):** Shows a grid of method options: Manual Entry, Photos, Voice, Camera.
+- **URL detected:** Shows "Extract Recipe" button (recipe blog, website, YouTube, TikTok, Instagram, pasted text).
+- **Meal name detected:** Shows "Generate Recipe with AI" button and "Just Save" button.
+- **Question/constraint detected:** Shows "Let AI Chef help →" button to enter a conversational recipe refinement flow.
 
-`app/add-recipe-manual.tsx` still exists as a **dedicated edit screen** — `recipe-detail.tsx` navigates here with `editId` to edit an existing saved meal, and `add-recipe-review.tsx` uses it as a "Fill Manually" escape hatch.
+The `components/SmartBar.tsx` component handles input detection via `utils/inputDetection.ts`. The `components/SmartBarResults.tsx` component renders context-aware action buttons.
 
-> **Rule:** All navigation to the Add a Recipe flow must go to `/add-recipe-entry`. The only exception is **editing** an existing meal, which navigates directly to `/add-recipe-manual?editId={id}`.
+All paths eventually write to `app/add-recipe-review.tsx`.
 
-> ⚠️ **Dead screens removed (2026-03-21):** `add-recipe-video.tsx` and `add-recipe-paste.tsx` were deleted. Their functionality is fully covered by the AI drop zone in `add-recipe-entry.tsx`. Do not recreate them.
+> **Note:** The standalone `add-recipe-video.tsx` and `add-recipe-paste.tsx` screens were removed — video/link extraction is now handled directly by the Paste a Link field on the entry screen.
+
+> **Rule:** All navigation to the Add a Recipe flow must go to `/add-recipe-entry`. The only exception is editing an existing meal, which navigates directly to `/add-recipe-review?editId={id}` to bypass the entry chooser.
 
 ### Recipe Extraction
-AI-powered extraction from YouTube URLs, TikTok URLs, pasted text, and images. Handled by `services/recipeExtraction.ts` using `gpt-4o-mini`. Extracts name, ingredients, method, cuisine, and cook time.
+AI-powered extraction from YouTube URLs (including Shorts), TikTok URLs, Instagram Reels, pasted text, and images. All extraction is proxied through the `extract-recipe` Supabase Edge Function (server-side) — the OpenAI API key never ships in the app bundle. Client-side logic lives in `services/recipeExtraction.ts`. Includes full video extraction: server-side download via yt-dlp/Apify, Whisper transcription, GPT-4o Vision frame analysis, and GPT-4o recipe assembly. Per-user quota enforcement is built into the Edge Function.
+
+> Extraction supports output in the user's chosen language (forwarded from FamilySettings.language).
+
+### AI Recipe Generation
+Type a meal name (e.g., "Masala Chai") and tap "Generate Recipe with AI" to auto-generate a recipe via the `extract-recipe` Edge Function with `type: 'name'`. Results are reviewed on the same `add-recipe-review.tsx` screen.
+
+### AI Chef (Conversational Recipe Assistant)
+Type a question or constraint (e.g., "low-carb pasta with spinach") and tap "Let AI Chef help →" to enter a conversational flow. Navigates to `app/ai-chef.tsx` — a chat interface powered by the `ai-chef` Edge Function. The function uses GPT-4o for nuanced recipe generation through conversation. Quota: 20 AI Chef sessions per month (tracked in `ai_usage.ai_chef_sessions`). The function receives the initial prompt from SmartBar and auto-sends the first message. The user can refine via conversation, then save the resulting recipe to the review screen.
 
 ### Meal Image Handling
-Auto-suggests food images from Unsplash after meal name entry. Users can also pick from camera or photo library. Base64 images passed between screens via `services/imageStore.ts` (never via route params). Handled by `services/imageSearch.ts`.
+Auto-suggests food images from Unsplash after meal name entry. Users can also pick from camera or photo library. Base64 images passed between screens via `services/imageStore.ts` (never via route params).
 
-### My Recipes vs Saved (Favs Tab)
+### My Recipes vs Saved (Recipes Tab)
 Family-created meals (`source === 'family_created'`) are stored permanently and can only be deleted via explicit long-press confirmation — never accidentally removed by tapping a heart. Discovered/saved meals can be removed via the heart button. Both types appear together in one unified grid (the SegmentedControl between My Recipes / Saved was removed).
 
 ### Onboarding & Auth
-Onboarding flow exists at `app/onboarding/`. The home screen redirects to `/onboarding/auth` when `onboardingData.completed === false`.
+Onboarding flow exists at `app/onboarding/`. The home screen redirects to `/onboarding/auth` when `onboardingData.completed === false`. Authentication is handled by `providers/AuthProvider.tsx`: anonymous auth via `signInAnonymously()` on first launch (so every device has a real `auth.uid()` for RLS), with email OTP (6-digit code) for full auth. Anonymous users will be upgraded via `supabase.auth.linkIdentity()` when full auth ships.
 
 The flow is **14 steps** (updated March 2026 — was 11). Each screen calls `setStep(N)` then `router.push(...)` on continue.
 
@@ -118,9 +118,9 @@ The flow is **14 steps** (updated March 2026 — was 11). Each screen calls `set
 - Options: `no_beef`, `no_pork`, `no_shellfish`, `no_meat`, `vegan` (labelled "No animal products"), `halal`, `kosher`
 - "No meat" description: "Vegetarian — no meat or fish, eggs and dairy may vary" — deliberately avoids saying fish is included, because many vegetarian households (especially Indian) do not eat fish
 
-**Steps 4–5 are hard gates** — cultural restrictions and intolerances feed directly into `violatesDietaryConstraints()` in `services/recommendationEngine.ts` and are merged with `familyDietaryPrefs` as a single deduplicated constraint list. Smart Fill will never suggest a meal that violates these.
+**Steps 4–5 are hard gates** — cultural restrictions and intolerances are strict constraints used for recipe filtering. Smart Fill will never suggest a meal that violates these.
 
-**Steps 6–8 are soft signals** — diet preferences and health goals shape scoring weights in `goalAndHealthScore()` and carousel selection in `buildCarousels()`, but do not hard-exclude meals.
+**Steps 6–8 are soft signals** — diet preferences and health goals inform recommendation scoring and carousel selection, but do not hard-exclude meals.
 
 **Step 7 household types:** `solo`, `young_family`, `school_age`, `adults_only`, `seniors`, `mixed`. `solo` is a first-class option and appears first in the list.
 
@@ -128,29 +128,39 @@ The flow is **14 steps** (updated March 2026 — was 11). Each screen calls `set
 
 **Solo user adaptive copy:** Import `useHouseholdCopy` from `hooks/useHouseholdCopy.ts` in any onboarding screen that references the household. Returns `isSolo`, `noneLabel`, `subject`, `possessive`, and `object` that switch between singular ("you / me") and plural ("your household / us") based on `household_size === 1`. Applied to Steps 4–9.
 
+### Family Invite Flow
+Full invite system for adding family members: `app/invite-member.tsx` (generate/share invite codes), `app/join/[code].tsx` (accept invites), `services/inviteService.ts` (invite lifecycle). Supports native share sheet, WhatsApp, iMessage, and clipboard copy. Invite codes are 8-character, readable, and valid for 7 days.
+
 ---
 
 ## Active Development Flags
 
-> ⚠️ These must be reverted before production release.
-
-| Flag | File | Current Value | Action needed |
-|------|------|---------------|---------------|
-| `DEV_SKIP_ONBOARDING` | `providers/OnboardingProvider.tsx` | `true` | Set to `false` to re-enable auth and onboarding |
+| Flag | File | Current Value | Notes |
+|------|------|---------------|-------|
+| `DEV_SKIP_ONBOARDING` | `providers/OnboardingProvider.tsx` | `false` | Onboarding is active. Set to `true` only during development to bypass auth/onboarding. |
 
 ---
 
 ## Environment Variables
 
-All stored in Rork's Environment Variables panel (not in `.env` files):
+### Client-side (in Rork's Environment Variables panel)
 
 | Variable | Purpose |
 |----------|---------|
-| `EXPO_PUBLIC_UNSPLASH_ACCESS_KEY` | Unsplash image search for meal photos |
-| `EXPO_PUBLIC_OPENAI_API_KEY` | Recipe extraction (GPT-4o-mini) |
-| `EXPO_PUBLIC_YOUTUBE_API_KEY` | YouTube video metadata for recipe extraction |
+| `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous/public key (safe to expose — RLS protects data) |
 
-> ⚠️ OpenAI API key is currently client-side. Must be moved to Supabase Edge Functions before public launch.
+### Server-side (Supabase Edge Function secrets)
+
+All third-party API keys live exclusively in Edge Function secrets — never in client code:
+
+| Secret | Used by Edge Function | Purpose |
+|--------|----------------------|---------|
+| OpenAI API key | `extract-recipe` | GPT-4o-mini/GPT-4o for recipe extraction + Whisper for video transcription |
+| YouTube API key | `extract-recipe` | YouTube video metadata |
+| ~~Spoonacular API key~~ | ~~`spoonacular`~~ | **Dead code** — Discover tab now queries curated recipes from Supabase directly. `services/spoonacular.ts` and the `spoonacular` Edge Function are unused legacy files. |
+
+> The old client-side env vars (`EXPO_PUBLIC_UNSPLASH_ACCESS_KEY`, `EXPO_PUBLIC_OPENAI_API_KEY`, `EXPO_PUBLIC_YOUTUBE_API_KEY`) have been removed from client code.
 
 ---
 
@@ -209,10 +219,11 @@ Shadows.card / header / tabBar  — all use Colors.shadow (red-tinted)
 ### Existing Components (reuse, never recreate)
 - `AppHeader` — top navigation bar with title and optional right element
 - `FilterPill` — horizontal chip for filter rows. Active state: `Colors.primary` bg + white text. Inactive: `Colors.surface` bg + `Colors.text`.
-- `MealImagePlaceholder` — image placeholder for meals without a photo. Renders in three modes: (1) **delivery platform logo** (when `deliveryPlatform` prop is set), (2) **meal name initials** on a hashed muted background (when `familyInitials` prop is set — used for family-created meals without a photo; initials are derived from `name` prop, e.g. "MC" for Masala Chai), (3) **emoji + colour gradient** fallback. Never pass `familyAvatarUrl` to Favs grid cards — only `familyInitials` is used there.
-- `NoneButton` — equal-weight secondary button used on all onboarding dietary screens (Steps 4–8). Visually equivalent to `PrimaryButton` but with `Colors.surface` bg, `Colors.border` border, and `Colors.textSecondary` text. Replaces hidden skip labels so users clearly see "none apply" as a real option, not an afterthought. Always pair with `PrimaryButton` ("Continue") above it. Label should adapt via `useHouseholdCopy` — e.g. "None of these apply to me" vs "…to us".
+- `MealImagePlaceholder` — image placeholder for meals without a photo. Renders in three modes: (1) **delivery platform logo** (when `deliveryPlatform` prop is set), (2) **meal name initials** on a hashed muted background (when `familyInitials` prop is set — initials are derived from the `name` prop, e.g. "MC" for Masala Chai; the `familyInitials` value itself acts as a flag, the component derives the actual initials from `name`), (3) **emoji + colour gradient** fallback. Never pass `familyAvatarUrl` to Recipes grid cards — only `familyInitials` is used there.
+  > ⚠️ **Rule:** In the Recipes grid, pass `familyInitials` for **any meal without an `image_url`** (not just `source === 'family_created'`). Meals saved from onboarding or AI extraction may have no photo — they must show initials, not the emoji/gradient fallback. Correct condition: `!item.delivery_platform && !item.image_url ? familyInitials : undefined`.
+- `SmartBar` — context-aware recipe input field. Detects input type (empty, URL, name, question) and displays appropriate action buttons. Component: `components/SmartBar.tsx`.
+- `SmartBarResults` — renders action buttons based on SmartBar input detection. Component: `components/SmartBarResults.tsx`.
 - `SlotPickerModal` — meal slot selection modal
-- ~~`MealPickerSheet`~~ — **deleted**. Replaced by `/meal-picker` and `/add-to-favs` Expo Router screens. See "Add-Meal Navigation Architecture" section above.
 - `MealSlotEditor` — add/remove/rename meal slots in settings
 - `WeeklyPlanView` — 7-day grid with meal pills, week navigation, Smart Fill. Action buttons (Reshuffle, Repeat, Clear week) use `Colors.surface` bg, `Colors.text`, `fontWeight: '600'`, no icons.
 - `DailyPlanView` — day-level meal slots with serving stepper and meal rows. Action buttons (Smart Fill/Reshuffle, Repeat day, Clear day) match WeeklyPlanView style exactly.
@@ -231,22 +242,18 @@ Shadows.card / header / tabBar  — all use Colors.shadow (red-tinted)
 
 ### Custom Hooks (`hooks/`)
 - `useHouseholdCopy` — returns copy variants that adapt to solo vs multi-person households. Reads `household_size` from `useOnboarding()`. Use on any screen that references the household in copy. Returns: `isSolo` (bool), `subject` ("you" / "your household"), `possessive` ("your" / "your household's"), `noneLabel` ("None of these apply to me" / "…to us"), `object` ("me" / "us"), `followVerb` ("I follow" / "We follow"). **Rule:** never hardcode "your family" or "your household" in onboarding screens — always use this hook.
-- `useDiscoverRecommendations` — builds a `UserProfile` and returns ranked carousels for the Discover tab.
-- `useWeekRatings` — aggregates meal ratings for the current week.
 
 ---
 
-## Development Workflow
+## Rork Prompt Submission Rules
 
-All code changes are made **directly in the GitHub repo** — never by prompting Rork's chat. Rork is only used to run and hot-reload the app via Expo Go for visual review.
+> ⚠️ **Critical:** Rork's chat input treats the Enter/Return key as "send message". Never use the `type` tool to enter multi-line prompts — every newline will submit a separate prompt and flood the queue.
 
-**Standard workflow:**
-1. Clone / pull the repo: `git clone https://github.com/abhundance/rork-meal-plan-app` (or `git pull` if already cloned)
-2. Make code changes directly to source files
-3. Commit and push to `main` (or a feature branch)
-4. Open Rork to review the live Expo preview — Rork picks up changes automatically from GitHub
+The correct way to submit a prompt to Rork via browser automation:
+1. Use `form_input` to set the textarea value (pastes the full text without triggering Enter)
+2. Then click the Send button once
 
-> **Rule:** Never navigate Rork's browser file tree to read or edit code. GitHub is always the source of truth.
+Always submit prompts as a **single message** — no newlines in the submitted text if using the `type` tool.
 
 ---
 
@@ -301,19 +308,29 @@ These patterns were established through development and must be followed:
 
    Also add a `useFocusEffect` that calls `flatListRef.current?.scrollToOffset({ offset: 0, animated: false })` whenever the tab is focused, as a belt-and-suspenders safety net.
 
-   > **Screens using this pattern:** `app/(tabs)/favs/index.tsx`
+   > **Screens using this pattern:** `app/(tabs)/recipes/index.tsx`
    > **Reference implementation:** See commit `6ac4db6` — `fix(favs): merge all content into single FlatList`
 
 ---
 
 ## Pre-Production Checklist
 
-Items intentionally deferred — must be completed before public launch:
+| Item | Status |
+|------|--------|
+| Full authentication flow (anonymous + email OTP) | ✅ Done |
+| Move API keys server-side (Supabase Edge Functions) | ✅ Done |
+| Per-user quota system for AI extraction | ✅ Done |
+| Supabase as primary data store (recipes, meal plans, shopping, settings) | ✅ Done |
+| Full video recipe extraction (YouTube, TikTok, Instagram) | ✅ Done |
+| Family invite flow | ✅ Done |
+| UUID migration for all entity IDs | ✅ Done |
 
-- [ ] Set `DEV_SKIP_ONBOARDING = false` and implement full authentication flow
-- [ ] Move OpenAI API calls from client-side to Supabase Edge Functions
-- [ ] Implement per-user credit/quota system for AI feature usage
+Items still pending before public launch:
+
+- [ ] Upgrade anonymous users to full auth via `linkIdentity()` (currently anonymous auth only)
 - [ ] Unsplash API: apply for production access (current: demo tier, 50 req/hour)
+- [ ] Production error monitoring / crash reporting
+- [ ] App Store / Play Store submission prep
 
 ---
 
@@ -321,26 +338,59 @@ Items intentionally deferred — must be completed before public launch:
 
 Post-launch features for future development sprints:
 
-### Full Video Recipe Extraction (TikTok / Instagram / YouTube)
-**What:** Extract recipes from videos even when there is no recipe text in the description — by downloading the video, transcribing the audio, and analysing video frames with vision AI.
-**Why:** Competitors like Honeydew do this. Currently the app only reads the YouTube description and TikTok caption, which fails for videos with no text.
-**How it works:**
-1. Server-side video download using `yt-dlp` or Apify (cannot run client-side)
-2. Audio extraction → OpenAI Whisper transcription
-3. Frame extraction (keyframes) → GPT-4o Vision analysis for on-screen text, ingredients, quantities
-4. Combined transcript + visual data → GPT-4o recipe assembly
-**Dependency:** Requires backend migration (Supabase Edge Functions) to be completed first — video downloading and processing cannot run on the mobile client.
-**Estimated cost:** ~$0.08–0.17 per video extraction (Whisper + GPT-4o Vision + GPT-4o). Cover via subscription or per-user credit quota.
-**Legal note:** Downloading TikTok/Instagram videos without authorisation technically violates their ToS. Monitor platform policy changes.
+### Localisation — Full UI Translation (Phases 2–3)
+**What:** Translate all hardcoded UI strings in the app so the interface responds to the language set in Settings → Language. Currently the language picker saves the setting but only AI extraction uses it (Phase 1 is done — see commit `33686b9`).
+**Why:** The app already has a language picker with 6 languages (English, Français, Español, Deutsch, Português, Italiano). Completing the UI layer makes the whole experience consistent for non-English speakers.
+**How:**
+1. Install `expo-localization` + `i18next` + `react-i18next`
+2. Create `services/i18n.ts` — initialises i18next, maps FamilySettings.language display names to locale codes (`'Français' → 'fr'`)
+3. Create `locales/en.json` (source), then generate `fr.json`, `es.json`, `de.json`, `pt.json`, `it.json` via GPT-4o batch translation
+4. Extract strings from 7 high-traffic screens: Plan tab, Recipes, Shopping, Add a Meal flows, Settings
+5. Extract remaining screens (onboarding, modals, alerts, enum option labels)
+6. Wire `changeLanguage()` to the existing language picker in Settings — changes take effect instantly, no restart needed
+**Dependency:** Supabase migration is complete, so this is unblocked. Discover content (curated recipes) is stored in Supabase and would need translated versions or a translation layer.
+**Effort:** ~2–3 days.
+**Note on data model:** FamilySettings.language currently stores display names ('Français'). Keep this — the i18n service maps to locale codes internally. No data migration needed.
+
+---
+
+### Smart Recommendations (pgvector)
+**What:** Use vector embeddings to power "suggest meals similar to what this family ate last week" and duplicate detection when saving new recipes.
+**Why:** Smart Fill currently picks from saved recipes without semantic awareness. Embeddings would enable similarity-based suggestions and "you already have something like this" detection.
+**How:** Enable `pgvector` extension in Supabase (already available), add an `embedding` column to `recipes`, generate embeddings via OpenAI when recipes are saved, query by cosine similarity.
+**Priority:** Phase 3 — core value works without it.
+
+---
+
+## Key Services
+
+| File | Purpose |
+|------|---------|
+| `services/supabase.ts` | Singleton Supabase client (lazy env pattern, AsyncStorage for session persistence) |
+| `services/db.ts` | Supabase row ↔ TypeScript type transformations (all providers import from here) |
+| `services/recipeExtraction.ts` | Client-side logic for calling the `extract-recipe` Edge Function |
+| `services/inviteService.ts` | Family invite lifecycle (create, resolve, accept) |
+| `services/imageStore.ts` | In-memory base64 image store for passing images between screens |
+| `utils/inputDetection.ts` | SmartBar input type detection (URL, name, question, empty) |
+
+### Supabase Edge Functions
+
+| Function | Purpose |
+|----------|---------|
+| `extract-recipe` | AI recipe extraction (text, YouTube, TikTok, Instagram, name). Handles video download, Whisper transcription, GPT-4o Vision, quota enforcement. |
+| `ai-chef` | Conversational recipe assistant using GPT-4o. Quota: 20 sessions per month per user. |
+
+> Edge Function source is maintained in the Supabase Dashboard. The `supabase/functions/` directory contains placeholder files for source control. Deploy via `supabase functions deploy <name>`.
 
 ---
 
 ## Data Model (Key Fields)
 
 ```ts
-// FavMeal — core meal object used across Favs, Meal Plan, and Add a Meal
+// Recipe — core meal object used across Recipes tab, Meal Plan, and Add a Meal
+// IDs are UUIDs (crypto.randomUUID() with Hermes polyfill)
 {
-  id: string
+  id: string                // UUID
   name: string
   image_url?: string
   source: 'family_created' | 'discover' | string  // CRITICAL: determines My Recipes vs Saved

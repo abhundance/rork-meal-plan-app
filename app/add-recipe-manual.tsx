@@ -25,7 +25,7 @@ import { BorderRadius, Spacing } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
 import FilterPill from '@/components/FilterPill';
 import ServingStepper from '@/components/ServingStepper';
-import { useFavs } from '@/providers/FavsProvider';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { consumePendingPlanSlot } from '@/services/pendingPlanSlot';
@@ -46,7 +46,7 @@ import {
 export default function AddMealScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ editId?: string }>();
-  const { meals, addFav, updateFav, isFavByName, syncRecipeNow } = useFavs();
+  const { meals, addRecipe, updateRecipe, isSavedByName, syncRecipeNow } = useRecipes();
   const { familySettings } = useFamilySettings();
   const { addMeal } = useMealPlan();
 
@@ -276,7 +276,7 @@ export default function AddMealScreen() {
       is_ingredient_complete: validIngredients.length > 0,
       is_recipe_complete: validSteps.length > 0,
     };
-    addFav(newMeal);
+    addRecipe(newMeal);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const pending = consumePendingPlanSlot();
     if (pending) {
@@ -297,14 +297,14 @@ export default function AddMealScreen() {
       console.log('[AddMeal] Auto-added to plan slot:', pending.slotId, pending.date);
       router.replace('/(tabs)' as never);
     } else {
-      router.replace('/(tabs)/favs' as never);
+      router.replace('/(tabs)/recipes' as never);
     }
   }, [
     name, cookingTimeBand, prepTime, cookTime, mealType, selectedImageUri,
     cuisine, dishCategory, proteinSource, occasions,
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
-    customTags, description, servingSize, addFav, syncRecipeNow, addMeal,
+    customTags, description, servingSize, addRecipe, syncRecipeNow, addMeal,
   ]);
 
   const handleSave = useCallback(() => {
@@ -327,7 +327,7 @@ export default function AddMealScreen() {
     const derivedDietaryTags = [...new Set([...dietLabels, ...allergens])];
 
     if (isEditing && editMeal) {
-      updateFav(editMeal.id, {
+      updateRecipe(editMeal.id, {
         name: name.trim(),
         image_url: selectedImageUri || undefined,
         cooking_time_band: cookingTimeBand as Recipe['cooking_time_band'] || undefined,
@@ -357,10 +357,10 @@ export default function AddMealScreen() {
       return;
     }
 
-    if (!isEditing && isFavByName(name.trim())) {
+    if (!isEditing && isSavedByName(name.trim())) {
       Alert.alert(
         'Duplicate found',
-        `You already have "${name.trim()}" in your Favs.`,
+        `You already have "${name.trim()}" in your Recipes.`,
         [
           { text: 'View it', onPress: () => router.back() },
           { text: 'Add Anyway', onPress: () => saveMeal(validIngredients, validSteps, derivedDietaryTags) },
@@ -376,7 +376,7 @@ export default function AddMealScreen() {
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
     customTags, description, servingSize, ingredients, methodSteps,
-    isEditing, editMeal, updateFav, isFavByName, saveMeal,
+    isEditing, editMeal, updateRecipe, isSavedByName, saveMeal,
   ]);
 
   return (
@@ -803,9 +803,7 @@ export default function AddMealScreen() {
             label={
               !isEditing
                 ? 'Save Meal'
-                : (editMeal?.source === 'discover' && !editMeal?.is_customized)
-                  ? 'Save to Favourites'
-                  : 'Save Changes'
+                : 'Save Changes'
             }
             onPress={handleSave}
             disabled={!name.trim()}

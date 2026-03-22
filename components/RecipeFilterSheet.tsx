@@ -1,7 +1,7 @@
 /**
  * RecipeFilterSheet
  *
- * Shared filter bottom sheet used by both the Favs and Discover tabs.
+ * Shared filter bottom sheet used by both the Recipes and Discover tabs.
  * Configure which sections appear via the `config` prop.
  *
  * Design contract (do not change without updating both callers):
@@ -23,8 +23,8 @@
  *   8. Occasion         — multi-select   (Discover only)
  *   9. Spice Level      — single-select  (Discover only)
  *  10. Calories         — single-select  (both tabs)
- *  11. Source           — single-select  (Favs only)
- *  12. Rating           — single-select  (Favs only)
+ *  11. Source           — single-select  (Recipes only)
+ *  12. Rating           — single-select  (Recipes only)
  *  13. Sort             — single-select  (optional, currently off on both)
  */
 
@@ -59,8 +59,8 @@ export interface RecipeFilterState {
   occasions:    string[];  // multi-select — e.g. ['weeknight', 'meal-prep']
   spiceLevel:   string;    // '' | 'mild' | 'medium' | 'hot'
   calories:     string;    // '' | 'under_400' | '400_600' | 'over_600'
-  source:       string;    // '' | 'family_created' | 'discover'   (Favs only)
-  rating:       string;    // '' | 'loved' | 'liked' | 'unrated'   (Favs only)
+  source:       string;    // '' | 'family_created' | 'discover'   (Recipes only)
+  rating:       string;    // '' | 'loved' | 'liked' | 'unrated'   (Recipes only)
 }
 
 export const DEFAULT_FILTER_STATE: RecipeFilterState = {
@@ -94,7 +94,7 @@ export interface RecipeFilterConfig {
   showIntolerances?: boolean;
   showOccasion?:     boolean;
   showSpiceLevel?:   boolean;
-  // ── Favs-only sections ─────────────────────────────────────────────────────
+  // ── Recipes-only sections ─────────────────────────────────────────────────────
   showSource?:       boolean;
   showRating?:       boolean;
   // ── Optional (currently off on both tabs) ─────────────────────────────────
@@ -479,7 +479,7 @@ export default function RecipeFilterSheet({
             </Section>
           )}
 
-          {/* 11. SOURCE (Favs only) */}
+          {/* 11. SOURCE (Recipes only) */}
           {config.showSource && (
             <Section label="SOURCE" first={nextFirst()}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
@@ -495,7 +495,7 @@ export default function RecipeFilterSheet({
             </Section>
           )}
 
-          {/* 12. RATING (Favs only) */}
+          {/* 12. RATING (Recipes only) */}
           {config.showRating && (
             <Section label="RATING" first={nextFirst()}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>

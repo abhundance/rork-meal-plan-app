@@ -26,7 +26,7 @@ import EmptyState from '@/components/EmptyState';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
-import { useFavs } from '@/providers/FavsProvider';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { useShopping } from '@/providers/ShoppingProvider';
 import { ShoppingItem, INGREDIENT_CATEGORIES } from '@/types';
 import { getWeekDates } from '@/utils/dates';
@@ -466,7 +466,7 @@ export default function ShoppingScreen() {
   const insets = useSafeAreaInsets();
   const { familySettings } = useFamilySettings();
   const { getIngredientsForWeek, meals } = useMealPlan();
-  const { meals: favMeals } = useFavs();
+  const { meals: savedRecipes } = useRecipes();
   const shopping = useShopping();
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -479,7 +479,7 @@ export default function ShoppingScreen() {
 
   // ── Auto-generate whenever meals or week selection changes ──────────────────
   useEffect(() => {
-    const { ingredients } = getIngredientsForWeek(weekOffset, fromTodayOnly, favMeals);
+    const { ingredients } = getIngredientsForWeek(weekOffset, fromTodayOnly, savedRecipes);
     const pantryNames = familySettings.pantry_items.map((p) => p.name);
     shopping.generateList(ingredients, pantryNames);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -489,7 +489,7 @@ export default function ShoppingScreen() {
   const dateLabel = useMemo(() => buildDateLabel(shopping.weekMode), [shopping.weekMode]);
 
   const mealCount = useMemo(() => {
-    const { mealCount } = getIngredientsForWeek(weekOffset, fromTodayOnly, favMeals);
+    const { mealCount } = getIngredientsForWeek(weekOffset, fromTodayOnly, savedRecipes);
     return mealCount;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meals, weekOffset]);

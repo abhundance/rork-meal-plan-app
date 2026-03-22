@@ -16,8 +16,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
-import { useFavs } from '@/providers/FavsProvider';
-import { DISCOVER_MEALS } from '@/mocks/discover';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { Recipe, PlannedMeal, PersonalGoal } from '@/types';
 import { resolveGoal } from '@/utils/goalUtils';
 import { getWeekDates, formatDateKey, getDayName, isToday } from '@/utils/dates';
@@ -149,7 +148,7 @@ function goalBonus(entry: PoolEntry, goal: PersonalGoal | undefined): number {
  * Higher = more likely to be picked. Can be negative (shifted up in weightedPick).
  *
  * Signals:
- *   Rating:          loved +60 / liked +30 / fav no-rating +15 / discover no-rating +5
+ *   Rating:          loved +60 / liked +30 / fav no-rating +15
  *   Planned before:  add_to_plan_count > 0 → +10
  *   Recency:         cooked ≤7 days ago → −30 / ≤14 days → −15
  *   Protein today:   same protein already used today → −40
@@ -226,7 +225,7 @@ export default function MealPlanScreen() {
     clearDay,
     clearWeek,
   } = useMealPlan();
-  const { meals: favMeals, addFav, removeFav } = useFavs();
+  const { meals: savedRecipes, addRecipe, removeRecipe } = useRecipes();
 
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [weekOffset, setWeekOffset] = useState<number>(0);
@@ -281,8 +280,8 @@ export default function MealPlanScreen() {
   );
 
 
-  const favMealsRef = useRef(favMeals);
-  favMealsRef.current = favMeals;
+  const favMealsRef = useRef(savedRecipes);
+  favMealsRef.current = savedRecipes;
 
   const handleRemoveMealById = useCallback((mealId: string) => {
     removeMealById(mealId);
@@ -356,14 +355,14 @@ export default function MealPlanScreen() {
     const weekDates = getWeekDates(weekOffset);
     const defaultServing = familySettings.default_serving_size;
     const noveltyPct = familySettings.smart_fill_novelty_pct ?? 30;
-    const favNames = new Set(favMeals.map((f) => f.name.toLowerCase()));
+    const favNames = new Set(savedRecipes.map((f) => f.name.toLowerCase()));
     const weekWasEmpty = weekDates.every((date) =>
       sortedSlots.every((slot) => getMealsForSlot(formatDateKey(date), slot.slot_id).length === 0)
     );
 
     // ── Build pools ──────────────────────────────────────────────────────────
-    // familiarPool = meals the family already knows (Favs), with full rich fields
-    const familiarPool: PoolEntry[] = favMeals.map((f) => ({
+    // familiarPool = meals the family already knows (Recipes), with full rich fields
+    const familiarPool: PoolEntry[] = savedRecipes.map((f) => ({
       id: f.id,
       name: f.name,
       image_url: f.image_url,
@@ -385,32 +384,10 @@ export default function MealPlanScreen() {
       health_score: f.health_score,
     }));
 
-    // newPool = discover meals not already in Favs
-    const newPool: PoolEntry[] = DISCOVER_MEALS
-      .filter((d) => !favNames.has(d.name.toLowerCase()))
-      .map((d) => ({
-        name: d.name,
-        image_url: d.image_url,
-        ingredients: d.ingredients,
-        recipe_serving_size: d.recipe_serving_size,
-        isNew: true,
-        meal_type: d.meal_type,
-        protein_source: d.protein_source,
-        cuisines: d.cuisines,
-        add_to_plan_count: d.add_to_plan_count,
-        is_vegan: d.is_vegan,
-        is_vegetarian: d.is_vegetarian,
-        is_gluten_free: d.is_gluten_free,
-        is_dairy_free: d.is_dairy_free,
-        diet_labels: d.diet_labels,
-        protein_per_serving_g: d.protein_per_serving_g,
-        health_score: d.health_score,
-      }));
-
-    const fullPool = [...familiarPool, ...newPool];
+    const fullPool = [...familiarPool];
 
     if (fullPool.length === 0) {
-      Alert.alert('No meals available', 'Add meals to your Favourites or explore Discover to use Smart Plan.');
+      Alert.alert('No meals available', 'Add meals to your Recipes to use Smart Plan.');
       return;
     }
 
@@ -563,7 +540,7 @@ export default function MealPlanScreen() {
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for this week already have meals. Clear some first to use Smart Fill.');
     }
-  }, [weekOffset, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, userSettings.health_goals, addMeals, getMealsForSlot, showSmartPlanToast]);
+  }, [weekOffset, savedRecipes, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, userSettings.health_goals, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   const handleClearWeek = useCallback(() => {
     Alert.alert('Clear this week?', 'All meals for this week will be removed.', [
@@ -597,12 +574,12 @@ export default function MealPlanScreen() {
   const handleSmartPlanDay = useCallback(() => {
     const defaultServing = familySettings.default_serving_size;
     const noveltyPct = familySettings.smart_fill_novelty_pct ?? 30;
-    const favNames = new Set(favMeals.map((f) => f.name.toLowerCase()));
+    const favNames = new Set(savedRecipes.map((f) => f.name.toLowerCase()));
     const dateKey = formatDateKey(currentDate);
     const dayWasEmpty = sortedSlots.every((slot) => getMealsForSlot(dateKey, slot.slot_id).length === 0);
 
     // ── Build pools ──────────────────────────────────────────────────────────
-    const familiarPool: PoolEntry[] = favMeals.map((f) => ({
+    const familiarPool: PoolEntry[] = savedRecipes.map((f) => ({
       id: f.id,
       name: f.name,
       image_url: f.image_url,
@@ -624,31 +601,10 @@ export default function MealPlanScreen() {
       health_score: f.health_score,
     }));
 
-    const newPool: PoolEntry[] = DISCOVER_MEALS
-      .filter((d) => !favNames.has(d.name.toLowerCase()))
-      .map((d) => ({
-        name: d.name,
-        image_url: d.image_url,
-        ingredients: d.ingredients,
-        recipe_serving_size: d.recipe_serving_size,
-        isNew: true,
-        meal_type: d.meal_type,
-        protein_source: d.protein_source,
-        cuisines: d.cuisines,
-        add_to_plan_count: d.add_to_plan_count,
-        is_vegan: d.is_vegan,
-        is_vegetarian: d.is_vegetarian,
-        is_gluten_free: d.is_gluten_free,
-        is_dairy_free: d.is_dairy_free,
-        diet_labels: d.diet_labels,
-        protein_per_serving_g: d.protein_per_serving_g,
-        health_score: d.health_score,
-      }));
-
-    const fullPool = [...familiarPool, ...newPool];
+    const fullPool = [...familiarPool];
 
     if (fullPool.length === 0) {
-      Alert.alert('No meals available', 'Add meals to your Favourites or explore Discover to use Smart Plan.');
+      Alert.alert('No meals available', 'Add meals to your Recipes to use Smart Plan.');
       return;
     }
 
@@ -782,7 +738,7 @@ export default function MealPlanScreen() {
     } else {
       Alert.alert('Already fully planned! 🎉', 'All slots for today already have meals. Clear some first to use Smart Fill.');
     }
-  }, [currentDate, favMeals, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, userSettings.health_goals, addMeals, getMealsForSlot, showSmartPlanToast]);
+  }, [currentDate, savedRecipes, sortedSlots, familySettings.default_serving_size, familySettings.smart_fill_novelty_pct, familySettings.dietary_preferences_family, userSettings.dietary_preferences_individual, userSettings.health_goals, addMeals, getMealsForSlot, showSmartPlanToast]);
 
   if (isLoading) {
     return (

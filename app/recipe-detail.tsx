@@ -31,37 +31,19 @@ import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Shadows } from '@/constants/theme';
 import ServingStepper from '@/components/ServingStepper';
 import SlotPickerModal from '@/components/SlotPickerModal';
-import { useFavs } from '@/providers/FavsProvider';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { Recipe, PlannedMeal } from '@/types';
-import { DISCOVER_MEALS } from '@/mocks/discover';
-import { getCachedDiscoverMeal, cacheDiscoverMeal } from '@/services/discoverMealCache';
 import { getFamilyInitials, isRealPhotoUrl } from '@/utils/familyAvatar';
-import { getSupabase } from '@/services/supabase';
 import { generateUUID } from '@/utils/uuid';
-
-/**
- * Find a discover meal. Resolution order:
- *   1. `override` — asynchronously fetched from Supabase (covers UUID-based IDs from the main Discover tab)
- *   2. In-memory cache — populated when user browses the Discover tab in the current session
- *   3. Static mock fallback — covers disc_X IDs coming from discover-search / discover-collection
- */
-function findDiscoverMeal(id: string, override?: import('@/types').DiscoverMeal | null) {
-  return override ?? getCachedDiscoverMeal(id) ?? DISCOVER_MEALS.find((m) => m.id === id);
-}
-/** Find a discover meal by name (for plan-source lookups). */
-function findDiscoverMealByName(name: string) {
-  const lower = name.toLowerCase();
-  return DISCOVER_MEALS.find((m) => m.name.toLowerCase() === lower);
-}
 
 const DESTRUCTIVE_RED = Colors.danger;
 
 export default function MealDetailScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id: string; source: string }>();
-  const { meals: favMeals, isFav, isFavByName, addFav, addFromDiscover, removeFav, incrementPlanCount } = useFavs();
+  const { meals: savedRecipes, isSaved, isSavedByName, addRecipe, removeRecipe, incrementPlanCount } = useRecipes();
   const { familySettings } = useFamilySettings();
   const { meals: planMeals, addMeal, removeMeal, updateMealNote, getMealsForSlot, linkMealToPlan } = useMealPlan();
 
@@ -69,13 +51,6 @@ export default function MealDetailScreen() {
   const [slotPickerVisible, setSlotPickerVisible] = useState<boolean>(false);
   const [dailyNote, setDailyNote] = useState<string>('');
   const [initialized, setInitialized] = useState<boolean>(false);
-  // richDetail kept for nutrition display (always null now — Spoonacular removed)
-  const richDetail = null;
-  const isLoadingDetail = false;
-  // Asynchronously fetched discover meal — used when source=discover and the ID is a Supabase UUID
-  // that is not yet in the in-memory cache (i.e. cold start, first open of this meal).
-  const [fetchedDiscover, setFetchedDiscover] = useState<import('@/types').DiscoverMeal | null>(null);
-  const [isLoadingDiscover, setIsLoadingDiscover] = useState<boolean>(false);
 
   const plannedMeal = useMemo<PlannedMeal | null>(() => {
     if (params.source !== 'plan') return null;
@@ -92,59 +67,40 @@ export default function MealDetailScreen() {
 
   const planMealFoundViaId = useMemo<boolean>(() => {
     if (params.source !== 'plan' || !plannedMeal?.meal_id) return false;
-    return favMeals.some((f) => f.id === plannedMeal.meal_id);
-  }, [params.source, plannedMeal, favMeals]);
+    return savedRecipes.some((f) => f.id === plannedMeal.meal_id);
+  }, [params.source, plannedMeal, savedRecipes]);
 
   const meal = useMemo<Recipe | null>(() => {
-    if (params.source === 'favs') {
-      const favMeal = favMeals.find((m) => m.id === params.id) ?? null;
-      // If this fav was hearted from a Discover card (not the detail view), it was saved
-      // with card-only data (ingredients: []). Once fetchedDiscover is loaded, merge in
-      // the full ingredient + method data so the detail screen shows correctly.
-      if (
-        favMeal &&
-        favMeal.source === 'discover' &&
-        favMeal.ingredients.length === 0 &&
-        fetchedDiscover
-      ) {
-        return {
-          ...favMeal,
-          ingredients: fetchedDiscover.ingredients,
-          method_steps: fetchedDiscover.method_steps,
-          is_ingredient_complete: fetchedDiscover.ingredients.length > 0,
-          is_recipe_complete: fetchedDiscover.method_steps.length > 0,
-        };
-      }
-      return favMeal;
+    if (params.source === 'recipes') {
+      return savedRecipes.find((m) => m.id === params.id) ?? null;
     }
 
     if (params.source === 'plan') {
       if (!plannedMeal) return null;
       let favMatch = plannedMeal.meal_id
-        ? favMeals.find((f) => f.id === plannedMeal.meal_id)
+        ? savedRecipes.find((f) => f.id === plannedMeal.meal_id)
         : undefined;
       if (!favMatch) {
-        favMatch = favMeals.find(
+        favMatch = savedRecipes.find(
           (f) => f.name.toLowerCase() === plannedMeal.meal_name.toLowerCase()
         );
       }
-      const discMatch = findDiscoverMealByName(plannedMeal.meal_name);
-      const methodSteps = favMatch?.method_steps ?? discMatch?.method_steps ?? [];
+      const methodSteps = favMatch?.method_steps ?? [];
       return {
         id: plannedMeal.id,
         name: plannedMeal.meal_name,
         image_url: plannedMeal.meal_image_url,
-        cuisine: favMatch?.cuisine ?? discMatch?.cuisine,
-        cooking_time_band: favMatch?.cooking_time_band ?? discMatch?.cooking_time_band,
-        prep_time: favMatch?.prep_time ?? discMatch?.prep_time,
-        cook_time: favMatch?.cook_time ?? discMatch?.cook_time,
-        dietary_tags: favMatch?.dietary_tags ?? discMatch?.dietary_tags ?? [],
+        cuisine: favMatch?.cuisine,
+        cooking_time_band: favMatch?.cooking_time_band,
+        prep_time: favMatch?.prep_time,
+        cook_time: favMatch?.cook_time,
+        dietary_tags: favMatch?.dietary_tags ?? [],
         custom_tags: favMatch?.custom_tags ?? [],
         ingredients: favMatch?.ingredients ?? plannedMeal.ingredients,
         recipe_serving_size: plannedMeal.recipe_serving_size,
         method_steps: methodSteps,
-        description: favMatch?.description ?? discMatch?.description,
-        source: favMatch ? favMatch.source : (discMatch ? 'discover' as const : 'family_created' as const),
+        description: favMatch?.description,
+        source: favMatch ? favMatch.source : 'family_created' as const,
         add_to_plan_count: favMatch?.add_to_plan_count ?? 0,
         created_at: favMatch?.created_at ?? plannedMeal.date,
         is_ingredient_complete: (favMatch?.ingredients ?? plannedMeal.ingredients).length > 0,
@@ -152,178 +108,19 @@ export default function MealDetailScreen() {
       } as Recipe;
     }
 
-    const disc = findDiscoverMeal(params.id, fetchedDiscover);
-    if (disc) {
-      return {
-        id: disc.id,
-        name: disc.name,
-        image_url: disc.image_url,
-        cuisine: disc.cuisine,
-        cooking_time_band: disc.cooking_time_band,
-        prep_time: disc.prep_time,
-        cook_time: disc.cook_time,
-        dietary_tags: disc.dietary_tags,
-        custom_tags: [] as string[],
-        ingredients: disc.ingredients,
-        recipe_serving_size: disc.recipe_serving_size,
-        method_steps: disc.method_steps,
-        description: disc.description,
-        source: 'discover' as const,
-        add_to_plan_count: 0,
-        created_at: disc.created_at,
-        is_ingredient_complete: disc.ingredients.length > 0,
-        is_recipe_complete: disc.method_steps.length > 0,
-      } as Recipe;
-    }
     return null;
-  }, [params.id, params.source, favMeals, plannedMeal, fetchedDiscover]);
+  }, [params.id, params.source, savedRecipes, plannedMeal]);
 
-  const discoverData = useMemo(() => {
-    if (params.source === 'discover') {
-      return findDiscoverMeal(params.id, fetchedDiscover) ?? null;
-    }
-    if (params.source === 'plan' && plannedMeal) {
-      return findDiscoverMealByName(plannedMeal.meal_name) ?? null;
-    }
-    return null;
-  }, [params.source, params.id, plannedMeal, fetchedDiscover]);
 
-  /**
-   * When source=discover, resolve the meal data.
-   * Fast path: in-memory cache (populated when user has browsed the Discover tab this session).
-   * Slow path: fetch from Supabase by UUID — needed on cold start when the Discover tab hasn't
-   * been visited yet (so the cache is empty) and the ID is a Supabase UUID, not a disc_X mock ID.
-   *
-   * Also handles source=favs when the fav was hearted from a Discover card (not the detail view):
-   * those favs are saved with card-only data (ingredients: []) because useDiscoverMeals no longer
-   * fetches joins for the list. In that case we fetch by name from Supabase to fill in the gaps.
-   */
-  useEffect(() => {
-    // Favs saved from a Discover card have source='discover' but empty ingredients.
-    const isFavsNeedingFetch =
-      params.source === 'favs' &&
-      !!meal &&
-      meal.source === 'discover' &&
-      meal.ingredients.length === 0;
-
-    if (params.source !== 'discover' && !isFavsNeedingFetch) return;
-
-    // Check cache first — only use it if it has full recipe data (ingredients loaded).
-    // The discover list now fetches card-only data, so the cache may hold a
-    // lightweight copy without ingredients. In that case fall through to Supabase.
-    const cached = getCachedDiscoverMeal(params.id);
-    if (cached && cached.ingredients && cached.ingredients.length > 0) {
-      setFetchedDiscover(cached);
-      return;
-    }
-
-    // If the ID looks like a mock disc_X id, the DISCOVER_MEALS fallback will handle it
-    if (params.source === 'discover' && params.id.startsWith('disc_')) return;
-
-    // UUID path: fetch from Supabase.
-    // For discover source: look up by UUID (params.id).
-    // For favs source: the fav has a fav_disc_* id, not the Supabase UUID — look up by name.
-    setIsLoadingDiscover(true);
-    const sb = getSupabase();
-    const selectQuery = sb.from('recipes')
-      .select(`
-        id, name, image_url, description, source,
-        cuisine, cuisines, meal_type, cooking_time_band, prep_time, cook_time,
-        dish_category, protein_source, occasions,
-        is_vegan, is_vegetarian, is_gluten_free, is_dairy_free,
-        allergens, diet_labels, dietary_tags,
-        taste_sweetness, taste_saltiness, taste_sourness, taste_bitterness,
-        taste_savoriness, taste_fattiness, taste_spiciness,
-        calories_per_serving, protein_per_serving_g, carbs_per_serving_g,
-        health_score, recipe_serving_size, add_to_plan_count, created_at,
-        recipe_ingredients ( id, name, quantity, unit, category, position ),
-        recipe_method_steps ( id, step_text, position )
-      `);
-    const queryWithFilter = isFavsNeedingFetch && meal
-      ? selectQuery.eq('name', meal.name).eq('source', 'curated')
-      : selectQuery.eq('id', params.id);
-    queryWithFilter
-      .single()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .then(({ data, error }: { data: any; error: any }) => {
-        if (!error && data) {
-          const mapped: import('@/types').DiscoverMeal = {
-            id: data.id,
-            name: data.name,
-            image_url: data.image_url ?? undefined,
-            description: data.description ?? '',
-            source: data.source,
-            created_at: data.created_at,
-            cuisine: data.cuisine ?? '',
-            cuisines: data.cuisines ?? [],
-            meal_type: data.meal_type ?? 'lunch_dinner',
-            cooking_time_band: data.cooking_time_band ?? 'Under 30',
-            prep_time: data.prep_time ?? 0,
-            cook_time: data.cook_time ?? 0,
-            dish_category: data.dish_category ?? 'main',
-            protein_source: data.protein_source ?? 'none',
-            occasions: data.occasions ?? [],
-            is_vegan: data.is_vegan ?? false,
-            is_vegetarian: data.is_vegetarian ?? false,
-            is_gluten_free: data.is_gluten_free ?? false,
-            is_dairy_free: data.is_dairy_free ?? false,
-            allergens: data.allergens ?? [],
-            diet_labels: data.diet_labels ?? [],
-            dietary_tags: data.dietary_tags ?? [],
-            taste_sweetness: data.taste_sweetness ?? 0,
-            taste_saltiness: data.taste_saltiness ?? 0,
-            taste_sourness: data.taste_sourness ?? 0,
-            taste_bitterness: data.taste_bitterness ?? 0,
-            taste_savoriness: data.taste_savoriness ?? 0,
-            taste_fattiness: data.taste_fattiness ?? 0,
-            taste_spiciness: data.taste_spiciness ?? 0,
-            calories_per_serving: data.calories_per_serving ?? 0,
-            protein_per_serving_g: data.protein_per_serving_g ?? 0,
-            carbs_per_serving_g: data.carbs_per_serving_g ?? 0,
-            health_score: data.health_score ?? 0,
-            recipe_serving_size: data.recipe_serving_size ?? 2,
-            add_to_plan_count: data.add_to_plan_count ?? 0,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ingredients: (data.recipe_ingredients ?? [])
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              .sort((a: any, b: any) => a.position - b.position)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              .map((i: any) => ({
-                id: i.id,
-                name: i.name,
-                quantity: i.quantity,
-                unit: i.unit,
-                category: i.category,
-              })),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            method_steps: (data.recipe_method_steps ?? [])
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              .sort((a: any, b: any) => a.position - b.position)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              .map((s: any) => s.step_text),
-          };
-          // Warm the cache with the full recipe so subsequent taps are instant.
-          cacheDiscoverMeal(mapped);
-          setFetchedDiscover(mapped);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setIsLoadingDiscover(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.id, params.source, meal?.source, meal?.ingredients?.length]);
-
-  const isInFavs = useMemo(() => {
+  const isInSavedRecipes = useMemo(() => {
     if (!meal) return false;
-    // For discover-sourced meals saved via addFromDiscover(), the stored fav has a
-    // fav_disc_* id — not the original discover UUID. Use name-based lookup instead.
-    if (params.source === 'discover') return isFavByName(meal.name);
-    return isFav(meal.id) || params.source === 'favs';
-  }, [meal, isFav, isFavByName, params.source]);
+    return isSaved(meal.id) || params.source === 'recipes';
+  }, [meal, isSaved, params.source]);
 
   const isPlanMealFav = useMemo(() => {
     if (params.source !== 'plan' || !meal) return false;
-    return isFavByName(meal.name);
-  }, [params.source, meal, isFavByName]);
+    return isSavedByName(meal.name);
+  }, [params.source, meal, isSavedByName]);
 
   const sortedSlots = useMemo(
     () => [...familySettings.meal_slots].sort((a, b) => a.order - b.order),
@@ -342,42 +139,36 @@ export default function MealDetailScreen() {
   const handleToggleFav = useCallback(() => {
     if (!meal) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (isInFavs && params.source === 'favs') {
-      Alert.alert('Remove from Favs?', `Remove "${meal.name}"?`, [
+    if (isInSavedRecipes && params.source === 'recipes') {
+      Alert.alert('Remove from Recipes?', `Remove "${meal.name}"?`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Remove',
           style: 'destructive',
           onPress: () => {
-            removeFav(meal.id);
+            removeRecipe(meal.id);
             router.back();
           },
         },
       ]);
-    } else if (!isInFavs && params.source === 'discover') {
-      const disc = findDiscoverMeal(params.id, fetchedDiscover);
-      if (disc) {
-        addFromDiscover(disc);
-        Alert.alert('Saved!', `${meal.name} added to your Favs`);
-      }
     }
-  }, [meal, isInFavs, params, removeFav, addFromDiscover, fetchedDiscover]);
+  }, [meal, isInSavedRecipes, params, removeRecipe]);
 
   const handleToggleFavFromPlan = useCallback(() => {
     if (!meal) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const currentlyFav = isFavByName(meal.name);
+    const currentlyFav = isSavedByName(meal.name);
     if (currentlyFav) {
-      const favEntry = favMeals.find(
+      const favEntry = savedRecipes.find(
         (f) => f.name.toLowerCase() === meal.name.toLowerCase()
       );
       if (favEntry) {
-        Alert.alert('Remove from Favs?', `Remove "${meal.name}"?`, [
+        Alert.alert('Remove from Recipes?', `Remove "${meal.name}"?`, [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Remove',
             style: 'destructive',
-            onPress: () => removeFav(favEntry.id),
+            onPress: () => removeRecipe(favEntry.id),
           },
         ]);
       }
@@ -402,10 +193,10 @@ export default function MealDetailScreen() {
         is_ingredient_complete: meal.ingredients.length > 0,
         is_recipe_complete: meal.method_steps.length > 0,
       };
-      addFav(newFav);
-      Alert.alert('Saved!', `${meal.name} added to your Favs`);
+      addRecipe(newFav);
+      Alert.alert('Saved!', `${meal.name} added to your Recipes`);
     }
-  }, [meal, isFavByName, favMeals, removeFav, addFav]);
+  }, [meal, isSavedByName, savedRecipes, removeRecipe, addRecipe]);
 
   const handleRemoveFromPlan = useCallback(() => {
     if (!plannedMeal) return;
@@ -439,10 +230,10 @@ export default function MealDetailScreen() {
         serving_size: familySettings.default_serving_size,
         ingredients: meal.ingredients,
         recipe_serving_size: meal.recipe_serving_size,
-        ...(params.source === 'favs' ? { meal_id: meal.id } : {}),
+        ...(params.source === 'recipes' ? { meal_id: meal.id } : {}),
       };
       addMeal(planned);
-      if (params.source === 'favs') {
+      if (params.source === 'recipes') {
         incrementPlanCount(meal.id);
       }
       setSlotPickerVisible(false);
@@ -464,16 +255,10 @@ export default function MealDetailScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.notFound}>
-          {isLoadingDiscover ? (
-            <Text style={styles.notFoundText}>Loading recipe…</Text>
-          ) : (
-            <>
-              <Text style={styles.notFoundText}>Meal not found</Text>
-              <TouchableOpacity onPress={() => router.back()}>
-                <Text style={styles.backLink}>Go back</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <Text style={styles.notFoundText}>Meal not found</Text>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.backLink}>Go back</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -506,31 +291,10 @@ export default function MealDetailScreen() {
           >
             <ArrowLeft size={20} color={Colors.text} strokeWidth={2} />
           </TouchableOpacity>
-          {params.source === 'favs' && (
+          {params.source === 'recipes' && (
             <TouchableOpacity
               style={[styles.editBtn, { top: insets.top + 8 }]}
               onPress={() => router.push({ pathname: '/add-recipe-manual', params: { editId: meal.id } })}
-            >
-              <Pencil size={18} color={Colors.text} strokeWidth={2} />
-            </TouchableOpacity>
-          )}
-          {params.source === 'discover' && discoverData !== null && (
-            <TouchableOpacity
-              style={[styles.editBtn, { top: insets.top + 8 }]}
-              onPress={() => {
-                // Saved discover meals have fav_disc_* ids — look up by name
-                const savedMeal = favMeals.find(
-                  (m) => m.name.toLowerCase() === meal.name.toLowerCase()
-                );
-                if (savedMeal) {
-                  // Already saved — go straight to editor
-                  router.push({ pathname: '/add-recipe-manual', params: { editId: savedMeal.id } });
-                } else {
-                  // Save a copy first, then open editor
-                  const newMeal = addFromDiscover(discoverData);
-                  router.push({ pathname: '/add-recipe-manual', params: { editId: newMeal.id } });
-                }
-              }}
             >
               <Pencil size={18} color={Colors.text} strokeWidth={2} />
             </TouchableOpacity>
@@ -550,23 +314,12 @@ export default function MealDetailScreen() {
               >
                 <Pencil size={18} color={Colors.text} strokeWidth={2} />
               </TouchableOpacity>
-            ) : discoverData !== null ? (
-              <TouchableOpacity
-                style={{ position: 'absolute', top: insets.top + 8, right: 8, backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
-                onPress={() => {
-                  const newMeal = addFromDiscover(discoverData);
-                  linkMealToPlan(plannedMeal!.id, newMeal.id);
-                  router.push({ pathname: '/add-recipe-manual', params: { editId: newMeal.id } });
-                }}
-              >
-                <Text style={{ color: Colors.primary, fontSize: 13, fontFamily: FontFamily.semiBold, fontWeight: '600' as const }}>Save to My Meals & Edit</Text>
-              </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 style={{ position: 'absolute', top: insets.top + 8, right: 8, backgroundColor: Colors.primaryLight, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
                 onPress={() => {
-                  const newId = 'fav_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-                  addFav({ id: newId, name: plannedMeal!.meal_name, image_url: plannedMeal!.meal_image_url, ingredients: [], method_steps: [], dietary_tags: [], custom_tags: [], recipe_serving_size: plannedMeal!.recipe_serving_size, add_to_plan_count: 0, created_at: new Date().toISOString(), source: 'family_created', is_ingredient_complete: false, is_recipe_complete: false });
+                  const newId = generateUUID();
+                  addRecipe({ id: newId, name: plannedMeal!.meal_name, image_url: plannedMeal!.meal_image_url, ingredients: [], method_steps: [], dietary_tags: [], custom_tags: [], recipe_serving_size: plannedMeal!.recipe_serving_size, add_to_plan_count: 0, created_at: new Date().toISOString(), source: 'family_created', is_ingredient_complete: false, is_recipe_complete: false });
                   linkMealToPlan(plannedMeal!.id, newId);
                   router.push({ pathname: '/add-recipe-manual', params: { editId: newId } });
                 }}
@@ -597,7 +350,7 @@ export default function MealDetailScreen() {
                 <Text style={styles.tagText}>{dt}</Text>
               </View>
             ))}
-            {params.source === 'favs' && (
+            {params.source === 'recipes' && (
               <View style={[styles.tag, styles.sourceTag]}>
                 <Text style={styles.tagText}>
                   {meal.is_customized
@@ -628,11 +381,11 @@ export default function MealDetailScreen() {
           )}
 
           {(() => {
-            const calories = richDetail?.calories_per_serving || meal?.calories_per_serving || discoverData?.calories_per_serving;
-            const protein = richDetail?.protein_per_serving_g || meal?.protein_per_serving_g || discoverData?.protein_per_serving_g;
-            const carbs = richDetail?.carbs_per_serving_g || meal?.carbs_per_serving_g || discoverData?.carbs_per_serving_g;
+            const calories = meal?.calories_per_serving;
+            const protein = meal?.protein_per_serving_g;
+            const carbs = meal?.carbs_per_serving_g;
             const hasNutrition = (calories ?? 0) > 0 || (protein ?? 0) > 0 || (carbs ?? 0) > 0;
-            const showLoading = isLoadingDetail && !richDetail && params.source === 'discover';
+            const showLoading = false;
             if (!hasNutrition && !showLoading) return null;
             return (
               <View style={styles.nutritionCard}>
@@ -775,7 +528,7 @@ export default function MealDetailScreen() {
               size={22}
               color={Colors.primary}
               strokeWidth={2}
-              fill={isInFavs ? Colors.primary : 'transparent'}
+              fill={isInSavedRecipes ? Colors.primary : 'transparent'}
             />
           </TouchableOpacity>
         </View>

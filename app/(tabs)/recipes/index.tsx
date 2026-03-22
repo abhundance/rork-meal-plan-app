@@ -34,7 +34,7 @@ import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import AppHeader from '@/components/AppHeader';
 import SlotPickerModal from '@/components/SlotPickerModal';
-import { useFavs, useFilteredFavs } from '@/providers/FavsProvider';
+import { useRecipes, useFilteredRecipes } from '@/providers/RecipesProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { Recipe, PlannedMeal } from '@/types';
@@ -57,7 +57,7 @@ const CARD_W = Math.floor((SCREEN_W - H_PAD * 2 - COL_GAP * (COLS - 1)) / COLS);
 const IMG_H = Math.round(CARD_W * 1.15);  // portrait image tile, no card container
 const CARD_H = IMG_H + 36;                // add-tile height ≈ image + text row below
 
-const FAVS_FILTER_CONFIG: RecipeFilterConfig = {
+const RECIPES_FILTER_CONFIG: RecipeFilterConfig = {
   showSort:        false,   // Sort is owned by the inline Sort pill, not the filter sheet
   showMealType:    true,
   showDishType:    true,
@@ -116,9 +116,9 @@ const DIET_OPTIONS = [
   { label: 'Low-Carb',     value: 'low-carb'     },
 ];
 
-export default function FavsScreen() {
+export default function RecipesScreen() {
   const insets = useSafeAreaInsets();
-  const { meals, recentSearches, removeFav, addFav, addRecentSearch, clearRecentSearches, incrementPlanCount } = useFavs();
+  const { meals, recentSearches, removeRecipe, addRecipe, addRecentSearch, clearRecentSearches, incrementPlanCount } = useRecipes();
   const { familySettings } = useFamilySettings();
   const { addMeal, getMealsForSlot } = useMealPlan();
 
@@ -146,7 +146,7 @@ export default function FavsScreen() {
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
 
   // ── Slot-picker mode ─────────────────────────────────────────────────────
-  // Set when the user arrives here via "From My Favourites" in the meal picker.
+  // Set when the user arrives here via "From My Recipes" in the meal picker.
   // Cleared (consumed) when a meal is added, or when this tab loses focus.
   const [pendingSlot, setPendingSlot] = useState(() => peekPendingPlanSlot());
 
@@ -177,7 +177,7 @@ export default function FavsScreen() {
     ]).start(() => setToastMsg(null));
   }, [toastAnim]);
 
-  const allFilteredMeals = useFilteredFavs(search, {
+  const allFilteredMeals = useFilteredRecipes(search, {
     ...favFilters,
     // Inline pill overrides (single-select, kept separate from sheet multi-select)
     inlineMealType:  mealTypeFilter,
@@ -191,8 +191,8 @@ export default function FavsScreen() {
   }, [allFilteredMeals]);
 
   const gridData = useMemo(() => {
-    // In slot mode the add tile is hidden — tapping it would navigate to /add-to-favs,
-    // which fires the Favs blur cleanup and destroys the pending slot context.
+    // In slot mode the add tile is hidden — tapping it would navigate to /add-to-recipes,
+    // which fires the Recipes blur cleanup and destroys the pending slot context.
     if (pendingSlot) return filteredMeals;
     return [{ id: '__add_tile__', _isAddTile: true } as any, ...filteredMeals];
   }, [filteredMeals, pendingSlot]);
@@ -330,7 +330,7 @@ export default function FavsScreen() {
       handleSlotModeSelect(meal);
       return;
     }
-    router.push(`/recipe-detail?id=${meal.id}&source=favs` as Href);
+    router.push(`/recipe-detail?id=${meal.id}&source=recipes` as Href);
   }, [pendingSlot, handleSlotModeSelect]);
 
   const handleDeleteMyRecipe = useCallback((meal: Recipe) => {
@@ -339,10 +339,10 @@ export default function FavsScreen() {
       meal.name + ' will be permanently deleted.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => removeFav(meal.id) },
+        { text: 'Delete', style: 'destructive', onPress: () => removeRecipe(meal.id) },
       ]
     );
-  }, [removeFav]);
+  }, [removeRecipe]);
 
   const handleRemoveSaved = useCallback((meal: Recipe) => {
     Alert.alert(
@@ -350,10 +350,10 @@ export default function FavsScreen() {
       'Remove from your favourites?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove from Favs', style: 'destructive', onPress: () => removeFav(meal.id) },
+        { text: 'Remove from Recipes', style: 'destructive', onPress: () => removeRecipe(meal.id) },
       ]
     );
-  }, [removeFav]);
+  }, [removeRecipe]);
 
   useFocusEffect(
     useCallback(() => {
@@ -369,7 +369,7 @@ export default function FavsScreen() {
       }
       return () => {
         // If the user navigates away without picking a meal, discard the slot
-        // so it doesn't ghost onto future Favs visits, and restore default sort.
+        // so it doesn't ghost onto future Recipes visits, and restore default sort.
         if (peekPendingPlanSlot()) {
           consumePendingPlanSlot();
           setPendingSlot(null);
@@ -380,10 +380,10 @@ export default function FavsScreen() {
   );
 
   const openAddMethodSheet = useCallback(() => {
-    router.push('/add-to-favs');
+    router.push('/add-recipe-entry');
   }, []);
 
-  const filterCount = countActiveFilters(favFilters, FAVS_FILTER_CONFIG);
+  const filterCount = countActiveFilters(favFilters, RECIPES_FILTER_CONFIG);
   const hasFilters = filterCount > 0 || search.trim().length > 0 || mealTypeFilter !== 'all' || dishTypeFilter !== 'all' || proteinFilter !== 'all' || dietFilter !== 'all';
 
   const renderGridItem = useCallback(({ item }: { item: Recipe }) => {
@@ -444,33 +444,18 @@ export default function FavsScreen() {
     <View style={styles.segmentEmptyContainer}>
       <Utensils size={64} color={Colors.textSecondary} strokeWidth={1.5} />
       <Text style={styles.segmentEmptyTitle}>No recipes yet</Text>
-      {pendingSlot ? (
-        // In slot mode: adding a new library meal would destroy the slot context.
-        // Guide the user to Discover instead (Fix 8).
-        <>
-          <Text style={styles.segmentEmptySubtitle}>
-            You don't have any saved meals yet. Browse Discover to find something to add.
-          </Text>
-          <TouchableOpacity
-            style={styles.segmentEmptyCta}
-            onPress={() => router.push('/(tabs)/discover')}
-          >
-            <Text style={styles.segmentEmptyCtaText}>Browse Discover</Text>
-          </TouchableOpacity>
-        </>
-      ) : (
-        <>
-          <Text style={styles.segmentEmptySubtitle}>
-            Add your family's favourite meals to keep them all in one place
-          </Text>
-          <TouchableOpacity
-            style={styles.segmentEmptyCta}
-            onPress={openAddMethodSheet}
-          >
-            <Text style={styles.segmentEmptyCtaText}>Add a Meal</Text>
-          </TouchableOpacity>
-        </>
-      )}
+      <>
+        <Text style={styles.segmentEmptySubtitle}>
+          Add your family's favourite meals to keep them all in one place
+        </Text>
+        <TouchableOpacity
+          style={styles.segmentEmptyCta}
+          onPress={openAddMethodSheet}
+        >
+          <Text style={styles.segmentEmptyCtaText}>Add your first recipe</Text>
+        </TouchableOpacity>
+      </>
+
     </View>
   ), [openAddMethodSheet, pendingSlot]);
 
@@ -530,12 +515,12 @@ export default function FavsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <AppHeader
-        title="Favourites"
+        title="Recipes"
         rightElement={
           <TouchableOpacity
             style={styles.filterBtn}
             onPress={() => setShowFilterSheet(true)}
-            testID="favs-filter-btn"
+            testID="recipes-filter-btn"
           >
             <SlidersHorizontal size={18} color={filterCount > 0 ? Colors.primary : Colors.text} strokeWidth={2} />
             {filterCount > 0 && (
@@ -599,7 +584,7 @@ export default function FavsScreen() {
                 onBlur={() => setSearchFocused(false)}
                 onSubmitEditing={handleSearchSubmit}
                 returnKeyType="search"
-                testID="favs-search"
+                testID="recipes-search"
               />
               {search.length > 0 && (
                 <TouchableOpacity onPress={() => setSearch('')} hitSlop={8}>
@@ -733,7 +718,7 @@ export default function FavsScreen() {
           </View>
         }
         ListEmptyComponent={noResults ? FilterEmptyState : getEmptyComponent()}
-        testID="favs-grid"
+        testID="recipes-grid"
       />
 
       <SlotPickerModal
@@ -754,12 +739,12 @@ export default function FavsScreen() {
         onApply={(state) => setFavFilters(state)}
         initialState={favFilters}
         config={{
-          ...FAVS_FILTER_CONFIG,
+          ...RECIPES_FILTER_CONFIG,
           cuisineOptions: uniqueCuisines.map((c) => ({ key: c, label: c })),
         }}
       />
 
-      {/* FAB hidden in slot mode — navigating to /add-to-favs would fire the blur
+      {/* FAB hidden in slot mode — navigating to /add-to-recipes would fire the blur
           cleanup and destroy the pending slot context (Fix 3). */}
       {!pendingSlot && (
         <TouchableOpacity

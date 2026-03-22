@@ -53,7 +53,7 @@ export default function LunchDinnerPicksScreen() {
             <Text style={styles.stepLabel}>Step 14 of 14</Text>
             <Text style={styles.heading}>Pick some lunch & dinner favourites</Text>
             <Text style={styles.subheading}>
-              These get added to your Favs so Smart Fill has meals to work with from day one.
+              These get added to your Recipes so Smart Fill has meals to work with from day one.
             </Text>
           </View>
         }

@@ -18,7 +18,7 @@ import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
-import { useFavs } from '@/providers/FavsProvider';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { formatDateKey, getDayName, getWeekLabel, isBefore } from '@/utils/dates';
 import { openDeliveryLink } from '@/services/deliveryUtils';
 import ServingStepper from './ServingStepper';
@@ -331,7 +331,7 @@ const MealItemRow = React.memo(function MealItemRow({
   onRemoveMealById,
   onPress,
 }: MealItemRowProps) {
-  const { meals: favMeals } = useFavs();
+  const { meals: savedRecipes } = useRecipes();
 
   const handleDelete = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -369,7 +369,7 @@ const MealItemRow = React.memo(function MealItemRow({
               familyInitials={
                 !meal.delivery_platform &&
                 meal.meal_id &&
-                favMeals.find(m => m.id === meal.meal_id)?.source === 'family_created'
+                savedRecipes.find(m => m.id === meal.meal_id)?.source === 'family_created'
                   ? meal.meal_name
                   : undefined
               }
@@ -377,7 +377,7 @@ const MealItemRow = React.memo(function MealItemRow({
           )}
           <View style={styles.itemNameCol}>
             <Text style={styles.itemName} numberOfLines={2}>
-              {meal.meal_id ? (favMeals.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}
+              {meal.meal_id ? (savedRecipes.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}
             </Text>
             {!!meal.delivery_url && (
               <TouchableOpacity

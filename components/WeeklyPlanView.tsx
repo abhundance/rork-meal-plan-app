@@ -15,7 +15,7 @@ import Colors, { SlotColors } from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
-import { useFavs } from '@/providers/FavsProvider';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { useWeekRatings } from '@/hooks/useWeekRatings';
 import { MealRating } from '@/types';
 import {
@@ -51,7 +51,7 @@ export default function WeeklyPlanView({
   onSmartPlan,
   onClearWeek,
 }: WeeklyPlanViewProps) {
-  const { meals: favMeals } = useFavs();
+  const { meals: savedRecipes } = useRecipes();
   const { rateWeek, getWeekRating } = useWeekRatings();
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const weekLabel = useMemo(() => getWeekLabel(weekDates), [weekDates]);
@@ -270,7 +270,7 @@ export default function WeeklyPlanView({
                                 ]}
                               >
                                 <Text style={[styles.mealPillText, { color: slotColor.text }]} numberOfLines={1}>
-                                  {meal.meal_id ? (favMeals.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}
+                                  {meal.meal_id ? (savedRecipes.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}
                                 </Text>
                                 {(!!meal.is_delivery || !!meal.delivery_url) && (
                                   <View style={styles.deliveryDot}>

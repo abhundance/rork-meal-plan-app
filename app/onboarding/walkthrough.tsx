@@ -30,7 +30,7 @@ const STEPS: WalkthroughStep[] = [
   },
   {
     icon: <Heart size={44} color={Colors.primary} strokeWidth={1.8} />,
-    tabName: 'Favs',
+    tabName: 'Recipes',
     description: 'Save the meals your family loves and build your recipe collection',
   },
   {

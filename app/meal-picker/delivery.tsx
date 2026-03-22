@@ -25,7 +25,7 @@ import { ChevronLeft, Heart, Bike, ClipboardIcon as ClipboardPasteIcon, CheckCir
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { Recipe, PlannedMeal } from '@/types';
-import { useFavs } from '@/providers/FavsProvider';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { peekPendingPlanSlot, consumePendingPlanSlot } from '@/services/pendingPlanSlot';
 import { detectPlatformFromUrl, getPlatformLabel } from '@/services/deliveryUtils';
@@ -35,7 +35,7 @@ import { generateUUID } from '@/utils/uuid';
 export default function MealPickerDeliveryScreen() {
   const insets = useSafeAreaInsets();
   const { editId } = useLocalSearchParams<{ editId?: string }>();
-  const { addFav } = useFavs();
+  const { addRecipe } = useRecipes();
   const { addMeal, updatePlannedMealDelivery, meals: planMeals } = useMealPlan();
 
   const isEditing = !!editId;
@@ -46,7 +46,7 @@ export default function MealPickerDeliveryScreen() {
 
   const [mealName, setMealName] = useState('');
   const [deliveryUrl, setDeliveryUrl] = useState('');
-  const [saveToFavs, setSaveToFavs] = useState(false);
+  const [saveToRecipes, setSaveToRecipes] = useState(false);
 
   // Pre-fill when editing an existing delivery meal
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function MealPickerDeliveryScreen() {
     const pendingSlot = consumePendingPlanSlot();
     if (!pendingSlot) return;
 
-    const favId = saveToFavs
+    const favId = saveToRecipes
       ? generateUUID()
       : undefined;
 
@@ -93,8 +93,8 @@ export default function MealPickerDeliveryScreen() {
       ...(favId ? { fav_meal_id: favId } : {}),
     };
 
-    if (saveToFavs && favId) {
-      addFav({
+    if (saveToRecipes && favId) {
+      addRecipe({
         id: favId,
         name: mealName.trim(),
         source: 'family_created',
@@ -119,7 +119,7 @@ export default function MealPickerDeliveryScreen() {
     // New-meal flow: came from meal-picker/index — 2 screens in the modal stack.
     router.back();
     router.dismiss();
-  }, [mealName, deliveryUrl, saveToFavs, isEditing, editId, addMeal, addFav, updatePlannedMealDelivery]);
+  }, [mealName, deliveryUrl, saveToRecipes, isEditing, editId, addMeal, addRecipe, updatePlannedMealDelivery]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -199,18 +199,18 @@ export default function MealPickerDeliveryScreen() {
 
         {!isEditing && (
           <TouchableOpacity
-            style={styles.saveToFavsRow}
-            onPress={() => setSaveToFavs((v) => !v)}
+            style={styles.saveToRecipesRow}
+            onPress={() => setSaveToRecipes((v) => !v)}
             activeOpacity={0.8}
           >
             <Heart
               size={20}
-              color={saveToFavs ? Colors.primary : Colors.textSecondary}
-              fill={saveToFavs ? Colors.primary : 'none'}
+              color={saveToRecipes ? Colors.primary : Colors.textSecondary}
+              fill={saveToRecipes ? Colors.primary : 'none'}
               strokeWidth={2}
             />
-            <Text style={[styles.saveToFavsText, saveToFavs && styles.saveToFavsTextActive]}>
-              Save to Favourites
+            <Text style={[styles.saveToRecipesText, saveToRecipes && styles.saveToRecipesTextActive]}>
+              Save to Recipes
             </Text>
           </TouchableOpacity>
         )}
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     fontWeight: '500' as const,
     color: Colors.primary,
   },
-  saveToFavsRow: {
+  saveToRecipesRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -343,13 +343,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 20,
   },
-  saveToFavsText: {
+  saveToRecipesText: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
   },
-  saveToFavsTextActive: {
+  saveToRecipesTextActive: {
     color: Colors.primary,
   },
 });

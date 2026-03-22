@@ -21,7 +21,7 @@ import { FontFamily } from '@/constants/typography';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 import { extractRecipeFromImage, extractRecipeFromText, detectVideoUrlType, extractRecipeFromVideoUrl, extractRecipeMetadata } from '@/services/recipeExtraction';
 import { imageStore } from '@/services/imageStore';
-import { useFavs } from '@/providers/FavsProvider';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { consumePendingPlanSlot, hasPendingPlanSlot, peekPendingPlanSlot } from '@/services/pendingPlanSlot';
@@ -76,7 +76,7 @@ export default function AddMealReviewScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<Params>();
-  const { addFav, syncRecipeNow } = useFavs();
+  const { addRecipe, syncRecipeNow } = useRecipes();
   const { addMeal } = useMealPlan();
   const { familySettings } = useFamilySettings();
 
@@ -410,8 +410,8 @@ export default function AddMealReviewScreen() {
       is_recipe_complete: methodSteps.length > 0,
     };
 
-    addFav(meal);
-    console.log('[Review] Saved to favs:', meal.name);
+    addRecipe(meal);
+    console.log('[Review] Saved to recipes:', meal.name);
     const pending = consumePendingPlanSlot();
     if (pending) {
       const plannedMeal: PlannedMeal = {
@@ -443,7 +443,7 @@ export default function AddMealReviewScreen() {
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
     ingredients, servingSize, methodSteps,
-    addFav, syncRecipeNow, addMeal, router,
+    addRecipe, syncRecipeNow, addMeal, router,
   ]);
 
   if (isLoading) {
@@ -931,9 +931,9 @@ export default function AddMealReviewScreen() {
           onPress={handleSave}
           disabled={!canSave}
           activeOpacity={0.8}
-          testID="btn-save-to-favs"
+          testID="btn-save-to-recipes"
         >
-          <Text style={styles.saveFullBtnText}>{isAddingToPlan ? 'Add to Meal Plan' : 'Save to Favourites'}</Text>
+          <Text style={styles.saveFullBtnText}>{isAddingToPlan ? 'Add to Meal Plan' : 'Save to Recipes'}</Text>
         </TouchableOpacity>
       </View>
     </View>

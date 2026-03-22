@@ -375,7 +375,7 @@ function isValidUUID(id: string): boolean {
 /**
  * Upsert a full recipe (row + ingredients + steps) to Supabase.
  * Uses delete-and-reinsert for ingredients/steps to keep things simple.
- * Exported so both FavsProvider and add-recipe flows can call it.
+ * Exported so both RecipesProvider and add-recipe flows can call it.
  *
  * Skips silently if recipe.id is not a valid UUID (e.g. legacy string IDs
  * like "d_nasipadang" from old mocks data) — Postgres uuid columns reject them.

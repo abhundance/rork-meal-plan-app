@@ -221,6 +221,13 @@ export async function extractRecipeMetadata(
   return callEdgeFunction({ type: 'metadata', name, ingredients, language }) as Promise<ExtractedMetadata>;
 }
 
+export async function generateRecipeFromName(
+  name: string,
+  language?: string,
+): Promise<ExtractedRecipe> {
+  return callEdgeFunction({ type: 'name', name, language }) as Promise<ExtractedRecipe>;
+}
+
 // ─── Utility ──────────────────────────────────────────────────────────────────
 
 function blobToBase64(blob: Blob): Promise<string> {

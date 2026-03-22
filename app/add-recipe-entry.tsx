@@ -1,9 +1,10 @@
 /**
  * Add a Recipe — unified entry screen (modal).
  *
- * Two modes, toggled entirely via local state — no navigation:
- *   ✨ AI Mode  (left, default) — chat-style input
- *   ✏️ Manual   (right)        — full manual entry form
+ * Phase 3 rewrite: SmartBar UI layer replacing old AI/Manual mode toggle.
+ *   - SmartBar: unified input for URL, name, or conversation text
+ *   - SmartBarResults: context-aware action buttons based on detected input type
+ *   - All handlers for extraction, voice, camera remain unchanged
  *
  * All navigation to the Add a Recipe flow goes to /add-recipe-entry.
  */
@@ -21,11 +22,15 @@ import {
   Linking,
   ActivityIndicator,
   Image,
+  SafeAreaView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import ExtractionLoadingOverlay from '@/components/ExtractionLoadingOverlay';
+import SmartBar from '@/components/SmartBar';
+import SmartBarResults from '@/components/SmartBarResults';
+import AppHeader from '@/components/AppHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import {
@@ -39,9 +44,12 @@ import {
   extractRecipeFromText,
   extractRecipeFromPdf,
   detectVideoUrlType,
+  generateRecipeFromName,
   type ExtractedRecipe,
 } from '@/services/recipeExtraction';
 import { imageStore } from '@/services/imageStore';
+import { detectInputType, detectUrlSource, type InputType, type UrlSource } from '@/utils/inputDetection';
+import { hasPendingPlanSlot, peekPendingPlanSlot, consumePendingPlanSlot } from '@/services/pendingPlanSlot';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Spacing, Shadows } from '@/constants/theme';
@@ -49,10 +57,9 @@ import PrimaryButton from '@/components/PrimaryButton';
 import FilterPill from '@/components/FilterPill';
 import ServingStepper from '@/components/ServingStepper';
 import VoiceRecordSheet from '@/components/VoiceRecordSheet';
-import { useFavs } from '@/providers/FavsProvider';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
-import { consumePendingPlanSlot } from '@/services/pendingPlanSlot';
 import { generateUUID } from '@/utils/uuid';
 import {
   Recipe,
@@ -67,22 +74,22 @@ import {
   OCCASION_OPTIONS,
 } from '@/types';
 
-type Mode = 'ai' | 'manual';
-
 
 export default function AddRecipeEntryScreen() {
   const insets = useSafeAreaInsets();
-  const { meals, addFav, isFavByName } = useFavs();
+  const { meals, addRecipe, isSavedByName } = useRecipes();
   const { familySettings } = useFamilySettings();
   const { addMeal } = useMealPlan();
 
-  // ── Mode toggle ──────────────────────────────────────────────────────────────
-  const [mode, setMode] = useState<Mode>('ai');
-
-  // ── AI Mode state ────────────────────────────────────────────────────────────
-  const [aiInput, setAiInput] = useState('');
-  const [isExtracting, setIsExtracting] = useState(false);
+  // ── SmartBar state ──────────────────────────────────────────────────────────
+  const [smartBarValue, setSmartBarValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showVoiceSheet, setShowVoiceSheet] = useState(false);
+
+  // ── Detect input type and URL source ────────────────────────────────────────
+  const inputType = detectInputType(smartBarValue);
+  const urlSource = inputType === 'url' ? detectUrlSource(smartBarValue) : undefined;
 
   // ── Manual Mode state ────────────────────────────────────────────────────────
   const [name, setName] = useState('');
@@ -112,25 +119,13 @@ export default function AddRecipeEntryScreen() {
   const [customTags, setCustomTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
 
-  // ── AI Mode derived values ────────────────────────────────────────────────────
-  const hasAiContent    = aiInput.trim().length > 0;
-  const isUrlInput      = /^https?:\/\//i.test(aiInput.trim());
-  const aiWordCount     = aiInput.trim() === '' ? 0 : aiInput.trim().split(/\s+/).length;
-  const detectedPlatform = isUrlInput ? detectVideoUrlType(aiInput.trim()) : null;
 
-  // Detection badge label — specific platform name beats generic "Link detected"
-  const detectionLabel = !isUrlInput
-    ? 'Text detected'
-    : detectedPlatform === 'youtube'   ? 'YouTube detected'
-    : detectedPlatform === 'tiktok'    ? 'TikTok detected'
-    : detectedPlatform === 'instagram' ? 'Instagram detected'
-    : 'Link detected';
-
-  // ── AI Mode handlers ─────────────────────────────────────────────────────────
-  const handleAiSend = async () => {
-    const input = aiInput.trim();
-    if (!input || isExtracting) return;
-    setIsExtracting(true);
+  // ── SmartBar handlers ──────────────────────────────────────────────────────
+  const handleExtractFromSmartBar = async () => {
+    const input = smartBarValue.trim();
+    if (!input || isLoading) return;
+    setIsLoading(true);
+    setError(null);
     const inputIsUrl = /^https?:\/\//i.test(input);
     try {
       const result: ExtractedRecipe = inputIsUrl
@@ -153,17 +148,89 @@ export default function AddRecipeEntryScreen() {
         },
       });
     } catch (err) {
-      // Surface the server's error message — it contains quota feedback, platform-
-      // specific guidance (Instagram fallback tips, private video notices), and
-      // actionable context. Only fall back to a generic string when err has no message.
       const serverMessage = err instanceof Error && err.message ? err.message : null;
       const fallback = inputIsUrl
         ? 'Could not extract a recipe from this link. Please try again.'
         : 'Could not extract a recipe from your description. Try adding more detail — ingredients, quantities, and cooking steps help.';
-      Alert.alert('Extraction Failed', serverMessage ?? fallback);
+      const errorMsg = serverMessage ?? fallback;
+      setError(errorMsg);
     } finally {
-      setIsExtracting(false);
+      setIsLoading(false);
     }
+  };
+
+  const handleGenerate = async (name: string) => {
+    if (!name.trim()) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await generateRecipeFromName(name.trim(), familySettings?.language);
+      // Navigate to review screen with generated recipe data
+      const reviewParams: Record<string, string> = {
+        name: result.name ?? name.trim(),
+        cuisine: result.cuisine ?? '',
+        meal_type: result.meal_type ?? '',
+        cooking_time_band: result.cooking_time_band ?? '',
+        prep_time: String(result.prep_time ?? ''),
+        cook_time: String(result.cook_time ?? ''),
+        recipe_serving_size: String(result.recipe_serving_size ?? 4),
+        description: result.description ?? '',
+        source: 'ai_generated',
+      };
+      if (result.ingredients) reviewParams.ingredients = JSON.stringify(result.ingredients);
+      if (result.method_steps) reviewParams.method_steps = JSON.stringify(result.method_steps);
+      if (result.dietary_tags) reviewParams.dietary_tags = JSON.stringify(result.dietary_tags);
+      if (result.dish_category) reviewParams.dish_category = result.dish_category;
+      if (result.protein_source) reviewParams.protein_source = result.protein_source;
+      if (result.allergens) reviewParams.allergens = JSON.stringify(result.allergens);
+      if (result.diet_labels) reviewParams.diet_labels = JSON.stringify(result.diet_labels);
+      if (result.occasions) reviewParams.occasions = JSON.stringify(result.occasions);
+      if (result.calories_per_serving) reviewParams.calories_per_serving = String(result.calories_per_serving);
+      if (result.protein_per_serving_g) reviewParams.protein_per_serving_g = String(result.protein_per_serving_g);
+      if (result.carbs_per_serving_g) reviewParams.carbs_per_serving_g = String(result.carbs_per_serving_g);
+
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.push({ pathname: '/add-recipe-review', params: reviewParams });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to generate recipe';
+      setError(msg);
+      Alert.alert('Generation Failed', msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleJustSaveName = async (name: string) => {
+    if (!name.trim()) {
+      Alert.alert('Name required', 'Please enter a meal name.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const newMeal: Recipe = {
+        id: generateUUID(),
+        name: name.trim(),
+        ingredients: [],
+        method_steps: [],
+        source: 'family_created',
+        recipe_serving_size: familySettings.default_serving_size,
+        add_to_plan_count: 0,
+        created_at: new Date().toISOString(),
+        is_ingredient_complete: false,
+        is_recipe_complete: false,
+      };
+      addRecipe(newMeal);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.push('/(tabs)/recipes');
+    } catch (err) {
+      Alert.alert('Error', 'Could not save the recipe. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAiChef = (prompt: string) => {
+    router.push({ pathname: '/ai-chef', params: { prompt } });
   };
 
   const handleCamera = async () => {
@@ -367,7 +434,7 @@ export default function AddRecipeEntryScreen() {
       is_ingredient_complete: validIngredients.length > 0,
       is_recipe_complete: validSteps.length > 0,
     };
-    addFav(newMeal);
+    addRecipe(newMeal);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const pending = consumePendingPlanSlot();
     if (pending) {
@@ -389,7 +456,7 @@ export default function AddRecipeEntryScreen() {
     name, cookingTimeBand, prepTime, cookTime, mealType, selectedImageUri, cuisine,
     dishCategory, proteinSource, occasions, dietLabels, allergens, caloriesPerServing,
     proteinPerServingG, carbsPerServingG, customTags, description, servingSize,
-    addFav, addMeal,
+    addRecipe, addMeal,
   ]);
 
   const handleSave = useCallback(() => {
@@ -402,9 +469,9 @@ export default function AddRecipeEntryScreen() {
       }));
     const validSteps = methodSteps.filter((s) => s.trim());
     const derivedDietaryTags = [...new Set([...dietLabels, ...allergens])];
-    if (isFavByName(name.trim())) {
+    if (isSavedByName(name.trim())) {
       Alert.alert(
-        'Duplicate found', `You already have "${name.trim()}" in your Favs.`,
+        'Duplicate found', `You already have "${name.trim()}" in your Recipes.`,
         [
           { text: 'View it', onPress: () => router.back() },
           { text: 'Add Anyway', onPress: () => saveMeal(validIngredients, validSteps, derivedDietaryTags) },
@@ -413,7 +480,7 @@ export default function AddRecipeEntryScreen() {
       return;
     }
     saveMeal(validIngredients, validSteps, derivedDietaryTags);
-  }, [name, ingredients, methodSteps, dietLabels, allergens, isFavByName, saveMeal]);
+  }, [name, ingredients, methodSteps, dietLabels, allergens, isSavedByName, saveMeal]);
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -421,154 +488,56 @@ export default function AddRecipeEntryScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* ─── Full-screen extraction loading overlay ───────── */}
-      <ExtractionLoadingOverlay visible={isExtracting} />
+      <ExtractionLoadingOverlay visible={isLoading} />
 
-      {/* ─── Header ───────────────────────────────────────── */}
-      <View style={[styles.headerWrap, { paddingTop: insets.top + Spacing.sm }]}>
-        {/* Row 1: back button + title */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-            <ChevronLeft size={24} color={Colors.text} strokeWidth={2} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add a Recipe</Text>
-          {/* Spacer mirrors the closeBtn width so the title stays centred */}
-          <View style={styles.closeBtnSpacer} />
-        </View>
-        {/* Row 2: mode toggle — full-width centred row. Locked while extracting. */}
-        <View style={styles.headerToggleRow}>
-          <View style={[styles.headerToggleWrap, isExtracting && styles.headerToggleWrapDisabled]}>
-            <View style={[styles.headerTogglePill, mode === 'ai' ? styles.headerTogglePillLeft : styles.headerTogglePillRight]} />
-            <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('ai')} activeOpacity={0.8} disabled={isExtracting}>
-              <Text style={[styles.headerToggleLabel, mode === 'ai' && styles.headerToggleLabelActive]}>✨ AI</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerToggleOption} onPress={() => setMode('manual')} activeOpacity={0.8} disabled={isExtracting}>
-              <Text style={[styles.headerToggleLabel, mode === 'manual' && styles.headerToggleLabelActive]}>✏️ Manual</Text>
-            </TouchableOpacity>
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+        {/* Header */}
+        <AppHeader title="Add a Recipe" />
+
+        {/* Slot context bar if coming from Plan tab */}
+        {hasPendingPlanSlot() && (
+          <View style={styles.slotContext}>
+            <Text style={styles.slotContextText}>
+              Adding to {peekPendingPlanSlot()?.dayLabel} · {peekPendingPlanSlot()?.slotName}
+            </Text>
           </View>
-        </View>
-      </View>
+        )}
 
-      {/* ─── AI Mode ──────────────────────────────────────── */}
-      {mode === 'ai' && (
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={styles.aiScrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* ── Drop zone ── */}
-            <View style={[styles.aiDropZone, hasAiContent && styles.aiDropZoneActive]}>
-              <TextInput
-                style={styles.aiTextInput}
-                placeholder={"Paste a link or recipe text here…\n\nWorks with recipe blogs & websites, YouTube, TikTok, and Instagram — including recipes that are only spoken in the video, not written down."}
-                placeholderTextColor={Colors.textSecondary}
-                value={aiInput}
-                onChangeText={setAiInput}
-                multiline
-                autoCapitalize="none"
-                autoCorrect={false}
-                textAlignVertical="top"
-                scrollEnabled={false}
-              />
-              {/* Detection badge + clear button — appears once user has entered something */}
-              {hasAiContent && (
-                <View style={styles.aiDropZoneMeta}>
-                  <View style={styles.aiDetectBadge}>
-                    {isUrlInput
-                      ? <Link2 size={11} color={Colors.primary} strokeWidth={2.5} />
-                      : <FileText size={11} color={Colors.primary} strokeWidth={2} />
-                    }
-                    <Text style={styles.aiDetectBadgeText}>
-                      {detectionLabel}
-                    </Text>
-                  </View>
-                  <View style={styles.aiDropZoneMetaRight}>
-                    {/* Word count — only meaningful for pasted text, not URLs */}
-                    {!isUrlInput && (
-                      <Text style={styles.aiWordCount}>{aiWordCount} {aiWordCount === 1 ? 'word' : 'words'}</Text>
-                    )}
-                    {/* Clear button */}
-                    <TouchableOpacity
-                      style={styles.aiClearBtn}
-                      onPress={() => setAiInput('')}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      activeOpacity={0.7}
-                    >
-                      <X size={13} color={Colors.textSecondary} strokeWidth={2} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <SmartBar
+            value={smartBarValue}
+            onChangeText={(text) => {
+              setSmartBarValue(text);
+              setError(null);
+            }}
+            onCameraPress={handleCamera}
+            onMicPress={() => setShowVoiceSheet(true)}
+            inputType={inputType}
+            urlSource={urlSource}
+            autoFocus
+            disabled={isLoading}
+          />
+          <View style={{ height: Spacing.lg }} />
+          <SmartBarResults
+            inputType={inputType}
+            inputValue={smartBarValue}
+            urlSource={urlSource}
+            onExtract={handleExtractFromSmartBar}
+            onGenerate={handleGenerate}
+            onJustSaveName={handleJustSaveName}
+            onAiChef={handleAiChef}
+            onManualEntry={() => router.push('/add-recipe-manual')}
+            onPhoto={handleCamera}
+            onVoice={() => setShowVoiceSheet(true)}
+            onDelivery={() => router.push('/meal-picker/delivery')}
+            isLoading={isLoading}
+            error={error}
+          />
+        </ScrollView>
+      </SafeAreaView>
 
-            {/* ── Divider ── */}
-            <View style={styles.aiDividerRow}>
-              <View style={styles.aiDividerLine} />
-              <Text style={styles.aiDividerText}>or add from</Text>
-              <View style={styles.aiDividerLine} />
-            </View>
-
-            {/* ── Secondary option tiles: Voice + Camera ── */}
-            <View style={styles.aiSecondaryTiles}>
-              <TouchableOpacity
-                style={styles.aiSecondaryTile}
-                onPress={() => setShowVoiceSheet(true)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.aiSecondaryTileIcon}>
-                  <Mic size={22} color={Colors.textSecondary} strokeWidth={2} />
-                </View>
-                <Text style={styles.aiSecondaryTileLabel}>Voice</Text>
-                <Text style={styles.aiSecondaryTileSub}>Describe it aloud</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.aiSecondaryTile}
-                onPress={handleCamera}
-                activeOpacity={0.8}
-              >
-                <View style={styles.aiSecondaryTileIcon}>
-                  <Camera size={22} color={Colors.textSecondary} strokeWidth={2} />
-                </View>
-                <Text style={styles.aiSecondaryTileLabel}>Camera</Text>
-                <Text style={styles.aiSecondaryTileSub}>Photo of a recipe</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.aiSecondaryTile}
-                onPress={handlePdf}
-                activeOpacity={0.8}
-                disabled={isExtracting}
-              >
-                <View style={styles.aiSecondaryTileIcon}>
-                  <FileText size={22} color={Colors.textSecondary} strokeWidth={2} />
-                </View>
-                <Text style={styles.aiSecondaryTileLabel}>PDF</Text>
-                <Text style={styles.aiSecondaryTileSub}>Upload a PDF</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-
-          {/* ── Sticky footer — always above the keyboard ── */}
-          <View style={[styles.aiFooter, { paddingBottom: insets.bottom + Spacing.sm }]}>
-            <TouchableOpacity
-              style={[styles.aiExtractBtn, (!hasAiContent || isExtracting) && styles.aiExtractBtnDisabled]}
-              onPress={handleAiSend}
-              disabled={!hasAiContent || isExtracting}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.aiExtractBtnText, !hasAiContent && styles.aiExtractBtnTextDisabled]}>
-                Extract Recipe
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      )}
-
-      {/* ─── Manual Mode ──────────────────────────────────── */}
-      {mode === 'manual' && (
+      {/* ─── Manual Mode: Now available via "/add-recipe-manual" navigation ───────── */}
+      {false && (
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView style={styles.flex} contentContainerStyle={styles.manualScrollContent} showsVerticalScrollIndicator={false}>
 
@@ -765,6 +734,7 @@ export default function AddRecipeEntryScreen() {
         </KeyboardAvoidingView>
       )}
 
+      {/* VoiceRecordSheet for voice recipe input */}
       <VoiceRecordSheet
         visible={showVoiceSheet}
         onClose={() => setShowVoiceSheet(false)}
@@ -1008,4 +978,18 @@ const styles = StyleSheet.create({
   customTag: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.surface, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
   customTagText: { fontSize: 12, fontFamily: FontFamily.semiBold, fontWeight: '600', color: Colors.primary },
   bottomBar: { paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.divider, backgroundColor: Colors.background },
+
+  // ── SmartBar UI ──────────────────────────────────────────────
+  scrollContent: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
+  slotContext: {
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  slotContextText: {
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
 });

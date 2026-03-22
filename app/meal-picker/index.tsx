@@ -1,11 +1,10 @@
 /**
  * Meal Picker — choose screen (slot-aware).
  *
+ * Phase 4 redesign: Carousel of saved recipes + SmartBar below.
  * Reached via router.push('/meal-picker') after setPendingPlanSlot().
- * Shows search, browse cards (From My Favourites / Try Something New),
- * and option tiles (Add Without Recipe, Add with Recipe, Add from Delivery App).
  *
- * ⚠️ Never add "From My Favourites" to /add-to-favs — this screen is
+ * ⚠️ Never add "From My Recipes" to /add-to-recipes — this screen is
  * only for the slot-aware plan-tab flow.
  */
 import React, { useState, useCallback, useMemo } from 'react';
@@ -17,6 +16,8 @@ import {
   ScrollView,
   StyleSheet,
   Image,
+  FlatList,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,26 +28,29 @@ import {
   Search,
   ChevronRight,
   Heart,
-  Compass,
   Pencil,
-  Sparkles,
   Bike,
   Globe,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
-import { BorderRadius } from '@/constants/theme';
+import { BorderRadius, Spacing } from '@/constants/theme';
 import { Recipe, PlannedMeal } from '@/types';
-import { DISCOVER_MEALS } from '@/mocks/discover';
-import { useFavs } from '@/providers/FavsProvider';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
+import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { peekPendingPlanSlot, consumePendingPlanSlot } from '@/services/pendingPlanSlot';
 import { generateUUID } from '@/utils/uuid';
+import SmartBar from '@/components/SmartBar';
+import SmartBarResults from '@/components/SmartBarResults';
+import MealImagePlaceholder from '@/components/MealImagePlaceholder';
+import { detectInputType, detectUrlSource, type InputType, type UrlSource } from '@/utils/inputDetection';
 
 export default function MealPickerScreen() {
   const insets = useSafeAreaInsets();
-  const { meals: favMeals, incrementPlanCount } = useFavs();
+  const { meals: favMeals, incrementPlanCount, addRecipe } = useRecipes();
   const { addMeal } = useMealPlan();
+  const { familySettings } = useFamilySettings();
 
   const slot = peekPendingPlanSlot();
   const slotName = slot?.slotName ?? 'Meal';
@@ -55,6 +59,7 @@ export default function MealPickerScreen() {
   const defaultServing = slot?.defaultServing ?? 2;
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [smartBarValue, setSmartBarValue] = useState('');
 
   const formattedDate = useMemo(() => {
     if (!date) return '';
@@ -75,6 +80,10 @@ export default function MealPickerScreen() {
         m.ingredients.some((i) => i.name.toLowerCase().includes(q))
     );
   }, [searchQuery, favMeals]);
+
+  // Detect SmartBar input type and URL source
+  const inputType = detectInputType(smartBarValue);
+  const urlSource = inputType === 'url' ? detectUrlSource(smartBarValue) : undefined;
 
   const handleSelectFavMeal = useCallback(
     (meal: Recipe) => {
@@ -104,19 +113,79 @@ export default function MealPickerScreen() {
     router.back();
   }, []);
 
-  const handleBrowseFavs = useCallback(() => {
-    // Do NOT consume the slot here — the Favs tab reads it on focus
-    // and uses it to add the meal directly to the correct slot.
-    router.dismiss();
-    router.push('/(tabs)/favs');
+  const handleExtract = useCallback(() => {
+    router.push('/add-recipe-entry');
   }, []);
 
-  const handleBrowseDiscover = useCallback(() => {
-    // Do NOT consume the slot here — the Discover tab reads it on focus
-    // and uses it to add the meal directly to the correct slot.
-    router.dismiss();
-    router.push('/(tabs)/discover');
+  const handleGenerate = useCallback((name: string) => {
+    // Navigate to add-recipe-entry which has the full generation flow
+    router.push('/add-recipe-entry');
   }, []);
+
+  const handleJustSaveName = useCallback((name: string) => {
+    const pendingSlot = consumePendingPlanSlot();
+    if (!pendingSlot || !name.trim()) return;
+
+    // Create a name-only recipe
+    const newRecipe: Recipe = {
+      id: generateUUID(),
+      name: name.trim(),
+      source: 'family_created',
+      ingredients: [],
+      plan_count: 1,
+    };
+
+    // Add to recipes
+    addRecipe(newRecipe);
+
+    // Add to plan slot
+    const planned: PlannedMeal = {
+      id: generateUUID(),
+      slot_id: pendingSlot.slotId,
+      date: pendingSlot.date,
+      meal_name: newRecipe.name,
+      meal_image_url: undefined,
+      serving_size: pendingSlot.defaultServing,
+      ingredients: [],
+      recipe_serving_size: pendingSlot.defaultServing,
+      meal_id: newRecipe.id,
+    };
+
+    addMeal(planned);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    router.back();
+  }, [addRecipe, addMeal]);
+
+  const handleAiChef = useCallback((prompt?: string) => {
+    router.push({ pathname: '/ai-chef', params: prompt ? { prompt } : {} });
+  }, []);
+
+  const handleManualEntry = useCallback(() => {
+    router.push('/meal-picker/manual');
+  }, []);
+
+  const handlePhoto = useCallback(() => {
+    router.push('/add-recipe-entry');
+  }, []);
+
+  const handleVoice = useCallback(() => {
+    router.push('/add-recipe-entry');
+  }, []);
+
+  const handleDelivery = useCallback(() => {
+    router.push('/meal-picker/delivery');
+  }, []);
+
+  const handleCameraPress = useCallback(() => {
+    router.push('/add-recipe-entry');
+  }, []);
+
+  const handleMicPress = useCallback(() => {
+    router.push('/add-recipe-entry');
+  }, []);
+
+
+  const familyName = familySettings?.family_name ?? '';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -134,36 +203,36 @@ export default function MealPickerScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Search bar */}
-      <View style={styles.searchBar}>
-        <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search your saved meals..."
-          placeholderTextColor={Colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          returnKeyType="search"
-          autoCapitalize="none"
-          autoCorrect={false}
-          testID="meal-picker-search"
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity
-            onPress={() => setSearchQuery('')}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <X size={16} color={Colors.textSecondary} strokeWidth={2} />
-          </TouchableOpacity>
-        )}
-      </View>
-
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 48 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Search bar */}
+        <View style={styles.searchBar}>
+          <Search size={16} color={Colors.textSecondary} strokeWidth={2} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search your saved meals..."
+            placeholderTextColor={Colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
+            testID="meal-picker-search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <X size={16} color={Colors.textSecondary} strokeWidth={2} />
+            </TouchableOpacity>
+          )}
+        </View>
+
         {searchQuery.trim().length > 0 ? (
           /* ── Search results ── */
           <>
@@ -172,9 +241,6 @@ export default function MealPickerScreen() {
               <View style={styles.searchEmptyState}>
                 <Search size={36} color={Colors.textSecondary} strokeWidth={1.5} />
                 <Text style={styles.searchEmptyText}>No saved meals match "{searchQuery}"</Text>
-                <TouchableOpacity onPress={handleBrowseDiscover} testID="browse-discover-from-search-btn">
-                  <Text style={styles.searchEmptyDiscoverBtn}>Browse Discover meals</Text>
-                </TouchableOpacity>
               </View>
             ) : (
               filteredFavMeals.map((meal, index) => (
@@ -230,96 +296,92 @@ export default function MealPickerScreen() {
             </View>
           </>
         ) : (
-          /* ── Default: browse cards + option tiles ── */
+          /* ── Default: carousel + SmartBar + results ── */
           <>
-            {/* Browse cards */}
-            <View style={styles.browseCardsRow}>
-              <TouchableOpacity
-                style={styles.browseCardLeft}
-                activeOpacity={0.8}
-                onPress={handleBrowseFavs}
-                testID="browse-favs-btn"
-              >
-                <Heart size={22} color={Colors.primary} fill={Colors.primary} strokeWidth={2} />
-                <Text style={styles.browseCardTitle}>From My Favourites</Text>
-                <Text style={styles.browseCardSubtitle}>
-                  {favMeals.length > 0 ? `${favMeals.length} saved recipes` : 'Your saved recipes'}
+            {/* Recipe carousel */}
+            {favMeals.length > 0 ? (
+              <View>
+                <Text style={[styles.sectionLabel, { marginHorizontal: Spacing.lg, marginBottom: Spacing.md }]}>
+                  QUICK ADD
                 </Text>
-              </TouchableOpacity>
+                <FlatList
+                  data={favMeals}
+                  renderItem={({ item: recipe }) => (
+                    <TouchableOpacity
+                      style={styles.carouselCard}
+                      onPress={() => handleSelectFavMeal(recipe)}
+                      activeOpacity={0.8}
+                    >
+                      {recipe.image_url ? (
+                        <Image
+                          source={{ uri: recipe.image_url }}
+                          style={styles.carouselImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <MealImagePlaceholder
+                          size="thumbnail"
+                          borderRadius={BorderRadius.card}
+                          name={recipe.name}
+                          cuisine={recipe.cuisine}
+                          mealType={recipe.meal_type}
+                          familyInitials={!recipe.image_url && recipe.source === 'family_created' ? familyName : undefined}
+                        />
+                      )}
+                      <Text style={styles.carouselLabel} numberOfLines={1}>
+                        {recipe.name}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  scrollEventThrottle={16}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.carouselContent}
+                />
+              </View>
+            ) : (
+              <View style={styles.noRecipesMessage}>
+                <Heart size={24} color={Colors.textSecondary} strokeWidth={2} />
+                <Text style={styles.noRecipesText}>No saved recipes yet</Text>
+              </View>
+            )}
 
-              <TouchableOpacity
-                style={styles.browseCardRight}
-                activeOpacity={0.8}
-                onPress={handleBrowseDiscover}
-                testID="browse-discover-btn"
-              >
-                <Compass size={22} color={Colors.primary} strokeWidth={2} />
-                <Text style={styles.browseCardTitle}>Try Something New</Text>
-                <Text style={styles.browseCardSubtitle}>
-                  {DISCOVER_MEALS.length} curated recipes
-                </Text>
-              </TouchableOpacity>
+            {/* SmartBar */}
+            <View style={styles.smartBarSection}>
+              <SmartBar
+                value={smartBarValue}
+                onChangeText={setSmartBarValue}
+                onCameraPress={handleCameraPress}
+                onMicPress={handleMicPress}
+                inputType={inputType}
+                urlSource={urlSource}
+              />
             </View>
 
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or create new</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            {/* SmartBar Results */}
+            <SmartBarResults
+              inputType={inputType}
+              inputValue={smartBarValue}
+              urlSource={urlSource}
+              onExtract={handleExtract}
+              onGenerate={handleGenerate}
+              onJustSaveName={handleJustSaveName}
+              onAiChef={handleAiChef}
+              onManualEntry={handleManualEntry}
+              onPhoto={handlePhoto}
+              onVoice={handleVoice}
+              onDelivery={handleDelivery}
+            />
 
-            {/* Option tiles */}
-            <View testID="option-rows">
+            {/* Ordering in link */}
+            <View style={styles.orderingLinkContainer}>
               <TouchableOpacity
-                style={styles.optionRow}
-                activeOpacity={0.8}
-                onPress={() => router.push('/add-recipe-entry')}
-                testID="add-with-recipe-btn"
+                style={styles.orderingLink}
+                onPress={handleDelivery}
+                activeOpacity={0.7}
               >
-                <View style={[styles.optionIconCircle, { backgroundColor: Colors.primaryLight }]}>
-                  <Sparkles size={16} color={Colors.primary} strokeWidth={2} />
-                </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Add with Recipe</Text>
-                  <Text style={styles.optionSubtitle}>AI mode, manual entry & more</Text>
-                </View>
-                <ChevronRight size={16} color={Colors.border} strokeWidth={2} />
-              </TouchableOpacity>
-
-              <View style={styles.optionSeparator} />
-
-              <TouchableOpacity
-                style={styles.optionRow}
-                activeOpacity={0.8}
-                onPress={() => router.push('/meal-picker/manual')}
-                testID="add-without-recipe-btn"
-              >
-                <View style={[styles.optionIconCircle, { backgroundColor: Colors.primaryLight }]}>
-                  <Pencil size={16} color={Colors.primary} strokeWidth={2} />
-                </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Add without Recipe</Text>
-                  <Text style={styles.optionSubtitle}>Just a name - add steps later</Text>
-                </View>
-                <ChevronRight size={16} color={Colors.border} strokeWidth={2} />
-              </TouchableOpacity>
-
-              <View style={styles.optionSeparator} />
-
-              <TouchableOpacity
-                style={styles.optionRow}
-                activeOpacity={0.8}
-                onPress={() => router.push('/meal-picker/delivery')}
-                testID="add-delivery-btn"
-              >
-                <View style={[styles.optionIconCircle, { backgroundColor: Colors.primaryLight }]}>
-                  <Bike size={16} color={Colors.primary} strokeWidth={2} />
-                </View>
-                <View style={styles.optionTextBlock}>
-                  <Text style={styles.optionTitle}>Add from Delivery App</Text>
-                  <Text style={styles.optionSubtitle}>Paste a delivery link</Text>
-                </View>
-                <ChevronRight size={16} color={Colors.border} strokeWidth={2} />
+                <Text style={styles.orderingLinkText}>Ordering in tonight?</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -347,9 +409,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
   },
@@ -376,18 +438,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 48,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.white,
-    borderRadius: 12,
+    borderRadius: BorderRadius.input,
     borderWidth: 1,
     borderColor: Colors.border,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    marginTop: 12,
-    paddingHorizontal: 12,
-    gap: 8,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    gap: Spacing.sm,
   },
   searchInput: {
     flex: 1,
@@ -395,25 +463,19 @@ const styles = StyleSheet.create({
     color: Colors.text,
     paddingVertical: 11,
   },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 48,
-  },
   sectionLabel: {
     fontSize: 11,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.textSecondary,
     letterSpacing: 0.8,
-    marginHorizontal: 20,
-    marginBottom: 10,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   searchEmptyState: {
     alignItems: 'center',
     paddingVertical: 32,
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.lg,
     gap: 10,
   },
   searchEmptyText: {
@@ -421,20 +483,12 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
   },
-  searchEmptyDiscoverBtn: {
-    fontSize: 14,
-    fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-    marginTop: 12,
-    textAlign: 'center',
-  },
   searchResultRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
   },
   searchResultRowBorder: {
     borderBottomWidth: 1,
@@ -468,96 +522,73 @@ const styles = StyleSheet.create({
   searchOnlineStub: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    gap: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
   },
   searchOnlineText: {
     fontSize: 14,
     color: Colors.textSecondary,
   },
-  browseCardsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  browseCardLeft: {
-    flex: 1,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 14,
-    padding: 14,
-  },
-  browseCardRight: {
-    flex: 1,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 14,
-    padding: 14,
-  },
-  browseCardTitle: {
-    fontSize: 13,
-    fontFamily: FontFamily.bold,
-    fontWeight: '700' as const,
-    color: Colors.text,
-    marginTop: 8,
-  },
-  browseCardSubtitle: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  dividerRow: {
-    flexDirection: 'row',
+
+  /* Carousel styles */
+  carouselCard: {
+    width: 100,
+    marginRight: Spacing.md,
     alignItems: 'center',
-    marginHorizontal: 16,
-    marginVertical: 16,
+    gap: Spacing.xs,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
+  carouselImage: {
+    width: 100,
+    height: 100,
+    borderRadius: BorderRadius.card,
   },
-  dividerText: {
-    fontSize: 11,
+  carouselLabel: {
+    fontSize: 12,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
-    color: Colors.textSecondary,
-    paddingHorizontal: 12,
+    color: Colors.text,
+    textAlign: 'center',
+    width: '100%',
   },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
+  carouselContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
-  optionSeparator: {
-    height: 1,
-    backgroundColor: Colors.surface,
-    marginLeft: 66,
-  },
-  optionIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+  noRecipesMessage: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
   },
-  optionTextBlock: {
-    flex: 1,
-  },
-  optionTitle: {
+  noRecipesText: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
-    color: Colors.text,
-  },
-  optionSubtitle: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    fontWeight: '400' as const,
     color: Colors.textSecondary,
-    marginTop: 1,
+  },
+
+  /* SmartBar section */
+  smartBarSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+
+  /* Ordering link */
+  orderingLinkContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+  },
+  orderingLink: {
+    paddingVertical: Spacing.sm,
+  },
+  orderingLinkText: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+    textDecorationLine: 'underline',
   },
 });

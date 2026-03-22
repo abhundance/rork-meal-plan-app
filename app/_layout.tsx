@@ -9,8 +9,7 @@ import { FamilySettingsProvider } from "@/providers/FamilySettingsProvider";
 import { OnboardingProvider } from "@/providers/OnboardingProvider";
 import { MealPlanProvider } from "@/providers/MealPlanProvider";
 import { ShoppingProvider } from "@/providers/ShoppingProvider";
-import { FavsProvider } from "@/providers/FavsProvider";
-import { DiscoverProvider } from "@/providers/DiscoverProvider";
+import { RecipesProvider } from "@/providers/RecipesProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { AppState, Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -136,23 +135,7 @@ function RootLayoutNav() {
         options={{ headerShown: false, presentation: "modal" }}
       />
       <Stack.Screen
-        name="discover-search"
-        options={{ headerShown: false, presentation: "card" }}
-      />
-      <Stack.Screen
-        name="discover-collection"
-        options={{ headerShown: false, presentation: "card" }}
-      />
-      <Stack.Screen
-        name="discover-filter-results"
-        options={{ headerShown: false, presentation: "card" }}
-      />
-      <Stack.Screen
         name="meal-picker"
-        options={{ headerShown: false, presentation: "modal" }}
-      />
-      <Stack.Screen
-        name="add-to-favs"
         options={{ headerShown: false, presentation: "modal" }}
       />
       <Stack.Screen
@@ -162,6 +145,10 @@ function RootLayoutNav() {
       <Stack.Screen
         name="join"
         options={{ headerShown: false, gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="ai-chef"
+        options={{ headerShown: false, presentation: "modal" }}
       />
       <Stack.Screen name="+not-found" />
     </Stack>
@@ -255,7 +242,7 @@ function DeliveryBannerLayout() {
               onPress={() => {
                 if (bannerUrl) {
                   setPendingDeliveryLink(bannerUrl, bannerPlatform);
-                  router.push('/(tabs)/favs');
+                  router.push('/(tabs)/recipes');
                   dismissBanner();
                 }
               }}
@@ -355,11 +342,9 @@ export default function RootLayout() {
               <OnboardingProvider>
                 <MealPlanProvider>
                   <ShoppingProvider>
-                    <FavsProvider>
-                      <DiscoverProvider>
-                        <DeliveryBannerLayout />
-                      </DiscoverProvider>
-                    </FavsProvider>
+                    <RecipesProvider>
+                      <DeliveryBannerLayout />
+                    </RecipesProvider>
                   </ShoppingProvider>
                 </MealPlanProvider>
               </OnboardingProvider>

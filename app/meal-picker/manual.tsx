@@ -23,7 +23,7 @@ import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import { Recipe, PlannedMeal } from '@/types';
-import { useFavs } from '@/providers/FavsProvider';
+import { useRecipes } from '@/providers/RecipesProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { peekPendingPlanSlot, consumePendingPlanSlot } from '@/services/pendingPlanSlot';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -31,7 +31,7 @@ import { generateUUID } from '@/utils/uuid';
 
 export default function MealPickerManualScreen() {
   const insets = useSafeAreaInsets();
-  const { addFav } = useFavs();
+  const { addRecipe } = useRecipes();
   const { addMeal } = useMealPlan();
 
   const slot = peekPendingPlanSlot();
@@ -39,14 +39,14 @@ export default function MealPickerManualScreen() {
   const defaultServing = slot?.defaultServing ?? 2;
 
   const [name, setName] = useState('');
-  const [saveToFavs, setSaveToFavs] = useState(false);
+  const [saveToRecipes, setSaveToRecipes] = useState(false);
 
   const handleSave = useCallback(() => {
     if (!name.trim()) return;
     const pendingSlot = consumePendingPlanSlot();
     if (!pendingSlot) return;
 
-    const newMealId = saveToFavs
+    const newMealId = saveToRecipes
       ? generateUUID()
       : undefined;
 
@@ -63,7 +63,7 @@ export default function MealPickerManualScreen() {
 
     addMeal(planned);
 
-    if (saveToFavs && newMealId) {
+    if (saveToRecipes && newMealId) {
       const favMeal: Recipe = {
         id: newMealId,
         name: name.trim(),
@@ -78,7 +78,7 @@ export default function MealPickerManualScreen() {
         add_to_plan_count: 0,
         created_at: new Date().toISOString(),
       };
-      addFav(favMeal);
+      addRecipe(favMeal);
     }
 
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -86,7 +86,7 @@ export default function MealPickerManualScreen() {
     // router.back() pops manual → index; router.dismiss() then closes index → Plan tab.
     router.back();
     router.dismiss();
-  }, [name, saveToFavs, addMeal, addFav]);
+  }, [name, saveToRecipes, addMeal, addRecipe]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -127,19 +127,19 @@ export default function MealPickerManualScreen() {
         />
 
         <TouchableOpacity
-          style={styles.saveToFavsRow}
-          onPress={() => setSaveToFavs((v) => !v)}
+          style={styles.saveToRecipesRow}
+          onPress={() => setSaveToRecipes((v) => !v)}
           activeOpacity={0.8}
-          testID="save-to-favs-toggle"
+          testID="save-to-recipes-toggle"
         >
           <Heart
             size={20}
-            color={saveToFavs ? Colors.primary : Colors.textSecondary}
-            fill={saveToFavs ? Colors.primary : 'none'}
+            color={saveToRecipes ? Colors.primary : Colors.textSecondary}
+            fill={saveToRecipes ? Colors.primary : 'none'}
             strokeWidth={2}
           />
-          <Text style={[styles.saveToFavsText, saveToFavs && styles.saveToFavsTextActive]}>
-            Save to Favourites
+          <Text style={[styles.saveToRecipesText, saveToRecipes && styles.saveToRecipesTextActive]}>
+            Save to Recipes
           </Text>
         </TouchableOpacity>
 
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
   },
-  saveToFavsRow: {
+  saveToRecipesRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -246,13 +246,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 20,
   },
-  saveToFavsText: {
+  saveToRecipesText: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
   },
-  saveToFavsTextActive: {
+  saveToRecipesTextActive: {
     color: Colors.primary,
   },
   hint: {
