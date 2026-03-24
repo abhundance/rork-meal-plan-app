@@ -113,11 +113,11 @@ export default function MealPickerScreen() {
   }, []);
 
   const handleAiChef = useCallback(() => {
-    router.push('/add-recipe-entry?tab=ai');
+    router.push('/add-recipe-entry');
   }, []);
 
   const handleManualEntry = useCallback(() => {
-    router.push('/add-recipe-entry?tab=manual');
+    router.push('/add-recipe-manual');
   }, []);
 
   const handleDelivery = useCallback(() => {
