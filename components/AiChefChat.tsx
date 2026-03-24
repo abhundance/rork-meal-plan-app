@@ -16,15 +16,18 @@ import {
   FlatList,
   ActivityIndicator,
   Image,
+  Animated,
   Platform,
   Alert,
   Keyboard,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Send, Camera, ImageIcon, Mic, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { Send, Camera, ImageIcon, Mic, Square, ChevronDown, ChevronUp } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
+import { useAudioRecorder, RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync } from 'expo-audio';
 import Colors from '@/constants/colors';
 import { FontFamily, FontSize } from '@/constants/typography';
 import { BorderRadius, Spacing } from '@/constants/theme';
@@ -34,7 +37,6 @@ import {
   ExtractedRecipe,
   extractRecipeFromVideoUrl,
 } from '@/services/recipeExtraction';
-import VoiceRecordSheet from '@/components/VoiceRecordSheet';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -121,8 +123,15 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const [inputText, setInputText] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [pendingImage, setPendingImage] = useState<{ uri: string; base64: string } | null>(null);
-  const [showVoiceSheet, setShowVoiceSheet] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'transcribing'>('idle');
+  const [voiceElapsed, setVoiceElapsed] = useState(0);
+
+  // Audio recorder (expo-audio)
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseLoopRef = useRef<Animated.CompositeAnimation | null>(null);
 
   // Track keyboard visibility so we can drop bottom safe-area padding when keyboard is up
   useEffect(() => {
@@ -364,39 +373,142 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
     }
   }, []);
 
-  // ── Voice handler ─────────────────────────────────────────────────────────
+  // ── Inline voice recording ──────────────────────────────────────────────
 
-  const handleVoiceExtracted = useCallback(
-    (result: ExtractedRecipe) => {
-      setShowVoiceSheet(false);
+  const startPulse = useCallback(() => {
+    pulseAnim.setValue(1);
+    pulseLoopRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.3, duration: 500, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.0, duration: 500, useNativeDriver: true }),
+      ]),
+    );
+    pulseLoopRef.current.start();
+  }, [pulseAnim]);
 
-      // If voice returned a full recipe, show it directly as a recipe card
-      if (result.name && result.ingredients?.length > 0) {
-        const userMsg: ChatMessage = {
-          id: nextId(),
-          role: 'user',
-          type: 'text',
-          content: '🎤 Voice recording',
-          timestamp: Date.now(),
+  const stopPulse = useCallback(() => {
+    pulseLoopRef.current?.stop();
+    pulseAnim.setValue(1);
+  }, [pulseAnim]);
+
+  const clearVoiceTimer = useCallback(() => {
+    if (voiceTimerRef.current) {
+      clearInterval(voiceTimerRef.current);
+      voiceTimerRef.current = null;
+    }
+  }, []);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => { clearVoiceTimer(); stopPulse(); };
+  }, [clearVoiceTimer, stopPulse]);
+
+  const handleVoiceStart = useCallback(async () => {
+    if (voiceState !== 'idle') return;
+
+    const { status } = await requestRecordingPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Microphone Access Required',
+        Platform.OS === 'ios'
+          ? 'Meal Plan needs microphone access to record your voice. Tap Open Settings and enable Microphone.'
+          : 'Meal Plan needs microphone access. Tap Open Settings and enable the Microphone permission.',
+        [
+          { text: 'Not Now', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ],
+      );
+      return;
+    }
+
+    try {
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
+      setVoiceElapsed(0);
+      setVoiceState('recording');
+      startPulse();
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      voiceTimerRef.current = setInterval(() => {
+        setVoiceElapsed(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('[AiChefChat] Failed to start recording:', err);
+      Alert.alert('Error', 'Could not start recording. Please try again.');
+    }
+  }, [voiceState, audioRecorder, startPulse]);
+
+  const handleVoiceStop = useCallback(async () => {
+    if (voiceState !== 'recording') return;
+
+    clearVoiceTimer();
+    stopPulse();
+    setVoiceState('transcribing');
+
+    try {
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
+      if (!uri) throw new Error('No URI from recording');
+
+      // Read audio file as base64
+      const audioResponse = await fetch(uri);
+      if (!audioResponse.ok) throw new Error('Could not read audio file.');
+      const blob = await audioResponse.blob();
+      const base64Audio = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]); // Strip data: prefix
         };
-        const recipeMsg: ChatMessage = {
-          id: nextId(),
-          role: 'assistant',
-          type: 'recipe',
-          content: `I heard your recipe for ${result.name}! Here it is:`,
-          recipe: result,
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, userMsg, recipeMsg]);
-        scrollToBottom();
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      const audioMimeType = blob.type || 'audio/m4a';
+
+      // Call ai-chef Edge Function in transcribe-only mode
+      const supabase = getSupabase();
+      const session = await supabase.auth.getSession();
+      const response = await supabase.functions.invoke('ai-chef', {
+        body: { type: 'transcribe', base64Audio, audioMimeType },
+        headers: session.data.session
+          ? { Authorization: `Bearer ${session.data.session.access_token}` }
+          : { apikey: getSupabaseAnonKey() },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      const transcribedText = response.data?.text?.trim() ?? '';
+
+      if (transcribedText.length > 0) {
+        setInputText(transcribedText);
+        // Focus the input so the user can review/edit before sending
+        setTimeout(() => inputRef.current?.focus(), 100);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else if (result.description) {
-        // Just transcription text — send as chat message
-        handleSend(result.description);
+      } else {
+        Alert.alert('No speech detected', 'Could not detect any speech. Please try again.');
       }
-    },
-    [handleSend, scrollToBottom],
-  );
+    } catch (err) {
+      console.error('[AiChefChat] Voice transcription error:', err);
+      Alert.alert('Error', 'Could not transcribe your voice. Please try again.');
+    } finally {
+      setVoiceState('idle');
+      setVoiceElapsed(0);
+    }
+  }, [voiceState, audioRecorder, clearVoiceTimer, stopPulse]);
+
+  const handleVoiceCancel = useCallback(async () => {
+    clearVoiceTimer();
+    stopPulse();
+    try { await audioRecorder.stop(); } catch { /* ignore */ }
+    setVoiceState('idle');
+    setVoiceElapsed(0);
+  }, [audioRecorder, clearVoiceTimer, stopPulse]);
+
+  const formatVoiceTime = (seconds: number): string => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   // ── Save recipe → Review screen ──────────────────────────────────────────
 
@@ -591,64 +703,95 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
 
   // ── Render: Input bar ─────────────────────────────────────────────────────
 
-  const renderInputBar = () => (
-    <View style={[styles.inputBarContainer, { paddingBottom: keyboardVisible ? Spacing.xs : insets.bottom }]}>
-      {/* Pending image preview */}
-      {pendingImage && (
-        <View style={styles.pendingImageRow}>
-          <Image source={{ uri: pendingImage.uri }} style={styles.pendingImageThumb} />
-          <TouchableOpacity onPress={() => setPendingImage(null)} style={styles.pendingImageRemove}>
-            <Text style={styles.pendingImageRemoveText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+  const renderInputBar = () => {
+    const isRecording = voiceState === 'recording';
+    const isTranscribing = voiceState === 'transcribing';
 
-      {/* Main input row — action icons inline to the left */}
-      <View style={styles.inputRow}>
-        <TouchableOpacity style={styles.inlineActionBtn} onPress={() => pickImage(true)} activeOpacity={0.6}>
-          <Camera size={20} color={Colors.textSecondary} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.inlineActionBtn} onPress={() => pickImage(false)} activeOpacity={0.6}>
-          <ImageIcon size={20} color={Colors.textSecondary} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.inlineActionBtn} onPress={() => setShowVoiceSheet(true)} activeOpacity={0.6}>
-          <Mic size={20} color={Colors.textSecondary} />
-        </TouchableOpacity>
+    return (
+      <View style={[styles.inputBarContainer, { paddingBottom: keyboardVisible ? Spacing.xs : insets.bottom }]}>
+        {/* Pending image preview */}
+        {pendingImage && !isRecording && !isTranscribing && (
+          <View style={styles.pendingImageRow}>
+            <Image source={{ uri: pendingImage.uri }} style={styles.pendingImageThumb} />
+            <TouchableOpacity onPress={() => setPendingImage(null)} style={styles.pendingImageRemove}>
+              <Text style={styles.pendingImageRemoveText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-        <TextInput
-          ref={inputRef}
-          style={styles.textInput}
-          placeholder="Ask AI Chef..."
-          placeholderTextColor={Colors.textSecondary}
-          value={inputText}
-          onChangeText={setInputText}
-          onSubmitEditing={() => handleSend()}
-          returnKeyType="send"
-          multiline
-          maxLength={1000}
-          editable={!isThinking}
-        />
+        {isRecording ? (
+          /* ── Recording state: red dot + timer + cancel/stop ── */
+          <View style={styles.inputRow}>
+            <TouchableOpacity onPress={handleVoiceCancel} style={styles.voiceCancelBtn} activeOpacity={0.7}>
+              <Text style={styles.voiceCancelText}>Cancel</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            (inputText.trim() || pendingImage) && !isThinking
-              ? styles.sendButtonActive
-              : styles.sendButtonInactive,
-          ]}
-          onPress={() => handleSend()}
-          disabled={(!inputText.trim() && !pendingImage) || isThinking}
-          activeOpacity={0.7}
-        >
-          <Send
-            size={18}
-            color={(inputText.trim() || pendingImage) && !isThinking ? Colors.white : Colors.textSecondary}
-            strokeWidth={2.5}
-          />
-        </TouchableOpacity>
+            <View style={styles.voiceRecordingCenter}>
+              <Animated.View style={[styles.voiceDot, { transform: [{ scale: pulseAnim }] }]} />
+              <Text style={styles.voiceTimer}>{formatVoiceTime(voiceElapsed)}</Text>
+            </View>
+
+            <TouchableOpacity onPress={handleVoiceStop} style={styles.voiceStopBtn} activeOpacity={0.7}>
+              <Square size={18} color={Colors.white} fill={Colors.white} />
+            </TouchableOpacity>
+          </View>
+        ) : isTranscribing ? (
+          /* ── Transcribing state: spinner + text ── */
+          <View style={styles.inputRow}>
+            <View style={styles.voiceTranscribingRow}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text style={styles.voiceTranscribingText}>Transcribing...</Text>
+            </View>
+          </View>
+        ) : (
+          /* ── Normal input state ── */
+          <View style={styles.inputRow}>
+            <TouchableOpacity style={styles.inlineActionBtn} onPress={() => pickImage(true)} activeOpacity={0.6}>
+              <Camera size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.inlineActionBtn} onPress={() => pickImage(false)} activeOpacity={0.6}>
+              <ImageIcon size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.inlineActionBtn} onPress={handleVoiceStart} activeOpacity={0.6}>
+              <Mic size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+
+            <TextInput
+              ref={inputRef}
+              style={styles.textInput}
+              placeholder="Ask AI Chef..."
+              placeholderTextColor={Colors.textSecondary}
+              value={inputText}
+              onChangeText={setInputText}
+              onSubmitEditing={() => handleSend()}
+              returnKeyType="send"
+              multiline
+              maxLength={1000}
+              editable={!isThinking}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                (inputText.trim() || pendingImage) && !isThinking
+                  ? styles.sendButtonActive
+                  : styles.sendButtonInactive,
+              ]}
+              onPress={() => handleSend()}
+              disabled={(!inputText.trim() && !pendingImage) || isThinking}
+              activeOpacity={0.7}
+            >
+              <Send
+                size={18}
+                color={(inputText.trim() || pendingImage) && !isThinking ? Colors.white : Colors.textSecondary}
+                strokeWidth={2.5}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
-    </View>
-  );
+    );
+  };
 
   // ── Main render ───────────────────────────────────────────────────────────
 
@@ -671,17 +814,6 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       />
 
       {renderInputBar()}
-
-      <VoiceRecordSheet
-        visible={showVoiceSheet}
-        onClose={() => setShowVoiceSheet(false)}
-        onExtracted={handleVoiceExtracted}
-        onError={() => {
-          setShowVoiceSheet(false);
-          Alert.alert('Error', 'Could not process voice input. Please try again.');
-        }}
-        language={familySettings.language}
-      />
     </View>
   );
 }
@@ -1284,5 +1416,57 @@ const styles = StyleSheet.create({
   },
   sendButtonInactive: {
     backgroundColor: Colors.surface,
+  },
+
+  // Voice recording inline states
+  voiceCancelBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  voiceCancelText: {
+    fontSize: FontSize.sm,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  voiceRecordingCenter: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
+  voiceDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.primary,
+  },
+  voiceTimer: {
+    fontSize: FontSize.base,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  voiceStopBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceTranscribingRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  voiceTranscribingText: {
+    fontSize: FontSize.sm,
+    fontFamily: FontFamily.regular,
+    color: Colors.textSecondary,
   },
 });
