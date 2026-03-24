@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Send, Camera, ImageIcon, Mic, Link2, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { Send, Camera, ImageIcon, Mic, ChevronDown, ChevronUp } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -122,7 +122,6 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const [isThinking, setIsThinking] = useState(false);
   const [pendingImage, setPendingImage] = useState<{ uri: string; base64: string } | null>(null);
   const [showVoiceSheet, setShowVoiceSheet] = useState(false);
-  const [showAttachments, setShowAttachments] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   // Track keyboard visibility so we can drop bottom safe-area padding when keyboard is up
@@ -604,49 +603,22 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         </View>
       )}
 
-      {/* Attachment buttons */}
-      {showAttachments && (
-        <View style={styles.attachmentRow}>
-          <TouchableOpacity style={styles.attachBtn} onPress={() => pickImage(true)}>
-            <Camera size={20} color={Colors.text} />
-            <Text style={styles.attachLabel}>Camera</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.attachBtn} onPress={() => pickImage(false)}>
-            <ImageIcon size={20} color={Colors.text} />
-            <Text style={styles.attachLabel}>Photos</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.attachBtn} onPress={() => { setShowAttachments(false); setShowVoiceSheet(true); }}>
-            <Mic size={20} color={Colors.text} />
-            <Text style={styles.attachLabel}>Voice</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.attachBtn}
-            onPress={() => {
-              setShowAttachments(false);
-              setInputText('https://');
-              inputRef.current?.focus();
-            }}
-          >
-            <Link2 size={20} color={Colors.text} />
-            <Text style={styles.attachLabel}>Link</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Main input row */}
+      {/* Main input row — action icons inline to the left */}
       <View style={styles.inputRow}>
-        <TouchableOpacity
-          style={styles.plusButton}
-          onPress={() => setShowAttachments(!showAttachments)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.plusButtonText}>{showAttachments ? '✕' : '+'}</Text>
+        <TouchableOpacity style={styles.inlineActionBtn} onPress={() => pickImage(true)} activeOpacity={0.6}>
+          <Camera size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.inlineActionBtn} onPress={() => pickImage(false)} activeOpacity={0.6}>
+          <ImageIcon size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.inlineActionBtn} onPress={() => setShowVoiceSheet(true)} activeOpacity={0.6}>
+          <Mic size={20} color={Colors.textSecondary} />
         </TouchableOpacity>
 
         <TextInput
           ref={inputRef}
           style={styles.textInput}
-          placeholder="Ask AI Chef anything..."
+          placeholder="Ask AI Chef..."
           placeholderTextColor={Colors.textSecondary}
           value={inputText}
           onChangeText={setInputText}
@@ -1272,45 +1244,19 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: '600',
   },
-  attachmentRow: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.md,
-  },
-  attachBtn: {
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.button,
-    minWidth: 64,
-  },
-  attachLabel: {
-    fontSize: 11,
-    fontFamily: FontFamily.regular,
-    color: Colors.textSecondary,
-  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
+    gap: 6,
   },
-  plusButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.surface,
+  inlineActionBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  plusButtonText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.text,
   },
   textInput: {
     flex: 1,
