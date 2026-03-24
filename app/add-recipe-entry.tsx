@@ -19,6 +19,8 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -66,7 +68,11 @@ export default function AddRecipeEntryScreen() {
   }, []);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { paddingTop: insets.top }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+    >
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
@@ -94,7 +100,7 @@ export default function AddRecipeEntryScreen() {
           pendingPlanSlot={pendingPlanSlot}
         />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

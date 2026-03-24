@@ -16,7 +16,6 @@ import {
   FlatList,
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
   Platform,
   Alert,
   Keyboard,
@@ -124,6 +123,18 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const [pendingImage, setPendingImage] = useState<{ uri: string; base64: string } | null>(null);
   const [showVoiceSheet, setShowVoiceSheet] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  // Track keyboard visibility so we can drop bottom safe-area padding when keyboard is up
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = () => setKeyboardVisible(true);
+    const onHide = () => setKeyboardVisible(false);
+    const sub1 = Keyboard.addListener(showEvent, onShow);
+    const sub2 = Keyboard.addListener(hideEvent, onHide);
+    return () => { sub1.remove(); sub2.remove(); };
+  }, []);
 
   // Ref to always have latest messages (avoids stale closure in callbacks)
   const messagesRef = useRef<ChatMessage[]>([]);
@@ -582,7 +593,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   // ── Render: Input bar ─────────────────────────────────────────────────────
 
   const renderInputBar = () => (
-    <View style={[styles.inputBarContainer, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.inputBarContainer, { paddingBottom: keyboardVisible ? Spacing.xs : insets.bottom }]}>
       {/* Pending image preview */}
       {pendingImage && (
         <View style={styles.pendingImageRow}>
@@ -670,11 +681,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   // ── Main render ───────────────────────────────────────────────────────────
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-    >
+    <View style={styles.container}>
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -703,7 +710,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         }}
         language={familySettings.language}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
