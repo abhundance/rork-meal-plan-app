@@ -21,6 +21,7 @@ import { FontFamily } from '@/constants/typography';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 import { extractRecipeFromImage, extractRecipeFromText, detectVideoUrlType, extractRecipeFromVideoUrl, extractRecipeMetadata } from '@/services/recipeExtraction';
 import { imageStore } from '@/services/imageStore';
+import { generateMealImageInBackground } from '@/services/imageGeneration';
 import { useRecipes } from '@/providers/RecipesProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
@@ -76,7 +77,7 @@ export default function AddMealReviewScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<Params>();
-  const { addRecipe, syncRecipeNow } = useRecipes();
+  const { addRecipe, updateRecipe, syncRecipeNow } = useRecipes();
   const { addMeal, addMealLocalOnly } = useMealPlan();
   const { familySettings } = useFamilySettings();
 
@@ -412,6 +413,28 @@ export default function AddMealReviewScreen() {
 
     addRecipe(meal);
     console.log('[Review] Saved to recipes:', meal.name);
+
+    // ── Auto-generate AI image if no photo was attached ───────────────────
+    if (!meal.image_url) {
+      const ingredientNames = (meal.ingredients ?? [])
+        .map((ing) => ing.name)
+        .filter(Boolean);
+      generateMealImageInBackground(
+        {
+          recipe_id: meal.id,
+          name: meal.name,
+          description: meal.description,
+          cuisine: meal.cuisine,
+          ingredients: ingredientNames,
+        },
+        (imageUrl) => {
+          // Update local state so the Recipes grid reflects the new image
+          updateRecipe(meal.id, { image_url: imageUrl });
+          console.log('[Review] AI image generated for', meal.name);
+        },
+      );
+    }
+
     const pending = consumePendingPlanSlot();
     if (pending) {
       const plannedMeal: PlannedMeal = {
@@ -445,7 +468,7 @@ export default function AddMealReviewScreen() {
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
     ingredients, servingSize, methodSteps,
-    addRecipe, syncRecipeNow, addMeal, addMealLocalOnly, router,
+    addRecipe, updateRecipe, syncRecipeNow, addMeal, addMealLocalOnly, router,
   ]);
 
   if (isLoading) {

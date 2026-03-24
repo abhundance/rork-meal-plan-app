@@ -23,6 +23,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { getSupabase } from '@/services/supabase';
 import { recipeToRow, rowToRecipe, upsertRecipeToSupabase } from '@/services/db';
 import { generateUUID } from '@/utils/uuid';
+import { backfillMealImages } from '@/services/imageGeneration';
 
 const RECIPES_KEY         = 'saved_recipes';
 const RECENT_SEARCHES_KEY = 'recipes_recent_searches';
@@ -152,6 +153,29 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
   useEffect(() => {
     if (searchesQuery.data) setRecentSearches(searchesQuery.data);
   }, [searchesQuery.data]);
+
+  // ── One-time backfill: generate AI images for recipes that have none ────
+  const backfillRanRef = useRef(false);
+  useEffect(() => {
+    if (backfillRanRef.current) return;
+    if (!userId || !recipesQuery.data) return;
+    const recipesWithoutImages = recipesQuery.data.filter((r) => !r.image_url);
+    if (recipesWithoutImages.length === 0) return;
+
+    backfillRanRef.current = true;
+    console.log(`[Recipes] Backfilling images for ${recipesWithoutImages.length} recipes`);
+
+    backfillMealImages(userId, Math.min(recipesWithoutImages.length, 10), (recipeId, imageUrl) => {
+      // Update local state so the UI reflects the new image
+      const updated = mealsRef.current.map((m) =>
+        m.id === recipeId ? { ...m, image_url: imageUrl } : m,
+      );
+      mealsRef.current = updated;
+      setMeals(updated);
+      saveMutateRef.current(updated);
+      console.log('[Recipes] Backfill updated image for:', recipeId);
+    });
+  }, [userId, recipesQuery.data]);
 
   const mealsRef = useRef(meals);
   mealsRef.current = meals;
