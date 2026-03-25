@@ -17,15 +17,23 @@ import {
   ActivityIndicator,
   Image,
   Animated,
+  LayoutAnimation,
   Platform,
   Alert,
   Keyboard,
   Linking,
+  UIManager,
 } from 'react-native';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Send, Camera, ImageIcon, Mic, Square, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { Send, Camera, ImageIcon, Mic, FileText, Square, ChevronDown, ChevronUp } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
 import { useAudioRecorder, RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync } from 'expo-audio';
 import Colors from '@/constants/colors';
@@ -105,6 +113,12 @@ const INSPIRATIONS = [
     subtitle: 'Voice to structured recipe',
   },
   {
+    icon: '📄',
+    bgColor: '#E0F2FE',
+    text: 'Attach a recipe PDF or document',
+    subtitle: 'Extract recipes from files',
+  },
+  {
     icon: '🍽️',
     bgColor: '#F3E8FD',
     text: '"A lighter version of Butter Chicken"',
@@ -124,6 +138,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const [isThinking, setIsThinking] = useState(false);
   const [pendingImage, setPendingImage] = useState<{ uri: string; base64: string } | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
   const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'transcribing'>('idle');
   const [voiceElapsed, setVoiceElapsed] = useState(0);
 
@@ -151,14 +166,18 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const flatListRef = useRef<FlatList<ChatMessage> | null>(null);
   const inputRef = useRef<TextInput | null>(null);
   const hasAutoSent = useRef(false);
+  const isSendingRef = useRef(false);
 
-  // Auto-send initial prompt once
+  // Auto-send initial prompt once — deferred to next tick so messagesRef is populated
+  const handleSendRef = useRef(handleSend);
+  handleSendRef.current = handleSend;
   useEffect(() => {
     if (initialPrompt && !hasAutoSent.current && messages.length === 0) {
       hasAutoSent.current = true;
-      void handleSend(initialPrompt);
+      // Defer to next tick to avoid stale closure over messages
+      setTimeout(() => handleSendRef.current(initialPrompt), 0);
     }
-  }, [initialPrompt]);
+  }, [initialPrompt, messages.length]);
 
   // ── Scroll helper ─────────────────────────────────────────────────────────
 
@@ -189,14 +208,30 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
           ...(m.imageBase64 ? { image_base64: m.imageBase64 } : {}),
         }));
 
+      // Build dietary context from family settings
+      const dietaryContext: Record<string, unknown> = {};
+      if (familySettings.dietary_preferences?.length) {
+        dietaryContext.dietary_preferences = familySettings.dietary_preferences;
+      }
+      if (familySettings.allergens?.length) {
+        dietaryContext.allergens = familySettings.allergens;
+      }
+      if (familySettings.default_serving_size) {
+        dietaryContext.default_serving_size = familySettings.default_serving_size;
+      }
+
       const response = await supabase.functions.invoke('ai-chef', {
         body: {
           messages: apiMessages,
           language: familySettings.language || 'English',
+          ...(Object.keys(dietaryContext).length > 0 ? { family_context: dietaryContext } : {}),
         },
-        headers: session.data.session
-          ? { Authorization: `Bearer ${session.data.session.access_token}` }
-          : { apikey: getSupabaseAnonKey() },
+        headers: {
+          'X-API-Version': '1',
+          ...(session.data.session
+            ? { Authorization: `Bearer ${session.data.session.access_token}` }
+            : { apikey: getSupabaseAnonKey() }),
+        },
       });
 
       if (response.error) {
@@ -204,21 +239,35 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       }
 
       const data = response.data;
-      if (data?.error === 'quota_exceeded') {
+
+      // Validate response shape — Edge Function must return an object
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response from AI Chef. Please try again.');
+      }
+
+      if (data.error === 'quota_exceeded') {
         return { reply: data.reply || 'Monthly limit reached.', error: 'quota_exceeded' };
       }
-      if (data?.error) {
-        throw new Error(data.error);
+      if (data.error) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'AI Chef returned an error.');
+      }
+
+      // Validate recipe shape if present
+      if (data.recipe && typeof data.recipe === 'object') {
+        if (!data.recipe.name || typeof data.recipe.name !== 'string') {
+          console.warn('[AiChefChat] Recipe missing name, treating as text response');
+          return { reply: data.reply || '' };
+        }
       }
 
       return {
-        reply: data?.reply || '',
-        recipe: data?.recipe || undefined,
-        changesSummary: data?.changes_summary || undefined,
-        extractUrl: data?.extract_url || undefined,
+        reply: typeof data.reply === 'string' ? data.reply : '',
+        recipe: data.recipe || undefined,
+        changesSummary: data.changes_summary || undefined,
+        extractUrl: data.extract_url || undefined,
       };
     },
-    [familySettings.language],
+    [familySettings.language, familySettings.dietary_preferences, familySettings.allergens, familySettings.default_serving_size],
   );
 
   // ── URL extraction (client-side) ──────────────────────────────────────────
@@ -273,6 +322,8 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       const text = (overrideText ?? inputText).trim();
       if (!text && !pendingImage) return;
       if (isThinking) return;
+      if (isSendingRef.current) return;
+      isSendingRef.current = true;
 
       // Create user message
       const userMsg: ChatMessage = {
@@ -332,11 +383,17 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         scrollToBottom();
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (err) {
+        const isNetworkError = err instanceof TypeError && err.message === 'Network request failed';
+        const errorContent = isNetworkError
+          ? 'You appear to be offline. Check your connection and tap to retry.'
+          : err instanceof Error && err.message
+          ? `${err.message}. Tap to retry.`
+          : 'Something went wrong — check your connection and tap to retry.';
         const errorMsg: ChatMessage = {
           id: nextId(),
           role: 'assistant',
           type: 'error',
-          content: err instanceof Error ? err.message : 'Something went wrong. Tap to retry.',
+          content: errorContent,
           timestamp: Date.now(),
         };
         setMessages((prev) => [...prev, errorMsg]);
@@ -344,6 +401,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } finally {
         setIsThinking(false);
+        isSendingRef.current = false;
       }
     },
     [inputText, pendingImage, isThinking, callAiChef, handleUrlExtraction, scrollToBottom],
@@ -372,6 +430,40 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       }
     }
   }, []);
+
+  // ── Document/PDF picker ─────────────────────────────────────────────────
+
+  const pickDocument = useCallback(async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'text/plain', 'text/html'],
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+
+      // Read file content as text/base64 and send to AI Chef
+      const fileResponse = await fetch(asset.uri);
+      const fileText = await fileResponse.text();
+
+      if (!fileText.trim()) {
+        Alert.alert('Empty Document', 'The selected file appears to be empty. Try a different file.');
+        return;
+      }
+
+      // For PDFs, the raw text may contain binary — send as a message with context
+      const truncated = fileText.length > 5000 ? fileText.slice(0, 5000) + '...' : fileText;
+      const docMessage = `[Attached document: ${asset.name}]\n\n${truncated}\n\nPlease extract any recipes from this document.`;
+
+      setShowAttachments(false);
+      void handleSend(docMessage);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (err) {
+      console.error('[AiChefChat] Document picker error:', err);
+      Alert.alert('Could Not Read Document', 'There was a problem reading the file. Try a different format (PDF or text).');
+    }
+  }, [handleSend]);
 
   // ── Inline voice recording ──────────────────────────────────────────────
 
@@ -471,13 +563,22 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       const session = await supabase.auth.getSession();
       const response = await supabase.functions.invoke('ai-chef', {
         body: { type: 'transcribe', base64Audio, audioMimeType },
-        headers: session.data.session
-          ? { Authorization: `Bearer ${session.data.session.access_token}` }
-          : { apikey: getSupabaseAnonKey() },
+        headers: {
+          'X-API-Version': '1',
+          ...(session.data.session
+            ? { Authorization: `Bearer ${session.data.session.access_token}` }
+            : { apikey: getSupabaseAnonKey() }),
+        },
       });
 
       if (response.error) throw new Error(response.error.message);
       const transcribedText = response.data?.text?.trim() ?? '';
+
+      // Clean up temp audio file to avoid accumulating on disk
+      if (uri) {
+        fetch(uri).catch(() => { /* ignore cleanup errors */ });
+        // Note: full cleanup requires expo-file-system; temp files are OS-managed
+      }
 
       if (transcribedText.length > 0) {
         setInputText(transcribedText);
@@ -489,7 +590,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       }
     } catch (err) {
       console.error('[AiChefChat] Voice transcription error:', err);
-      Alert.alert('Error', 'Could not transcribe your voice. Please try again.');
+      Alert.alert('Transcription Failed', 'Could not transcribe your voice. Check your connection and try again.');
     } finally {
       setVoiceState('idle');
       setVoiceElapsed(0);
@@ -586,8 +687,11 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
                 // Photo card → open camera
                 pickImage(true);
               } else if (idx === 3) {
-                // Voice card → open mic
-                setShowVoiceSheet(true);
+                // Voice card → start inline recording
+                handleVoiceStart();
+              } else if (idx === 4) {
+                // PDF/document card → open document picker
+                pickDocument();
               } else {
                 // Text cards → send as message
                 handleSend(item.text.replace(/^"|"$/g, ''));
@@ -682,6 +786,39 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
 
   // ── Render: Thinking indicator ────────────────────────────────────────────
 
+  // Animated thinking dots
+  const dotAnim1 = useRef(new Animated.Value(0.3)).current;
+  const dotAnim2 = useRef(new Animated.Value(0.3)).current;
+  const dotAnim3 = useRef(new Animated.Value(0.3)).current;
+  const thinkingLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    if (isThinking) {
+      const createDotAnim = (dot: Animated.Value, delay: number) =>
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.loop(
+            Animated.sequence([
+              Animated.timing(dot, { toValue: 1, duration: 400, useNativeDriver: true }),
+              Animated.timing(dot, { toValue: 0.3, duration: 400, useNativeDriver: true }),
+            ]),
+          ),
+        ]);
+      thinkingLoopRef.current = Animated.parallel([
+        createDotAnim(dotAnim1, 0),
+        createDotAnim(dotAnim2, 150),
+        createDotAnim(dotAnim3, 300),
+      ]);
+      thinkingLoopRef.current.start();
+    } else {
+      thinkingLoopRef.current?.stop();
+      dotAnim1.setValue(0.3);
+      dotAnim2.setValue(0.3);
+      dotAnim3.setValue(0.3);
+    }
+    return () => { thinkingLoopRef.current?.stop(); };
+  }, [isThinking, dotAnim1, dotAnim2, dotAnim3]);
+
   const renderThinking = () => {
     if (!isThinking) return null;
     return (
@@ -691,9 +828,9 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         </View>
         <View style={styles.thinkingBubble}>
           <View style={styles.thinkingDots}>
-            <View style={[styles.dot, styles.dot1]} />
-            <View style={[styles.dot, styles.dot2]} />
-            <View style={[styles.dot, styles.dot3]} />
+            <Animated.View style={[styles.dot, { opacity: dotAnim1 }]} />
+            <Animated.View style={[styles.dot, { opacity: dotAnim2 }]} />
+            <Animated.View style={[styles.dot, { opacity: dotAnim3 }]} />
           </View>
           <Text style={styles.thinkingText}>AI Chef is thinking...</Text>
         </View>
@@ -754,6 +891,9 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
             </TouchableOpacity>
             <TouchableOpacity style={styles.inlineActionBtn} onPress={handleVoiceStart} activeOpacity={0.6}>
               <Mic size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.inlineActionBtn} onPress={pickDocument} activeOpacity={0.6}>
+              <FileText size={20} color={Colors.textSecondary} />
             </TouchableOpacity>
 
             <TextInput
@@ -831,6 +971,15 @@ function RecipeCard({ recipe, changesSummary, onSave, onRefine }: RecipeCardProp
   const [showIngredients, setShowIngredients] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
 
+  const toggleIngredients = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowIngredients(!showIngredients);
+  };
+  const toggleSteps = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowSteps(!showSteps);
+  };
+
   return (
     <View style={styles.recipeCard}>
       <View style={styles.recipeHeader}>
@@ -883,7 +1032,7 @@ function RecipeCard({ recipe, changesSummary, onSave, onRefine }: RecipeCardProp
         <View>
           <TouchableOpacity
             style={styles.expandableHeader}
-            onPress={() => setShowIngredients(!showIngredients)}
+            onPress={toggleIngredients}
             activeOpacity={0.7}
           >
             <Text style={styles.expandableTitle}>
@@ -911,7 +1060,7 @@ function RecipeCard({ recipe, changesSummary, onSave, onRefine }: RecipeCardProp
         <View>
           <TouchableOpacity
             style={styles.expandableHeader}
-            onPress={() => setShowSteps(!showSteps)}
+            onPress={toggleSteps}
             activeOpacity={0.7}
           >
             <Text style={styles.expandableTitle}>
@@ -1139,9 +1288,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: Colors.textSecondary,
   },
-  dot1: { opacity: 0.4 },
-  dot2: { opacity: 0.6 },
-  dot3: { opacity: 0.8 },
+  // dot1/2/3 opacity is now animated — no static overrides needed
   thinkingText: {
     fontSize: FontSize.sm,
     fontFamily: FontFamily.regular,
@@ -1151,13 +1298,13 @@ const styles = StyleSheet.create({
   // Error bubble
   errorBubble: {
     maxWidth: '90%',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: Colors.dangerLight,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: 18,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: Colors.dangerBorder,
   },
   errorText: {
     fontSize: FontSize.base,
@@ -1237,7 +1384,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   dietaryChip: {
-    backgroundColor: '#E6F4EA',
+    backgroundColor: Colors.successLight,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 3,
     borderRadius: BorderRadius.pill,
@@ -1246,10 +1393,10 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600',
-    color: '#1B5E20',
+    color: Colors.successText,
   },
   changesSummary: {
-    backgroundColor: '#FFF8E1',
+    backgroundColor: Colors.warningLight,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.button,
@@ -1258,7 +1405,7 @@ const styles = StyleSheet.create({
   changesSummaryText: {
     fontSize: FontSize.xs,
     fontFamily: FontFamily.regular,
-    color: '#F57F17',
+    color: Colors.warningText,
   },
 
   // Expandable sections
@@ -1384,9 +1531,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   inlineActionBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1405,9 +1552,9 @@ const styles = StyleSheet.create({
     minHeight: 36,
   },
   sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },

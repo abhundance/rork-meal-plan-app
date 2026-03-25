@@ -47,7 +47,7 @@ export async function generateMealImage(
     const supabase = getSupabase();
     const { data: sessionData } = await supabase.auth.getSession();
 
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = { 'X-API-Version': '1' };
     if (sessionData?.session?.access_token) {
       headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
     } else {
@@ -77,6 +77,10 @@ export async function generateMealImage(
     }
 
     console.log('[imageGeneration] Generated image for', params.name, '→', data.image_url);
+    // Track generation for observability
+    if (data.usage) {
+      console.log('[imageGeneration] Usage:', JSON.stringify(data.usage));
+    }
     return { image_url: data.image_url, storage_path: data.storage_path };
   } catch (err) {
     console.error('[imageGeneration] Unexpected error:', err);
@@ -97,11 +101,46 @@ export function generateMealImageInBackground(
   generateMealImage(params).then((result) => {
     clearGenerating(params.recipe_id);
     if (result?.image_url && onComplete) {
-      onComplete(result.image_url);
+      try {
+        onComplete(result.image_url);
+      } catch (err) {
+        console.error('[imageGeneration] onComplete callback error:', err);
+      }
     }
-  }).catch(() => {
+  }).catch((err) => {
+    console.error('[imageGeneration] Background generation failed:', err);
     clearGenerating(params.recipe_id);
   });
+}
+
+/**
+ * Shared helper: trigger AI image generation for a recipe if it has no image.
+ * DRY extraction for use in both add-recipe-review and add-recipe-manual save paths.
+ *
+ * @param recipe - The saved Recipe object
+ * @param updateRecipe - Function to update the recipe in local + remote state
+ */
+export function triggerImageGenIfNeeded(
+  recipe: { id: string; name: string; description?: string; cuisine?: string; ingredients?: { name: string }[]; image_url?: string },
+  updateRecipe: (id: string, updates: { image_url: string }) => void,
+): void {
+  if (recipe.image_url) return;
+  const ingredientNames = (recipe.ingredients ?? [])
+    .map((ing) => ing.name)
+    .filter(Boolean);
+  generateMealImageInBackground(
+    {
+      recipe_id: recipe.id,
+      name: recipe.name,
+      description: recipe.description,
+      cuisine: recipe.cuisine,
+      ingredients: ingredientNames,
+    },
+    (imageUrl) => {
+      updateRecipe(recipe.id, { image_url: imageUrl });
+      console.log('[imageGeneration] AI image generated for', recipe.name);
+    },
+  );
 }
 
 /**
@@ -122,7 +161,7 @@ export async function backfillMealImages(
     const supabase = getSupabase();
     const { data: sessionData } = await supabase.auth.getSession();
 
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = { 'X-API-Version': '1' };
     if (sessionData?.session?.access_token) {
       headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
     } else {

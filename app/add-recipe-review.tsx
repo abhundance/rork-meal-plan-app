@@ -21,7 +21,7 @@ import { FontFamily } from '@/constants/typography';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 import { extractRecipeFromImage, extractRecipeFromText, detectVideoUrlType, extractRecipeFromVideoUrl, extractRecipeMetadata } from '@/services/recipeExtraction';
 import { imageStore } from '@/services/imageStore';
-import { generateMealImageInBackground } from '@/services/imageGeneration';
+import { triggerImageGenIfNeeded } from '@/services/imageGeneration';
 import { useRecipes } from '@/providers/RecipesProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
@@ -268,10 +268,14 @@ export default function AddMealReviewScreen() {
           inputMode === 'url'
             ? "We couldn't extract a recipe from that video. Fill in manually?"
             : "We couldn't read this image. Fill in manually?",
-          [
-            { text: 'Try Again', onPress: () => setRetryCount((c) => c + 1) },
-            { text: 'Fill Manually', onPress: () => router.replace('/add-recipe-manual' as never) },
-          ],
+          retryCount < 2
+            ? [
+                { text: 'Try Again', onPress: () => setRetryCount((c) => c + 1) },
+                { text: 'Fill Manually', onPress: () => router.replace('/add-recipe-manual' as never) },
+              ]
+            : [
+                { text: 'Fill Manually', onPress: () => router.replace('/add-recipe-manual' as never) },
+              ],
         );
       } finally {
         setIsLoading(false);
@@ -356,7 +360,7 @@ export default function AddMealReviewScreen() {
     } finally {
       setIsAutoFillingDetails(false);
     }
-  }, [name, ingredients, mealType, cuisine]);
+  }, [name, ingredients, mealType, cuisine, familySettings.language]);
 
   const handleAccordionToggle = useCallback(() => {
     const opening = !accordionOpen;
@@ -415,25 +419,7 @@ export default function AddMealReviewScreen() {
     console.log('[Review] Saved to recipes:', meal.name);
 
     // ── Auto-generate AI image if no photo was attached ───────────────────
-    if (!meal.image_url) {
-      const ingredientNames = (meal.ingredients ?? [])
-        .map((ing) => ing.name)
-        .filter(Boolean);
-      generateMealImageInBackground(
-        {
-          recipe_id: meal.id,
-          name: meal.name,
-          description: meal.description,
-          cuisine: meal.cuisine,
-          ingredients: ingredientNames,
-        },
-        (imageUrl) => {
-          // Update local state so the Recipes grid reflects the new image
-          updateRecipe(meal.id, { image_url: imageUrl });
-          console.log('[Review] AI image generated for', meal.name);
-        },
-      );
-    }
+    triggerImageGenIfNeeded(meal, updateRecipe);
 
     const pending = consumePendingPlanSlot();
     if (pending) {

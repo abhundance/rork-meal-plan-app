@@ -29,9 +29,15 @@ export default {
 
   // Status
   success: '#8BAF7A',
+  successLight: '#E6F4EA',
+  successText: '#1B5E20',
   warning: '#D4A853',
+  warningLight: '#FFF8E1',
+  warningText: '#F57F17',
   // danger is a darker crimson so it remains visually distinct from the bright primary red
   danger: '#B91C1C',
+  dangerLight: '#FEF2F2',
+  dangerBorder: '#FECACA',
 
   // Utility
   white: '#FFFFFF',

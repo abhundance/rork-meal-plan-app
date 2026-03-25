@@ -156,9 +156,10 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
 
   // ── One-time backfill: generate AI images for recipes that have none ────
   const backfillRanRef = useRef(false);
+  const recipesLoaded = recipesQuery.isSuccess && !!recipesQuery.data;
   useEffect(() => {
     if (backfillRanRef.current) return;
-    if (!userId || !recipesQuery.data) return;
+    if (!userId || !recipesLoaded || !recipesQuery.data) return;
     const recipesWithoutImages = recipesQuery.data.filter((r) => !r.image_url);
     if (recipesWithoutImages.length === 0) return;
 
@@ -178,7 +179,8 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
       });
       console.log('[Recipes] Backfill updated image for:', recipeId);
     });
-  }, [userId, recipesQuery.data]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, recipesLoaded]);
 
   const mealsRef = useRef(meals);
   mealsRef.current = meals;

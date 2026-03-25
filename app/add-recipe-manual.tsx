@@ -26,7 +26,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import FilterPill from '@/components/FilterPill';
 import ServingStepper from '@/components/ServingStepper';
 import { useRecipes } from '@/providers/RecipesProvider';
-import { generateMealImageInBackground } from '@/services/imageGeneration';
+import { triggerImageGenIfNeeded } from '@/services/imageGeneration';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { consumePendingPlanSlot } from '@/services/pendingPlanSlot';
@@ -156,7 +156,7 @@ export default function AddMealScreen() {
           quantity: parseFloat(i.quantity) || 0,
           unit: i.unit.trim() || 'pc',
         }));
-      const result = await extractRecipeMetadata(name.trim(), validIngredients);
+      const result = await extractRecipeMetadata(name.trim(), validIngredients, familySettings.language);
       if (result.cuisine) setCuisine(result.cuisine);
       if (result.meal_type) {
         const t = result.meal_type.toLowerCase();
@@ -179,7 +179,7 @@ export default function AddMealScreen() {
     } finally {
       setIsAiFillingMetadata(false);
     }
-  }, [name, ingredients]);
+  }, [name, ingredients, familySettings.language]);
 
   // Opening the accordion on a NEW meal auto-triggers AI fill on first open.
   // On edit mode the accordion just opens normally — details are already filled.
@@ -280,24 +280,7 @@ export default function AddMealScreen() {
     addRecipe(newMeal);
 
     // ── Auto-generate AI image if no photo was attached ───────────────────
-    if (!newMeal.image_url) {
-      const ingredientNames = (newMeal.ingredients ?? [])
-        .map((ing) => ing.name)
-        .filter(Boolean);
-      generateMealImageInBackground(
-        {
-          recipe_id: newMeal.id,
-          name: newMeal.name,
-          description: newMeal.description,
-          cuisine: newMeal.cuisine,
-          ingredients: ingredientNames,
-        },
-        (imageUrl) => {
-          updateRecipe(newMeal.id, { image_url: imageUrl });
-          console.log('[AddMeal] AI image generated for', newMeal.name);
-        },
-      );
-    }
+    triggerImageGenIfNeeded(newMeal, updateRecipe);
 
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const pending = consumePendingPlanSlot();
@@ -315,7 +298,11 @@ export default function AddMealScreen() {
       };
       syncRecipeNow(newMeal)
         .then(() => addMeal(plannedMeal))
-        .catch(() => addMeal(plannedMeal));
+        .catch(() => {
+          // FK may not exist yet on server — add locally only to avoid FK violation
+          addMeal(plannedMeal);
+          console.warn('[AddMeal] syncRecipeNow failed, added meal locally');
+        });
       console.log('[AddMeal] Auto-added to plan slot:', pending.slotId, pending.date);
       router.replace('/(tabs)' as never);
     } else {
