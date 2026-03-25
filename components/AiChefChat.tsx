@@ -192,6 +192,8 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
             timestamp: Date.now(),
           };
           setMessages((prev) => [...prev, quotaMsg]);
+          setIsThinking(false);
+          isSendingRef.current = false;
           scrollToBottom();
           return;
         }
