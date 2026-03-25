@@ -60,7 +60,7 @@ export function useAiChefApi() {
 
       // Retry transient failures (network blips, 502/503) up to 2 times
       const MAX_RETRIES = 2;
-      let response: { data: any; error: any } | undefined;
+      let response: { data: Record<string, unknown> | null; error: { message: string } | null } | undefined;
       let lastError: Error | undefined;
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
@@ -72,11 +72,19 @@ export function useAiChefApi() {
             },
             headers: buildEdgeFunctionHeaders(sessionData?.session ?? null),
           });
+          // Treat 502/503/504 returned as error objects as retryable
+          const errMsg = response.error?.message ?? '';
+          if (/\b(502|503|504)\b/.test(errMsg) && attempt < MAX_RETRIES) {
+            await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+            continue;
+          }
           break;
         } catch (err) {
           lastError = err instanceof Error ? err : new Error(String(err));
-          const isRetryable =
+          const isNetworkError =
             lastError instanceof TypeError && lastError.message === 'Network request failed';
+          const isServerError = /\b(502|503|504)\b/.test(lastError.message);
+          const isRetryable = isNetworkError || isServerError;
           if (!isRetryable || attempt === MAX_RETRIES) throw lastError;
           await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
         }
@@ -86,7 +94,7 @@ export function useAiChefApi() {
         throw new Error(response?.error?.message || 'AI Chef request failed');
       }
 
-      const data = response.data;
+      const data = response.data as Record<string, unknown> | null;
 
       // Validate response shape
       if (!data || typeof data !== 'object') {

@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.sm,
-    gap: 2,
+    gap: Spacing.xs,
   },
   inlineActionBtn: {
     width: 44,

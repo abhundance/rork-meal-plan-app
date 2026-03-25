@@ -24,6 +24,19 @@ export function useAttachments(
    * Pick an image from camera or photo library.
    */
   const pickImage = useCallback(async (fromCamera: boolean) => {
+    // Request permission first and surface denial to the user
+    const permFn = fromCamera
+      ? ImagePicker.requestCameraPermissionsAsync
+      : ImagePicker.requestMediaLibraryPermissionsAsync;
+    const { status } = await permFn();
+    if (status !== 'granted') {
+      Alert.alert(
+        fromCamera ? 'Camera Access Needed' : 'Photo Library Access Needed',
+        `Please allow access in your device settings to ${fromCamera ? 'take photos' : 'choose images'}.`,
+      );
+      return;
+    }
+
     const fn = fromCamera
       ? ImagePicker.launchCameraAsync
       : ImagePicker.launchImageLibraryAsync;

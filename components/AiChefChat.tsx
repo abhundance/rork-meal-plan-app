@@ -41,6 +41,7 @@ import { ExtractedRecipe } from '@/services/recipeExtraction';
 import {
   styles,
   RecipeCard,
+  RecipeCardErrorBoundary,
   useAiChefApi,
   useVoiceRecorder,
   useAttachments,
@@ -428,12 +429,14 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
           )}
 
           {item.recipe ? (
-            <RecipeCard
-              recipe={item.recipe}
-              changesSummary={item.changesSummary}
-              onSave={handleSaveRecipe}
-              onRefine={handleRefine}
-            />
+            <RecipeCardErrorBoundary>
+              <RecipeCard
+                recipe={item.recipe}
+                changesSummary={item.changesSummary}
+                onSave={handleSaveRecipe}
+                onRefine={handleRefine}
+              />
+            </RecipeCardErrorBoundary>
           ) : null}
         </View>
       </View>
