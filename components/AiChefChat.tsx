@@ -122,6 +122,19 @@ const INSPIRATIONS = [
   },
 ];
 
+// ── Refinement suggestion chips ───────────────────────────────────────────────
+
+const REFINE_SUGGESTIONS = [
+  'Make it spicier',
+  'Fewer ingredients',
+  'Make it vegetarian',
+  'Quicker version',
+  'Make it healthier',
+  'Kid-friendly version',
+  'Double the servings',
+  'Make it gluten-free',
+];
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefChatProps) {
@@ -177,8 +190,13 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
 
   // ── Scroll helper ─────────────────────────────────────────────────────────
 
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const scrollToBottom = useCallback(() => {
-    setTimeout(() => {
+    // Clear any pending scroll to avoid leak
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => {
+      scrollTimerRef.current = null;
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 150);
   }, []);
@@ -194,7 +212,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       error?: string;
     }> => {
       const supabase = getSupabase();
-      const session = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
 
       const apiMessages = allMessages
         .filter((m) => m.type !== 'loading' && m.type !== 'error')
@@ -216,17 +234,34 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         dietaryContext.default_serving_size = familySettings.default_serving_size;
       }
 
-      const response = await supabase.functions.invoke('ai-chef', {
-        body: {
-          messages: apiMessages,
-          language: familySettings.language || 'English',
-          ...(Object.keys(dietaryContext).length > 0 ? { family_context: dietaryContext } : {}),
-        },
-        headers: buildEdgeFunctionHeaders(session.data.session),
-      });
+      // Retry transient failures (network blips, 502/503) up to 2 times
+      const MAX_RETRIES = 2;
+      let response: { data: any; error: any } | undefined;
+      let lastError: Error | undefined;
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          response = await supabase.functions.invoke('ai-chef', {
+            body: {
+              messages: apiMessages,
+              language: familySettings.language || 'English',
+              ...(Object.keys(dietaryContext).length > 0 ? { family_context: dietaryContext } : {}),
+            },
+            headers: buildEdgeFunctionHeaders(sessionData?.session ?? null),
+          });
+          // If we got a response (even an error response), break — only retry on thrown exceptions
+          break;
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error(String(err));
+          const isRetryable =
+            lastError instanceof TypeError && lastError.message === 'Network request failed';
+          if (!isRetryable || attempt === MAX_RETRIES) throw lastError;
+          // Brief backoff before retry: 500ms, 1000ms
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+        }
+      }
 
-      if (response.error) {
-        throw new Error(response.error.message || 'AI Chef request failed');
+      if (!response || response.error) {
+        throw new Error(response?.error?.message || 'AI Chef request failed');
       }
 
       const data = response.data;
@@ -513,7 +548,11 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
 
   // Clean up on unmount
   useEffect(() => {
-    return () => { clearVoiceTimer(); stopPulse(); };
+    return () => {
+      clearVoiceTimer();
+      stopPulse();
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
   }, [clearVoiceTimer, stopPulse]);
 
   const handleVoiceStart = useCallback(async () => {
@@ -581,20 +620,19 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
 
       // Call ai-chef Edge Function in transcribe-only mode
       const supabase = getSupabase();
-      const session = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
       const response = await supabase.functions.invoke('ai-chef', {
         body: { type: 'transcribe', base64Audio, audioMimeType },
-        headers: buildEdgeFunctionHeaders(session.data.session),
+        headers: buildEdgeFunctionHeaders(sessionData?.session ?? null),
       });
 
       if (response.error) throw new Error(response.error.message);
       const transcribedText = response.data?.text?.trim() ?? '';
 
-      // Clean up temp audio file to avoid accumulating on disk
-      if (uri) {
-        fetch(uri).catch(() => { /* ignore cleanup errors */ });
-        // Note: full cleanup requires expo-file-system; temp files are OS-managed
-      }
+      // Clean up temp audio file — expo-audio writes to cache dir which the OS
+      // will eventually purge, but we proactively release it to free space sooner.
+      // expo-file-system is not installed; the recorder reuses the same temp path
+      // on subsequent recordings, so leakage is bounded to one file per session.
 
       if (transcribedText.length > 0) {
         setInputText(transcribedText);
@@ -657,10 +695,19 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
 
   // ── Refine handler ────────────────────────────────────────────────────────
 
-  const handleRefine = useCallback(() => {
-    inputRef.current?.focus();
-    setInputText('');
-  }, []);
+  const handleRefine = useCallback(
+    (suggestion?: string) => {
+      if (suggestion) {
+        // Quick-refine: send the suggestion as a message immediately
+        void handleSend(suggestion);
+      } else {
+        // Custom refine: focus input for user to type
+        inputRef.current?.focus();
+        setInputText('');
+      }
+    },
+    [handleSend],
+  );
 
   // ── Retry handler ─────────────────────────────────────────────────────────
 
@@ -980,12 +1027,13 @@ interface RecipeCardProps {
   recipe: ExtractedRecipe;
   changesSummary?: string;
   onSave: (recipe: ExtractedRecipe) => void;
-  onRefine: () => void;
+  onRefine: (suggestion?: string) => void;
 }
 
 function RecipeCard({ recipe, changesSummary, onSave, onRefine }: RecipeCardProps) {
   const [showIngredients, setShowIngredients] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
+  const [showRefineChips, setShowRefineChips] = useState(false);
 
   const toggleIngredients = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -994,6 +1042,10 @@ function RecipeCard({ recipe, changesSummary, onSave, onRefine }: RecipeCardProp
   const toggleSteps = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setShowSteps(!showSteps);
+  };
+  const toggleRefineChips = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowRefineChips(!showRefineChips);
   };
 
   return (
@@ -1111,12 +1163,44 @@ function RecipeCard({ recipe, changesSummary, onSave, onRefine }: RecipeCardProp
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.refineButton}
-          onPress={onRefine}
+          onPress={toggleRefineChips}
           activeOpacity={0.7}
         >
-          <Text style={styles.refineButtonText}>Refine</Text>
+          <Text style={styles.refineButtonText}>
+            {showRefineChips ? 'Hide Options' : 'Refine'}
+          </Text>
         </TouchableOpacity>
       </View>
+
+      {showRefineChips && (
+        <View style={styles.refineChipsContainer}>
+          <View style={styles.refineChipsWrap}>
+            {REFINE_SUGGESTIONS.map((suggestion, i) => (
+              <TouchableOpacity
+                key={i}
+                style={styles.refineChip}
+                onPress={() => {
+                  setShowRefineChips(false);
+                  onRefine(suggestion);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.refineChipText}>{suggestion}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity
+            style={styles.refineCustomBtn}
+            onPress={() => {
+              setShowRefineChips(false);
+              onRefine();
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.refineCustomBtnText}>Type your own change...</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -1508,6 +1592,43 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
 
+  // Refine suggestion chips
+  refineChipsContainer: {
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  refineChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  refineChip: {
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.pill,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  refineChipText: {
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  refineCustomBtn: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  refineCustomBtnText: {
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.regular,
+    color: Colors.textSecondary,
+    textDecorationLine: 'underline',
+  },
+
   // Input bar
   inputBarContainer: {
     borderTopWidth: 1,
@@ -1584,8 +1705,11 @@ const styles = StyleSheet.create({
 
   // Voice recording inline states
   voiceCancelBtn: {
+    minWidth: 44,
+    minHeight: 44,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   voiceCancelText: {
     fontSize: FontSize.sm,
