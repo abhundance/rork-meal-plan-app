@@ -1380,7 +1380,7 @@ const styles = StyleSheet.create({
   },
   thinkingDots: {
     flexDirection: 'row',
-    gap: 4,
+    gap: Spacing.xs,
   },
   dot: {
     width: 6,
@@ -1513,6 +1513,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: 44,
     paddingVertical: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
@@ -1605,9 +1606,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   refineChip: {
+    minHeight: 44,
     backgroundColor: Colors.primaryLight,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
+    justifyContent: 'center',
     borderRadius: BorderRadius.pill,
     borderWidth: 1,
     borderColor: Colors.primary,
@@ -1619,8 +1621,9 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   refineCustomBtn: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    minHeight: 44,
+    marginTop: Spacing.xs,
+    justifyContent: 'center',
   },
   refineCustomBtnText: {
     fontSize: FontSize.xs,
@@ -1656,7 +1659,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pendingImageRemoveText: {
-    fontSize: 14,
+    fontSize: FontSize.sm,
     color: Colors.text,
     fontWeight: '600',
   },
