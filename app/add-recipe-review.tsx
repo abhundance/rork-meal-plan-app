@@ -468,6 +468,7 @@ export default function AddMealReviewScreen() {
     dietLabels, allergens,
     caloriesPerServing, proteinPerServingG, carbsPerServingG,
     ingredients, servingSize, methodSteps,
+    selectedImageUri,
     addRecipe, updateRecipe, syncRecipeNow, addMeal, addMealLocalOnly, router,
   ]);
 

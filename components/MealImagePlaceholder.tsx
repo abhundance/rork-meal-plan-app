@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
@@ -16,6 +16,35 @@ interface MealImagePlaceholderProps {
   familyInitials?: string;
   /** Delivery platform key — when set, shows the platform logo instead of emoji/family identity */
   deliveryPlatform?: string;
+  /** When true, shows a subtle pulsing shimmer overlay indicating AI image generation is in progress */
+  isGenerating?: boolean;
+}
+
+/** Pulsing shimmer overlay shown during AI image generation */
+function GeneratingOverlay() {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.7, duration: 800, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [opacity]);
+
+  return (
+    <Animated.View
+      style={[
+        StyleSheet.absoluteFill,
+        { backgroundColor: 'rgba(255,255,255,0.5)', opacity, alignItems: 'center', justifyContent: 'center' },
+      ]}
+    >
+      <Text style={{ fontSize: 11, color: Colors.textSecondary, fontWeight: '600' }}>AI</Text>
+    </Animated.View>
+  );
 }
 
 interface PlaceholderConfig {
@@ -229,6 +258,7 @@ export default function MealImagePlaceholder({
   familyAvatarUrl,
   familyInitials,
   deliveryPlatform,
+  isGenerating,
 }: MealImagePlaceholderProps) {
   const config = getConfig(mealType, cuisine, name);
 
@@ -320,6 +350,7 @@ export default function MealImagePlaceholder({
         <Text style={[styles.initialsText, { fontSize, color: palette.text }]}>
           {initials}
         </Text>
+        {isGenerating && <GeneratingOverlay />}
       </View>
     );
   }
@@ -339,6 +370,7 @@ export default function MealImagePlaceholder({
         ]}
       />
       <Text style={{ fontSize: emojiFontSize }}>{config.emoji}</Text>
+      {isGenerating && <GeneratingOverlay />}
     </LinearGradient>
   );
 }

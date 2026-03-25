@@ -89,7 +89,7 @@ export default function MealDetailScreen() {
       return {
         id: plannedMeal.id,
         name: plannedMeal.meal_name,
-        image_url: plannedMeal.meal_image_url,
+        image_url: favMatch?.image_url || plannedMeal.meal_image_url,
         cuisine: favMatch?.cuisine,
         cooking_time_band: favMatch?.cooking_time_band,
         prep_time: favMatch?.prep_time,

@@ -26,6 +26,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import FilterPill from '@/components/FilterPill';
 import ServingStepper from '@/components/ServingStepper';
 import { useRecipes } from '@/providers/RecipesProvider';
+import { generateMealImageInBackground } from '@/services/imageGeneration';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
 import { consumePendingPlanSlot } from '@/services/pendingPlanSlot';
@@ -277,6 +278,27 @@ export default function AddMealScreen() {
       is_recipe_complete: validSteps.length > 0,
     };
     addRecipe(newMeal);
+
+    // ── Auto-generate AI image if no photo was attached ───────────────────
+    if (!newMeal.image_url) {
+      const ingredientNames = (newMeal.ingredients ?? [])
+        .map((ing) => ing.name)
+        .filter(Boolean);
+      generateMealImageInBackground(
+        {
+          recipe_id: newMeal.id,
+          name: newMeal.name,
+          description: newMeal.description,
+          cuisine: newMeal.cuisine,
+          ingredients: ingredientNames,
+        },
+        (imageUrl) => {
+          updateRecipe(newMeal.id, { image_url: imageUrl });
+          console.log('[AddMeal] AI image generated for', newMeal.name);
+        },
+      );
+    }
+
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const pending = consumePendingPlanSlot();
     if (pending) {

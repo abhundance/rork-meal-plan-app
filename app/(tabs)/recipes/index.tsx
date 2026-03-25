@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href, useFocusEffect } from 'expo-router';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
+import { isGeneratingImage } from '@/services/imageGenerationTracker';
 import * as Haptics from 'expo-haptics';
 import {
   Search,
@@ -851,6 +852,7 @@ const FavGridCard = React.memo(function FavGridCard({
                 deliveryPlatform={deliveryPlatform}
                 familyAvatarUrl={!deliveryPlatform ? familyAvatarUrl : undefined}
                 familyInitials={!deliveryPlatform ? familyInitials : undefined}
+                isGenerating={isGeneratingImage(meal.id)}
               />
             )}
           </View>

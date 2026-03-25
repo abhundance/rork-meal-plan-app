@@ -10,6 +10,7 @@
  */
 
 import { getSupabase } from './supabase';
+import { markGenerating, clearGenerating } from './imageGenerationTracker';
 
 // ── Lazy env readers (never assign process.env to a module-level const) ──────
 function getSupabaseAnonKey(): string {
@@ -92,10 +93,14 @@ export function generateMealImageInBackground(
   params: GenerateImageParams,
   onComplete?: (imageUrl: string) => void,
 ): void {
+  markGenerating(params.recipe_id);
   generateMealImage(params).then((result) => {
+    clearGenerating(params.recipe_id);
     if (result?.image_url && onComplete) {
       onComplete(result.image_url);
     }
+  }).catch(() => {
+    clearGenerating(params.recipe_id);
   });
 }
 

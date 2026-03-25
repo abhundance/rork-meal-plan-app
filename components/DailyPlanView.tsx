@@ -357,24 +357,30 @@ const MealItemRow = React.memo(function MealItemRow({
           }}
           activeOpacity={0.8}
         >
-          {meal.meal_image_url ? (
-            <Image source={{ uri: meal.meal_image_url }} style={{ width: 42, height: 42, borderRadius: 10 }} resizeMode="cover" />
-          ) : (
-            <MealImagePlaceholder
-              size="thumbnail"
-              mealType={meal.meal_type}
-              cuisine={meal.cuisine}
-              name={meal.meal_name}
-              deliveryPlatform={meal.delivery_platform}
-              familyInitials={
-                !meal.delivery_platform &&
-                meal.meal_id &&
-                savedRecipes.find(m => m.id === meal.meal_id)?.source === 'family_created'
-                  ? meal.meal_name
-                  : undefined
-              }
-            />
-          )}
+          {/* Prefer live Recipe.image_url over the PlannedMeal snapshot —
+              AI-generated images arrive after the meal is added to the plan */}
+          {(() => {
+            const liveRecipe = meal.meal_id ? savedRecipes.find(m => m.id === meal.meal_id) : undefined;
+            const imageUrl = liveRecipe?.image_url || meal.meal_image_url;
+            return imageUrl ? (
+              <Image source={{ uri: imageUrl }} style={{ width: 42, height: 42, borderRadius: 10 }} resizeMode="cover" />
+            ) : (
+              <MealImagePlaceholder
+                size="thumbnail"
+                mealType={meal.meal_type}
+                cuisine={meal.cuisine}
+                name={meal.meal_name}
+                deliveryPlatform={meal.delivery_platform}
+                familyInitials={
+                  !meal.delivery_platform &&
+                  meal.meal_id &&
+                  (liveRecipe?.source === 'family_created')
+                    ? meal.meal_name
+                    : undefined
+                }
+              />
+            );
+          })()}
           <View style={styles.itemNameCol}>
             <Text style={styles.itemName} numberOfLines={2}>
               {meal.meal_id ? (savedRecipes.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}

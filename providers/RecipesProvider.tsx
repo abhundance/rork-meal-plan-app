@@ -165,14 +165,17 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
     backfillRanRef.current = true;
     console.log(`[Recipes] Backfilling images for ${recipesWithoutImages.length} recipes`);
 
-    backfillMealImages(userId, Math.min(recipesWithoutImages.length, 10), (recipeId, imageUrl) => {
-      // Update local state so the UI reflects the new image
-      const updated = mealsRef.current.map((m) =>
-        m.id === recipeId ? { ...m, image_url: imageUrl } : m,
-      );
-      mealsRef.current = updated;
-      setMeals(updated);
-      saveMutateRef.current(updated);
+    backfillMealImages(userId, Math.min(recipesWithoutImages.length, 5), (recipeId, imageUrl) => {
+      // Use functional update to avoid stale closure over mealsRef —
+      // prevents race condition with concurrent manual image generation.
+      setMeals((prev) => {
+        const updated = prev.map((m) =>
+          m.id === recipeId ? { ...m, image_url: imageUrl } : m,
+        );
+        mealsRef.current = updated;
+        saveMutateRef.current(updated);
+        return updated;
+      });
       console.log('[Recipes] Backfill updated image for:', recipeId);
     });
   }, [userId, recipesQuery.data]);
