@@ -39,7 +39,7 @@ import { useAudioRecorder, RecordingPresets, setAudioModeAsync, requestRecording
 import Colors from '@/constants/colors';
 import { FontFamily, FontSize } from '@/constants/typography';
 import { BorderRadius, Spacing } from '@/constants/theme';
-import { getSupabase } from '@/services/supabase';
+import { getSupabase, buildEdgeFunctionHeaders } from '@/services/supabase';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import {
   ExtractedRecipe,
@@ -76,10 +76,6 @@ interface ChatMessage {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getSupabaseAnonKey(): string {
-  return process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
-}
-
 let messageCounter = 0;
 function nextId(): string {
   return `msg_${Date.now()}_${++messageCounter}`;
@@ -90,37 +86,37 @@ function nextId(): string {
 const INSPIRATIONS = [
   {
     icon: '💬',
-    bgColor: '#FDEBED',
+    bgColor: Colors.inspirationTintRed,
     text: '"I have chicken and rice, need something quick"',
     subtitle: 'Describe ingredients or cravings',
   },
   {
     icon: '🔗',
-    bgColor: '#E8F0FE',
+    bgColor: Colors.inspirationTintBlue,
     text: 'Paste a YouTube, TikTok, or blog link',
     subtitle: 'Extracts full recipe from any URL',
   },
   {
     icon: '📷',
-    bgColor: '#E6F4EA',
+    bgColor: Colors.inspirationTintGreen,
     text: 'Snap a photo of a recipe or menu',
     subtitle: 'AI reads and structures the recipe',
   },
   {
     icon: '🎤',
-    bgColor: '#FFF3E0',
+    bgColor: Colors.inspirationTintOrange,
     text: 'Speak your recipe or describe a dish',
     subtitle: 'Voice to structured recipe',
   },
   {
     icon: '📄',
-    bgColor: '#E0F2FE',
+    bgColor: Colors.inspirationTintSky,
     text: 'Attach a recipe PDF or document',
     subtitle: 'Extract recipes from files',
   },
   {
     icon: '🍽️',
-    bgColor: '#F3E8FD',
+    bgColor: Colors.inspirationTintPurple,
     text: '"A lighter version of Butter Chicken"',
     subtitle: 'Modify or reinvent any dish',
   },
@@ -226,12 +222,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
           language: familySettings.language || 'English',
           ...(Object.keys(dietaryContext).length > 0 ? { family_context: dietaryContext } : {}),
         },
-        headers: {
-          'X-API-Version': '1',
-          ...(session.data.session
-            ? { Authorization: `Bearer ${session.data.session.access_token}` }
-            : { apikey: getSupabaseAnonKey() }),
-        },
+        headers: buildEdgeFunctionHeaders(session.data.session),
       });
 
       if (response.error) {
@@ -351,6 +342,10 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
 
         // Handle URL extraction delegation
         if (result.extractUrl) {
+          // Reset thinking/sending state before delegating to URL extraction
+          // (handleUrlExtraction manages its own loading indicator)
+          setIsThinking(false);
+          isSendingRef.current = false;
           await handleUrlExtraction(result.extractUrl, userMsg.id);
           return;
         }
@@ -442,22 +437,48 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
 
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
+      const isPdf = asset.mimeType === 'application/pdf' || asset.name?.toLowerCase().endsWith('.pdf');
 
-      // Read file content as text/base64 and send to AI Chef
-      const fileResponse = await fetch(asset.uri);
-      const fileText = await fileResponse.text();
+      if (isPdf) {
+        // PDFs are binary — read as base64 and send to AI Chef Edge Function
+        // which can use GPT-4o Vision to parse the document
+        const fileResponse = await fetch(asset.uri);
+        const blob = await fileResponse.blob();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const dataUrl = reader.result as string;
+            resolve(dataUrl.split(',')[1]); // Strip data: prefix
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
 
-      if (!fileText.trim()) {
-        Alert.alert('Empty Document', 'The selected file appears to be empty. Try a different file.');
-        return;
+        if (!base64 || base64.length < 100) {
+          Alert.alert('Empty PDF', 'The selected PDF appears to be empty. Try a different file.');
+          return;
+        }
+
+        // Send as a structured message — the Edge Function can process the base64 PDF
+        const docMessage = `[Attached PDF: ${asset.name}]\n\nThis is a PDF document. Please extract any recipes from it.\n\n[PDF_BASE64:${base64.slice(0, 10000)}]`;
+        setShowAttachments(false);
+        void handleSend(docMessage);
+      } else {
+        // Text/HTML files — read as plain text
+        const fileResponse = await fetch(asset.uri);
+        const fileText = await fileResponse.text();
+
+        if (!fileText.trim()) {
+          Alert.alert('Empty Document', 'The selected file appears to be empty. Try a different file.');
+          return;
+        }
+
+        const truncated = fileText.length > 5000 ? fileText.slice(0, 5000) + '...' : fileText;
+        const docMessage = `[Attached document: ${asset.name}]\n\n${truncated}\n\nPlease extract any recipes from this document.`;
+        setShowAttachments(false);
+        void handleSend(docMessage);
       }
 
-      // For PDFs, the raw text may contain binary — send as a message with context
-      const truncated = fileText.length > 5000 ? fileText.slice(0, 5000) + '...' : fileText;
-      const docMessage = `[Attached document: ${asset.name}]\n\n${truncated}\n\nPlease extract any recipes from this document.`;
-
-      setShowAttachments(false);
-      void handleSend(docMessage);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (err) {
       console.error('[AiChefChat] Document picker error:', err);
@@ -563,12 +584,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       const session = await supabase.auth.getSession();
       const response = await supabase.functions.invoke('ai-chef', {
         body: { type: 'transcribe', base64Audio, audioMimeType },
-        headers: {
-          'X-API-Version': '1',
-          ...(session.data.session
-            ? { Authorization: `Bearer ${session.data.session.access_token}` }
-            : { apikey: getSupabaseAnonKey() }),
-        },
+        headers: buildEdgeFunctionHeaders(session.data.session),
       });
 
       if (response.error) throw new Error(response.error.message);
@@ -1511,9 +1527,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   pendingImageRemove: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1526,9 +1542,9 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.sm,
-    gap: 6,
+    gap: 2,
   },
   inlineActionBtn: {
     width: 44,
@@ -1536,6 +1552,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    // 44px hit area, visually compact via the 20px icon inside
   },
   textInput: {
     flex: 1,
@@ -1596,9 +1613,9 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   voiceStopBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',

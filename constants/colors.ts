@@ -33,11 +33,19 @@ export default {
   successText: '#1B5E20',
   warning: '#D4A853',
   warningLight: '#FFF8E1',
-  warningText: '#F57F17',
+  warningText: '#8B6914',     // darker amber for 4.5:1+ contrast on warningLight bg
   // danger is a darker crimson so it remains visually distinct from the bright primary red
   danger: '#B91C1C',
   dangerLight: '#FEF2F2',
   dangerBorder: '#FECACA',
+
+  // Inspiration card tints — decorative backgrounds for AI Chef welcome cards
+  inspirationTintRed: '#FDEBED',     // matches primaryLight
+  inspirationTintBlue: '#E8F0FE',
+  inspirationTintGreen: '#E6F4EA',   // matches successLight
+  inspirationTintOrange: '#FFF3E0',
+  inspirationTintSky: '#E0F2FE',
+  inspirationTintPurple: '#F3E8FD',
 
   // Utility
   white: '#FFFFFF',

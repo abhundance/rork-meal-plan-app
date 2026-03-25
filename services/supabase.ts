@@ -40,6 +40,27 @@ export function getSupabase(): SupabaseClient {
   return _supabase;
 }
 
+// ── Edge Function helpers ─────────────────────────────────────────────────────
+
+/** Standard headers for all Edge Function calls. Centralised so version bumps happen in one place. */
+export const EDGE_FUNCTION_HEADERS: Record<string, string> = { 'X-API-Version': '1' };
+
+/**
+ * Build auth + version headers for an Edge Function call.
+ * Pass the result of `supabase.auth.getSession()` to get the right auth header.
+ */
+export function buildEdgeFunctionHeaders(
+  session: { access_token: string } | null | undefined,
+): Record<string, string> {
+  const headers: Record<string, string> = { ...EDGE_FUNCTION_HEADERS };
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  } else {
+    headers['apikey'] = getSupabaseAnonKey();
+  }
+  return headers;
+}
+
 // ── Type helpers ───────────────────────────────────────────────────────────────
 // Re-export for convenience so consumers don't need to import from supabase-js
 export type { SupabaseClient } from '@supabase/supabase-js';

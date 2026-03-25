@@ -9,13 +9,8 @@
  * when a `recipe_id` is provided, so the caller only needs to update local state.
  */
 
-import { getSupabase } from './supabase';
+import { getSupabase, buildEdgeFunctionHeaders } from './supabase';
 import { markGenerating, clearGenerating } from './imageGenerationTracker';
-
-// ── Lazy env readers (never assign process.env to a module-level const) ──────
-function getSupabaseAnonKey(): string {
-  return process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
-}
 
 export interface GenerateImageParams {
   /** UUID of the recipe (used for Storage path + DB update) */
@@ -47,13 +42,7 @@ export async function generateMealImage(
     const supabase = getSupabase();
     const { data: sessionData } = await supabase.auth.getSession();
 
-    const headers: Record<string, string> = { 'X-API-Version': '1' };
-    if (sessionData?.session?.access_token) {
-      headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
-    } else {
-      // Fallback for anonymous users — send apikey header
-      headers['apikey'] = getSupabaseAnonKey();
-    }
+    const headers = buildEdgeFunctionHeaders(sessionData?.session);
 
     const { data, error } = await supabase.functions.invoke('generate-meal-image', {
       body: {
@@ -161,12 +150,7 @@ export async function backfillMealImages(
     const supabase = getSupabase();
     const { data: sessionData } = await supabase.auth.getSession();
 
-    const headers: Record<string, string> = { 'X-API-Version': '1' };
-    if (sessionData?.session?.access_token) {
-      headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
-    } else {
-      headers['apikey'] = getSupabaseAnonKey();
-    }
+    const headers = buildEdgeFunctionHeaders(sessionData?.session);
 
     const { data, error } = await supabase.functions.invoke('backfill-meal-images', {
       body: { family_id: familyId, limit },
