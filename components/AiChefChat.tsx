@@ -175,11 +175,15 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         const allMessages = [...messagesRef.current, userMsg];
         const result = await callAiChef(allMessages);
 
-        // Handle URL extraction delegation
+        // Handle URL extraction delegation — keep isSendingRef locked until
+        // extraction finishes so the user can't double-send during the async work
         if (result.extractUrl) {
           setIsThinking(false);
-          isSendingRef.current = false;
-          await handleUrlExtraction(result.extractUrl);
+          try {
+            await handleUrlExtraction(result.extractUrl);
+          } finally {
+            isSendingRef.current = false;
+          }
           return;
         }
 
@@ -321,8 +325,13 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       if (errorIdx < 0) return;
       const lastUserMsg = currentMessages.slice(0, errorIdx).reverse().find((m) => m.role === 'user');
       if (lastUserMsg) {
+        // Replace error message with a loading indicator while retrying;
+        // if the retry itself fails, handleSend will append a new error message
         setMessages((prev) => prev.filter((m) => m.id !== errorMsgId));
-        void handleSend(lastUserMsg.content);
+        void handleSend(lastUserMsg.content).catch(() => {
+          // handleSend already appends its own error message in the catch block,
+          // so no additional action needed here
+        });
       }
     },
     [handleSend],

@@ -11,6 +11,9 @@ import { useAiChefApi } from './useAiChefApi';
 
 export type VoiceState = 'idle' | 'recording' | 'transcribing';
 
+/** Max recording duration in seconds — prevents oversized audio that Whisper will time out on */
+const MAX_RECORDING_SECONDS = 180; // 3 minutes
+
 export function useVoiceRecorder(onTranscribed: (text: string) => void) {
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [voiceElapsed, setVoiceElapsed] = useState(0);
@@ -19,6 +22,8 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
   const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulseLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  const handleVoiceStopRef = useRef<() => void>(() => {});
 
   const { transcribeAudio } = useAiChefApi();
 
@@ -82,7 +87,13 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       voiceTimerRef.current = setInterval(() => {
-        setVoiceElapsed(prev => prev + 1);
+        setVoiceElapsed(prev => {
+          if (prev + 1 >= MAX_RECORDING_SECONDS) {
+            // Auto-stop at max duration to prevent oversized audio
+            handleVoiceStopRef.current();
+          }
+          return prev + 1;
+        });
       }, 1000);
     } catch (err) {
       console.error('[useVoiceRecorder] Failed to start recording:', err);
@@ -132,12 +143,22 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
       }
     } catch (err) {
       console.error('[useVoiceRecorder] Voice transcription error:', err);
-      Alert.alert('Transcription Failed', 'Could not transcribe your voice. Check your connection and try again.');
+      Alert.alert(
+        'Transcription Failed',
+        'Could not transcribe your voice. Check your connection and try again.',
+        [
+          { text: 'OK', style: 'cancel' },
+          { text: 'Try Again', onPress: () => void handleVoiceStart() },
+        ],
+      );
     } finally {
       setVoiceState('idle');
       setVoiceElapsed(0);
     }
-  }, [voiceState, audioRecorder, clearVoiceTimer, stopPulse, transcribeAudio, onTranscribed]);
+  }, [voiceState, audioRecorder, clearVoiceTimer, stopPulse, transcribeAudio, onTranscribed, handleVoiceStart]);
+
+  // Keep ref in sync so the auto-stop timer can call handleVoiceStop without stale closure
+  handleVoiceStopRef.current = handleVoiceStop;
 
   const handleVoiceCancel = useCallback(async () => {
     clearVoiceTimer();

@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   metaChip: {
     backgroundColor: Colors.surface,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.pill,
   },
   metaChipText: {
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   dietaryChip: {
     backgroundColor: Colors.successLight,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.pill,
   },
   dietaryChipText: {
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   refineChip: {
     minHeight: 44,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
     justifyContent: 'center',
     borderRadius: BorderRadius.pill,
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   refineChipText: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.primary,

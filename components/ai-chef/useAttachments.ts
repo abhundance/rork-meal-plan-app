@@ -103,7 +103,14 @@ export function useAttachments(
           return;
         }
 
-        const truncated = fileText.length > 5000 ? fileText.slice(0, 5000) + '...' : fileText;
+        const wasTruncated = fileText.length > 5000;
+        const truncated = wasTruncated ? fileText.slice(0, 5000) + '...' : fileText;
+        if (wasTruncated) {
+          Alert.alert(
+            'Large Document',
+            'This document is quite long — only the first portion will be sent to AI Chef. For best results, copy just the recipe section.',
+          );
+        }
         const docMessage = `[Attached document: ${asset.name}]\n\n${truncated}\n\nPlease extract any recipes from this document.`;
         setShowAttachments(false);
         onDocumentReady(docMessage);
