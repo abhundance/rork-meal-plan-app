@@ -90,7 +90,7 @@ export default function MealPickerDeliveryScreen() {
       is_delivery: true,
       delivery_url: trimmedUrl || undefined,
       delivery_platform: trimmedUrl ? (detectPlatformFromUrl(trimmedUrl) ?? undefined) : undefined,
-      ...(favId ? { fav_meal_id: favId } : {}),
+      ...(favId ? { meal_id: favId } : {}),
     };
 
     if (saveToRecipes && favId) {
