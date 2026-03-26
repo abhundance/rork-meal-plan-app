@@ -8,7 +8,7 @@
  * Reached via router.push('/meal-picker') after setPendingPlanSlot().
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -120,9 +120,28 @@ export default function MealPickerScreen() {
     [addMeal, incrementPlanCount],
   );
 
+  // Track whether user is navigating to "View all" — if so, keep the pendingPlanSlot alive
+  const navigatingToViewAll = useRef(false);
+
   const handleClose = useCallback(() => {
     consumePendingPlanSlot();
     router.back();
+  }, []);
+
+  const handleViewAll = useCallback(() => {
+    navigatingToViewAll.current = true;
+    // Navigate to Recipes tab — it will detect pendingPlanSlot and show "ADDING TO" banner
+    router.back();
+    setTimeout(() => router.push('/(tabs)/recipes' as any), 100);
+  }, []);
+
+  // Cleanup: consume pendingPlanSlot on unmount unless navigating to "View all"
+  useEffect(() => {
+    return () => {
+      if (!navigatingToViewAll.current && peekPendingPlanSlot()) {
+        consumePendingPlanSlot();
+      }
+    };
   }, []);
 
   const handleAiChef = useCallback(() => {
@@ -248,7 +267,12 @@ export default function MealPickerScreen() {
         {/* Recipe carousel — only show when not searching, slot-matched first */}
         {searchQuery.trim().length === 0 && slotSortedMeals.length > 0 && (
           <View style={styles.carouselSection}>
-            <Text style={styles.sectionLabel}>YOUR RECIPES</Text>
+            <View style={styles.carouselHeader}>
+              <Text style={styles.sectionLabel}>YOUR RECIPES</Text>
+              <TouchableOpacity onPress={handleViewAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.viewAllLink}>View all</Text>
+              </TouchableOpacity>
+            </View>
             <FlatList
               data={slotSortedMeals}
               renderItem={({ item: recipe }) => (
@@ -485,6 +509,19 @@ const styles = StyleSheet.create({
   // Carousel
   carouselSection: {
     paddingTop: Spacing.md,
+  },
+  carouselHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    paddingRight: Spacing.lg,
+    marginBottom: Spacing.xs,
+  },
+  viewAllLink: {
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.primary,
   },
   carouselCard: {
     width: 100,
