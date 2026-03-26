@@ -567,7 +567,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
     const isTranscribing = voiceState === 'transcribing';
 
     return (
-      <View style={[styles.inputBarContainer, { paddingBottom: keyboardVisible ? Spacing.xs : insets.bottom, marginBottom: keyboardVisible ? keyboardHeight - insets.bottom : 0 }]}>
+      <View style={[styles.inputBarContainer, { paddingBottom: keyboardVisible ? Spacing.xs : insets.bottom }]}>
         {/* Pending image preview */}
         {pendingImage && !isRecording && !isTranscribing && (
           <View style={styles.pendingImageRow}>
@@ -655,7 +655,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   // ── Main render ───────────────────────────────────────────────────────────
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, keyboardVisible && { paddingBottom: keyboardHeight }]}>
       <FlatList
         ref={flatListRef}
         data={messages}
