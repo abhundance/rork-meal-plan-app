@@ -64,6 +64,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const [isThinking, setIsThinking] = useState(false);
   const [pendingImage, setPendingImage] = useState<{ uri: string; base64: string } | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showAttachments, setShowAttachments] = useState(false);
 
   // Hooks
@@ -78,12 +79,19 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const hasAutoSent = useRef(false);
   const isSendingRef = useRef(false);
 
-  // Track keyboard visibility so we can drop bottom safe-area padding when keyboard is up
+  // Track keyboard visibility + height for manual keyboard avoidance
+  // (KeyboardAvoidingView is unreliable with modal presentations on iOS)
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = () => setKeyboardVisible(true);
-    const onHide = () => setKeyboardVisible(false);
+    const onShow = (e: { endCoordinates: { height: number } }) => {
+      setKeyboardVisible(true);
+      setKeyboardHeight(e.endCoordinates.height);
+    };
+    const onHide = () => {
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+    };
     const sub1 = Keyboard.addListener(showEvent, onShow);
     const sub2 = Keyboard.addListener(hideEvent, onHide);
     return () => { sub1.remove(); sub2.remove(); };
@@ -559,7 +567,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
     const isTranscribing = voiceState === 'transcribing';
 
     return (
-      <View style={[styles.inputBarContainer, { paddingBottom: keyboardVisible ? Spacing.xs : insets.bottom }]}>
+      <View style={[styles.inputBarContainer, { paddingBottom: keyboardVisible ? Spacing.xs : insets.bottom, marginBottom: keyboardVisible ? keyboardHeight - insets.bottom : 0 }]}>
         {/* Pending image preview */}
         {pendingImage && !isRecording && !isTranscribing && (
           <View style={styles.pendingImageRow}>

@@ -17,8 +17,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -50,11 +48,7 @@ export default function AddRecipeEntryScreen() {
   }, []);
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-    >
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
@@ -66,14 +60,14 @@ export default function AddRecipeEntryScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* AI Chef Chat */}
+      {/* AI Chef Chat — handles its own keyboard avoidance */}
       <View style={styles.chatContainer}>
         <AiChefChat
           initialPrompt={params.prompt}
           pendingPlanSlot={pendingPlanSlot}
         />
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
