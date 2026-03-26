@@ -13,7 +13,7 @@ const ONBOARDING_KEY = 'onboarding_data';
 // ─── DEV BYPASS ─────────────────────────────────────────────────────────────
 // Set to true to skip auth and onboarding during development.
 // Revert to false before enabling authentication for production.
-const DEV_SKIP_ONBOARDING = true;
+const DEV_SKIP_ONBOARDING = false;
 // ────────────────────────────────────────────────────────────────────────────
 
 export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
@@ -123,6 +123,10 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     updateOnboarding({ region, measurement_units: units });
   }, [updateOnboarding]);
 
+  const setMeasurementUnits = useCallback((units: 'metric' | 'imperial') => {
+    updateOnboarding({ measurement_units: units });
+  }, [updateOnboarding]);
+
   const setCuisinePreferences = useCallback((prefs: string[]) => {
     updateOnboarding({ cuisine_preferences: prefs });
   }, [updateOnboarding]);
@@ -181,6 +185,7 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     setHealthGoals,
     // ── Existing downstream setters ─────────────────────────────────────────
     setRegion,
+    setMeasurementUnits,
     setCuisinePreferences,
     setCookingTimePref,
     setPlanningStyle,
