@@ -112,16 +112,21 @@ export default function AccountScreen() {
       const token = next.join('');
       setError('');
       setLoading(true);
-      verifyOtp(email.trim().toLowerCase(), token).then(({ error: verifyError, session }) => {
-        setLoading(false);
-        if (verifyError || !session) {
-          setError(verifyError?.message ?? 'Invalid code. Please try again.');
-          setOtp(['', '', '', '', '', '']);
-          setTimeout(() => otpRefs.current[0]?.focus(), 100);
-          return;
-        }
-        goToWelcome();
-      });
+      verifyOtp(email.trim().toLowerCase(), token)
+        .then(({ error: verifyError, session }) => {
+          setLoading(false);
+          if (verifyError || !session) {
+            setError(verifyError?.message ?? 'Invalid code. Please try again.');
+            setOtp(['', '', '', '', '', '']);
+            setTimeout(() => otpRefs.current[0]?.focus(), 100);
+            return;
+          }
+          goToWelcome();
+        })
+        .catch(() => {
+          setLoading(false);
+          setError('Something went wrong. Please try again.');
+        });
     }
   }, [otp, email, verifyOtp, goToWelcome]);
 

@@ -84,8 +84,11 @@ export default function WelcomeScreen() {
       .filter(slot => enabledSlotIds.includes(slot.slot_id))
       .map((slot, idx) => ({ ...slot, order: idx }));
 
-    // Sync the three collected settings into FamilySettings
+    // Sync collected settings into FamilySettings.
+    // family_name is not collected in this onboarding flow — default to 'My Family'
+    // so the app never renders a blank name anywhere.
     updateFamilySettings({
+      family_name:          data.family_name || 'My Family',
       measurement_units:    data.measurement_units ?? 'metric',
       meal_slots:           mealSlots,
       default_serving_size: data.household_size ?? 2,
