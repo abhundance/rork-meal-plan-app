@@ -55,6 +55,14 @@ type Params = {
   prefillIngredients?: string;
   prefillMethodSteps?: string;
   prefillServingSize?: string;
+  // Classification metadata (used by AI Chef + extract-recipe)
+  prefillDishCategory?: string;
+  prefillProteinSource?: string;
+  prefillOccasions?: string;       // JSON array
+  prefillAllergens?: string;       // JSON array
+  prefillDietLabels?: string;      // JSON array
+  prefillPrepTime?: string;
+  prefillCookTime?: string;
 };
 
 type MealTypeValue = 'breakfast' | 'lunch_dinner' | 'light_bites';
@@ -151,8 +159,14 @@ export default function AddMealReviewScreen() {
     if (v === 'Under 30' || v === '30-60' || v === 'Over 60') return v;
     return '';
   });
-  const [prepTime, setPrepTime] = useState<number>(0);
-  const [cookTime, setCookTime] = useState<number>(0);
+  const [prepTime, setPrepTime] = useState<number>(() => {
+    const n = parseInt(params.prefillPrepTime ?? '', 10);
+    return isNaN(n) ? 0 : n;
+  });
+  const [cookTime, setCookTime] = useState<number>(() => {
+    const n = parseInt(params.prefillCookTime ?? '', 10);
+    return isNaN(n) ? 0 : n;
+  });
 
   // ── Recipe Details accordion fields ─────────────────────────────────────────
   const [accordionOpen, setAccordionOpen] = useState<boolean>(false);
@@ -166,17 +180,31 @@ export default function AddMealReviewScreen() {
     return '';
   });
   const [cuisine, setCuisine] = useState<string>(params.prefillCuisine ?? '');
-  const [dishCategory, setDishCategory] = useState<string>('');
-  const [proteinSource, setProteinSource] = useState<string>('');
+  const [dishCategory, setDishCategory] = useState<string>(params.prefillDishCategory ?? '');
+  const [proteinSource, setProteinSource] = useState<string>(params.prefillProteinSource ?? '');
   const [dietLabels, setDietLabels] = useState<string[]>(() => {
-    if (params.prefillDietaryTags) {
-      try { return JSON.parse(params.prefillDietaryTags) as string[]; }
+    // Prefer prefillDietLabels (structured), fall back to prefillDietaryTags (legacy)
+    const raw = params.prefillDietLabels || params.prefillDietaryTags;
+    if (raw) {
+      try { return JSON.parse(raw) as string[]; }
       catch { return []; }
     }
     return [];
   });
-  const [allergens, setAllergens] = useState<string[]>([]);
-  const [occasions, setOccasions] = useState<string[]>([]);
+  const [allergens, setAllergens] = useState<string[]>(() => {
+    if (params.prefillAllergens) {
+      try { return JSON.parse(params.prefillAllergens) as string[]; }
+      catch { return []; }
+    }
+    return [];
+  });
+  const [occasions, setOccasions] = useState<string[]>(() => {
+    if (params.prefillOccasions) {
+      try { return JSON.parse(params.prefillOccasions) as string[]; }
+      catch { return []; }
+    }
+    return [];
+  });
   const [caloriesPerServing, setCaloriesPerServing] = useState<string>('');
   const [proteinPerServingG, setProteinPerServingG] = useState<string>('');
   const [carbsPerServingG, setCarbsPerServingG] = useState<string>('');

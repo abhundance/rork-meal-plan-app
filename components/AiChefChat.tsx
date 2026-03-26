@@ -353,6 +353,14 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         prefillIngredients: JSON.stringify(recipe.ingredients || []),
         prefillMethodSteps: JSON.stringify(recipe.method_steps || []),
         prefillDietaryTags: JSON.stringify(recipe.dietary_tags || []),
+        // Classification metadata — critical for filters + recommendations
+        prefillDishCategory: recipe.dish_category || '',
+        prefillProteinSource: recipe.protein_source || '',
+        prefillOccasions: JSON.stringify(recipe.occasions || []),
+        prefillAllergens: JSON.stringify(recipe.allergens || []),
+        prefillDietLabels: JSON.stringify(recipe.diet_labels || []),
+        prefillPrepTime: String(recipe.prep_time || 0),
+        prefillCookTime: String(recipe.cook_time || 0),
       };
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       router.push({ pathname: '/add-recipe-review', params });

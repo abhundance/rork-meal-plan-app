@@ -172,7 +172,8 @@ export default function AiChefScreen() {
         return;
       }
 
-      // Create a full recipe object with defaults
+      // Create a full recipe object with defaults — include ALL metadata fields
+      // so the recommendation engine, filters, and Smart Fill can use them.
       const fullRecipe: Recipe = {
         id: generateUUID(),
         name: recipe.name,
@@ -191,6 +192,20 @@ export default function AiChefScreen() {
         cuisine: recipe.cuisine,
         meal_type: recipe.meal_type,
         cooking_time_band: recipe.cooking_time_band,
+        // Classification metadata (must be forwarded for filters + recommendations)
+        dish_category: recipe.dish_category,
+        protein_source: recipe.protein_source,
+        occasions: recipe.occasions || [],
+        allergens: recipe.allergens || [],
+        diet_labels: recipe.diet_labels || [],
+        // Dietary boolean flags
+        is_vegan: recipe.is_vegan,
+        is_vegetarian: recipe.is_vegetarian,
+        is_gluten_free: recipe.is_gluten_free,
+        is_dairy_free: recipe.is_dairy_free,
+        // Time estimates
+        prep_time: recipe.prep_time,
+        cook_time: recipe.cook_time,
       };
 
       addRecipe(fullRecipe);
