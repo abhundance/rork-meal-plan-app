@@ -13,8 +13,8 @@ export type VoiceState = 'idle' | 'recording' | 'transcribing';
 /** Signature for the transcription function injected by the caller. */
 export type TranscribeAudioFn = (base64Audio: string, audioMimeType: string) => Promise<string>;
 
-/** Max recording duration in seconds — prevents oversized audio that Whisper will time out on */
-const MAX_RECORDING_SECONDS = 180; // 3 minutes
+/** Max recording duration in seconds. 5 min ≈ 5MB M4A ≈ $0.03 Whisper cost. */
+const MAX_RECORDING_SECONDS = 300; // 5 minutes
 
 /**
  * @param transcribeAudio — injected by the caller (from useAiChefApi) so this
