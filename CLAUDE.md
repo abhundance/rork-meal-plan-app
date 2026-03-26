@@ -14,7 +14,7 @@
 ## Platform & Build Tool
 
 - **Framework:** React Native + Expo Router + TypeScript
-- **Build tool:** [Rork](https://rork.com) — an AI-powered app builder. All code changes are made by prompting Rork in natural language.
+- **Build tool:** [Rork](https://rork.com) — used to run and preview the app via Expo Go. Code changes are made directly in the GitHub repository, not via Rork's chat interface.
 - **Backend:** Supabase (Postgres + Row-Level Security + Edge Functions). Anonymous auth on first launch; email OTP for full auth.
 - **Local cache:** AsyncStorage (persists Supabase auth session; no longer the primary data store)
 - **State management:** React Context + TanStack Query
@@ -245,15 +245,17 @@ Shadows.card / header / tabBar  — all use Colors.shadow (red-tinted)
 
 ---
 
-## Rork Prompt Submission Rules
+## Development Workflow
 
-> ⚠️ **Critical:** Rork's chat input treats the Enter/Return key as "send message". Never use the `type` tool to enter multi-line prompts — every newline will submit a separate prompt and flood the queue.
+All code changes are made directly in the GitHub repository (`https://github.com/abhundance/rork-meal-plan-app`). Rork is used only to run the app and preview it via Expo Go — never as a code editor or prompt interface.
 
-The correct way to submit a prompt to Rork via browser automation:
-1. Use `form_input` to set the textarea value (pastes the full text without triggering Enter)
-2. Then click the Send button once
+**Standard flow:**
+1. Edit source files directly (via AI tools, local editor, or this agent)
+2. Commit and push to `main` on GitHub
+3. Rork picks up the latest commit and rebuilds automatically
+4. Preview on device via Expo Go
 
-Always submit prompts as a **single message** — no newlines in the submitted text if using the `type` tool.
+> ⚠️ Do NOT attempt to submit prompts to Rork's chat interface to make code changes. That workflow is retired.
 
 ---
 
