@@ -35,27 +35,40 @@ Never use broad checks like `url.includes('http')` — it matches every URL incl
 **Apply to:** API calls (OpenAI, Whisper, any LLM), Supabase Edge Function compute time, data transfer volumes, embedding generation, image processing.
 
 ### 7. Keyboard Avoidance in Modal Screens
-**Never** put `KeyboardAvoidingView` (KAV) inside a child component with a hardcoded `keyboardVerticalOffset`. The offset depends on everything above the KAV (safe area, headers, toggles, modal card gap) — a hardcoded value is always wrong on some device.
+**`KeyboardAvoidingView` does NOT work reliably with `presentation: "modal"` on iOS.** Card modals have a frame offset that KAV cannot calculate correctly, resulting in the keyboard covering the input bar. This was verified on device — KAV with any `keyboardVerticalOffset` value still fails for modals.
 
-**Correct pattern:** Place the KAV at the **root of the modal screen** (the parent), wrapping header + content + input together. Use `behavior="padding"` on iOS with a small `keyboardVerticalOffset` (≈10 for card modals, 0 for fullscreen). The child component should be a plain `View`.
-
-Also: when keyboard is open, drop bottom safe-area padding to a small constant (e.g. `Spacing.xs`) — the keyboard already covers the home indicator area. Use `Keyboard.addListener('keyboardWillShow'/'keyboardWillHide')` to track visibility.
+**Correct pattern:** Skip KAV entirely for modal screens. Instead, track the actual keyboard height via `Keyboard.addListener` and apply it as `marginBottom` on the input bar container. This is pixel-perfect on all devices.
 
 ```tsx
-// ✅ Parent modal screen
-<KeyboardAvoidingView
-  style={{ flex: 1 }}
-  behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-  keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
->
-  {/* header, toggle, chat child */}
-</KeyboardAvoidingView>
-
-// ✅ Child component — plain View, dynamic bottom padding
-<View style={{ flex: 1 }}>
-  <FlatList ... />
-  <View style={{ paddingBottom: keyboardVisible ? 4 : insets.bottom }}>
-    {/* input bar */}
+// ✅ Parent modal screen — plain View, no KAV
+<View style={{ flex: 1, paddingTop: insets.top }}>
+  {/* header */}
+  <View style={{ flex: 1 }}>
+    <ChatComponent />
   </View>
 </View>
+
+// ✅ Child component — manual keyboard height tracking
+const [keyboardHeight, setKeyboardHeight] = useState(0);
+const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+useEffect(() => {
+  const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+  const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+  const onShow = (e) => { setKeyboardVisible(true); setKeyboardHeight(e.endCoordinates.height); };
+  const onHide = () => { setKeyboardVisible(false); setKeyboardHeight(0); };
+  const sub1 = Keyboard.addListener(showEvent, onShow);
+  const sub2 = Keyboard.addListener(hideEvent, onHide);
+  return () => { sub1.remove(); sub2.remove(); };
+}, []);
+
+// Input bar — shifts up by exact keyboard height
+<View style={{
+  paddingBottom: keyboardVisible ? Spacing.xs : insets.bottom,
+  marginBottom: keyboardVisible ? keyboardHeight - insets.bottom : 0,
+}}>
+  {/* input bar */}
+</View>
 ```
+
+**Note:** `keyboardHeight - insets.bottom` avoids double-counting the safe area that the keyboard already covers.
