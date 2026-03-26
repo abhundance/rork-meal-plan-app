@@ -257,6 +257,17 @@ Always submit prompts as a **single message** — no newlines in the submitted t
 
 ---
 
+## Cost-Aware Development
+
+> ⚠️ **Mandatory rule:** Every technical decision involving API calls, AI model usage, or data processing must include a cost assessment.
+
+- **Always preprocess before sending to LLMs.** Never send raw binary data (base64 PDFs, full audio blobs) into an LLM's text context window. Extract text server-side first — it's orders of magnitude cheaper and often more accurate.
+- **If a cheaper approach exists at the same quality level:** Use it without asking.
+- **If the cheaper approach involves a UX or business tradeoff:** Stop and explain the options with cost/benefit numbers before proceeding. Let the product owner decide.
+- **Flag cost-impacting decisions proactively.** File size limits, truncation strategies, retry counts, model selection (GPT-4o vs GPT-4o-mini), embedding dimensions — all have cost implications that must be stated explicitly.
+
+---
+
 ## Architectural Rules
 
 These patterns were established through development and must be followed:

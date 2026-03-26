@@ -19,7 +19,22 @@ Bottom-pinned input bars must include `paddingBottom: insets.bottom` (from `useS
 ### 5. Edge Function URL Detection
 Never use broad checks like `url.includes('http')` — it matches every URL including the API endpoint itself. Use an allowlist of known recipe site patterns (YouTube, TikTok, Instagram, allrecipes, etc.) plus keyword heuristics.
 
-### 6. Keyboard Avoidance in Modal Screens
+### 6. Cost-Benefit Analysis on Every Technical Decision
+**Rule:** Before implementing any solution that involves API calls, AI model usage, or data transfer, always assess the cost implications and propose the most cost-effective approach that doesn't compromise user experience or business objectives.
+
+**If a cheaper alternative exists that preserves UX:** Use it without asking. Example: extracting text from a PDF server-side before sending to GPT-4o costs fractions of a cent vs sending raw base64 as text tokens ($8+ for a 10MB file). There's no UX tradeoff — use the cheaper path.
+
+**If the cheaper alternative involves a UX or business tradeoff:** Stop and explain the options to the user with clear cost/benefit numbers before proceeding. Example: "We can support 10MB PDFs with server-side extraction (~$0.01/request) or skip PDF support entirely (free). The extraction adds 2-3 seconds of processing time."
+
+**Anti-patterns to avoid:**
+- Sending raw binary data (base64 PDF, full audio blobs) directly into LLM text context windows — always preprocess first
+- Arbitrary limits (truncation, file size caps) without explaining the cost driver and alternatives
+- Choosing an expensive approach by default when a cheaper one exists at the same quality level
+- Silently making cost-impacting decisions without flagging them
+
+**Apply to:** API calls (OpenAI, Whisper, any LLM), Supabase Edge Function compute time, data transfer volumes, embedding generation, image processing.
+
+### 7. Keyboard Avoidance in Modal Screens
 **Never** put `KeyboardAvoidingView` (KAV) inside a child component with a hardcoded `keyboardVerticalOffset`. The offset depends on everything above the KAV (safe area, headers, toggles, modal card gap) — a hardcoded value is always wrong on some device.
 
 **Correct pattern:** Place the KAV at the **root of the modal screen** (the parent), wrapping header + content + input together. Use `behavior="padding"` on iOS with a small `keyboardVerticalOffset` (≈10 for card modals, 0 for fullscreen). The child component should be a plain `View`.
