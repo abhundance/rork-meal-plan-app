@@ -22,18 +22,11 @@ import {
   Animated,
   Platform,
   Keyboard,
-  UIManager,
-  LayoutAnimation,
 } from 'react-native';
-
-// Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Send, Camera, ImageIcon, Mic, FileText, Square, Plus, X } from 'lucide-react-native';
+import { Send, Mic, Square, Plus } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { Spacing } from '@/constants/theme';
@@ -67,7 +60,6 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showAttachments, setShowAttachments] = useState(false);
-  const [showActions, setShowActions] = useState(false);
 
   // Hooks
   const { callAiChef, extractFromUrl, transcribeAudio } = useAiChefApi();
@@ -89,7 +81,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
     const onShow = (e: { endCoordinates: { height: number } }) => {
       setKeyboardVisible(true);
       setKeyboardHeight(e.endCoordinates.height);
-      setShowActions(false); // Auto-collapse actions when keyboard appears
+      // (no action menu state to collapse — "+" uses native Alert)
     };
     const onHide = () => {
       setKeyboardVisible(false);
@@ -177,7 +169,6 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       setInputText('');
       setPendingImage(null);
       setShowAttachments(false);
-      setShowActions(false);
       setIsThinking(true);
       Keyboard.dismiss();
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -341,25 +332,8 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
 
   // ── Action button handlers (collapse actions after selection) ────────────
 
-  const handleCameraPress = useCallback(() => {
-    setShowActions(false);
-    pickImage(true);
-  }, [pickImage]);
-
-  const handlePhotoPress = useCallback(() => {
-    setShowActions(false);
-    pickImage(false);
-  }, [pickImage]);
-
-  const handleMicPress = useCallback(() => {
-    setShowActions(false);
-    handleVoiceStart();
-  }, [handleVoiceStart]);
-
-  const handleDocumentPress = useCallback(() => {
-    setShowActions(false);
-    pickDocument();
-  }, [pickDocument]);
+  // Camera/Photo/Doc actions are now in handlePlusMenu (Alert).
+  // Voice (mic) is a direct button on the input row.
 
   // ── Save recipe → Review screen ──────────────────────────────────────────
 
@@ -383,12 +357,18 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
     [router],
   );
 
-  // ── Toggle actions row ────────────────────────────────────────────────────
+  // ── "+" menu — Camera, Photos, PDF via native Alert ──────────────────────
 
-  const toggleActions = useCallback(() => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setShowActions((prev) => !prev);
-  }, []);
+  const handlePlusMenu = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Keyboard.dismiss();
+    Alert.alert('Add to conversation', undefined, [
+      { text: 'Camera', onPress: () => pickImage(true) },
+      { text: 'Photo Library', onPress: () => pickImage(false) },
+      { text: 'PDF / Document', onPress: () => pickDocument() },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, [pickImage, pickDocument]);
 
   // ── Refine handler ────────────────────────────────────────────────────────
 
@@ -634,88 +614,55 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
             </View>
           </View>
         ) : (
-          <>
-            <View style={styles.inputRow}>
-              {/* Toggle button: + when collapsed, × when expanded */}
-              <TouchableOpacity
-                style={styles.toggleActionsBtn}
-                onPress={toggleActions}
-                activeOpacity={0.7}
-              >
-                {showActions ? (
-                  <X size={20} color={Colors.white} strokeWidth={2.5} />
-                ) : (
-                  <Plus size={20} color={Colors.white} strokeWidth={2.5} />
-                )}
-              </TouchableOpacity>
+          <View style={styles.inputRow}>
+            {/* "+" button — opens Alert with Camera / Photos / PDF */}
+            <TouchableOpacity
+              style={styles.toggleActionsBtn}
+              onPress={handlePlusMenu}
+              activeOpacity={0.7}
+            >
+              <Plus size={20} color={Colors.white} strokeWidth={2.5} />
+            </TouchableOpacity>
 
-              <TextInput
-                ref={inputRef}
-                style={styles.textInput}
-                placeholder="Ask AI Chef..."
-                placeholderTextColor={Colors.textSecondary}
-                value={inputText}
-                onChangeText={setInputText}
-                onSubmitEditing={() => handleSend()}
-                returnKeyType="send"
-                multiline
-                maxLength={1000}
-                editable={!isThinking}
-              />
+            <TextInput
+              ref={inputRef}
+              style={styles.textInput}
+              placeholder="Ask AI Chef..."
+              placeholderTextColor={Colors.textSecondary}
+              value={inputText}
+              onChangeText={setInputText}
+              onSubmitEditing={() => handleSend()}
+              returnKeyType="send"
+              multiline
+              maxLength={1000}
+              editable={!isThinking}
+            />
 
+            {/* Right button: Send when typing/image attached, Mic when empty */}
+            {(inputText.trim() || pendingImage) ? (
               <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  (inputText.trim() || pendingImage) && !isThinking
-                    ? styles.sendButtonActive
-                    : styles.sendButtonInactive,
-                ]}
+                style={[styles.sendButton, !isThinking ? styles.sendButtonActive : styles.sendButtonInactive]}
                 onPress={() => handleSend()}
-                disabled={(!inputText.trim() && !pendingImage) || isThinking}
+                disabled={isThinking}
                 activeOpacity={0.7}
               >
                 <Send
                   size={18}
-                  color={(inputText.trim() || pendingImage) && !isThinking ? Colors.white : Colors.textSecondary}
+                  color={!isThinking ? Colors.white : Colors.textSecondary}
                   strokeWidth={2.5}
                 />
               </TouchableOpacity>
-            </View>
-
-            {/* Expanded action buttons row — hidden during recording/transcribing */}
-            {showActions && !isRecording && !isTranscribing && (
-              <View style={styles.actionButtonsRow}>
-                <TouchableOpacity
-                  style={styles.inlineActionBtn}
-                  onPress={handleCameraPress}
-                  activeOpacity={0.6}
-                >
-                  <Camera size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.inlineActionBtn}
-                  onPress={handlePhotoPress}
-                  activeOpacity={0.6}
-                >
-                  <ImageIcon size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.inlineActionBtn}
-                  onPress={handleMicPress}
-                  activeOpacity={0.6}
-                >
-                  <Mic size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.inlineActionBtn}
-                  onPress={handleDocumentPress}
-                  activeOpacity={0.6}
-                >
-                  <FileText size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.micButton}
+                onPress={handleVoiceStart}
+                disabled={isThinking}
+                activeOpacity={0.7}
+              >
+                <Mic size={20} color={isThinking ? Colors.textSecondary : Colors.primary} strokeWidth={2} />
+              </TouchableOpacity>
             )}
-          </>
+          </View>
         )}
       </View>
     );
