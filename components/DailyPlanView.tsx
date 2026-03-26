@@ -299,33 +299,31 @@ const DailySlotCard = React.memo(function DailySlotCard({
   }
 
   return (
-    <Animated.View style={[styles.cardWrap, { transform: [{ scale: scaleAnim }] }]}>
-      <View style={styles.filledCard}>
-        <Text style={styles.filledSlotLabel}>{slot.name.toUpperCase()}</Text>
+    <View style={styles.slotSection}>
+      <Text style={styles.filledSlotLabel}>{slot.name.toUpperCase()}</Text>
 
-        {/* Horizontal meal carousel */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carouselContent}
-          style={styles.carousel}
-        >
-          {meals.map((meal) => (
-            <MealCarouselCard
-              key={meal.id}
-              meal={meal}
-              onPress={onMealPress}
-              onRemove={onRemoveMealById}
-            />
-          ))}
-          {meals.length < 10 && (
-            <CarouselAddButton
-              onPress={() => onAddItemToSlot(dateKey, slot.slot_id, slot.name)}
-            />
-          )}
-        </ScrollView>
-      </View>
-    </Animated.View>
+      {/* Horizontal meal carousel */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.carouselContent}
+        style={styles.carousel}
+      >
+        {meals.map((meal) => (
+          <MealCarouselCard
+            key={meal.id}
+            meal={meal}
+            onPress={onMealPress}
+            onRemove={onRemoveMealById}
+          />
+        ))}
+        {meals.length < 10 && (
+          <CarouselAddButton
+            onPress={() => onAddItemToSlot(dateKey, slot.slot_id, slot.name)}
+          />
+        )}
+      </ScrollView>
+    </View>
   );
 });
 
@@ -600,17 +598,9 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 
-  /* ── Filled slot ────────────────────────── */
-  filledCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-    padding: 12,
-    overflow: 'hidden',
+  /* ── Filled slot — no card wrapper, flat on page ── */
+  slotSection: {
+    marginBottom: 16,
   },
   filledSlotLabel: {
     fontSize: 11,
@@ -618,7 +608,7 @@ const styles = StyleSheet.create({
     fontWeight: '500' as const,
     color: Colors.textSecondary,
     letterSpacing: 0.8,
-    marginBottom: 8,
+    marginBottom: 6,
   },
 
   /* ── Carousel — mirrors Recipes tab grid dimensions ─── */
