@@ -87,10 +87,10 @@ export default function MealPickerManualScreen() {
     }
 
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    // Came from meal-picker/index — 2 screens in the modal stack.
-    // router.back() pops manual → index; router.dismiss() then closes index → Plan tab.
-    router.back();
-    router.dismiss();
+    // Dismiss entire modal stack (manual + meal-picker) in one call.
+    // The old back()+dismiss() pattern was a race condition — the second
+    // call could fire before the first finished processing.
+    router.dismissAll();
   }, [name, saveToRecipes, addMeal, addMealLocalOnly, addRecipe, syncRecipeNow]);
 
   return (

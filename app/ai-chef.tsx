@@ -196,8 +196,10 @@ export default function AiChefScreen() {
       addRecipe(fullRecipe);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // Navigate to the recipe detail or back to recipes
-      router.push('/(tabs)/recipes');
+      // Dismiss all stacked modals (ai-chef, and possibly meal-picker underneath)
+      // before returning to the tabs. router.push would stack the tab on top of
+      // unclosed modals, making the app appear frozen.
+      router.dismissAll();
     },
     [addRecipe, router]
   );

@@ -72,3 +72,27 @@ useEffect(() => {
 ```
 
 **Note:** `keyboardHeight - insets.bottom` avoids double-counting the safe area that the keyboard already covers.
+
+### 8. Modal Stack Dismissal — Always Use `router.dismissAll()`
+**Never use `router.replace()`, `router.push()`, or `router.back(); router.dismiss()` to close a chain of stacked modals.** These patterns either leave modals stranded in the stack (making the app appear frozen) or introduce race conditions when two calls fire before the first finishes processing.
+
+**Correct pattern:** Use `router.dismissAll()` after any save/complete action in a modal screen. It closes the entire modal stack in one call regardless of how many modals are stacked (1, 2, or 3). This works identically whether the modal was opened from the Plan tab, Recipes tab, or recipe-detail.
+
+```tsx
+// ✅ Correct — one call, all modals gone
+addRecipe(meal, { skipSync: true });
+syncRecipeNow(meal).catch(console.error);
+router.dismissAll();
+
+// ❌ Wrong — race condition between two async router operations
+router.back();
+router.dismiss();
+
+// ❌ Wrong — stacks the tab on top of unclosed modals
+router.push('/(tabs)/recipes');
+
+// ❌ Wrong — only replaces the TOP modal, leaves others in the stack
+router.replace('/(tabs)');
+```
+
+**Screens that must follow this pattern:** `add-recipe-review.tsx`, `add-recipe-manual.tsx`, `ai-chef.tsx`, `meal-picker/manual.tsx`, `meal-picker/delivery.tsx`.

@@ -116,9 +116,9 @@ export default function MealPickerDeliveryScreen() {
 
     addMeal(planned);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    // New-meal flow: came from meal-picker/index — 2 screens in the modal stack.
-    router.back();
-    router.dismiss();
+    // Dismiss entire modal stack (delivery + meal-picker) in one call.
+    // The old back()+dismiss() pattern was a race condition.
+    router.dismissAll();
   }, [mealName, deliveryUrl, saveToRecipes, isEditing, editId, addMeal, addRecipe, updatePlannedMealDelivery]);
 
   return (

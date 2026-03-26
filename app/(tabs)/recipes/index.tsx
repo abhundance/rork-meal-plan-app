@@ -381,7 +381,11 @@ export default function RecipesScreen() {
   );
 
   const openAddMethodSheet = useCallback(() => {
-    router.push('/add-recipe-entry');
+    Alert.alert('Add a Recipe', undefined, [
+      { text: 'AI Chef', onPress: () => router.push('/add-recipe-entry') },
+      { text: 'Manual Entry', onPress: () => router.push('/add-recipe-manual' as never) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   }, []);
 
   const filterCount = countActiveFilters(favFilters, RECIPES_FILTER_CONFIG);
