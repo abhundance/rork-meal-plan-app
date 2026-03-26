@@ -409,14 +409,16 @@ export default function RecipesScreen() {
             justifyContent: 'center',
           }}>
             <View style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: Colors.primary,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: Colors.primaryLight,
+              borderWidth: 1.5,
+              borderColor: Colors.primary,
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Plus size={16} color={Colors.white} strokeWidth={2.5} />
+              <Plus size={18} color={Colors.primary} strokeWidth={2.5} />
             </View>
           </View>
           {/* Label below — matches meal name style */}
@@ -801,17 +803,19 @@ export default function RecipesScreen() {
       <AttachmentMenu
         visible={showAddMenu}
         onClose={() => setShowAddMenu(false)}
+        title="Add a Recipe"
+        subtitle="Choose how you'd like to add a meal"
         options={[
           {
             key: 'ai-chef',
-            icon: <Sparkles size={24} color={Colors.white} strokeWidth={2} />,
+            icon: <Sparkles size={26} color={Colors.white} strokeWidth={2} />,
             label: 'AI Chef',
             bgColor: Colors.primary,
             onPress: () => router.push('/add-recipe-entry'),
           },
           {
             key: 'manual',
-            icon: <PenLine size={24} color={Colors.white} strokeWidth={2} />,
+            icon: <PenLine size={26} color={Colors.white} strokeWidth={2} />,
             label: 'Manual Entry',
             bgColor: '#20B997',  // Teal/green
             onPress: () => router.push('/add-recipe-manual' as never),
@@ -1317,17 +1321,17 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute' as const,
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: Colors.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 7,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
   addMethodOverlay: {
     flex: 1,

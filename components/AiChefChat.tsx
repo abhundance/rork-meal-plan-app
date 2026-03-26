@@ -619,7 +619,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
               onPress={handlePlusMenu}
               activeOpacity={0.7}
             >
-              <Plus size={20} color={Colors.white} strokeWidth={2.5} />
+              <Plus size={18} color={Colors.textSecondary} strokeWidth={2} />
             </TouchableOpacity>
 
             <TextInput
@@ -691,24 +691,25 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       <AttachmentMenu
         visible={showAttachMenu}
         onClose={() => setShowAttachMenu(false)}
+        title="Attach"
         options={[
           {
             key: 'camera',
-            icon: <Camera size={24} color={Colors.white} strokeWidth={2} />,
+            icon: <Camera size={26} color={Colors.white} strokeWidth={2} />,
             label: 'Camera',
             bgColor: '#FF8080',  // Warm red/pink
             onPress: () => pickImage(true),
           },
           {
             key: 'photo',
-            icon: <ImageIcon size={24} color={Colors.white} strokeWidth={2} />,
+            icon: <ImageIcon size={26} color={Colors.white} strokeWidth={2} />,
             label: 'Photos',
             bgColor: '#6B9FF9',  // Blue
             onPress: () => pickImage(false),
           },
           {
             key: 'pdf',
-            icon: <FileText size={24} color={Colors.white} strokeWidth={2} />,
+            icon: <FileText size={26} color={Colors.white} strokeWidth={2} />,
             label: 'Files',
             bgColor: '#FFB366',  // Orange/Amber
             onPress: () => pickDocument(),

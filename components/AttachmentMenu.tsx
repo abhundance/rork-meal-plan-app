@@ -1,22 +1,22 @@
 /**
- * AttachmentMenu — A beautiful, reusable overlay menu for selecting attachment options.
+ * AttachmentMenu — A polished bottom sheet for selecting attachment/action options.
  *
  * Features:
  * - Semi-transparent overlay backdrop that dismisses the menu when tapped
  * - Smooth fade-in/slide-up animations for polished feel
+ * - Optional title + subtitle header for context
  * - Horizontal row of options with circular icon containers + labels below
  * - Fully themeable with design system tokens
  *
  * Usage:
  * ```tsx
- * const [menuVisible, setMenuVisible] = useState(false);
- *
  * <AttachmentMenu
  *   visible={menuVisible}
  *   onClose={() => setMenuVisible(false)}
+ *   title="Add a Recipe"
+ *   subtitle="Choose how you'd like to add a meal"
  *   options={[
  *     { key: 'camera', icon: <Camera .../>, label: 'Camera', bgColor: '#FF6B6B', onPress: () => {...} },
- *     { key: 'photo', icon: <Image .../>, label: 'Photos', bgColor: '#4ECDC4', onPress: () => {...} },
  *   ]}
  * />
  * ```
@@ -29,7 +29,6 @@ import {
   Modal,
   TouchableOpacity,
   Animated,
-  Dimensions,
   StyleSheet,
 } from 'react-native';
 import Colors from '@/constants/colors';
@@ -48,12 +47,13 @@ export interface AttachmentMenuProps {
   visible: boolean;
   onClose: () => void;
   options: AttachmentMenuOption[];
+  title?: string;
+  subtitle?: string;
 }
 
-const SCREEN_H = Dimensions.get('window').height;
 const ANIMATION_DURATION = 200;
 
-export default function AttachmentMenu({ visible, onClose, options }: AttachmentMenuProps) {
+export default function AttachmentMenu({ visible, onClose, options, title, subtitle }: AttachmentMenuProps) {
   // Animation values
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const cardTranslateY = useRef(new Animated.Value(200)).current;
@@ -137,13 +137,27 @@ export default function AttachmentMenu({ visible, onClose, options }: Attachment
         pointerEvents="box-none"
       >
         <View style={styles.card}>
+          {/* Drag handle indicator */}
+          <View style={styles.handleBar} />
+
+          {/* Optional header */}
+          {title && (
+            <View style={styles.headerContainer}>
+              <Text style={styles.headerTitle}>{title}</Text>
+              {subtitle && (
+                <Text style={styles.headerSubtitle}>{subtitle}</Text>
+              )}
+            </View>
+          )}
+
+          {/* Options row */}
           <View style={styles.optionsRow}>
             {options.map((option) => (
               <TouchableOpacity
                 key={option.key}
                 style={styles.optionButton}
                 onPress={() => handleOptionPress(option)}
-                activeOpacity={0.7}
+                activeOpacity={0.6}
               >
                 {/* Circular icon container */}
                 <View
@@ -185,33 +199,59 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: Colors.white,
-    borderTopLeftRadius: BorderRadius.card,
-    borderTopRightRadius: BorderRadius.card,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.md,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xxxl + 8,  // 40px — generous bottom for safe area
+    paddingHorizontal: Spacing.xl,
     ...Shadows.card,
+  },
+  handleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: 'center',
+    marginBottom: Spacing.lg,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: Spacing.xxl,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
   },
   optionsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: Spacing.xl,
+    gap: Spacing.xxxl + 8,  // 40px between options
+    paddingHorizontal: Spacing.lg,
   },
   optionButton: {
     alignItems: 'center',
-    gap: Spacing.sm,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,  // BorderRadius.full (999) is too large for a circle; use half of width/height
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
   },
   optionLabel: {
     fontFamily: FontFamily.semiBold,
     fontSize: FontSize.sm,
+    fontWeight: '600',
     color: Colors.text,
     textAlign: 'center',
-    marginTop: Spacing.xs,
+    marginTop: Spacing.sm,
   },
 });
