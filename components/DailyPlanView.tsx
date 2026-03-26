@@ -10,25 +10,29 @@ import {
   Alert,
   Pressable,
   Image,
+  Dimensions,
 } from 'react-native';
 import { ChevronLeft, ChevronRight, Plus, Bike } from 'lucide-react-native';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
-import { BorderRadius } from '@/constants/theme';
+import { BorderRadius, Spacing } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
 import { useRecipes } from '@/providers/RecipesProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { formatDateKey, getDayName, getWeekLabel, isBefore } from '@/utils/dates';
 import Card from './Card';
 
-/* ─── Constants ────────────────────────────────────────────── */
-const CARD_WIDTH = 104;
-const IMG_SIZE = 96;
-const IMG_RADIUS = 14;
-const CAROUSEL_GAP = 8;
-const CAROUSEL_HEIGHT = IMG_SIZE + 6 + 30 + 4; // image + gap + 2-line name + padding
+/* ─── Constants — match Recipes tab grid exactly ──────────── */
+const SCREEN_W = Dimensions.get('window').width;
+const COLS = 4;
+const H_PAD = 12;
+const COL_GAP = 6;
+const CARD_W = Math.floor((SCREEN_W - H_PAD * 2 - COL_GAP * (COLS - 1)) / COLS);
+const IMG_H = Math.round(CARD_W * 1.15); // portrait tile, same as Recipes tab
+const CAROUSEL_GAP = COL_GAP;
+const CAROUSEL_HEIGHT = IMG_H + Spacing.xs + 14 * 2 + 4; // image + paddingTop(4) + 2-line name(28) + buffer
 
 interface DailyPlanViewProps {
   mealSlots: MealSlot[];
@@ -386,7 +390,7 @@ const MealCarouselCard = React.memo(function MealCarouselCard({
         ) : (
           <MealImagePlaceholder
             size="card"
-            borderRadius={IMG_RADIUS}
+            borderRadius={BorderRadius.card}
             mealType={meal.meal_type}
             cuisine={meal.cuisine}
             name={meal.meal_name}
@@ -432,9 +436,20 @@ const CarouselAddButton = React.memo(function CarouselAddButton({ onPress }: Car
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.carouselCard}>
       <View style={styles.addCardImage}>
-        <Plus size={24} color={Colors.primary} strokeWidth={2} />
+        <View style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: Colors.primaryLight,
+          borderWidth: 1.5,
+          borderColor: Colors.primary,
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+        }}>
+          <Plus size={18} color={Colors.primary} strokeWidth={2.5} />
+        </View>
       </View>
-      <Text style={styles.addCardLabel}>Add meal</Text>
+      <Text style={styles.addCardLabel}>Add Meal</Text>
     </TouchableOpacity>
   );
 });
@@ -545,7 +560,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   cardWrap: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   /* ── Empty slot ─────────────────────────── */
@@ -606,29 +621,27 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  /* ── Carousel ───────────────────────────── */
+  /* ── Carousel — mirrors Recipes tab grid dimensions ─── */
   carousel: {
     height: CAROUSEL_HEIGHT,
   },
   carouselContent: {
     gap: CAROUSEL_GAP,
-    alignItems: 'flex-start',
+    alignItems: 'flex-start' as const,
   },
   carouselCard: {
-    width: CARD_WIDTH,
-    alignItems: 'center',
+    width: CARD_W,
   },
   carouselImageWrap: {
-    width: IMG_SIZE,
-    height: IMG_SIZE,
-    borderRadius: IMG_RADIUS,
-    overflow: 'hidden',
+    width: CARD_W,
+    height: IMG_H,
+    borderRadius: BorderRadius.card,
+    overflow: 'hidden' as const,
     position: 'relative' as const,
   },
   carouselImage: {
-    width: IMG_SIZE,
-    height: IMG_SIZE,
-    borderRadius: IMG_RADIUS,
+    width: CARD_W,
+    height: IMG_H,
   },
 
   /* ── Serving badge (shown only when ≠ default) ─ */
@@ -657,36 +670,34 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  /* ── Card name ──────────────────────────── */
+  /* ── Card name — matches Recipes tab text style ──── */
   carouselName: {
-    fontSize: 12,
+    width: CARD_W,
+    paddingTop: Spacing.xs,
+    fontSize: 11,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: Colors.text,
-    textAlign: 'center' as const,
-    lineHeight: 15,
-    marginTop: 6,
-    maxWidth: IMG_SIZE,
+    lineHeight: 14,
   },
 
   /* ── Add card (carousel end) ────────────── */
   addCardImage: {
-    width: IMG_SIZE,
-    height: IMG_SIZE,
-    borderRadius: IMG_RADIUS,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    borderStyle: 'dashed' as const,
+    width: CARD_W,
+    height: IMG_H,
+    borderRadius: BorderRadius.card,
     backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   addCardLabel: {
-    fontSize: 12,
+    width: CARD_W,
+    paddingTop: Spacing.xs,
+    fontSize: 11,
     fontFamily: FontFamily.semiBold,
-    fontWeight: '500' as const,
-    color: Colors.primary,
-    marginTop: 6,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+    textAlign: 'center' as const,
   },
 
   /* ── Action strip ───────────────────────── */
