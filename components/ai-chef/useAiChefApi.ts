@@ -47,15 +47,15 @@ export function useAiChefApi() {
         }));
 
       // Build dietary context from family settings
-      const dietaryContext: Record<string, unknown> = {};
+      // Always send default_serving_size so the AI generates recipes for the right number of people
+      const dietaryContext: Record<string, unknown> = {
+        default_serving_size: familySettings.default_serving_size || 4,
+      };
       if (familySettings.dietary_preferences?.length) {
         dietaryContext.dietary_preferences = familySettings.dietary_preferences;
       }
       if (familySettings.allergens?.length) {
         dietaryContext.allergens = familySettings.allergens;
-      }
-      if (familySettings.default_serving_size) {
-        dietaryContext.default_serving_size = familySettings.default_serving_size;
       }
 
       // Retry transient failures (network blips, 502/503) up to 2 times
