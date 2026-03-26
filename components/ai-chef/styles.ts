@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   errorRetry: {
     fontSize: FontSize.xs,
     fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
+    color: Colors.danger,
     marginTop: Spacing.xs,
   },
 
