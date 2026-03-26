@@ -415,7 +415,11 @@ export default function AddMealReviewScreen() {
       is_recipe_complete: methodSteps.length > 0,
     };
 
-    addRecipe(meal);
+    // Always skipSync here — we call syncRecipeNow explicitly below to
+    // avoid a race condition where addRecipe's internal sync and our
+    // explicit syncRecipeNow both run upsertRecipeToSupabase concurrently,
+    // causing duplicate ingredients/method_steps (DELETE+INSERT interleave).
+    addRecipe(meal, { skipSync: true });
     console.log('[Review] Saved to recipes:', meal.name);
 
     // ── Auto-generate AI image if no photo was attached ───────────────────
@@ -446,6 +450,10 @@ export default function AddMealReviewScreen() {
         .catch(() => addMealLocalOnly(plannedMeal));
       router.dismissAll();
     } else {
+      // No pending plan slot — sync recipe to Supabase (single call, no race).
+      syncRecipeNow(meal).catch((e) =>
+        console.error('[Review] Supabase sync error:', e)
+      );
       router.dismissAll();
     }
   }, [

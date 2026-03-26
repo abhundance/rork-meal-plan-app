@@ -277,7 +277,9 @@ export default function AddMealScreen() {
       is_ingredient_complete: validIngredients.length > 0,
       is_recipe_complete: validSteps.length > 0,
     };
-    addRecipe(newMeal);
+    // Always skipSync — we call syncRecipeNow explicitly below to avoid
+    // a race condition where two concurrent upserts duplicate ingredients/steps.
+    addRecipe(newMeal, { skipSync: true });
 
     // ── Auto-generate AI image if no photo was attached ───────────────────
     triggerImageGenIfNeeded(newMeal, updateRecipe);
@@ -306,6 +308,10 @@ export default function AddMealScreen() {
       console.log('[AddMeal] Auto-added to plan slot:', pending.slotId, pending.date);
       router.replace('/(tabs)' as never);
     } else {
+      // No pending plan slot — single sync call, no race.
+      syncRecipeNow(newMeal).catch((e) =>
+        console.error('[AddMeal] Supabase sync error:', e)
+      );
       router.replace('/(tabs)/recipes' as never);
     }
   }, [

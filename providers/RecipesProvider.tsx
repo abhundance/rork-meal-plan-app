@@ -239,7 +239,7 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
 
   // ── Public actions ────────────────────────────────────────────────────────
 
-  const addRecipe = useCallback((meal: Recipe) => {
+  const addRecipe = useCallback((meal: Recipe, options?: { skipSync?: boolean }) => {
     const exists = mealsRef.current.find((m) => m.id === meal.id);
     if (exists) {
       console.log('[Recipes] Meal already saved:', meal.name);
@@ -250,10 +250,14 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
     setMeals(updated);
     saveMutateRef.current(updated);
     // Fire-and-forget — errors logged but not propagated.
-    // Callers needing write-ordering should use syncRecipeNow() separately.
-    syncToSupabase(meal).catch((e) =>
-      console.error('[Recipes] Background Supabase upsert error:', e)
-    );
+    // Callers needing write-ordering should use syncRecipeNow() separately
+    // and pass { skipSync: true } to avoid a race condition that duplicates
+    // ingredients/method_steps rows (DELETE+INSERT interleaving).
+    if (!options?.skipSync) {
+      syncToSupabase(meal).catch((e) =>
+        console.error('[Recipes] Background Supabase upsert error:', e)
+      );
+    }
     console.log('[Recipes] Added:', meal.name);
     return true;
   }, [syncToSupabase]);
