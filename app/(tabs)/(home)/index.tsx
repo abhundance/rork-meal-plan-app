@@ -23,38 +23,7 @@ import { getWeekDates, formatDateKey, getDayName, isToday } from '@/utils/dates'
 import { setPendingPlanSlot } from '@/services/pendingPlanSlot';
 import { CalendarDays } from 'lucide-react-native';
 import { generateUUID } from '@/utils/uuid';
-
-function getSlotCategory(slotName: string): 'breakfast' | 'lunch_dinner' | 'light_bites' {
-  const lower = slotName.toLowerCase();
-  if (lower.includes('breakfast') || lower.includes('morning') || lower.includes('brunch')) {
-    return 'breakfast';
-  }
-  if (lower.includes('lunch') || lower.includes('dinner') || lower.includes('supper') || lower.includes('evening meal')) {
-    return 'lunch_dinner';
-  }
-  return 'light_bites';
-}
-
-// Fallback name-based classifier — only used when a meal has no meal_type field set.
-// Prefer the meal_type field directly wherever available.
-function getMealCategoryByName(name: string): 'breakfast' | 'lunch_dinner' | 'light_bites' {
-  const lower = name.toLowerCase();
-  if (
-    lower.includes('pancake') || lower.includes('oat') || lower.includes('shakshuka') ||
-    lower.includes('breakfast') || lower.includes('granola') || lower.includes('smoothie') ||
-    lower.includes('cereal') || lower.includes('porridge') || lower.includes('waffle') ||
-    lower.includes('toast') || lower.includes('muesli') || lower.includes('frittata')
-  ) {
-    return 'breakfast';
-  }
-  if (
-    lower.includes('salad') || lower.includes('soup') || lower.includes('wrap') ||
-    lower.includes('sandwich') || lower.includes('snack') || lower.includes('dip')
-  ) {
-    return 'light_bites';
-  }
-  return 'lunch_dinner';
-}
+import { getSlotCategory, getMealCategoryByName } from '@/utils/slotCategory';
 
 // ─── Smart Fill — shared types & pure scoring functions ──────────────────────
 

@@ -31,6 +31,7 @@ import {
   PenLine,
   Truck,
 } from 'lucide-react-native';
+import { getSlotCategory, matchesSlotCategory } from '@/utils/slotCategory';
 import Colors from '@/constants/colors';
 import { FontFamily, FontSize } from '@/constants/typography';
 import { BorderRadius, Spacing } from '@/constants/theme';
@@ -57,6 +58,9 @@ export default function MealPickerScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Slot-aware category: e.g. 'breakfast' slot → show breakfast recipes first
+  const slotCategory = useMemo(() => getSlotCategory(slotName), [slotName]);
+
   const formattedDate = useMemo(() => {
     if (!date) return '';
     return new Date(date + 'T00:00:00').toLocaleDateString('en-GB', {
@@ -66,17 +70,26 @@ export default function MealPickerScreen() {
     });
   }, [date]);
 
-  // Filter saved meals by search query
+  // Slot-sorted recipes: matching meal_type first, then the rest
+  const slotSortedMeals = useMemo(() => {
+    return [...favMeals].sort((a, b) => {
+      const aMatch = matchesSlotCategory(a, slotCategory) ? 0 : 1;
+      const bMatch = matchesSlotCategory(b, slotCategory) ? 0 : 1;
+      return aMatch - bMatch;
+    });
+  }, [favMeals, slotCategory]);
+
+  // Filter saved meals by search query, slot-matched first
   const filteredMeals = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (q.length < 2) return [];
-    return favMeals.filter(
+    return slotSortedMeals.filter(
       (m) =>
         m.name.toLowerCase().includes(q) ||
         (m.cuisine && m.cuisine.toLowerCase().includes(q)) ||
         m.ingredients.some((i) => i.name.toLowerCase().includes(q)),
     );
-  }, [searchQuery, favMeals]);
+  }, [searchQuery, slotSortedMeals]);
 
   const hasSearchResults = filteredMeals.length > 0;
   const familyName = familySettings?.family_name ?? '';
@@ -232,12 +245,12 @@ export default function MealPickerScreen() {
           </View>
         )}
 
-        {/* Recipe carousel — only show when not searching */}
-        {searchQuery.trim().length === 0 && favMeals.length > 0 && (
+        {/* Recipe carousel — only show when not searching, slot-matched first */}
+        {searchQuery.trim().length === 0 && slotSortedMeals.length > 0 && (
           <View style={styles.carouselSection}>
             <Text style={styles.sectionLabel}>YOUR RECIPES</Text>
             <FlatList
-              data={favMeals}
+              data={slotSortedMeals}
               renderItem={({ item: recipe }) => (
                 <TouchableOpacity
                   style={styles.carouselCard}
