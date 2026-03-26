@@ -90,8 +90,13 @@ export default function AttachmentMenu({ visible, onClose, options }: Attachment
   }, [visible, backdropOpacity, cardTranslateY]);
 
   const handleOptionPress = (option: AttachmentMenuOption) => {
-    option.onPress();
+    // Close the modal FIRST, then fire the action after a brief delay.
+    // Native pickers (camera, photo library, document) can fail to launch
+    // if a Modal is still visible when they try to present.
     onClose();
+    setTimeout(() => {
+      option.onPress();
+    }, 300);
   };
 
   return (
