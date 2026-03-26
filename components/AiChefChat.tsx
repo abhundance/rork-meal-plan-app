@@ -361,6 +361,10 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         prefillDietLabels: JSON.stringify(recipe.diet_labels || []),
         prefillPrepTime: String(recipe.prep_time || 0),
         prefillCookTime: String(recipe.cook_time || 0),
+        // Nutrition (per serving)
+        prefillCalories: recipe.calories_per_serving != null ? String(recipe.calories_per_serving) : '',
+        prefillProteinG: recipe.protein_per_serving_g != null ? String(recipe.protein_per_serving_g) : '',
+        prefillCarbsG: recipe.carbs_per_serving_g != null ? String(recipe.carbs_per_serving_g) : '',
       };
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       router.push({ pathname: '/add-recipe-review', params });

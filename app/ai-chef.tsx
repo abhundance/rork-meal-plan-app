@@ -206,6 +206,10 @@ export default function AiChefScreen() {
         // Time estimates
         prep_time: recipe.prep_time,
         cook_time: recipe.cook_time,
+        // Nutrition (per serving)
+        calories_per_serving: recipe.calories_per_serving,
+        protein_per_serving_g: recipe.protein_per_serving_g,
+        carbs_per_serving_g: recipe.carbs_per_serving_g,
       };
 
       addRecipe(fullRecipe);

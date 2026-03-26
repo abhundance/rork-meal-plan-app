@@ -63,6 +63,10 @@ type Params = {
   prefillDietLabels?: string;      // JSON array
   prefillPrepTime?: string;
   prefillCookTime?: string;
+  // Nutrition (per serving)
+  prefillCalories?: string;
+  prefillProteinG?: string;
+  prefillCarbsG?: string;
 };
 
 type MealTypeValue = 'breakfast' | 'lunch_dinner' | 'light_bites';
@@ -205,9 +209,9 @@ export default function AddMealReviewScreen() {
     }
     return [];
   });
-  const [caloriesPerServing, setCaloriesPerServing] = useState<string>('');
-  const [proteinPerServingG, setProteinPerServingG] = useState<string>('');
-  const [carbsPerServingG, setCarbsPerServingG] = useState<string>('');
+  const [caloriesPerServing, setCaloriesPerServing] = useState<string>(params.prefillCalories ?? '');
+  const [proteinPerServingG, setProteinPerServingG] = useState<string>(params.prefillProteinG ?? '');
+  const [carbsPerServingG, setCarbsPerServingG] = useState<string>(params.prefillCarbsG ?? '');
 
   // Show "AI filled" badge on accordion header when AI populated at least one detail field.
   // Covers both extraction-path (isAiExtracted) and on-demand auto-fill (hasAutoFilled).
