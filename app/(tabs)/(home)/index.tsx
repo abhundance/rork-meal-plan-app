@@ -384,7 +384,10 @@ export default function MealPlanScreen() {
       health_score: f.health_score,
     }));
 
-    const fullPool = [...familiarPool];
+    // newPool would contain discovery/curated meals — currently empty since
+    // the Discover tab was removed. Kept for future pgvector recommendations.
+    const newPool: PoolEntry[] = [];
+    const fullPool = [...familiarPool, ...newPool];
 
     if (fullPool.length === 0) {
       Alert.alert('No meals available', 'Add meals to your Recipes to use Smart Plan.');
@@ -601,7 +604,10 @@ export default function MealPlanScreen() {
       health_score: f.health_score,
     }));
 
-    const fullPool = [...familiarPool];
+    // newPool would contain discovery/curated meals — currently empty since
+    // the Discover tab was removed. Kept for future pgvector recommendations.
+    const newPool: PoolEntry[] = [];
+    const fullPool = [...familiarPool, ...newPool];
 
     if (fullPool.length === 0) {
       Alert.alert('No meals available', 'Add meals to your Recipes to use Smart Plan.');
