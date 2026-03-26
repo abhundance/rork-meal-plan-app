@@ -11,7 +11,7 @@ import {
   Pressable,
   Image,
 } from 'react-native';
-import { ChevronLeft, ChevronRight, Plus, PlusCircle, Bike } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Plus, Bike } from 'lucide-react-native';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
@@ -19,10 +19,16 @@ import { FontFamily } from '@/constants/typography';
 import { BorderRadius } from '@/constants/theme';
 import { MealSlot, PlannedMeal } from '@/types';
 import { useRecipes } from '@/providers/RecipesProvider';
+import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { formatDateKey, getDayName, getWeekLabel, isBefore } from '@/utils/dates';
-import { openDeliveryLink } from '@/services/deliveryUtils';
-import ServingStepper from './ServingStepper';
 import Card from './Card';
+
+/* ─── Constants ────────────────────────────────────────────── */
+const CARD_WIDTH = 104;
+const IMG_SIZE = 96;
+const IMG_RADIUS = 14;
+const CAROUSEL_GAP = 8;
+const CAROUSEL_HEIGHT = IMG_SIZE + 6 + 30 + 4; // image + gap + 2-line name + padding
 
 interface DailyPlanViewProps {
   mealSlots: MealSlot[];
@@ -31,7 +37,8 @@ interface DailyPlanViewProps {
   getMealsForSlot: (date: string, slotId: string) => PlannedMeal[];
   onEmptySlotPress: (date: string, slotId: string) => void;
   onMealPress: (meal: PlannedMeal) => void;
-  onServingChange: (mealId: string, serving: number) => void;
+  /** @deprecated Serving adjustment moved to recipe detail screen. Kept for parent compatibility. */
+  onServingChange?: (mealId: string, serving: number) => void;
   onRemoveMealById: (mealId: string) => void;
   onAddItemToSlot: (date: string, slotId: string, slotName: string) => void;
   onSmartPlan: () => void;
@@ -46,7 +53,7 @@ export default function DailyPlanView({
   getMealsForSlot,
   onEmptySlotPress,
   onMealPress,
-  onServingChange,
+  // onServingChange — no longer used; serving adjustment moved to recipe detail
   onRemoveMealById,
   onAddItemToSlot,
   onSmartPlan,
@@ -57,8 +64,6 @@ export default function DailyPlanView({
 
   const isPastDay = useMemo(() => isBefore(currentDate, new Date()), [currentDate]);
 
-  // No useMemo — getMealsForSlot has a stable function reference ([] deps), so a memo over it
-  // would never recompute after addMeals fires. Bare evaluation is cheap and always accurate.
   const dayIsEmpty = mealSlots.every((slot) => getMealsForSlot(dateKey, slot.slot_id).length === 0);
 
   const weekDates = useMemo(() => {
@@ -106,11 +111,14 @@ export default function DailyPlanView({
   const handleNextDayRef = useRef(handleNextDay);
   handleNextDayRef.current = handleNextDay;
 
-  const swipeGesture = useMemo(() => Gesture.Pan().activeOffsetX([-60, 60]).failOffsetY([-25, 25]).runOnJS(true).onEnd((e) => {
-    if (e.translationX < -60) {
+  /* Reduced activeOffsetX from [-60,60] to [-40,40] and raised the onEnd
+     threshold to 70px so nested horizontal carousel ScrollViews can scroll
+     freely without triggering the day-swipe gesture. */
+  const swipeGesture = useMemo(() => Gesture.Pan().activeOffsetX([-40, 40]).failOffsetY([-25, 25]).runOnJS(true).onEnd((e) => {
+    if (e.translationX < -70) {
       handleNextDayRef.current();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } else if (e.translationX > 60) {
+    } else if (e.translationX > 70) {
       handlePrevDayRef.current();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -179,7 +187,6 @@ export default function DailyPlanView({
               dateKey={dateKey}
               onEmptyPress={onEmptySlotPress}
               onMealPress={onMealPress}
-              onServingChange={onServingChange}
               onRemoveMealById={onRemoveMealById}
               onAddItemToSlot={onAddItemToSlot}
             />
@@ -191,6 +198,8 @@ export default function DailyPlanView({
     </GestureDetector>
   );
 }
+
+/* ─── ActionStrip ──────────────────────────────────────────── */
 
 interface ActionStripProps {
   dayIsEmpty: boolean;
@@ -231,13 +240,14 @@ const ActionStrip = React.memo(function ActionStrip({ dayIsEmpty, onSmartPlan, o
   );
 });
 
+/* ─── DailySlotCard ────────────────────────────────────────── */
+
 interface DailySlotCardProps {
   slot: MealSlot;
   meals: PlannedMeal[];
   dateKey: string;
   onEmptyPress: (date: string, slotId: string) => void;
   onMealPress: (meal: PlannedMeal) => void;
-  onServingChange: (mealId: string, serving: number) => void;
   onRemoveMealById: (mealId: string) => void;
   onAddItemToSlot: (date: string, slotId: string, slotName: string) => void;
 }
@@ -248,7 +258,6 @@ const DailySlotCard = React.memo(function DailySlotCard({
   dateKey,
   onEmptyPress,
   onMealPress,
-  onServingChange,
   onRemoveMealById,
   onAddItemToSlot,
 }: DailySlotCardProps) {
@@ -289,125 +298,148 @@ const DailySlotCard = React.memo(function DailySlotCard({
     <Animated.View style={[styles.cardWrap, { transform: [{ scale: scaleAnim }] }]}>
       <View style={styles.filledCard}>
         <Text style={styles.filledSlotLabel}>{slot.name.toUpperCase()}</Text>
-        {meals.map((meal, idx) => (
-          <MealItemRow
-            key={meal.id}
-            meal={meal}
-            isLast={idx === meals.length - 1}
-            onServingChange={onServingChange}
-            onRemoveMealById={onRemoveMealById}
-            onPress={onMealPress}
-          />
-        ))}
-        {meals.length < 10 && (
-          <TouchableOpacity
-            style={styles.addItemBtn}
-            onPress={() => onAddItemToSlot(dateKey, slot.slot_id, slot.name)}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            activeOpacity={0.8}
-          >
-            <PlusCircle size={18} color={Colors.primary} strokeWidth={1.5} />
-            <Text style={styles.addItemText}>Add item</Text>
-          </TouchableOpacity>
-        )}
+
+        {/* Horizontal meal carousel */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.carouselContent}
+          style={styles.carousel}
+        >
+          {meals.map((meal) => (
+            <MealCarouselCard
+              key={meal.id}
+              meal={meal}
+              onPress={onMealPress}
+              onRemove={onRemoveMealById}
+            />
+          ))}
+          {meals.length < 10 && (
+            <CarouselAddButton
+              onPress={() => onAddItemToSlot(dateKey, slot.slot_id, slot.name)}
+            />
+          )}
+        </ScrollView>
       </View>
     </Animated.View>
   );
 });
 
-interface MealItemRowProps {
+/* ─── MealCarouselCard ─────────────────────────────────────── */
+
+interface MealCarouselCardProps {
   meal: PlannedMeal;
-  isLast: boolean;
-  onServingChange: (mealId: string, serving: number) => void;
-  onRemoveMealById: (mealId: string) => void;
   onPress: (meal: PlannedMeal) => void;
+  onRemove: (mealId: string) => void;
 }
 
-const MealItemRow = React.memo(function MealItemRow({
+const MealCarouselCard = React.memo(function MealCarouselCard({
   meal,
-  isLast,
-  onServingChange,
-  onRemoveMealById,
   onPress,
-}: MealItemRowProps) {
+  onRemove,
+}: MealCarouselCardProps) {
   const { meals: savedRecipes } = useRecipes();
+  const { familySettings } = useFamilySettings();
+  const defaultServing = familySettings.default_serving_size || 4;
+  const showBadge = meal.serving_size !== defaultServing;
 
-  const handleDelete = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onRemoveMealById(meal.id);
-  }, [meal.id, onRemoveMealById]);
+  const liveRecipe = meal.meal_id ? savedRecipes.find((m) => m.id === meal.meal_id) : undefined;
+  const imageUrl = liveRecipe?.image_url || meal.meal_image_url;
+  const displayName = meal.meal_id
+    ? (liveRecipe?.name ?? meal.meal_name)
+    : meal.meal_name;
 
   const handlePress = useCallback(() => {
     onPress(meal);
   }, [onPress, meal]);
 
+  const handleLongPress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(meal.meal_name, undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove from plan',
+        style: 'destructive',
+        onPress: () => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onRemove(meal.id);
+        },
+      },
+    ]);
+  }, [meal.meal_name, meal.id, onRemove]);
+
   return (
-    <View>
-      <View style={styles.itemRow}>
-        <TouchableOpacity
-          style={styles.itemRowInner}
-          onPress={handlePress}
-          onLongPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            Alert.alert(meal.meal_name, undefined, [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Remove from plan', style: 'destructive', onPress: () => handleDelete() },
-            ]);
-          }}
-          activeOpacity={0.8}
-        >
-          {/* Prefer live Recipe.image_url over the PlannedMeal snapshot —
-              AI-generated images arrive after the meal is added to the plan */}
-          {(() => {
-            const liveRecipe = meal.meal_id ? savedRecipes.find(m => m.id === meal.meal_id) : undefined;
-            const imageUrl = liveRecipe?.image_url || meal.meal_image_url;
-            return imageUrl ? (
-              <Image source={{ uri: imageUrl }} style={{ width: 42, height: 42, borderRadius: 10 }} resizeMode="cover" />
-            ) : (
-              <MealImagePlaceholder
-                size="thumbnail"
-                mealType={meal.meal_type}
-                cuisine={meal.cuisine}
-                name={meal.meal_name}
-                deliveryPlatform={meal.delivery_platform}
-                familyInitials={
-                  !meal.delivery_platform &&
-                  meal.meal_id &&
-                  (liveRecipe?.source === 'family_created')
-                    ? meal.meal_name
-                    : undefined
-                }
-              />
-            );
-          })()}
-          <View style={styles.itemNameCol}>
-            <Text style={styles.itemName} numberOfLines={2}>
-              {meal.meal_id ? (savedRecipes.find(m => m.id === meal.meal_id)?.name ?? meal.meal_name) : meal.meal_name}
-            </Text>
-            {!!meal.delivery_url && (
-              <TouchableOpacity
-                style={styles.orderPill}
-                onPress={() => openDeliveryLink(meal.delivery_url!)}
-                activeOpacity={0.8}
-              >
-                <Bike size={13} color={Colors.primary} strokeWidth={2} />
-                <Text style={styles.orderPillText}>Order</Text>
-              </TouchableOpacity>
-            )}
+    <TouchableOpacity
+      onPress={handlePress}
+      onLongPress={handleLongPress}
+      activeOpacity={0.8}
+      style={styles.carouselCard}
+    >
+      {/* Image */}
+      <View style={styles.carouselImageWrap}>
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.carouselImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <MealImagePlaceholder
+            size="card"
+            borderRadius={IMG_RADIUS}
+            mealType={meal.meal_type}
+            cuisine={meal.cuisine}
+            name={meal.meal_name}
+            deliveryPlatform={meal.delivery_platform}
+            familyInitials={
+              !meal.delivery_platform && !imageUrl
+                ? meal.meal_name
+                : undefined
+            }
+          />
+        )}
+
+        {/* Serving badge — only when ≠ family default */}
+        {showBadge && (
+          <View style={styles.servingBadge}>
+            <Text style={styles.servingBadgeText}>×{meal.serving_size}</Text>
           </View>
-        </TouchableOpacity>
-        <ServingStepper
-          value={meal.serving_size}
-          onValueChange={(v) => onServingChange(meal.id, v)}
-          onRemoveAtMin={() => onRemoveMealById(meal.id)}
-          compact
-        />
+        )}
+
+        {/* Delivery badge */}
+        {!!meal.delivery_url && (
+          <View style={styles.deliveryBadge}>
+            <Bike size={12} color={Colors.white} strokeWidth={2.5} />
+          </View>
+        )}
       </View>
-      {!isLast && <View style={styles.itemDivider} />}
-    </View>
+
+      {/* Name */}
+      <Text style={styles.carouselName} numberOfLines={2}>
+        {displayName}
+      </Text>
+    </TouchableOpacity>
   );
 });
+
+/* ─── CarouselAddButton ────────────────────────────────────── */
+
+interface CarouselAddButtonProps {
+  onPress: () => void;
+}
+
+const CarouselAddButton = React.memo(function CarouselAddButton({ onPress }: CarouselAddButtonProps) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={styles.carouselCard}>
+      <View style={styles.addCardImage}>
+        <Plus size={24} color={Colors.primary} strokeWidth={2} />
+      </View>
+      <Text style={styles.addCardLabel}>Add meal</Text>
+    </TouchableOpacity>
+  );
+});
+
+/* ─── DateCircle ───────────────────────────────────────────── */
 
 interface DateCircleProps {
   date: Date;
@@ -456,6 +488,8 @@ const DateCircle = React.memo(function DateCircle({ date, isSelected, isToday, o
     </TouchableOpacity>
   );
 });
+
+/* ─── Styles ───────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
   container: {
@@ -513,6 +547,8 @@ const styles = StyleSheet.create({
   cardWrap: {
     marginBottom: 12,
   },
+
+  /* ── Empty slot ─────────────────────────── */
   emptyCard: {
     borderWidth: 1.5,
     borderColor: Colors.surface,
@@ -548,6 +584,8 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: Colors.primary,
   },
+
+  /* ── Filled slot ────────────────────────── */
   filledCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,
@@ -567,70 +605,91 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginBottom: 8,
   },
-  itemRow: {
-    flexDirection: 'row',
+
+  /* ── Carousel ───────────────────────────── */
+  carousel: {
+    height: CAROUSEL_HEIGHT,
+  },
+  carouselContent: {
+    gap: CAROUSEL_GAP,
+    alignItems: 'flex-start',
+  },
+  carouselCard: {
+    width: CARD_WIDTH,
     alignItems: 'center',
-    minHeight: 56,
-    backgroundColor: Colors.white,
-    paddingVertical: 8,
-    gap: 10,
   },
-  itemRowInner: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  carouselImageWrap: {
+    width: IMG_SIZE,
+    height: IMG_SIZE,
+    borderRadius: IMG_RADIUS,
+    overflow: 'hidden',
+    position: 'relative' as const,
   },
-  itemThumb: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+  carouselImage: {
+    width: IMG_SIZE,
+    height: IMG_SIZE,
+    borderRadius: IMG_RADIUS,
   },
-  itemNameCol: {
-    flex: 1,
-    flexDirection: 'column' as const,
-    gap: 4,
+
+  /* ── Serving badge (shown only when ≠ default) ─ */
+  servingBadge: {
+    position: 'absolute' as const,
+    bottom: 6,
+    right: 6,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 7,
   },
-  itemName: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
+  servingBadgeText: {
+    fontSize: 11,
     fontWeight: '600' as const,
+    color: Colors.white,
+  },
+
+  /* ── Delivery badge ─────────────────────── */
+  deliveryBadge: {
+    position: 'absolute' as const,
+    top: 6,
+    left: 6,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 10,
+    padding: 4,
+  },
+
+  /* ── Card name ──────────────────────────── */
+  carouselName: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '500' as const,
     color: Colors.text,
-    lineHeight: 20,
+    textAlign: 'center' as const,
+    lineHeight: 15,
+    marginTop: 6,
+    maxWidth: IMG_SIZE,
   },
-  orderPill: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 4,
-    alignSelf: 'flex-start' as const,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: BorderRadius.pill,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-  },
-  orderPillText: {
-    fontSize: 13,
-    fontFamily: FontFamily.semiBold,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-  },
-  itemDivider: {
-    height: 1,
-    backgroundColor: Colors.divider,
-    marginVertical: 2,
-  },
-  addItemBtn: {
-    flexDirection: 'row',
+
+  /* ── Add card (carousel end) ────────────── */
+  addCardImage: {
+    width: IMG_SIZE,
+    height: IMG_SIZE,
+    borderRadius: IMG_RADIUS,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    borderStyle: 'dashed' as const,
+    backgroundColor: Colors.surface,
     alignItems: 'center',
-    gap: 6,
-    paddingTop: 10,
+    justifyContent: 'center',
   },
-  addItemText: {
-    fontSize: 14,
+  addCardLabel: {
+    fontSize: 12,
     fontFamily: FontFamily.semiBold,
     fontWeight: '500' as const,
     color: Colors.primary,
+    marginTop: 6,
   },
+
+  /* ── Action strip ───────────────────────── */
   actionStrip: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
