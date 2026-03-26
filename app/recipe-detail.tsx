@@ -450,7 +450,7 @@ export default function MealDetailScreen() {
           )}
 
           {(() => {
-            const steps = richDetail?.method_steps?.length ? richDetail.method_steps : meal.method_steps;
+            const steps = meal.method_steps;
             if (steps.length === 0) return null;
             return (
               <View style={styles.section}>
