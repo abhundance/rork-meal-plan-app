@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
 
   /* ── Filled slot — no card wrapper, flat on page ── */
   slotSection: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   filledSlotLabel: {
     fontSize: 11,
