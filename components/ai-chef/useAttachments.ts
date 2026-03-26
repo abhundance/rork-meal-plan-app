@@ -2,6 +2,8 @@
  * useAttachments — Hook for image and document picking in the AI Chef chat.
  *
  * Handles camera, photo library, and document (PDF/text) picking.
+ * PDFs are routed through extractRecipeFromPdf (extract-recipe Edge Function)
+ * which does server-side text extraction. Text/HTML docs are sent inline via chat.
  */
 
 import { useCallback } from 'react';
@@ -9,6 +11,11 @@ import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
+// ExtractedRecipe type used by the parent component; PDF extraction is
+// delegated via onPdfExtraction callback — no direct import needed here.
+
+/** Max PDF size in bytes (10 MB). Supabase Edge Functions accept up to 10 MB body. */
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
 
 interface PendingImage {
   uri: string;
@@ -19,6 +26,7 @@ export function useAttachments(
   setPendingImage: (img: PendingImage | null) => void,
   setShowAttachments: (show: boolean) => void,
   onDocumentReady: (message: string) => void,
+  onPdfExtraction: (fileUri: string, filename: string) => void,
 ) {
   /**
    * Pick an image from camera or photo library.
@@ -72,27 +80,24 @@ export function useAttachments(
       const isPdf = asset.mimeType === 'application/pdf' || asset.name?.toLowerCase().endsWith('.pdf');
 
       if (isPdf) {
-        // PDFs are binary — read as base64 and send to AI Chef Edge Function
+        // Check file size before proceeding
         const fileResponse = await fetch(asset.uri);
         const blob = await fileResponse.blob();
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const dataUrl = reader.result as string;
-            resolve(dataUrl.split(',')[1]); // Strip data: prefix
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-
-        if (!base64 || base64.length < 100) {
+        if (blob.size > MAX_PDF_BYTES) {
+          Alert.alert(
+            'PDF Too Large',
+            `This PDF is ${Math.round(blob.size / (1024 * 1024))}MB. The maximum supported size is 10MB. Try a smaller file or take a photo of the recipe page instead.`,
+          );
+          return;
+        }
+        if (blob.size < 100) {
           Alert.alert('Empty PDF', 'The selected PDF appears to be empty. Try a different file.');
           return;
         }
 
-        const docMessage = `[Attached PDF: ${asset.name}]\n\nThis is a PDF document. Please extract any recipes from it.\n\n[PDF_BASE64:${base64.slice(0, 10000)}]`;
+        // Route through server-side extraction (text extraction + GPT-4o-mini)
         setShowAttachments(false);
-        onDocumentReady(docMessage);
+        onPdfExtraction(asset.uri, asset.name ?? 'recipe.pdf');
       } else {
         // Text/HTML files — read as plain text
         const fileResponse = await fetch(asset.uri);
@@ -121,7 +126,7 @@ export function useAttachments(
       console.error('[useAttachments] Document picker error:', err);
       Alert.alert('Could Not Read Document', 'There was a problem reading the file. Try a different format (PDF or text).');
     }
-  }, [setShowAttachments, onDocumentReady]);
+  }, [setShowAttachments, onDocumentReady, onPdfExtraction]);
 
   return { pickImage, pickDocument };
 }

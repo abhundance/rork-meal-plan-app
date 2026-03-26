@@ -36,7 +36,7 @@ import { Send, Camera, ImageIcon, Mic, FileText, Square } from 'lucide-react-nat
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { Spacing } from '@/constants/theme';
-import { ExtractedRecipe } from '@/services/recipeExtraction';
+import { ExtractedRecipe, extractRecipeFromPdf } from '@/services/recipeExtraction';
 
 import {
   styles,
@@ -274,10 +274,57 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
     void handleSend(message);
   }, [handleSend]);
 
+  const onPdfExtraction = useCallback(
+    async (fileUri: string, filename: string) => {
+      // Show loading message while PDF is being extracted server-side
+      const loadingMsg: ChatMessage = {
+        id: nextId(),
+        role: 'assistant',
+        type: 'loading',
+        content: `Extracting recipe from ${filename}...`,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, loadingMsg]);
+      scrollToBottom();
+
+      try {
+        const recipe = await extractRecipeFromPdf(fileUri, filename);
+        const recipeMsg: ChatMessage = {
+          id: nextId(),
+          role: 'assistant',
+          type: 'recipe',
+          content: recipe.description
+            ? `Here's what I found in ${filename}:`
+            : `I extracted a recipe from ${filename}:`,
+          recipe,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => prev.filter((m) => m.id !== loadingMsg.id).concat(recipeMsg));
+        scrollToBottom();
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (err) {
+        const errorContent =
+          err instanceof Error ? err.message : 'Could not extract a recipe from this PDF.';
+        const errorMsg: ChatMessage = {
+          id: nextId(),
+          role: 'assistant',
+          type: 'error',
+          content: `${errorContent} Try taking a photo of the recipe page instead.`,
+          timestamp: Date.now(),
+        };
+        setMessages((prev) => prev.filter((m) => m.id !== loadingMsg.id).concat(errorMsg));
+        scrollToBottom();
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    },
+    [scrollToBottom],
+  );
+
   const { pickImage, pickDocument } = useAttachments(
     setPendingImage,
     setShowAttachments,
     onDocumentReady,
+    onPdfExtraction,
   );
 
   // ── Save recipe → Review screen ──────────────────────────────────────────
