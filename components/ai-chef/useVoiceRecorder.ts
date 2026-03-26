@@ -7,14 +7,24 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Animated, Alert, Platform, Linking } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAudioRecorder, RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync } from 'expo-audio';
-import { useAiChefApi } from './useAiChefApi';
 
 export type VoiceState = 'idle' | 'recording' | 'transcribing';
+
+/** Signature for the transcription function injected by the caller. */
+export type TranscribeAudioFn = (base64Audio: string, audioMimeType: string) => Promise<string>;
 
 /** Max recording duration in seconds — prevents oversized audio that Whisper will time out on */
 const MAX_RECORDING_SECONDS = 180; // 3 minutes
 
-export function useVoiceRecorder(onTranscribed: (text: string) => void) {
+/**
+ * @param transcribeAudio — injected by the caller (from useAiChefApi) so this
+ *   hook has no hidden dependency on the API layer and is independently testable.
+ * @param onTranscribed — called with the transcribed text when transcription succeeds.
+ */
+export function useVoiceRecorder(
+  transcribeAudio: TranscribeAudioFn,
+  onTranscribed: (text: string) => void,
+) {
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [voiceElapsed, setVoiceElapsed] = useState(0);
 
@@ -24,8 +34,6 @@ export function useVoiceRecorder(onTranscribed: (text: string) => void) {
   const pulseLoopRef = useRef<Animated.CompositeAnimation | null>(null);
 
   const handleVoiceStopRef = useRef<() => void>(() => {});
-
-  const { transcribeAudio } = useAiChefApi();
 
   // ── Pulse animation ───────────────────────────────────────────────────────
 

@@ -67,7 +67,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const [showAttachments, setShowAttachments] = useState(false);
 
   // Hooks
-  const { callAiChef, extractFromUrl } = useAiChefApi();
+  const { callAiChef, extractFromUrl, transcribeAudio } = useAiChefApi();
 
   // Ref to always have latest messages (avoids stale closure in callbacks)
   const messagesRef = useRef<ChatMessage[]>([]);
@@ -266,7 +266,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
     handleVoiceStop,
     handleVoiceCancel,
     formatVoiceTime,
-  } = useVoiceRecorder(onTranscribed);
+  } = useVoiceRecorder(transcribeAudio, onTranscribed);
 
   // ── Attachments (delegated to hook) ───────────────────────────────────────
 
