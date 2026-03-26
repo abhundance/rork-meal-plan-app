@@ -86,15 +86,15 @@ export default function SlotsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
 
-      {/* Progress */}
+      {/* Progress — step 4 of 5 */}
       <View style={styles.progressRow}>
-        {[1, 2, 3].map(i => (
+        {Array.from({ length: 5 }, (_, i) => (
           <View
             key={i}
             style={[
               styles.progressDot,
-              i <= 2 && styles.progressDotActive,
-              i === 2 && styles.progressDotCurrent,
+              i < 3 && styles.progressDotActive,
+              i === 3 && styles.progressDotCurrent,
             ]}
           />
         ))}

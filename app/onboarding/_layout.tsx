@@ -15,10 +15,16 @@ export default function OnboardingLayout() {
       {/* Screen 1 — Launch Mosaic: no back gesture (nothing behind it) */}
       <Stack.Screen name="auth" options={{ gestureEnabled: false }} />
 
-      {/* Screen 2 — Quick Setup: household size + measurement units */}
+      {/* Screen 2 — Family Name */}
       <Stack.Screen name="setup" />
 
-      {/* Screen 3 — Meal Slots: toggle breakfast/lunch/dinner/snacks */}
+      {/* Screen 3 — Household Size */}
+      <Stack.Screen name="setup-size" />
+
+      {/* Screen 4 — Measurement Units */}
+      <Stack.Screen name="setup-units" />
+
+      {/* Screen 5 — Meal Slots: toggle breakfast/lunch/dinner/snacks */}
       <Stack.Screen name="slots" />
 
       {/* Screen 4 — Feature Preview: Plan / Recipes / Shopping */}

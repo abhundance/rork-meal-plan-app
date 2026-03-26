@@ -54,13 +54,10 @@ export default function PreviewScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
 
-      {/* Progress — all 3 dots filled */}
+      {/* Progress — all 5 segments filled (final setup step) */}
       <View style={styles.progressRow}>
-        {[1, 2, 3].map(i => (
-          <View
-            key={i}
-            style={[styles.progressDot, styles.progressDotActive]}
-          />
+        {Array.from({ length: 5 }, (_, i) => (
+          <View key={i} style={[styles.progressDot, styles.progressDotActive]} />
         ))}
       </View>
 
