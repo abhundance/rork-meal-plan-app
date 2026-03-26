@@ -157,6 +157,20 @@ export default function AuthScreen() {
             Your whole week of meals,{'\n'}
             <Text style={styles.headlineAccent}>planned in minutes.</Text>
           </Text>
+
+          {/* ── Feature summary ───────────────────────────────────────── */}
+          <View style={styles.featuresBlock}>
+            {[
+              { emoji: '📅', text: 'Plan your whole week, meal by meal' },
+              { emoji: '🛒', text: 'Shopping list built automatically' },
+              { emoji: '🍳', text: 'All your recipes in one place' },
+            ].map(({ emoji, text }) => (
+              <View key={text} style={styles.featureRow}>
+                <Text style={styles.featureEmoji}>{emoji}</Text>
+                <Text style={styles.featureText}>{text}</Text>
+              </View>
+            ))}
+          </View>
         </View>
         <PrimaryButton
           label="Let's go"
@@ -239,5 +253,27 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontFamily: FontFamily.bold,
     fontWeight: '700',
+  },
+  featuresBlock: {
+    marginTop: 20,
+    gap: 10,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  featureEmoji: {
+    fontSize: 15,
+    lineHeight: 20,
+    width: 22,
+    textAlign: 'center',
+  },
+  featureText: {
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    fontWeight: '400',
+    color: Colors.textSecondary,
+    lineHeight: 20,
   },
 });
