@@ -1,18 +1,23 @@
 /**
  * Onboarding Screen 2 — Quick Setup
  *
- * Two quick questions before the user sees the app:
- * 1. Household size (stepper, min 1, max 10, default 2)
- * 2. Measurement units (Metric / Imperial)
+ * Three quick questions before the user sees the app:
+ * 1. What do you call your household? (family name — optional, personalises the app)
+ * 2. Household size (stepper, min 1, max 10, default 2)
+ * 3. Measurement units (Metric / Imperial)
  *
  * Step 1 of 3.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
@@ -25,15 +30,19 @@ import { useOnboarding } from '@/providers/OnboardingProvider';
 
 export default function SetupScreen() {
   const insets = useSafeAreaInsets();
-  const { data, setHouseholdSize, setMeasurementUnits, setStep } = useOnboarding();
+  const { data, setFamilyName, setHouseholdSize, setMeasurementUnits, setStep } = useOnboarding();
 
+  const [name, setName]   = useState<string>(data.family_name ?? '');
   const [size, setSize]   = useState<number>(data.household_size ?? 2);
   const [units, setUnits] = useState<'metric' | 'imperial'>(data.measurement_units ?? 'metric');
+
+  const nameInputRef = useRef<TextInput>(null);
 
   const decrement = () => setSize(s => Math.max(1, s - 1));
   const increment = () => setSize(s => Math.min(10, s + 1));
 
   const handleContinue = () => {
+    setFamilyName(name.trim());
     setHouseholdSize(size);
     setMeasurementUnits(units);
     setStep(2);
@@ -41,117 +50,145 @@ export default function SetupScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: Colors.background }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Progress */}
+        <View style={styles.progressRow}>
+          {[1, 2, 3].map(i => (
+            <View
+              key={i}
+              style={[styles.progressDot, i === 1 && styles.progressDotActive]}
+            />
+          ))}
+        </View>
 
-      {/* Progress */}
-      <View style={styles.progressRow}>
-        {[1, 2, 3].map(i => (
-          <View
-            key={i}
-            style={[styles.progressDot, i === 1 && styles.progressDotActive]}
-          />
-        ))}
-      </View>
+        {/* Content */}
+        <View style={styles.content}>
+          <Text style={styles.stepLabel}>Step 1 of 3</Text>
+          <Text style={styles.heading}>A few quick things</Text>
+          <Text style={styles.subheading}>
+            Help us set up your plan — takes less than 10 seconds.
+          </Text>
 
-      {/* Content */}
-      <View style={styles.content}>
-        <Text style={styles.stepLabel}>Step 1 of 3</Text>
-        <Text style={styles.heading}>Two quick things</Text>
-        <Text style={styles.subheading}>
-          Help us set up your plan — takes less than 10 seconds.
-        </Text>
+          {/* ── Family name ───────────────────────────────────────────────── */}
+          <View style={styles.section}>
+            <Text style={styles.questionLabel}>What do you call your household?</Text>
+            <Text style={styles.questionHint}>Optional — personalises the app for you</Text>
+            <TextInput
+              ref={nameInputRef}
+              style={styles.nameInput}
+              value={name}
+              onChangeText={setName}
+              placeholder="e.g. The Johnsons, My Kitchen, Casa Garcia"
+              placeholderTextColor={Colors.inactive}
+              autoCapitalize="words"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={() => nameInputRef.current?.blur()}
+              testID="family-name-input"
+            />
+          </View>
 
-        {/* ── Household size ────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.questionLabel}>How many people are you cooking for?</Text>
-          <View style={styles.stepper}>
-            <TouchableOpacity
-              style={[styles.stepBtn, size <= 1 && styles.stepBtnDisabled]}
-              onPress={decrement}
-              disabled={size <= 1}
-              activeOpacity={0.7}
-              testID="size-minus"
-            >
-              <Minus
-                size={20}
-                color={size <= 1 ? Colors.inactive : Colors.text}
-                strokeWidth={2.5}
-              />
-            </TouchableOpacity>
+          {/* ── Household size ────────────────────────────────────────────── */}
+          <View style={styles.section}>
+            <Text style={styles.questionLabel}>How many people are you cooking for?</Text>
+            <View style={styles.stepper}>
+              <TouchableOpacity
+                style={[styles.stepBtn, size <= 1 && styles.stepBtnDisabled]}
+                onPress={decrement}
+                disabled={size <= 1}
+                activeOpacity={0.7}
+                testID="size-minus"
+              >
+                <Minus
+                  size={20}
+                  color={size <= 1 ? Colors.inactive : Colors.text}
+                  strokeWidth={2.5}
+                />
+              </TouchableOpacity>
 
-            <View style={styles.sizeDisplay}>
-              <Text style={styles.sizeNumber}>{size}</Text>
-              <Text style={styles.sizeLabel}>
-                {size === 1 ? 'person' : 'people'}
-              </Text>
+              <View style={styles.sizeDisplay}>
+                <Text style={styles.sizeNumber}>{size}</Text>
+                <Text style={styles.sizeLabel}>
+                  {size === 1 ? 'person' : 'people'}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.stepBtn, size >= 10 && styles.stepBtnDisabled]}
+                onPress={increment}
+                disabled={size >= 10}
+                activeOpacity={0.7}
+                testID="size-plus"
+              >
+                <Plus
+                  size={20}
+                  color={size >= 10 ? Colors.inactive : Colors.text}
+                  strokeWidth={2.5}
+                />
+              </TouchableOpacity>
             </View>
+          </View>
 
-            <TouchableOpacity
-              style={[styles.stepBtn, size >= 10 && styles.stepBtnDisabled]}
-              onPress={increment}
-              disabled={size >= 10}
-              activeOpacity={0.7}
-              testID="size-plus"
-            >
-              <Plus
-                size={20}
-                color={size >= 10 ? Colors.inactive : Colors.text}
-                strokeWidth={2.5}
-              />
-            </TouchableOpacity>
+          {/* ── Measurement units ─────────────────────────────────────────── */}
+          <View style={styles.section}>
+            <Text style={styles.questionLabel}>Which units do you prefer?</Text>
+            <View style={styles.unitRow}>
+              <TouchableOpacity
+                style={[styles.unitOption, units === 'metric' && styles.unitOptionSelected]}
+                onPress={() => setUnits('metric')}
+                activeOpacity={0.7}
+                testID="units-metric"
+              >
+                <Text style={styles.unitEmoji}>⚖️</Text>
+                <Text style={[
+                  styles.unitLabel,
+                  units === 'metric' && styles.unitLabelSelected,
+                ]}>
+                  Metric
+                </Text>
+                <Text style={[
+                  styles.unitSub,
+                  units === 'metric' && styles.unitSubSelected,
+                ]}>
+                  g, ml, °C
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.unitOption, units === 'imperial' && styles.unitOptionSelected]}
+                onPress={() => setUnits('imperial')}
+                activeOpacity={0.7}
+                testID="units-imperial"
+              >
+                <Text style={styles.unitEmoji}>🇺🇸</Text>
+                <Text style={[
+                  styles.unitLabel,
+                  units === 'imperial' && styles.unitLabelSelected,
+                ]}>
+                  Imperial
+                </Text>
+                <Text style={[
+                  styles.unitSub,
+                  units === 'imperial' && styles.unitSubSelected,
+                ]}>
+                  oz, cups, °F
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
+      </ScrollView>
 
-        {/* ── Measurement units ─────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.questionLabel}>Which units do you prefer?</Text>
-          <View style={styles.unitRow}>
-            <TouchableOpacity
-              style={[styles.unitOption, units === 'metric' && styles.unitOptionSelected]}
-              onPress={() => setUnits('metric')}
-              activeOpacity={0.7}
-              testID="units-metric"
-            >
-              <Text style={styles.unitEmoji}>⚖️</Text>
-              <Text style={[
-                styles.unitLabel,
-                units === 'metric' && styles.unitLabelSelected,
-              ]}>
-                Metric
-              </Text>
-              <Text style={[
-                styles.unitSub,
-                units === 'metric' && styles.unitSubSelected,
-              ]}>
-                g, ml, °C
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.unitOption, units === 'imperial' && styles.unitOptionSelected]}
-              onPress={() => setUnits('imperial')}
-              activeOpacity={0.7}
-              testID="units-imperial"
-            >
-              <Text style={styles.unitEmoji}>🇺🇸</Text>
-              <Text style={[
-                styles.unitLabel,
-                units === 'imperial' && styles.unitLabelSelected,
-              ]}>
-                Imperial
-              </Text>
-              <Text style={[
-                styles.unitSub,
-                units === 'imperial' && styles.unitSubSelected,
-              ]}>
-                oz, cups, °F
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {/* Footer */}
+      {/* Footer — outside ScrollView so it stays pinned */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <PrimaryButton
           label="Continue"
@@ -159,14 +196,14 @@ export default function SetupScreen() {
           testID="setup-continue"
         />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 24,
   },
 
   progressRow: {
@@ -186,7 +223,6 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    flex: 1,
     paddingHorizontal: 24,
     paddingTop: 24,
   },
@@ -224,7 +260,26 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: 16,
+    marginBottom: 4,
+  },
+  questionHint: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    color: Colors.textSecondary,
+    marginBottom: 12,
+  },
+
+  // ── Family name input ──
+  nameInput: {
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.input,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 16,
+    fontFamily: FontFamily.regular,
+    color: Colors.text,
   },
 
   // ── Stepper ──
@@ -233,6 +288,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 0,
+    marginTop: 12,
   },
   stepBtn: {
     width: 52,
@@ -269,6 +325,7 @@ const styles = StyleSheet.create({
   unitRow: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 12,
   },
   unitOption: {
     flex: 1,
@@ -308,6 +365,7 @@ const styles = StyleSheet.create({
 
   footer: {
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 12,
+    backgroundColor: Colors.background,
   },
 });

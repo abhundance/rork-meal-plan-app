@@ -132,7 +132,14 @@ export default function WelcomeScreen() {
           ]}
         >
           <Text style={styles.allSet}>🎉 You're all set!</Text>
-          <Text style={styles.headline}>Your meal planner is ready.</Text>
+          {data.family_name ? (
+            <Text style={styles.headline}>
+              Welcome,{' '}
+              <Text style={styles.headlineAccent}>{data.family_name}!</Text>
+            </Text>
+          ) : (
+            <Text style={styles.headline}>Your meal planner is ready.</Text>
+          )}
           <Text style={styles.subtitle}>
             Start by adding your favourite meals, then plan your week — it takes minutes.
           </Text>
@@ -189,9 +196,12 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontFamily: FontFamily.bold,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.text,
     textAlign: 'center',
     marginBottom: 12,
+  },
+  headlineAccent: {
+    color: Colors.primary,
   },
   subtitle: {
     fontSize: 15,
