@@ -29,12 +29,15 @@ import {
   CalendarPlus,
   Utensils,
   ChevronRight,
+  Sparkles,
+  PenLine,
 } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { BorderRadius, Shadows, Spacing } from '@/constants/theme';
 import AppHeader from '@/components/AppHeader';
 import SlotPickerModal from '@/components/SlotPickerModal';
+import AttachmentMenu from '@/components/AttachmentMenu';
 import { useRecipes, useFilteredRecipes } from '@/providers/RecipesProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useMealPlan } from '@/providers/MealPlanProvider';
@@ -145,6 +148,7 @@ export default function RecipesScreen() {
   const [activeExpandedPill, setActiveExpandedPill] = useState<'when' | 'type' | 'protein' | 'diet' | null>(null);
 
   const [showFilterSheet, setShowFilterSheet] = useState<boolean>(false);
+  const [showAddMenu, setShowAddMenu] = useState<boolean>(false);
 
   // ── Slot-picker mode ─────────────────────────────────────────────────────
   // Set when the user arrives here via "From My Recipes" in the meal picker.
@@ -381,11 +385,7 @@ export default function RecipesScreen() {
   );
 
   const openAddMethodSheet = useCallback(() => {
-    Alert.alert('Add a Recipe', undefined, [
-      { text: 'AI Chef', onPress: () => router.push('/add-recipe-entry') },
-      { text: 'Manual Entry', onPress: () => router.push('/add-recipe-manual' as never) },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    setShowAddMenu(true);
   }, []);
 
   const filterCount = countActiveFilters(favFilters, RECIPES_FILTER_CONFIG);
@@ -797,6 +797,27 @@ export default function RecipesScreen() {
           </Text>
         </Animated.View>
       )}
+
+      <AttachmentMenu
+        visible={showAddMenu}
+        onClose={() => setShowAddMenu(false)}
+        options={[
+          {
+            key: 'ai-chef',
+            icon: <Sparkles size={24} color={Colors.white} strokeWidth={2} />,
+            label: 'AI Chef',
+            bgColor: Colors.primary,
+            onPress: () => router.push('/add-recipe-entry'),
+          },
+          {
+            key: 'manual',
+            icon: <PenLine size={24} color={Colors.white} strokeWidth={2} />,
+            label: 'Manual Entry',
+            bgColor: '#20B997',  // Teal/green
+            onPress: () => router.push('/add-recipe-manual' as never),
+          },
+        ]}
+      />
     </View>
   );
 }

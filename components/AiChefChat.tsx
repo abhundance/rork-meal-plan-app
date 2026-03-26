@@ -27,11 +27,12 @@ import {
 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Send, Mic, Square, Plus } from 'lucide-react-native';
+import { Send, Mic, Square, Plus, Camera, Image as ImageIcon, FileText } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { Spacing } from '@/constants/theme';
 import { ExtractedRecipe, extractRecipeFromPdf } from '@/services/recipeExtraction';
+import AttachmentMenu from '@/components/AttachmentMenu';
 
 import {
   styles,
@@ -61,6 +62,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showAttachments, setShowAttachments] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
 
   // Hooks
   const { callAiChef, extractFromUrl, transcribeAudio } = useAiChefApi();
@@ -358,18 +360,13 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
     [router],
   );
 
-  // ── "+" menu — Camera, Photos, PDF via native Alert ──────────────────────
+  // ── "+" menu — Camera, Photos, PDF via AttachmentMenu ────────────────────
 
   const handlePlusMenu = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Keyboard.dismiss();
-    Alert.alert('Add to conversation', undefined, [
-      { text: 'Camera', onPress: () => pickImage(true) },
-      { text: 'Photo Library', onPress: () => pickImage(false) },
-      { text: 'PDF / Document', onPress: () => pickDocument() },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  }, [pickImage, pickDocument]);
+    setShowAttachMenu(true);
+  }, []);
 
   // ── Refine handler ────────────────────────────────────────────────────────
 
@@ -690,6 +687,34 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       />
 
       {renderInputBar()}
+
+      <AttachmentMenu
+        visible={showAttachMenu}
+        onClose={() => setShowAttachMenu(false)}
+        options={[
+          {
+            key: 'camera',
+            icon: <Camera size={24} color={Colors.white} strokeWidth={2} />,
+            label: 'Camera',
+            bgColor: '#FF8080',  // Warm red/pink
+            onPress: () => pickImage(true),
+          },
+          {
+            key: 'photo',
+            icon: <ImageIcon size={24} color={Colors.white} strokeWidth={2} />,
+            label: 'Photos',
+            bgColor: '#6B9FF9',  // Blue
+            onPress: () => pickImage(false),
+          },
+          {
+            key: 'pdf',
+            icon: <FileText size={24} color={Colors.white} strokeWidth={2} />,
+            label: 'Files',
+            bgColor: '#FFB366',  // Orange/Amber
+            onPress: () => pickDocument(),
+          },
+        ]}
+      />
     </View>
   );
 }
