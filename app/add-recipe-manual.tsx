@@ -10,8 +10,8 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -414,7 +414,7 @@ export default function AddMealScreen() {
           {/* Hero image */}
           <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8} style={styles.heroTouchable}>
             {selectedImageUri ? (
-              <Image source={{ uri: selectedImageUri }} style={styles.heroImage} resizeMode="cover" />
+              <Image source={{ uri: selectedImageUri }} style={styles.heroImage} contentFit="cover" cachePolicy="memory-disk" />
             ) : (
               <MealImagePlaceholder size="hero" mealType={mealType} cuisine={cuisine} name={name} familyInitials={name || ' '} />
             )}

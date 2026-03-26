@@ -21,7 +21,7 @@ export interface ChapterIntroProps {
   /** 1-based chapter index shown to the user (e.g. 2 for "Chapter 2 of 4") */
   chapterNumber: number;
   totalChapters: number;
-  /** Direct Unsplash / CDN image URI */
+  /** Direct image URI (static food photo) */
   imageUri: string;
   /** Large emoji displayed above the headline */
   icon: string;

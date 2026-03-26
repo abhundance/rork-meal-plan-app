@@ -15,10 +15,10 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Image,
   FlatList,
   TextInput,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -196,7 +196,8 @@ export default function MealPickerScreen() {
                     <Image
                       source={{ uri: meal.image_url }}
                       style={{ width: 40, height: 40, borderRadius: 20 }}
-                      resizeMode="cover"
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
                     />
                   ) : (
                     <Utensils
@@ -247,7 +248,8 @@ export default function MealPickerScreen() {
                     <Image
                       source={{ uri: recipe.image_url }}
                       style={styles.carouselImage}
-                      resizeMode="cover"
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
                     />
                   ) : (
                     <MealImagePlaceholder

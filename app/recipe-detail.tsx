@@ -9,8 +9,8 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Stack } from 'expo-router';
@@ -274,7 +274,7 @@ export default function MealDetailScreen() {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.heroWrap}>
           {meal.image_url ? (
-            <Image source={{ uri: meal.image_url }} style={styles.heroImage} resizeMode="cover" />
+            <Image source={{ uri: meal.image_url }} style={styles.heroImage} contentFit="cover" cachePolicy="memory-disk" />
           ) : (
             <MealImagePlaceholder
               size="hero"

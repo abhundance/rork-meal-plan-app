@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { UtensilsCrossed, User } from 'lucide-react-native';
 import { router, Href } from 'expo-router';
 import Colors from '@/constants/colors';

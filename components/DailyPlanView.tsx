@@ -9,9 +9,9 @@ import {
   Animated,
   Alert,
   Pressable,
-  Image,
   Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { ChevronLeft, ChevronRight, Plus, Bike } from 'lucide-react-native';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
 import * as Haptics from 'expo-haptics';
@@ -383,7 +383,8 @@ const MealCarouselCard = React.memo(function MealCarouselCard({
           <Image
             source={{ uri: imageUrl }}
             style={styles.carouselImage}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
           />
         ) : (
           <MealImagePlaceholder

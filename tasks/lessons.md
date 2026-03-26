@@ -96,3 +96,38 @@ router.replace('/(tabs)');
 ```
 
 **Screens that must follow this pattern:** `add-recipe-review.tsx`, `add-recipe-manual.tsx`, `ai-chef.tsx`, `meal-picker/manual.tsx`, `meal-picker/delivery.tsx`.
+
+### 9. Always Use `expo-image`, Never React Native's `Image`
+React Native's built-in `<Image>` from `'react-native'` has **no disk caching**. Every cold start or app resume re-downloads all images from the network. Always use `expo-image` instead:
+
+```tsx
+// ✅ Correct — disk-cached, async layout, no re-downloads
+import { Image } from 'expo-image';
+<Image source={{ uri: url }} contentFit="cover" cachePolicy="memory-disk" />
+
+// ❌ Wrong — no cache, synchronous layout, re-downloads every time
+import { Image } from 'react-native';
+<Image source={{ uri: url }} resizeMode="cover" />
+```
+
+**Key API difference:** `expo-image` uses `contentFit` instead of `resizeMode`, and supports `cachePolicy`.
+
+### 10. TanStack Query — Keep Sensible Defaults
+The QueryClient must have `staleTime` and `gcTime` configured. Without them, every tab switch and app resume triggers a full network refetch, causing visible loading delays.
+
+```tsx
+// ✅ Correct — in _layout.tsx
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,   // 5 min
+      gcTime: 30 * 60 * 1000,      // 30 min
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    },
+  },
+});
+```
+
+### 11. No Unsplash in the App
+The app does not use Unsplash for any image functionality. AI-generated images are created via the image generation service and stored in Supabase Storage. Some legacy curated recipe data in the DB still has Unsplash URLs — these are leftover from the old Discover tab and are not actively used. The onboarding screens use static food photo URLs for decorative backgrounds (not an API integration).

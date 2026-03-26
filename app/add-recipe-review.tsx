@@ -10,8 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -550,7 +550,7 @@ export default function AddMealReviewScreen() {
           {/* Image Hero Zone */}
           <TouchableOpacity style={styles.heroZoneWrapper} onPress={handlePickImage} activeOpacity={0.8}>
             {selectedImageUri ? (
-              <Image source={{ uri: selectedImageUri }} style={styles.heroImage} resizeMode="cover" />
+              <Image source={{ uri: selectedImageUri }} style={styles.heroImage} contentFit="cover" cachePolicy="memory-disk" />
             ) : (
               <MealImagePlaceholder size="hero" mealType={mealType || undefined} cuisine={cuisine || undefined} name={name} familyInitials={name || ' '} />
             )}

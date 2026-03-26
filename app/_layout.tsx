@@ -101,7 +101,17 @@ const errorStyles = StyleSheet.create({
 
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,       // 5 min — data stays fresh, no refetch on tab switch
+      gcTime: 30 * 60 * 1000,          // 30 min — keep cache alive across navigations
+      refetchOnWindowFocus: false,     // don't refetch when app returns from background
+      refetchOnMount: false,           // don't refetch when component remounts (tab switch)
+      refetchOnReconnect: true,        // do refetch when network reconnects after offline
+    },
+  },
+});
 
 function RootLayoutNav() {
   return (

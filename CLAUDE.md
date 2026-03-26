@@ -86,7 +86,7 @@ Type a meal name (e.g., "Masala Chai") and tap "Generate Recipe with AI" to auto
 Type a question or constraint (e.g., "low-carb pasta with spinach") and tap "Let AI Chef help →" to enter a conversational flow. Navigates to `app/ai-chef.tsx` — a chat interface powered by the `ai-chef` Edge Function. The function uses GPT-4o for nuanced recipe generation through conversation. Quota: 20 AI Chef sessions per month (tracked in `ai_usage.ai_chef_sessions`). The function receives the initial prompt from SmartBar and auto-sends the first message. The user can refine via conversation, then save the resulting recipe to the review screen.
 
 ### Meal Image Handling
-Auto-suggests food images from Unsplash after meal name entry. Users can also pick from camera or photo library. Base64 images passed between screens via `services/imageStore.ts` (never via route params).
+AI-generated meal images are created via the image generation service and stored in Supabase Storage. Users can also pick from camera or photo library. Base64 images passed between screens via `services/imageStore.ts` (never via route params).
 
 ### My Recipes vs Saved (Recipes Tab)
 Family-created meals (`source === 'family_created'`) are stored permanently and can only be deleted via explicit long-press confirmation — never accidentally removed by tapping a heart. Discovered/saved meals can be removed via the heart button. Both types appear together in one unified grid (the SegmentedControl between My Recipes / Saved was removed).
@@ -160,7 +160,7 @@ All third-party API keys live exclusively in Edge Function secrets — never in 
 | YouTube API key | `extract-recipe` | YouTube video metadata |
 | ~~Spoonacular API key~~ | ~~`spoonacular`~~ | **Dead code** — Discover tab now queries curated recipes from Supabase directly. `services/spoonacular.ts` and the `spoonacular` Edge Function are unused legacy files. |
 
-> The old client-side env vars (`EXPO_PUBLIC_UNSPLASH_ACCESS_KEY`, `EXPO_PUBLIC_OPENAI_API_KEY`, `EXPO_PUBLIC_YOUTUBE_API_KEY`) have been removed from client code.
+> The old client-side env vars (`EXPO_PUBLIC_OPENAI_API_KEY`, `EXPO_PUBLIC_YOUTUBE_API_KEY`) have been removed from client code. All API keys are now server-side only.
 
 ---
 
@@ -341,7 +341,6 @@ These patterns were established through development and must be followed:
 Items still pending before public launch:
 
 - [ ] Upgrade anonymous users to full auth via `linkIdentity()` (currently anonymous auth only)
-- [ ] Unsplash API: apply for production access (current: demo tier, 50 req/hour)
 - [ ] Production error monitoring / crash reporting
 - [ ] App Store / Play Store submission prep
 

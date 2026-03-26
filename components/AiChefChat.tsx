@@ -18,12 +18,12 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  Image,
   Animated,
   Platform,
   Keyboard,
   Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -477,7 +477,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         <View style={styles.userRow}>
           {item.imageUri ? (
             <View style={styles.userImageContainer}>
-              <Image source={{ uri: item.imageUri }} style={styles.userImage} />
+              <Image source={{ uri: item.imageUri }} style={styles.userImage} contentFit="cover" cachePolicy="memory-disk" />
               {item.content ? (
                 <View style={styles.userBubble}>
                   <Text style={styles.userText}>{item.content}</Text>
@@ -594,7 +594,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
         {/* Pending image preview */}
         {pendingImage && !isRecording && !isTranscribing && (
           <View style={styles.pendingImageRow}>
-            <Image source={{ uri: pendingImage.uri }} style={styles.pendingImageThumb} />
+            <Image source={{ uri: pendingImage.uri }} style={styles.pendingImageThumb} contentFit="cover" cachePolicy="memory-disk" />
             <TouchableOpacity onPress={() => setPendingImage(null)} style={styles.pendingImageRemove}>
               <Text style={styles.pendingImageRemoveText}>✕</Text>
             </TouchableOpacity>

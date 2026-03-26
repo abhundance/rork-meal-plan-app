@@ -10,10 +10,10 @@ import {
   RefreshControl,
   Animated,
   Alert,
-  Image,
   Dimensions,
   Pressable,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href, useFocusEffect } from 'expo-router';
 import MealImagePlaceholder from '@/components/MealImagePlaceholder';
@@ -870,7 +870,7 @@ const FavGridCard = React.memo(function FavGridCard({
             overflow: 'hidden' as const,
           }}>
             {meal.image_url ? (
-              <Image source={{ uri: meal.image_url }} style={{ width: CARD_W, height: IMG_H }} resizeMode="cover" />
+              <Image source={{ uri: meal.image_url }} style={{ width: CARD_W, height: IMG_H }} contentFit="cover" cachePolicy="memory-disk" />
             ) : (
               <MealImagePlaceholder
                 size="card"
