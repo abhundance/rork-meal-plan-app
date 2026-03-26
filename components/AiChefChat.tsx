@@ -23,6 +23,7 @@ import {
   Platform,
   Keyboard,
   UIManager,
+  LayoutAnimation,
 } from 'react-native';
 
 // Enable LayoutAnimation on Android
@@ -32,7 +33,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Send, Camera, ImageIcon, Mic, FileText, Square } from 'lucide-react-native';
+import { Send, Camera, ImageIcon, Mic, FileText, Square, Plus, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Colors from '@/constants/colors';
 import { Spacing } from '@/constants/theme';
@@ -66,6 +67,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showAttachments, setShowAttachments] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   // Hooks
   const { callAiChef, extractFromUrl, transcribeAudio } = useAiChefApi();
@@ -87,6 +89,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
     const onShow = (e: { endCoordinates: { height: number } }) => {
       setKeyboardVisible(true);
       setKeyboardHeight(e.endCoordinates.height);
+      setShowActions(false); // Auto-collapse actions when keyboard appears
     };
     const onHide = () => {
       setKeyboardVisible(false);
@@ -174,6 +177,7 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
       setInputText('');
       setPendingImage(null);
       setShowAttachments(false);
+      setShowActions(false);
       setIsThinking(true);
       Keyboard.dismiss();
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -335,6 +339,28 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
     onPdfExtraction,
   );
 
+  // ── Action button handlers (collapse actions after selection) ────────────
+
+  const handleCameraPress = useCallback(() => {
+    setShowActions(false);
+    pickImage(true);
+  }, [pickImage]);
+
+  const handlePhotoPress = useCallback(() => {
+    setShowActions(false);
+    pickImage(false);
+  }, [pickImage]);
+
+  const handleMicPress = useCallback(() => {
+    setShowActions(false);
+    handleVoiceStart();
+  }, [handleVoiceStart]);
+
+  const handleDocumentPress = useCallback(() => {
+    setShowActions(false);
+    pickDocument();
+  }, [pickDocument]);
+
   // ── Save recipe → Review screen ──────────────────────────────────────────
 
   const handleSaveRecipe = useCallback(
@@ -356,6 +382,13 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
     },
     [router],
   );
+
+  // ── Toggle actions row ────────────────────────────────────────────────────
+
+  const toggleActions = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowActions((prev) => !prev);
+  }, []);
 
   // ── Refine handler ────────────────────────────────────────────────────────
 
@@ -601,52 +634,88 @@ export default function AiChefChat({ initialPrompt, pendingPlanSlot }: AiChefCha
             </View>
           </View>
         ) : (
-          <View style={styles.inputRow}>
-            <TouchableOpacity style={styles.inlineActionBtn} onPress={() => pickImage(true)} activeOpacity={0.6}>
-              <Camera size={20} color={Colors.textSecondary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.inlineActionBtn} onPress={() => pickImage(false)} activeOpacity={0.6}>
-              <ImageIcon size={20} color={Colors.textSecondary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.inlineActionBtn} onPress={handleVoiceStart} activeOpacity={0.6}>
-              <Mic size={20} color={Colors.textSecondary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.inlineActionBtn} onPress={pickDocument} activeOpacity={0.6}>
-              <FileText size={20} color={Colors.textSecondary} />
-            </TouchableOpacity>
+          <>
+            <View style={styles.inputRow}>
+              {/* Toggle button: + when collapsed, × when expanded */}
+              <TouchableOpacity
+                style={styles.toggleActionsBtn}
+                onPress={toggleActions}
+                activeOpacity={0.7}
+              >
+                {showActions ? (
+                  <X size={20} color={Colors.white} strokeWidth={2.5} />
+                ) : (
+                  <Plus size={20} color={Colors.white} strokeWidth={2.5} />
+                )}
+              </TouchableOpacity>
 
-            <TextInput
-              ref={inputRef}
-              style={styles.textInput}
-              placeholder="Ask AI Chef..."
-              placeholderTextColor={Colors.textSecondary}
-              value={inputText}
-              onChangeText={setInputText}
-              onSubmitEditing={() => handleSend()}
-              returnKeyType="send"
-              multiline
-              maxLength={1000}
-              editable={!isThinking}
-            />
-
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                (inputText.trim() || pendingImage) && !isThinking
-                  ? styles.sendButtonActive
-                  : styles.sendButtonInactive,
-              ]}
-              onPress={() => handleSend()}
-              disabled={(!inputText.trim() && !pendingImage) || isThinking}
-              activeOpacity={0.7}
-            >
-              <Send
-                size={18}
-                color={(inputText.trim() || pendingImage) && !isThinking ? Colors.white : Colors.textSecondary}
-                strokeWidth={2.5}
+              <TextInput
+                ref={inputRef}
+                style={styles.textInput}
+                placeholder="Ask AI Chef..."
+                placeholderTextColor={Colors.textSecondary}
+                value={inputText}
+                onChangeText={setInputText}
+                onSubmitEditing={() => handleSend()}
+                returnKeyType="send"
+                multiline
+                maxLength={1000}
+                editable={!isThinking}
               />
-            </TouchableOpacity>
-          </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  (inputText.trim() || pendingImage) && !isThinking
+                    ? styles.sendButtonActive
+                    : styles.sendButtonInactive,
+                ]}
+                onPress={() => handleSend()}
+                disabled={(!inputText.trim() && !pendingImage) || isThinking}
+                activeOpacity={0.7}
+              >
+                <Send
+                  size={18}
+                  color={(inputText.trim() || pendingImage) && !isThinking ? Colors.white : Colors.textSecondary}
+                  strokeWidth={2.5}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Expanded action buttons row — hidden during recording/transcribing */}
+            {showActions && !isRecording && !isTranscribing && (
+              <View style={styles.actionButtonsRow}>
+                <TouchableOpacity
+                  style={styles.inlineActionBtn}
+                  onPress={handleCameraPress}
+                  activeOpacity={0.6}
+                >
+                  <Camera size={20} color={Colors.textSecondary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.inlineActionBtn}
+                  onPress={handlePhotoPress}
+                  activeOpacity={0.6}
+                >
+                  <ImageIcon size={20} color={Colors.textSecondary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.inlineActionBtn}
+                  onPress={handleMicPress}
+                  activeOpacity={0.6}
+                >
+                  <Mic size={20} color={Colors.textSecondary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.inlineActionBtn}
+                  onPress={handleDocumentPress}
+                  activeOpacity={0.6}
+                >
+                  <FileText size={20} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
         )}
       </View>
     );
