@@ -306,14 +306,16 @@ export default function AddMealScreen() {
           console.warn('[AddMeal] syncRecipeNow failed, added meal locally');
         });
       console.log('[AddMeal] Auto-added to plan slot:', pending.slotId, pending.date);
-      router.replace('/(tabs)' as never);
     } else {
       // No pending plan slot — single sync call, no race.
       syncRecipeNow(newMeal).catch((e) =>
         console.error('[AddMeal] Supabase sync error:', e)
       );
-      router.replace('/(tabs)/recipes' as never);
     }
+    // Dismiss entire modal stack (meal-picker + add-recipe-manual) to return
+    // to the underlying tab. router.replace only swaps the top screen, leaving
+    // earlier modals (like meal-picker) stranded in the stack.
+    router.dismissAll();
   }, [
     name, cookingTimeBand, prepTime, cookTime, mealType, selectedImageUri,
     cuisine, dishCategory, proteinSource, occasions,
