@@ -7,6 +7,8 @@ import {
   ScrollView,
   StyleSheet,
   PanResponder,
+  GestureResponderEvent,
+  PanResponderGestureState,
 } from 'react-native';
 import { X, ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -111,9 +113,13 @@ export default function SlotPickerModal({
   const panResponder = useMemo(() => {
     const SWIPE_THRESHOLD = 60;
     return PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dy) < 40,
-      onPanResponderRelease: (_, gestureState) => {
+      // Claim the gesture from the start when horizontal movement is detected
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_: GestureResponderEvent, gestureState: PanResponderGestureState) =>
+        Math.abs(gestureState.dx) > 8 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+      onMoveShouldSetPanResponderCapture: (_: GestureResponderEvent, gestureState: PanResponderGestureState) =>
+        Math.abs(gestureState.dx) > 8 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+      onPanResponderRelease: (_: GestureResponderEvent, gestureState: PanResponderGestureState) => {
         if (gestureState.dx < -SWIPE_THRESHOLD) {
           // Swipe left → next day
           const idx = weekDates.findIndex((d) => formatDateKey(d) === selectedDateKey);
@@ -242,10 +248,8 @@ export default function SlotPickerModal({
               <Text style={styles.cardDateLabel}>{selectedDateLabel}</Text>
             </View>
 
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: Spacing.sm }}
-            >
+            {/* Plain View — no ScrollView — so PanResponder can capture horizontal swipes without conflict */}
+            <View style={{ paddingBottom: Spacing.sm }}>
               {sortedSlots.map((slot) => {
                 const slotMeals = getMealsForSlot(selectedDateKey, slot.slot_id);
                 const isFull = slotMeals.length >= 10;
@@ -295,7 +299,7 @@ export default function SlotPickerModal({
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </View>
           </View>
         </View>
 
