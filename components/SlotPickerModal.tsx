@@ -29,18 +29,12 @@ interface SlotPickerModalProps {
   mealName: string;
 }
 
-function getSlotEmoji(slotName: string): string {
+// Small colored dot per slot category — replaces generic emoji icons
+function getSlotDotColor(slotName: string): string {
   const cat = getSlotCategory(slotName);
-  if (cat === 'breakfast') return '🌅';
-  if (cat === 'lunch_dinner') return '🍽️';
-  return '🍎';
-}
-
-function getSlotIconBg(slotName: string): string {
-  const cat = getSlotCategory(slotName);
-  if (cat === 'breakfast') return '#FFF3E0';
-  if (cat === 'lunch_dinner') return '#E3F2FD';
-  return '#FFF8E1';
+  if (cat === 'breakfast') return '#F59E0B';    // warm amber
+  if (cat === 'lunch_dinner') return '#60A5FA'; // soft blue
+  return '#34D399';                              // mint green
 }
 
 export default function SlotPickerModal({
@@ -158,19 +152,18 @@ export default function SlotPickerModal({
                   disabled={isFull}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.slotIcon, { backgroundColor: getSlotIconBg(slot.name) }]}>
-                    <Text style={styles.slotEmoji}>{getSlotEmoji(slot.name)}</Text>
-                  </View>
-
                   <View style={styles.slotText}>
-                    <Text style={styles.slotTypeLabel}>{slot.name.toUpperCase()}</Text>
+                    <View style={styles.slotLabelRow}>
+                      <View style={[styles.slotDot, { backgroundColor: getSlotDotColor(slot.name) }]} />
+                      <Text style={styles.slotTypeLabel}>{slot.name.toUpperCase()}</Text>
+                    </View>
                     {isEmpty ? (
                       <Text style={styles.slotEmptyLabel}>Tap to add</Text>
                     ) : (
-                      slotMeals.map((meal, idx) => (
+                      slotMeals.map((meal) => (
                         <Text
                           key={meal.id}
-                          style={[styles.slotMealName, idx > 0 && styles.slotMealNameSecondary]}
+                          style={styles.slotMealName}
                           numberOfLines={1}
                         >
                           {meal.meal_name}
@@ -481,21 +474,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     borderTopWidth: 1,
     borderTopColor: Colors.surface,
-    gap: Spacing.md,
-  },
-  slotIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  slotEmoji: {
-    fontSize: 22,
   },
   slotText: {
     flex: 1,
     minWidth: 0,
+  },
+  slotLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  slotDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   slotTypeLabel: {
     fontSize: 11,
@@ -505,23 +498,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   slotEmptyLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: FontFamily.regular,
     color: Colors.inactive,
-    marginTop: 1,
   },
+  // All meal names in a slot share identical typography — no hierarchy between them
   slotMealName: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
     fontWeight: '600' as const,
     color: Colors.text,
-    marginTop: 1,
-  },
-  slotMealNameSecondary: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
-    fontWeight: '500' as const,
-    color: Colors.textSecondary,
   },
 
   // Add button
