@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,7 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
-  PanResponder,
-  GestureResponderEvent,
-  PanResponderGestureState,
+  Dimensions,
 } from 'react-native';
 import { X, ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +18,8 @@ import { MealSlot, PlannedMeal } from '@/types';
 import { getWeekDates, formatDateKey, getDayName, getDateNumber, isToday, getWeekLabel } from '@/utils/dates';
 import { getSlotCategory } from '@/utils/slotCategory';
 
+const WINDOW_WIDTH = Dimensions.get('window').width;
+
 interface SlotPickerModalProps {
   visible: boolean;
   onClose: () => void;
@@ -29,7 +29,6 @@ interface SlotPickerModalProps {
   mealName: string;
 }
 
-// Maps slot name → emoji icon via slot category
 function getSlotEmoji(slotName: string): string {
   const cat = getSlotCategory(slotName);
   if (cat === 'breakfast') return '🌅';
@@ -37,7 +36,6 @@ function getSlotEmoji(slotName: string): string {
   return '🍎';
 }
 
-// Maps slot name → pastel icon background
 function getSlotIconBg(slotName: string): string {
   const cat = getSlotCategory(slotName);
   if (cat === 'breakfast') return '#FFF3E0';
@@ -54,6 +52,8 @@ export default function SlotPickerModal({
   mealName,
 }: SlotPickerModalProps) {
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
@@ -63,19 +63,26 @@ export default function SlotPickerModal({
 
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const selectedDateKey = useMemo(() => formatDateKey(selectedDate), [selectedDate]);
+  const sortedSlots = useMemo(() => [...mealSlots].sort((a, b) => a.order - b.order), [mealSlots]);
 
-  const sortedSlots = useMemo(
-    () => [...mealSlots].sort((a, b) => a.order - b.order),
-    [mealSlots]
+  const activeDotIndex = useMemo(
+    () => weekDates.findIndex((d) => formatDateKey(d) === selectedDateKey),
+    [weekDates, selectedDateKey]
   );
+
+  // Sync horizontal scroll when active day changes (pill tap or week navigation)
+  useEffect(() => {
+    if (activeDotIndex >= 0 && scrollRef.current) {
+      scrollRef.current.scrollTo({ x: activeDotIndex * WINDOW_WIDTH, animated: true });
+    }
+  }, [activeDotIndex]);
 
   // Week navigation
   const goToPrevWeek = useCallback(() => {
     setWeekOffset((prev) => {
       const newOffset = prev - 1;
       const newWeek = getWeekDates(newOffset);
-      // Select Monday of the new week
-      setSelectedDate(newWeek[0]);
+      setSelectedDate(newWeek[6]); // land on Sunday of the previous week
       return newOffset;
     });
   }, []);
@@ -84,7 +91,6 @@ export default function SlotPickerModal({
     setWeekOffset((prev) => {
       const newOffset = prev + 1;
       const newWeek = getWeekDates(newOffset);
-      // If current week, select today; otherwise Monday
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayKey = formatDateKey(today);
@@ -94,13 +100,13 @@ export default function SlotPickerModal({
     });
   }, []);
 
-  // Day selection
+  // Day pill tap
   const handleDayPress = useCallback((date: Date) => {
     setSelectedDate(date);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
-  // Slot selection
+  // Slot tap
   const handleSlotPress = useCallback(
     (date: string, slotId: string) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -109,63 +115,87 @@ export default function SlotPickerModal({
     [onSelect]
   );
 
-  // Swipe gesture on the card area
-  const panResponder = useMemo(() => {
-    const SWIPE_THRESHOLD = 60;
-    return PanResponder.create({
-      // Claim the gesture from the start when horizontal movement is detected
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_: GestureResponderEvent, gestureState: PanResponderGestureState) =>
-        Math.abs(gestureState.dx) > 8 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onMoveShouldSetPanResponderCapture: (_: GestureResponderEvent, gestureState: PanResponderGestureState) =>
-        Math.abs(gestureState.dx) > 8 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onPanResponderRelease: (_: GestureResponderEvent, gestureState: PanResponderGestureState) => {
-        if (gestureState.dx < -SWIPE_THRESHOLD) {
-          // Swipe left → next day
-          const idx = weekDates.findIndex((d) => formatDateKey(d) === selectedDateKey);
-          if (idx >= 0 && idx < 6) {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setSelectedDate(weekDates[idx + 1]);
-          } else {
-            // At Sunday — go to next week Monday
-            goToNextWeek();
-          }
-        } else if (gestureState.dx > SWIPE_THRESHOLD) {
-          // Swipe right → prev day
-          const idx = weekDates.findIndex((d) => formatDateKey(d) === selectedDateKey);
-          if (idx > 0) {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setSelectedDate(weekDates[idx - 1]);
-          } else {
-            // At Monday — go to prev week Sunday
-            goToPrevWeek();
-          }
-        }
-      },
-    });
-  }, [weekDates, selectedDateKey, goToNextWeek, goToPrevWeek]);
-
-  // Compute full day name for the card header
-  const selectedDayLabel = useMemo(() => {
-    return getDayName(selectedDate, false); // "Wednesday"
-  }, [selectedDate]);
-
-  const selectedDateLabel = useMemo(() => {
-    return selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); // "Mar 26"
-  }, [selectedDate]);
-
-  // Active dot index for swipe indicator
-  const activeDotIndex = useMemo(() => {
-    return weekDates.findIndex((d) => formatDateKey(d) === selectedDateKey);
-  }, [weekDates, selectedDateKey]);
-
-  // Reset state when modal opens
+  // Reset to today when modal opens
   const handleShow = useCallback(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    setSelectedDate(today);
     setWeekOffset(0);
+    setSelectedDate(today);
+    // Scroll without animation on open
+    setTimeout(() => {
+      const idx = getWeekDates(0).findIndex((d) => formatDateKey(d) === formatDateKey(today));
+      if (idx >= 0) {
+        scrollRef.current?.scrollTo({ x: idx * WINDOW_WIDTH, animated: false });
+      }
+    }, 0);
   }, []);
+
+  // Render one day card (called for each of the 7 pages)
+  const renderDayCard = (date: Date) => {
+    const dateKey = formatDateKey(date);
+    const dayLabel = getDayName(date, false);
+    const dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    return (
+      <View key={dateKey} style={[styles.cardPage, { width: WINDOW_WIDTH }]}>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardDayTitle}>{dayLabel}</Text>
+            <Text style={styles.cardDateLabel}>{dateLabel}</Text>
+          </View>
+
+          <View style={styles.slotsContainer}>
+            {sortedSlots.map((slot) => {
+              const slotMeals = getMealsForSlot(dateKey, slot.slot_id);
+              const isFull = slotMeals.length >= 10;
+              const isEmpty = slotMeals.length === 0;
+
+              return (
+                <TouchableOpacity
+                  key={slot.slot_id}
+                  style={[styles.slotRow, isFull && { opacity: 0.45 }]}
+                  onPress={() => handleSlotPress(dateKey, slot.slot_id)}
+                  disabled={isFull}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.slotIcon, { backgroundColor: getSlotIconBg(slot.name) }]}>
+                    <Text style={styles.slotEmoji}>{getSlotEmoji(slot.name)}</Text>
+                  </View>
+
+                  <View style={styles.slotText}>
+                    <Text style={styles.slotTypeLabel}>{slot.name.toUpperCase()}</Text>
+                    {isEmpty ? (
+                      <Text style={styles.slotEmptyLabel}>Tap to add</Text>
+                    ) : (
+                      slotMeals.map((meal, idx) => (
+                        <Text
+                          key={meal.id}
+                          style={[styles.slotMealName, idx > 0 && styles.slotMealNameSecondary]}
+                          numberOfLines={1}
+                        >
+                          {meal.meal_name}
+                        </Text>
+                      ))
+                    )}
+                  </View>
+
+                  {isFull ? (
+                    <View style={styles.fullBadge}>
+                      <Text style={styles.fullBadgeText}>FULL</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.addBtn}>
+                      <Plus size={18} color={Colors.textSecondary} strokeWidth={2} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <Modal
@@ -189,11 +219,19 @@ export default function SlotPickerModal({
 
         {/* Week navigation bar */}
         <View style={styles.weekNav}>
-          <TouchableOpacity onPress={goToPrevWeek} style={styles.weekNavBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity
+            onPress={goToPrevWeek}
+            style={styles.weekNavBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <ChevronLeft size={20} color={Colors.text} strokeWidth={2} />
           </TouchableOpacity>
           <Text style={styles.weekLabel}>{getWeekLabel(weekDates)}</Text>
-          <TouchableOpacity onPress={goToNextWeek} style={styles.weekNavBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity
+            onPress={goToNextWeek}
+            style={styles.weekNavBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <ChevronRight size={20} color={Colors.text} strokeWidth={2} />
           </TouchableOpacity>
         </View>
@@ -240,83 +278,35 @@ export default function SlotPickerModal({
           })}
         </ScrollView>
 
-        {/* Day card */}
-        <View style={styles.cardArea} {...panResponder.panHandlers}>
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardDayTitle}>{selectedDayLabel}</Text>
-              <Text style={styles.cardDateLabel}>{selectedDateLabel}</Text>
-            </View>
-
-            {/* Plain View — no ScrollView — so PanResponder can capture horizontal swipes without conflict */}
-            <View style={{ paddingBottom: Spacing.sm }}>
-              {sortedSlots.map((slot) => {
-                const slotMeals = getMealsForSlot(selectedDateKey, slot.slot_id);
-                const isFull = slotMeals.length >= 10;
-                const isEmpty = slotMeals.length === 0;
-
-                return (
-                  <TouchableOpacity
-                    key={slot.slot_id}
-                    style={[styles.slotRow, isFull && { opacity: 0.45 }]}
-                    onPress={() => handleSlotPress(selectedDateKey, slot.slot_id)}
-                    disabled={isFull}
-                    activeOpacity={0.7}
-                  >
-                    {/* Emoji icon */}
-                    <View style={[styles.slotIcon, { backgroundColor: getSlotIconBg(slot.name) }]}>
-                      <Text style={styles.slotEmoji}>{getSlotEmoji(slot.name)}</Text>
-                    </View>
-
-                    {/* Slot text */}
-                    <View style={styles.slotText}>
-                      <Text style={styles.slotTypeLabel}>{slot.name.toUpperCase()}</Text>
-                      {isEmpty ? (
-                        <Text style={styles.slotEmptyLabel}>Tap to add</Text>
-                      ) : (
-                        slotMeals.map((meal, idx) => (
-                          <Text
-                            key={meal.id}
-                            style={[styles.slotMealName, idx > 0 && styles.slotMealNameSecondary]}
-                            numberOfLines={1}
-                          >
-                            {meal.meal_name}
-                          </Text>
-                        ))
-                      )}
-                    </View>
-
-                    {/* Add button — always shown unless full */}
-                    {isFull ? (
-                      <View style={styles.fullBadge}>
-                        <Text style={styles.fullBadgeText}>FULL</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.addBtn}>
-                        <Plus size={18} color={Colors.textSecondary} strokeWidth={2} />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        </View>
+        {/* Horizontally paging day cards — native swipe, no PanResponder needed */}
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          style={styles.cardsScroll}
+          onMomentumScrollEnd={(e) => {
+            const idx = Math.round(e.nativeEvent.contentOffset.x / WINDOW_WIDTH);
+            const clamped = Math.max(0, Math.min(weekDates.length - 1, idx));
+            if (weekDates[clamped]) {
+              setSelectedDate(weekDates[clamped]);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+          }}
+        >
+          {weekDates.map(renderDayCard)}
+        </ScrollView>
 
         {/* Swipe indicator dots */}
         <View style={styles.dotsRow}>
-          {weekDates.map((date, idx) => {
-            const isActive = idx === activeDotIndex;
-            return (
-              <View
-                key={formatDateKey(date)}
-                style={[styles.dot, isActive && styles.dotActive]}
-              />
-            );
-          })}
+          {weekDates.map((date, idx) => (
+            <View
+              key={formatDateKey(date)}
+              style={[styles.dot, idx === activeDotIndex && styles.dotActive]}
+            />
+          ))}
         </View>
 
-        {/* Bottom safe area spacer */}
         <View style={{ height: insets.bottom }} />
       </View>
     </Modal>
@@ -329,7 +319,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
-  // Header — unchanged from original
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -435,12 +425,20 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 
-  // Card area
-  cardArea: {
+  // Paging scroll container
+  cardsScroll: {
+    flex: 1,
+  },
+
+  // Each day's full-width page
+  cardPage: {
     flex: 1,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
   },
+
+  // Card inside the page
   card: {
     flex: 1,
     backgroundColor: Colors.card,
@@ -466,6 +464,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FontFamily.regular,
     color: Colors.textSecondary,
+  },
+
+  // Slots container
+  slotsContainer: {
+    paddingBottom: Spacing.sm,
   },
 
   // Slot rows
@@ -519,7 +522,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  // Add button (always visible unless full)
+  // Add button
   addBtn: {
     width: 32,
     height: 32,
