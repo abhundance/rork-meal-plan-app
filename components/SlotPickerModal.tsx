@@ -425,14 +425,16 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 
-  // Paging scroll container
+  // Paging scroll container — flex: 1 to fill remaining vertical space
   cardsScroll: {
     flex: 1,
+    width: WINDOW_WIDTH,
   },
 
-  // Each day's full-width page
+  // Each day's full-width page — explicit width for paging, stretch for height
   cardPage: {
-    flex: 1,
+    width: WINDOW_WIDTH,
+    alignSelf: 'stretch',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.sm,
