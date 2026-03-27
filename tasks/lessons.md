@@ -173,4 +173,17 @@ git push origin master:main   # ← ALWAYS push to main, not master
 - SOCKS proxy on any port
 - `gh` CLI (not installed)
 
+### 14. User's Machine Has Local Edits — Always Use `git stash && git pull`
+**Never tell the user to run `git pull` alone.** The user's machine often has local uncommitted changes to files (from Expo's hot-reload, linters, or previous edits). A plain `git pull` will abort with "Your local changes would be overwritten by merge" — confusing and frustrating for a non-technical user.
+
+**Always give the user this exact three-command sequence:**
+```bash
+git stash && git pull && npx expo start --clear
+```
+- `git stash` parks local changes safely before the pull
+- `git pull` can then merge cleanly
+- `npx expo start --clear` ensures Metro picks up the new code with a clean cache
+
+**Always verify the pull worked** by asking the user to run `git log --oneline -1` and confirming the hash matches the last pushed commit. If it doesn't match, the fix is not on their device — do not proceed as if it is.
+
 **Important:** `.git/index.lock` and `.git/config.lock` files may exist from previous failed git operations. If `git remote set-url` or `git commit` fails with "File exists", check and remove these lock files first. They may require `mcp__cowork__allow_cowork_file_delete` to remove.

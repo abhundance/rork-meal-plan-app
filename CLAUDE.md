@@ -27,8 +27,39 @@
 ## GitHub Repository
 
 **Repo:** https://github.com/abhundance/rork-meal-plan-app
+**Default branch:** `main` (the user always works on `main`)
 
-> **Rule:** Always read source files by cloning/pulling from GitHub (`git clone` or `git pull` in the working directory). GitHub is always the source of truth.
+> **Rule:** Always read source files by cloning/pulling from GitHub. GitHub is always the source of truth.
+
+---
+
+## Git Workflow — Critical Rules
+
+> ⚠️ The user is non-technical. All git complexity must be handled proactively by the AI. Never make the user debug git issues themselves.
+
+### Pushing changes (from Cowork sandbox → GitHub)
+The Cowork sandbox checks out a `master` branch locally. The repo's default branch is `main`. **Always push with the full refspec:**
+```bash
+git remote set-url origin https://<PAT>@github.com/abhundance/rork-meal-plan-app.git
+git add <files>
+git commit -m "message"
+git push origin master:main   # ← NEVER just "master" — always "master:main"
+```
+Pushing to `master` only creates a hidden branch the user never sees. Their `git pull` will say "already up to date" even though nothing changed on their machine.
+
+### Telling the user to pull
+Never tell the user to run `git pull` alone — their machine often has local edits that block it. **Always give them this exact command:**
+```bash
+git stash && git pull && npx expo start --clear
+```
+`git stash` safely parks any local changes before pulling, so the merge never gets blocked.
+
+### Verifying the user has the right code
+Before declaring a fix done, ask the user to run:
+```bash
+git log --oneline -1
+```
+If the commit hash doesn't match what was just pushed, the fix isn't on their machine yet — do not proceed as if it is.
 
 ---
 
