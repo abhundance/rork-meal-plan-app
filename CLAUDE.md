@@ -14,7 +14,7 @@
 ## Platform & Build Tool
 
 - **Framework:** React Native + Expo Router + TypeScript
-- **Build tool:** [Rork](https://rork.com) — used to run and preview the app via Expo Go. Code changes are made directly in the GitHub repository, not via Rork's chat interface.
+- **Build tool:** Local Expo CLI (`npx expo start`). Previously used Rork, now fully migrated to local Expo development. The `@rork-ai/toolkit-sdk` dependency and `withRorkMetro()` wrapper have been removed — see Lesson 12 in `tasks/lessons.md`.
 - **Backend:** Supabase (Postgres + Row-Level Security + Edge Functions). Anonymous auth on first launch; email OTP for full auth.
 - **Local cache:** AsyncStorage (persists Supabase auth session; no longer the primary data store)
 - **State management:** React Context + TanStack Query
@@ -28,7 +28,7 @@
 
 **Repo:** https://github.com/abhundance/rork-meal-plan-app
 
-> **Rule:** Always read source files by cloning/pulling from GitHub (`git clone` or `git pull` in the working directory) — never navigate the Rork browser file tree to read code. GitHub is always faster and more reliable.
+> **Rule:** Always read source files by cloning/pulling from GitHub (`git clone` or `git pull` in the working directory). GitHub is always the source of truth.
 
 ---
 
@@ -247,15 +247,22 @@ Shadows.card / header / tabBar  — all use Colors.shadow (red-tinted)
 
 ## Development Workflow
 
-All code changes are made directly in the GitHub repository (`https://github.com/abhundance/rork-meal-plan-app`). Rork is used only to run the app and preview it via Expo Go — never as a code editor or prompt interface.
+All code changes are made directly in the GitHub repository (`https://github.com/abhundance/rork-meal-plan-app`). The app runs locally via `npx expo start` and previews on device via Expo Go.
 
 **Standard flow:**
 1. Edit source files directly (via AI tools, local editor, or this agent)
-2. Commit and push to `main` on GitHub
-3. Rork picks up the latest commit and rebuilds automatically
-4. Preview on device via Expo Go
+2. Commit and push to `master` on GitHub (use PAT embedded in remote URL — see Lesson 13)
+3. User runs `git pull` in their local `~/MealPlanApp` directory
+4. Expo Go hot-reloads the changes automatically
 
-> ⚠️ Do NOT attempt to submit prompts to Rork's chat interface to make code changes. That workflow is retired.
+**Pushing from Cowork sandbox:**
+```bash
+git remote set-url origin https://<PAT>@github.com/abhundance/rork-meal-plan-app.git
+git add <files> && git commit -m "message" && git push origin master
+```
+> ⚠️ The sandbox blocks all HTTPS API calls to GitHub. Only `git push` via embedded PAT works. See Lesson 13 in `tasks/lessons.md`.
+
+> ⚠️ If the user's local file doesn't update after `git pull`, use `git fetch origin && git checkout origin/master -- <file>` to force-overwrite.
 
 ---
 
