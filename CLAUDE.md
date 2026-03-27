@@ -360,16 +360,51 @@ Post-launch features for future development sprints:
 ### Localisation — Full UI Translation (Phases 2–3)
 **What:** Translate all hardcoded UI strings in the app so the interface responds to the language set in Settings → Language. Currently the language picker saves the setting but only AI extraction uses it (Phase 1 is done — see commit `33686b9`).
 **Why:** The app already has a language picker with 6 languages (English, Français, Español, Deutsch, Português, Italiano). Completing the UI layer makes the whole experience consistent for non-English speakers.
+
+**Infrastructure status (as of 2026-03-26 audit):**
+- `i18next` / `react-i18next` — NOT installed
+- `services/i18n.ts` — does NOT exist
+- `locales/` directory — does NOT exist
+- `FamilySettings.language` — stored and saved correctly; read only by AI extraction (5 files). Zero UI translation uses it today.
+
+**String inventory (audited 2026-03-26):**
+~450–500 unique user-facing strings across ~20 files. Key screen counts:
+- AI Chef / recipe extraction flows: ~60 strings (status messages, dietary/occasion enums)
+- Onboarding (all screens): ~100 strings
+- Family Settings: ~40 strings
+- Shopping tab: ~50 strings (incl. 10 ingredient category names)
+- Plan tab: ~40 strings
+- Recipes tab: ~25 strings
+- Add Recipe flows: ~55 strings (entry + manual + review)
+
+**Strings that need special i18n handling:**
+- Plurals: `"1 person" / "N people"`, `"1 meal" / "N meals"` — use i18next `count`
+- Interpolation: `"{checked} of {total} items"`, `"We sent a code to {email}"`
+- Dynamic enums stored as data: slot names (Breakfast/Lunch/Dinner/Snacks), dietary labels, ingredient categories, occasion types — need a translation map layer, not just static keys
+- Day abbreviations in the weekly grid (Mon/Tue…) — use `expo-localization` date formatting, not hardcoded strings
+- Brand names never translate: "Meal Plan", DoorDash, Deliveroo, Grab, Swiggy
+
 **How:**
-1. Install `expo-localization` + `i18next` + `react-i18next`
-2. Create `services/i18n.ts` — initialises i18next, maps FamilySettings.language display names to locale codes (`'Français' → 'fr'`)
-3. Create `locales/en.json` (source), then generate `fr.json`, `es.json`, `de.json`, `pt.json`, `it.json` via GPT-4o batch translation
-4. Extract strings from 7 high-traffic screens: Plan tab, Recipes, Shopping, Add a Meal flows, Settings
-5. Extract remaining screens (onboarding, modals, alerts, enum option labels)
-6. Wire `changeLanguage()` to the existing language picker in Settings — changes take effect instantly, no restart needed
-**Dependency:** Supabase migration is complete, so this is unblocked. Discover content (curated recipes) is stored in Supabase and would need translated versions or a translation layer.
+1. `npm install i18next react-i18next expo-localization`
+2. Create `services/i18n.ts` — initialise i18next, map display names to locale codes (`'Français' → 'fr'`, `'Español' → 'es'`, `'Deutsch' → 'de'`, `'Português' → 'pt'`, `'Italiano' → 'it'`)
+3. Create `locales/en.json` with all ~450 keys (run extraction tool or manual pass), then batch-translate to `fr.json`, `es.json`, `de.json`, `pt.json`, `it.json` via GPT-4o
+4. Wire `useTranslation()` into high-traffic screens first: Plan tab, Recipes, Shopping, Add Recipe flows, Settings (~230 strings)
+5. Wire remaining screens: onboarding, recipe detail, modals, alerts, enum labels (~220 strings)
+6. Wire `changeLanguage()` to the language picker in `family-settings.tsx` — changes take effect instantly without app restart
+7. Validate plurals and date formatting per locale; no RTL needed for current 6 languages
+
+**Implementation order (priority):**
+1. `services/i18n.ts` + `locales/` scaffold
+2. Plan tab + Recipes tab + Shopping tab (highest daily-use)
+3. Add Recipe flows
+4. Settings screen
+5. Onboarding (lower priority — seen once)
+6. Enum/data labels (meal slots, dietary tags, ingredient categories)
+
+**Dependency:** Supabase migration complete, unblocked. Curated recipes in Supabase would need translated `name`/`description` fields for a fully localised experience — out of scope for this sprint; English content is acceptable for v1.
+
 **Effort:** ~2–3 days.
-**Note on data model:** FamilySettings.language currently stores display names ('Français'). Keep this — the i18n service maps to locale codes internally. No data migration needed.
+**Note on data model:** FamilySettings.language stores display names ('Français'). Keep this — the i18n service maps to locale codes internally. No migration needed.
 
 ---
 

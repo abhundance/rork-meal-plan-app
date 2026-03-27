@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Meal Plan App",
+    "name": "Meal Plan",
     "slug": "meal-plan-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "rork-app",
+    "scheme": "mealplan",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.rork.meal-plan-app-3u3l8oz"
+      "bundleIdentifier": "com.abhundance.mealplan"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.meal_plan_app_3u3l8oz"
+      "package": "com.abhundance.mealplan"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"

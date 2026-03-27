@@ -12,23 +12,33 @@ export default function OnboardingLayout() {
         animation: 'slide_from_right',
       }}
     >
-      {/* Entry screen — no back gesture (nothing behind it) */}
+      {/* Screen 1 — Launch Mosaic: no back gesture (nothing behind it) */}
       <Stack.Screen name="auth" options={{ gestureEnabled: false }} />
 
-      {/* Auth options — slides up as a modal over the cover screen */}
-      <Stack.Screen
-        name="auth-options"
-        options={{
-          animation: 'slide_from_bottom',
-          gestureEnabled: true,
-          contentStyle: { backgroundColor: 'transparent' },
-        }}
-      />
+      {/* Screen 2 — Family Name */}
+      <Stack.Screen name="setup" />
 
-      {/* Step 1 */}
+      {/* Screen 3 — Household Size */}
+      <Stack.Screen name="setup-size" />
+
+      {/* Screen 4 — Measurement Units */}
+      <Stack.Screen name="setup-units" />
+
+      {/* Screen 5 — Meal Slots: toggle breakfast/lunch/dinner/snacks */}
+      <Stack.Screen name="slots" />
+
+      {/* Screen 4 — Feature Preview: Plan / Recipes / Shopping */}
+      <Stack.Screen name="preview" />
+
+      {/* Screen 5 — Create Account: Google/Apple stubs + email OTP */}
+      <Stack.Screen name="account" />
+
+      {/* Screen 6 — Welcome: animated celebration, syncs settings, enters app */}
+      <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
+
+      {/* ── Legacy screens (kept for safe routing, not navigated to in new flow) ── */}
+      <Stack.Screen name="auth-options" options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="region" />
-
-      {/* Steps 2–14 (new flow) */}
       <Stack.Screen name="family-name" />
       <Stack.Screen name="household-size" />
       <Stack.Screen name="cultural-restrictions" />
@@ -42,16 +52,9 @@ export default function OnboardingLayout() {
       <Stack.Screen name="configure-slots" />
       <Stack.Screen name="breakfast-picks" />
       <Stack.Screen name="lunch-dinner-picks" />
-
-      {/* Chapter interstitial screens — cinematic fade transitions between onboarding chapters */}
       <Stack.Screen name="chapter-dietary" options={{ animation: 'fade', gestureEnabled: false }} />
       <Stack.Screen name="chapter-style"   options={{ animation: 'fade', gestureEnabled: false }} />
       <Stack.Screen name="chapter-plan"    options={{ animation: 'fade', gestureEnabled: false }} />
-
-      {/* Terminal screen — no going back once complete */}
-      <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
-
-      {/* Legacy screens (kept for safety) */}
       <Stack.Screen name="meal-slots" />
       <Stack.Screen name="invite-members" />
       <Stack.Screen name="personal-dietary" />
