@@ -161,8 +161,10 @@ The app does not use Unsplash for any image functionality. AI-generated images a
 git remote set-url origin https://<PAT>@github.com/abhundance/rork-meal-plan-app.git
 git add <files>
 git commit -m "message"
-git push origin master
+git push origin master:main   # ← ALWAYS push to main, not master
 ```
+
+**CRITICAL: The user's repo default branch is `main`.** The Cowork sandbox local clone uses `master`. Always push with `master:main` refspec. Pushing to `master` only (without `:main`) creates a separate branch the user never pulls from — `git pull` will say "already up to date" even though the changes aren't there. When in doubt, run `git branch -a` to confirm branch names before pushing.
 
 **What does NOT work (all blocked by sandbox proxy):**
 - `curl` to api.github.com
