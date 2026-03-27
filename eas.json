@@ -23,13 +23,4 @@
       "distribution": "store"
     }
   },
-  "submit": {
-    "production": {
-      "ios": {
-        "appleId": "hotice789@gmail.com",
-        "ascAppId": "",
-        "appleTeamId": ""
-      }
-    }
-  }
 }
