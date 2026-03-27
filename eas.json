@@ -10,6 +10,26 @@
     "preview": {
       "distribution": "internal"
     },
-    "production": {}
+    "testflight": {
+      "distribution": "store",
+      "ios": {
+        "simulator": false
+      },
+      "env": {
+        "APP_VARIANT": "testflight"
+      }
+    },
+    "production": {
+      "distribution": "store"
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "hotice789@gmail.com",
+        "ascAppId": "",
+        "appleTeamId": ""
+      }
+    }
   }
 }
