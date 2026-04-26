@@ -5,13 +5,14 @@
  * - No deep-link / magic-link setup needed (works in Expo Go and native builds).
  * - User enters email → receives 6-digit code → enters code → authenticated.
  *
- * Anonymous auth (Phase 4):
+ * Anonymous auth:
  * - If no persisted session exists, we call signInAnonymously() so every device
  *   has a real auth.uid() from first launch. This makes RLS work pre-onboarding
  *   and allows Supabase to be the single source of truth for recipes.
  * - Requires "Enable anonymous sign-ins" to be ON in Supabase Auth settings.
- * - When Phase 2 full auth ships, the anonymous user will be upgraded via
- *   supabase.auth.linkIdentity() — no data loss.
+ * - When an anonymous user completes email OTP, signInWithOtp detects the anonymous
+ *   session and omits shouldCreateUser — Supabase upgrades the session in-place,
+ *   preserving the user's auth.uid() and all their data (no data loss).
  *
  * Session is persisted to AsyncStorage by the Supabase client in services/supabase.ts
  * (autoRefreshToken: true, persistSession: true), so users stay signed in across restarts.
@@ -73,10 +74,15 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       }
     });
 
-    // Subscribe to future auth changes (sign-in, sign-out, token refresh)
+    // Subscribe to future auth changes (sign-in, sign-out, token refresh, anonymous upgrade)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         console.log('[Auth] State changed:', _event);
+        if (_event === 'USER_UPDATED') {
+          // Fired when an anonymous user is upgraded to a permanent account via OTP.
+          // The user ID remains the same — all existing data is preserved.
+          console.log('[Auth] Anonymous user upgraded to permanent account:', session?.user?.id);
+        }
         setAuthState({
           session,
           user: session?.user ?? null,
@@ -94,20 +100,35 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   /**
    * Step 1 — Request OTP: sends a 6-digit code to the user's email.
-   * Set shouldCreateUser: true so new accounts are auto-created on first sign-in.
+   *
+   * Anonymous-aware: if the current user is anonymous, we omit shouldCreateUser
+   * so Supabase upgrades the existing anonymous session rather than creating a
+   * new account. This preserves the user's auth.uid() and all their data.
+   *
+   * If there is no session at all (edge case), shouldCreateUser: true ensures
+   * a new account is created on first sign-in.
    */
   const signInWithOtp = useCallback(async (email: string): Promise<SignInResult> => {
     const supabase = getSupabase();
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    const isCurrentlyAnonymous = currentSession?.user?.is_anonymous === true;
+
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
       options: {
-        shouldCreateUser: true,
+        // Only set shouldCreateUser when there is no existing anonymous session.
+        // When anonymous, omitting this lets Supabase upgrade the session in-place
+        // (same user ID, same data, just no longer anonymous after verifyOtp).
+        ...(!isCurrentlyAnonymous && { shouldCreateUser: true }),
       },
     });
     if (error) {
       console.log('[Auth] signInWithOtp error:', error.message);
     } else {
-      console.log('[Auth] OTP sent to:', email);
+      console.log(
+        '[Auth] OTP sent to:', email,
+        '| mode:', isCurrentlyAnonymous ? 'upgrade anonymous' : 'new account'
+      );
     }
     return { error };
   }, []);
@@ -127,7 +148,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       if (error) {
         console.log('[Auth] verifyOtp error:', error.message);
       } else {
-        console.log('[Auth] OTP verified, user:', data.user?.id);
+        const isNowPermanent = data.user && !data.user.is_anonymous;
+        console.log(
+          '[Auth] OTP verified, user:', data.user?.id,
+          '| permanent:', isNowPermanent
+        );
       }
       return { error, session: data?.session ?? null };
     },
