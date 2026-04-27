@@ -304,7 +304,7 @@ export const [FamilySettingsProvider, useFamilySettings] = createContextHook(() 
           updated_at: new Date().toISOString(),
         }, { onConflict: 'id' }).then(({ error }) => {
           if (error) console.error('[FamilySettings] Supabase save error:', error.message);
-        });
+        }).catch(console.error);
         // Sync meal_slots: delete-and-reinsert
         supabase.from('meal_slots').delete().eq('family_id', uid).then(() => {
           supabase.from('meal_slots').insert(
@@ -315,8 +315,8 @@ export const [FamilySettingsProvider, useFamilySettings] = createContextHook(() 
               order: s.order,
               serving_size_override: s.serving_size_override ?? null,
             }))
-          );
-        });
+          ).catch(console.error);
+        }).catch(console.error);
         // Sync pantry_items: delete-and-reinsert
         supabase.from('pantry_items').delete().eq('family_id', uid).then(() => {
           if (updated.pantry_items.length > 0) {
@@ -326,9 +326,9 @@ export const [FamilySettingsProvider, useFamilySettings] = createContextHook(() 
                 name: p.name,
                 category: p.category,
               }))
-            );
+            ).catch(console.error);
           }
-        });
+        }).catch(console.error);
       }
       console.log('[FamilySettings] Saved');
       return updated;
@@ -351,7 +351,7 @@ export const [FamilySettingsProvider, useFamilySettings] = createContextHook(() 
           health_goals: updated.health_goals ?? [],
         }, { onConflict: 'id' }).then(({ error }) => {
           if (error) console.error('[UserSettings] Supabase save error:', error.message);
-        });
+        }).catch(console.error);
       }
       console.log('[UserSettings] Saved');
       return updated;
@@ -369,7 +369,7 @@ export const [FamilySettingsProvider, useFamilySettings] = createContextHook(() 
           { onConflict: 'user_id' }
         ).then(({ error }) => {
           if (error) console.error('[NotificationSettings] Supabase save error:', error.message);
-        });
+        }).catch(console.error);
       }
       return updated;
     },

@@ -40,7 +40,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
           .then(() => AsyncStorage.setItem(PHASE5_CLEANUP_KEY, 'done'))
           .catch(console.error);
       }
-    });
+    }).catch(console.error);
   }, []);
 
   const [meals, setMeals] = useState<PlannedMeal[]>([]);

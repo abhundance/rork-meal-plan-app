@@ -38,7 +38,7 @@ export const [ShoppingProvider, useShopping] = createContextHook(() => {
           .then(() => AsyncStorage.setItem(PHASE6_CLEANUP_KEY, 'done'))
           .catch(console.error);
       }
-    });
+    }).catch(console.error);
   }, []);
 
   const [items, setItems] = useState<ShoppingItem[]>([]);

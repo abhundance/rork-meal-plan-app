@@ -13,7 +13,7 @@ const ONBOARDING_KEY = 'onboarding_data';
 // ─── DEV BYPASS ─────────────────────────────────────────────────────────────
 // Set to true to skip auth and onboarding during development.
 // Revert to false before enabling authentication for production.
-const DEV_SKIP_ONBOARDING = false;
+const DEV_SKIP_ONBOARDING = __DEV__ && false;
 // ────────────────────────────────────────────────────────────────────────────
 
 export const [OnboardingProvider, useOnboarding] = createContextHook(() => {

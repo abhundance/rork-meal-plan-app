@@ -416,7 +416,7 @@ export default function AddMealScreen() {
             {selectedImageUri ? (
               <Image source={{ uri: selectedImageUri }} style={styles.heroImage} contentFit="cover" cachePolicy="memory-disk" />
             ) : (
-              <MealImagePlaceholder size="hero" mealType={mealType} cuisine={cuisine} name={name} familyInitials={name || ' '} />
+              <MealImagePlaceholder size="hero" mealType={mealType} cuisine={cuisine} name={name} familyInitials={name || undefined} />
             )}
             <View style={styles.heroEditBadge}>
               <Camera size={16} color={Colors.white} strokeWidth={2} />

@@ -57,6 +57,9 @@ interface GoogleSignInResult {
   session: Session | null;
 }
 
+// ── Dev-only logger (stripped from production builds) ────────────────────────
+const devLog = __DEV__ ? console.log.bind(console) : () => {};
+
 // ── Provider ─────────────────────────────────────────────────────────────────
 export const [AuthProvider, useAuth] = createContextHook(() => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -72,15 +75,15 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     // Restore persisted session, or sign in anonymously if none exists.
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        console.log('[Auth] Session restored:', session.user.is_anonymous ? 'anonymous' : 'authenticated');
+        devLog('[Auth] Session restored:', session.user.is_anonymous ? 'anonymous' : 'authenticated');
         setAuthState({ session, user: session.user, isLoading: false });
       } else {
         // No session — sign in anonymously so auth.uid() is always available.
         // This satisfies RLS policies (family_id = auth.uid()) from first launch.
-        console.log('[Auth] No session — signing in anonymously');
+        devLog('[Auth] No session — signing in anonymously');
         const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
         if (!anonError && anonData.session) {
-          console.log('[Auth] Anonymous sign-in OK:', anonData.session.user.id);
+          devLog('[Auth] Anonymous sign-in OK:', anonData.session.user.id);
           // onAuthStateChange will fire and update state automatically
         } else {
           console.error('[Auth] Anonymous sign-in failed:', anonError?.message);
@@ -92,11 +95,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     // Subscribe to future auth changes (sign-in, sign-out, token refresh, anonymous upgrade)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        console.log('[Auth] State changed:', _event);
+        devLog('[Auth] State changed:', _event);
         if (_event === 'USER_UPDATED') {
           // Fired when an anonymous user is upgraded to a permanent account via OTP.
           // The user ID remains the same — all existing data is preserved.
-          console.log('[Auth] Anonymous user upgraded to permanent account:', session?.user?.id);
+          devLog('[Auth] Anonymous user upgraded to permanent account:', session?.user?.id);
         }
         setAuthState({
           session,
@@ -138,7 +141,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       },
     });
     if (error) {
-      console.log('[Auth] signInWithOtp error:', error.message);
+      devLog('[Auth] signInWithOtp error:', error.message);
     } else {
       console.log(
         '[Auth] OTP sent to:', email,
@@ -161,7 +164,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         type: 'email',
       });
       if (error) {
-        console.log('[Auth] verifyOtp error:', error.message);
+        devLog('[Auth] verifyOtp error:', error.message);
       } else {
         const isNowPermanent = data.user && !data.user.is_anonymous;
         console.log(
@@ -188,39 +191,39 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       const response = await GoogleSignin.signIn();
 
       if (!isSuccessResponse(response)) {
-        console.log('[Auth] Google Sign-In cancelled by user');
+        devLog('[Auth] Google Sign-In cancelled by user');
         return { error: null, session: null }; // user cancelled — not an error
       }
 
       const { idToken } = response.data;
       if (!idToken) {
-        console.log('[Auth] Google Sign-In: no idToken returned');
+        devLog('[Auth] Google Sign-In: no idToken returned');
         return { error: 'Google sign-in failed — no ID token returned.', session: null };
       }
 
-      console.log('[Auth] Google ID token obtained, signing in with Supabase');
+      devLog('[Auth] Google ID token obtained, signing in with Supabase');
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
       });
 
       if (error) {
-        console.log('[Auth] Supabase Google sign-in error:', error.message);
+        devLog('[Auth] Supabase Google sign-in error:', error.message);
         return { error: error.message, session: null };
       }
 
-      console.log('[Auth] Google sign-in OK, user:', data.session?.user.id);
+      devLog('[Auth] Google sign-in OK, user:', data.session?.user.id);
       return { error: null, session: data.session ?? null };
     } catch (err: any) {
       if (err?.code === statusCodes.SIGN_IN_CANCELLED) {
-        console.log('[Auth] Google Sign-In cancelled');
+        devLog('[Auth] Google Sign-In cancelled');
         return { error: null, session: null };
       }
       if (err?.code === statusCodes.IN_PROGRESS) {
-        console.log('[Auth] Google Sign-In already in progress');
+        devLog('[Auth] Google Sign-In already in progress');
         return { error: null, session: null };
       }
-      console.log('[Auth] Google Sign-In error:', err?.message ?? err);
+      devLog('[Auth] Google Sign-In error:', err?.message ?? err);
       return { error: 'Google sign-in failed. Please try again.', session: null };
     }
   }, []);
@@ -232,9 +235,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const supabase = getSupabase();
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.log('[Auth] signOut error:', error.message);
+      devLog('[Auth] signOut error:', error.message);
     } else {
-      console.log('[Auth] Signed out');
+      devLog('[Auth] Signed out');
     }
   }, []);
 
