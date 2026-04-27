@@ -10,18 +10,23 @@
  * variable is needed.
  */
 
+import { getSupabase, buildEdgeFunctionHeaders } from './supabase';
+
 // ── Env readers (lazy pattern — see CLAUDE.md §Architectural Rules) ───────────
 function getSupabaseUrl(): string {
   return process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-}
-function getSupabaseAnonKey(): string {
-  return process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 }
 function getEdgeFunctionUrl(): string {
   const url = getSupabaseUrl();
   if (!url) throw new Error('EXPO_PUBLIC_SUPABASE_URL is not configured.');
   return `${url}/functions/v1/extract-recipe`;
 }
+
+// ── Payload size limits (client-side guard before sending to OpenAI) ──────────
+// Base64 is ~4/3 the size of the original file.
+const MAX_IMAGE_B64_CHARS  = 13_631_488; // ~10 MB original
+const MAX_AUDIO_B64_CHARS  = 27_262_976; // ~20 MB original
+const MAX_PDF_B64_CHARS    = 20_447_232; // ~15 MB original
 
 // ── Output language ────────────────────────────────────────────────────────────
 // The Edge Function handles the language mapping internally; we just forward the
@@ -79,15 +84,17 @@ export interface ExtractedMetadata {
 
 async function callEdgeFunction(payload: Record<string, unknown>): Promise<unknown> {
   const url = getEdgeFunctionUrl();
-  const anonKey = getSupabaseAnonKey();
+
+  // Always forward the user's JWT so the Edge Function can identify the caller
+  // and enforce per-user quota. Without this, every call looks anonymous and
+  // quota can't be tied to a real user — any attacker with the public anon key
+  // could spam the function indefinitely.
+  const { data: { session } } = await getSupabase().auth.getSession();
+  const authHeaders = buildEdgeFunctionHeaders(session);
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${anonKey}`,
-      'apikey': anonKey,
-    },
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
     body: JSON.stringify(payload),
   });
 
@@ -111,6 +118,9 @@ export async function extractRecipeFromImage(
   base64Image: string,
   language?: string,
 ): Promise<ExtractedRecipe> {
+  if (base64Image.length > MAX_IMAGE_B64_CHARS) {
+    throw new Error('Image is too large (max 10 MB). Please choose a smaller photo.');
+  }
   return callEdgeFunction({ type: 'image', base64Image, language }) as Promise<ExtractedRecipe>;
 }
 
@@ -197,6 +207,9 @@ export async function transcribeAndExtract(
   const base64Audio = await blobToBase64(blob);
   const audioMimeType = blob.type || 'audio/m4a';
 
+  if (base64Audio.length > MAX_AUDIO_B64_CHARS) {
+    throw new Error('Audio recording is too long (max ~20 MB). Please record a shorter clip.');
+  }
   return callEdgeFunction({ type: 'voice', base64Audio, audioMimeType, language }) as Promise<ExtractedRecipe>;
 }
 
@@ -210,6 +223,9 @@ export async function extractRecipeFromPdf(
   const blob = await fileResponse.blob();
   const base64Pdf = await blobToBase64(blob);
 
+  if (base64Pdf.length > MAX_PDF_B64_CHARS) {
+    throw new Error('PDF is too large (max 15 MB). Please use a smaller file.');
+  }
   return callEdgeFunction({ type: 'pdf', base64Pdf, filename, language }) as Promise<ExtractedRecipe>;
 }
 
