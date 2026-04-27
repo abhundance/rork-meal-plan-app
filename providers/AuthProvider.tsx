@@ -25,6 +25,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import createContextHook from '@nkzw/create-context-hook';
 import { getSupabase } from '@/services/supabase';
+import { GoogleSignin, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin';
+
+// Configure Google Sign-In once at module load time.
+// webClientId is the Web OAuth client ID from Google Cloud Console.
+// iosClientId is set via the app.json plugin (iosUrlScheme), but passing
+// it here explicitly ensures it works in Expo Go development builds too.
+GoogleSignin.configure({
+  webClientId: '260678473269-ee9isb1labak3i3dt4g93vvjggpeg3hu.apps.googleusercontent.com',
+  iosClientId: '260678473269-0cr9n3t23ctuleebjs33h51spql1jgog.apps.googleusercontent.com',
+});
 
 // ── Types ───────────────────────────────────────────────────────────────────
 interface AuthState {
@@ -39,6 +49,11 @@ interface SignInResult {
 
 interface VerifyResult {
   error: AuthError | null;
+  session: Session | null;
+}
+
+interface GoogleSignInResult {
+  error: string | null;
   session: Session | null;
 }
 
@@ -160,6 +175,57 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   );
 
   /**
+   * Google Sign-In — native sheet, then Supabase session via ID token.
+   *
+   * Anonymous-aware: if the current user is anonymous, Supabase will upgrade
+   * the session in-place (same auth.uid(), same data) when signInWithIdToken
+   * is called. No data loss.
+   */
+  const googleSignIn = useCallback(async (): Promise<GoogleSignInResult> => {
+    const supabase = getSupabase();
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+
+      if (!isSuccessResponse(response)) {
+        console.log('[Auth] Google Sign-In cancelled by user');
+        return { error: null, session: null }; // user cancelled — not an error
+      }
+
+      const { idToken } = response.data;
+      if (!idToken) {
+        console.log('[Auth] Google Sign-In: no idToken returned');
+        return { error: 'Google sign-in failed — no ID token returned.', session: null };
+      }
+
+      console.log('[Auth] Google ID token obtained, signing in with Supabase');
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+
+      if (error) {
+        console.log('[Auth] Supabase Google sign-in error:', error.message);
+        return { error: error.message, session: null };
+      }
+
+      console.log('[Auth] Google sign-in OK, user:', data.session?.user.id);
+      return { error: null, session: data.session ?? null };
+    } catch (err: any) {
+      if (err?.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log('[Auth] Google Sign-In cancelled');
+        return { error: null, session: null };
+      }
+      if (err?.code === statusCodes.IN_PROGRESS) {
+        console.log('[Auth] Google Sign-In already in progress');
+        return { error: null, session: null };
+      }
+      console.log('[Auth] Google Sign-In error:', err?.message ?? err);
+      return { error: 'Google sign-in failed. Please try again.', session: null };
+    }
+  }, []);
+
+  /**
    * Sign out — clears the session locally and on Supabase.
    */
   const signOut = useCallback(async (): Promise<void> => {
@@ -181,6 +247,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     isAnonymous: authState.user?.is_anonymous ?? true,
     signInWithOtp,
     verifyOtp,
+    googleSignIn,
     signOut,
   };
 });

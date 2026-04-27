@@ -36,7 +36,7 @@ import { useAuth } from '@/providers/AuthProvider';
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
-  const { signInWithOtp, verifyOtp } = useAuth();
+  const { signInWithOtp, verifyOtp, googleSignIn } = useAuth();
 
   // Step: 'options' | 'email' | 'otp'
   const [step, setScreenStep] = useState<'options' | 'email' | 'otp'>('options');
@@ -55,10 +55,20 @@ export default function AccountScreen() {
     router.push('/onboarding/welcome' as Href);
   }, []);
 
-  const handleSocialAuth = useCallback((_provider: string) => {
-    // Social auth not yet implemented — proceed to welcome (anonymous session)
-    goToWelcome();
-  }, [goToWelcome]);
+  const handleGoogleSignIn = useCallback(async () => {
+    setError('');
+    setLoading(true);
+    const { error: googleError, session } = await googleSignIn();
+    setLoading(false);
+    if (googleError) {
+      setError(googleError);
+      return;
+    }
+    if (session) {
+      goToWelcome();
+    }
+    // If no session and no error, user cancelled — do nothing
+  }, [googleSignIn, goToWelcome]);
 
   // Step 1 — send OTP
   const handleSendOtp = useCallback(async () => {
@@ -160,9 +170,10 @@ export default function AccountScreen() {
 
         <View style={styles.authStack}>
           <PrimaryButton
-            label="Continue with Google"
-            onPress={() => handleSocialAuth('google')}
+            label={loading ? 'Signing in…' : 'Continue with Google'}
+            onPress={handleGoogleSignIn}
             testID="auth-google"
+            disabled={loading}
           />
           <PrimaryButton
             label="Continue with Apple"
