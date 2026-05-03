@@ -26,6 +26,7 @@ import { Session, User, AuthError } from '@supabase/supabase-js';
 import createContextHook from '@nkzw/create-context-hook';
 import { getSupabase } from '@/services/supabase';
 import { GoogleSignin, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 // Configure Google Sign-In once at module load time.
 // webClientId is the Web OAuth client ID from Google Cloud Console.
@@ -53,6 +54,11 @@ interface VerifyResult {
 }
 
 interface GoogleSignInResult {
+  error: string | null;
+  session: Session | null;
+}
+
+interface AppleSignInResult {
   error: string | null;
   session: Session | null;
 }
@@ -229,6 +235,51 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   }, []);
 
   /**
+   * Apple Sign-In — native sheet, then Supabase session via identity token.
+   *
+   * Anonymous-aware: Supabase upgrades the anonymous session in-place when
+   * signInWithIdToken is called, preserving auth.uid() and all user data.
+   */
+  const appleSignIn = useCallback(async (): Promise<AppleSignInResult> => {
+    const supabase = getSupabase();
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      const { identityToken } = credential;
+      if (!identityToken) {
+        devLog('[Auth] Apple Sign-In: no identityToken returned');
+        return { error: 'Apple sign-in failed — no identity token returned.', session: null };
+      }
+
+      devLog('[Auth] Apple identity token obtained, signing in with Supabase');
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: identityToken,
+      });
+
+      if (error) {
+        devLog('[Auth] Supabase Apple sign-in error:', error.message);
+        return { error: error.message, session: null };
+      }
+
+      devLog('[Auth] Apple sign-in OK, user:', data.session?.user.id);
+      return { error: null, session: data.session ?? null };
+    } catch (err: any) {
+      if (err?.code === 'ERR_REQUEST_CANCELED') {
+        devLog('[Auth] Apple Sign-In cancelled by user');
+        return { error: null, session: null };
+      }
+      devLog('[Auth] Apple Sign-In error:', err?.message ?? err);
+      return { error: 'Apple sign-in failed. Please try again.', session: null };
+    }
+  }, []);
+
+  /**
    * Sign out — clears the session locally and on Supabase.
    */
   const signOut = useCallback(async (): Promise<void> => {
@@ -251,6 +302,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     signInWithOtp,
     verifyOtp,
     googleSignIn,
+    appleSignIn,
     signOut,
   };
 });

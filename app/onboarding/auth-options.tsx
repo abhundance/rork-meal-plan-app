@@ -33,7 +33,7 @@ import { useOnboarding } from '@/providers/OnboardingProvider';
 
 export default function AuthOptionsScreen() {
   const insets = useSafeAreaInsets();
-  const { signInWithOtp, verifyOtp } = useAuth();
+  const { signInWithOtp, verifyOtp, googleSignIn, appleSignIn } = useAuth();
   const { setStep } = useOnboarding();
 
   // Step: 'options' | 'email' | 'otp'
@@ -49,11 +49,35 @@ export default function AuthOptionsScreen() {
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
-  const handleSocialAuth = useCallback((_provider: string) => {
-    // Social auth not yet implemented — skip to onboarding for now
-    setStep(1);
-    router.push('/onboarding/region' as Href);
-  }, [setStep]);
+  const handleGoogleSignIn = useCallback(async () => {
+    setError('');
+    setLoading(true);
+    const { error: googleError, session } = await googleSignIn();
+    setLoading(false);
+    if (googleError) {
+      setError(googleError);
+      return;
+    }
+    if (session) {
+      setStep(1);
+      router.push('/onboarding/region' as Href);
+    }
+  }, [googleSignIn, setStep]);
+
+  const handleAppleSignIn = useCallback(async () => {
+    setError('');
+    setLoading(true);
+    const { error: appleError, session } = await appleSignIn();
+    setLoading(false);
+    if (appleError) {
+      setError(appleError);
+      return;
+    }
+    if (session) {
+      setStep(1);
+      router.push('/onboarding/region' as Href);
+    }
+  }, [appleSignIn, setStep]);
 
   // Step 1 — send OTP
   const handleSendOtp = useCallback(async () => {
@@ -156,16 +180,18 @@ export default function AuthOptionsScreen() {
 
         <View style={styles.authStack}>
           <PrimaryButton
-            label="Continue with Google"
-            onPress={() => handleSocialAuth('google')}
+            label={loading ? 'Signing in…' : 'Continue with Google'}
+            onPress={handleGoogleSignIn}
             testID="auth-google"
+            disabled={loading}
           />
           <PrimaryButton
-            label="Continue with Apple"
-            onPress={() => handleSocialAuth('apple')}
+            label={loading ? 'Signing in…' : 'Continue with Apple'}
+            onPress={handleAppleSignIn}
             variant="secondary"
             testID="auth-apple"
             style={{ marginTop: 10 }}
+            disabled={loading}
           />
 
           <View style={styles.dividerRow}>
