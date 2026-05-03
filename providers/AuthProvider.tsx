@@ -27,6 +27,16 @@ import createContextHook from '@nkzw/create-context-hook';
 import { getSupabase } from '@/services/supabase';
 import { GoogleSignin, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
+
+// Generates a nonce pair: raw (sent to Supabase) + hashed (sent to Google/Apple).
+// Google and Apple embed the hashed nonce in the ID token; Supabase hashes the raw
+// nonce to verify it matches — so both sides must see the same nonce.
+async function generateNonce(): Promise<{ raw: string; hashed: string }> {
+  const raw = Crypto.randomUUID();
+  const hashed = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, raw);
+  return { raw, hashed };
+}
 
 // Configure Google Sign-In once at module load time.
 // webClientId is the Web OAuth client ID from Google Cloud Console.
@@ -194,7 +204,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const supabase = getSupabase();
     try {
       await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
+      const { raw: rawNonce, hashed: hashedNonce } = await generateNonce();
+      const response = await GoogleSignin.signIn({ nonce: hashedNonce });
 
       if (!isSuccessResponse(response)) {
         devLog('[Auth] Google Sign-In cancelled by user');
@@ -211,6 +222,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
+        nonce: rawNonce,
       });
 
       if (error) {
@@ -243,11 +255,13 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const appleSignIn = useCallback(async (): Promise<AppleSignInResult> => {
     const supabase = getSupabase();
     try {
+      const { raw: rawNonce, hashed: hashedNonce } = await generateNonce();
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
+        nonce: hashedNonce,
       });
 
       const { identityToken } = credential;
@@ -260,6 +274,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
         token: identityToken,
+        nonce: rawNonce,
       });
 
       if (error) {
