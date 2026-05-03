@@ -3,6 +3,18 @@
     "version": ">= 12.0.0",
     "appVersionSource": "remote"
   },
+  "submit": {
+    "testflight": {
+      "ios": {
+        "ascAppId": "6766037397"
+      }
+    },
+    "production": {
+      "ios": {
+        "ascAppId": "6766037397"
+      }
+    }
+  },
   "build": {
     "development": {
       "developmentClient": true,
