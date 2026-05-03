@@ -28,6 +28,7 @@ import { backfillMealImages } from '@/services/imageGeneration';
 const RECIPES_KEY         = 'saved_recipes';
 const RECENT_SEARCHES_KEY = 'recipes_recent_searches';
 const PHASE4_CLEANUP_KEY  = 'phase4_cleanup_v1';
+const STARTER_SEEDED_KEY  = '@mealplan/starter_seeded_v1';
 
 // One-time migration from old key
 async function migrateFromLegacyKey() {
@@ -181,6 +182,50 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, recipesLoaded]);
+
+  // ── One-time starter recipe seed for brand-new users ─────────────────────
+  // Runs when the recipes query resolves empty. Copies the 20 curated starter
+  // recipes into the user's personal collection so the Recipes tab isn't blank.
+  // A persistent AsyncStorage flag prevents re-seeding on subsequent launches.
+  const starterSeededRef = useRef(false);
+  useEffect(() => {
+    if (starterSeededRef.current) return;
+    if (!userId || !recipesQuery.isSuccess) return;
+    if ((recipesQuery.data?.length ?? 0) > 0) return;
+
+    starterSeededRef.current = true;
+
+    AsyncStorage.getItem(STARTER_SEEDED_KEY)
+      .then(async (done) => {
+        if (done) return;
+        await AsyncStorage.setItem(STARTER_SEEDED_KEY, 'done');
+
+        const supabase = getSupabase();
+        const { data: curated, error } = await supabase
+          .from('recipes')
+          .select('*, recipe_ingredients(*), recipe_method_steps(*)')
+          .eq('source', 'curated')
+          .contains('custom_tags', ['starter']);
+
+        if (error || !curated || curated.length === 0) {
+          console.error('[Recipes] Starter seed fetch error:', error?.message);
+          return;
+        }
+
+        console.log(`[Recipes] Seeding ${curated.length} starter recipes for new user`);
+
+        for (const row of curated) {
+          const recipe = rowToRecipe(row as Record<string, unknown>);
+          const personalCopy = { ...recipe, id: generateUUID(), source: 'discover' };
+          await upsertRecipeToSupabase(personalCopy, userId, supabase);
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['recipes', userId] });
+        console.log('[Recipes] Starter seed complete');
+      })
+      .catch((e) => console.error('[Recipes] Starter seed error:', e));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, recipesQuery.isSuccess, recipesQuery.data?.length]);
 
   const mealsRef = useRef(meals);
   mealsRef.current = meals;
