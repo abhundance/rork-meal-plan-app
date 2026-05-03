@@ -40,6 +40,7 @@ export default function InviteMemberScreen() {
   const { familySettings, userSettings, familyId } = useFamilySettings();
 
   const [inviteCode, setInviteCode]   = useState<string | null>(null);
+  const [shareLink, setShareLink]     = useState<string>('');
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState<string | null>(null);
   const [copied, setCopied]           = useState(false);
@@ -47,11 +48,6 @@ export default function InviteMemberScreen() {
   const familyName  = familySettings.family_name || 'Our Family';
   const inviterName = userSettings.display_name  || 'Someone';
 
-  // HTTPS share link — served by the Supabase Edge Function which redirects to the
-  // mealplan:// deep link. HTTPS is required so WhatsApp/iMessage render it as a
-  // tappable hyperlink (custom URL schemes are never rendered as links in messaging apps).
-  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-  const shareLink = inviteCode ? `${supabaseUrl}/functions/v1/join/${inviteCode}` : '';
   // Human-friendly display version shown in the UI link box
   const displayLink = inviteCode ? `mealplan.app/join/${inviteCode}` : '';
 
@@ -74,6 +70,21 @@ export default function InviteMemberScreen() {
         effectiveUserId,
       );
       setInviteCode(code);
+
+      // Build the Supabase redirect URL and shorten it via TinyURL so the
+      // recipient sees a clean link (e.g. tinyurl.com/XXXXX) rather than the
+      // raw Supabase project URL. Falls back to the full URL if shortening fails.
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+      const fullUrl = `${supabaseUrl}/functions/v1/join/${code}`;
+      try {
+        const res = await fetch(
+          `https://tinyurl.com/api-create.php?url=${encodeURIComponent(fullUrl)}`
+        );
+        const short = res.ok ? (await res.text()).trim() : fullUrl;
+        setShareLink(short.startsWith('http') ? short : fullUrl);
+      } catch {
+        setShareLink(fullUrl);
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Could not generate invite link.');
     } finally {
