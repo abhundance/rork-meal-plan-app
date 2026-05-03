@@ -36,7 +36,7 @@ import { useAuth } from '@/providers/AuthProvider';
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
-  const { signInWithOtp, verifyOtp, googleSignIn } = useAuth();
+  const { signInWithOtp, verifyOtp, googleSignIn, appleSignIn } = useAuth();
 
   // Step: 'options' | 'email' | 'otp'
   const [step, setScreenStep] = useState<'options' | 'email' | 'otp'>('options');
@@ -67,8 +67,21 @@ export default function AccountScreen() {
     if (session) {
       goToWelcome();
     }
-    // If no session and no error, user cancelled — do nothing
   }, [googleSignIn, goToWelcome]);
+
+  const handleAppleSignIn = useCallback(async () => {
+    setError('');
+    setLoading(true);
+    const { error: appleError, session } = await appleSignIn();
+    setLoading(false);
+    if (appleError) {
+      setError(appleError);
+      return;
+    }
+    if (session) {
+      goToWelcome();
+    }
+  }, [appleSignIn, goToWelcome]);
 
   // Step 1 — send OTP
   const handleSendOtp = useCallback(async () => {
@@ -175,12 +188,14 @@ export default function AccountScreen() {
             testID="auth-google"
             disabled={loading}
           />
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <PrimaryButton
-            label="Continue with Apple"
-            onPress={() => handleSocialAuth('apple')}
+            label={loading ? 'Signing in…' : 'Continue with Apple'}
+            onPress={handleAppleSignIn}
             variant="secondary"
             testID="auth-apple"
             style={{ marginTop: 10 }}
+            disabled={loading}
           />
 
           <View style={styles.dividerRow}>

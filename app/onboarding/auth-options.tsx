@@ -20,7 +20,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router, Href } from 'expo-router';
+import { router, Href, useLocalSearchParams } from 'expo-router';
 import { Mail, ArrowLeft, UtensilsCrossed } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
@@ -35,6 +35,10 @@ export default function AuthOptionsScreen() {
   const insets = useSafeAreaInsets();
   const { signInWithOtp, verifyOtp, googleSignIn, appleSignIn } = useAuth();
   const { setStep } = useOnboarding();
+  // 'upgrade' mode: user is already onboarded, just linking an identity to their anonymous account.
+  // On success we return them to the app instead of continuing onboarding.
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isUpgradeMode = mode === 'upgrade';
 
   // Step: 'options' | 'email' | 'otp'
   const [step, setScreenStep] = useState<'options' | 'email' | 'otp'>('options');
@@ -59,10 +63,14 @@ export default function AuthOptionsScreen() {
       return;
     }
     if (session) {
-      setStep(1);
-      router.push('/onboarding/region' as Href);
+      if (isUpgradeMode) {
+        router.replace('/(tabs)/' as Href);
+      } else {
+        setStep(1);
+        router.push('/onboarding/region' as Href);
+      }
     }
-  }, [googleSignIn, setStep]);
+  }, [googleSignIn, setStep, isUpgradeMode]);
 
   const handleAppleSignIn = useCallback(async () => {
     setError('');
@@ -74,10 +82,14 @@ export default function AuthOptionsScreen() {
       return;
     }
     if (session) {
-      setStep(1);
-      router.push('/onboarding/region' as Href);
+      if (isUpgradeMode) {
+        router.replace('/(tabs)/' as Href);
+      } else {
+        setStep(1);
+        router.push('/onboarding/region' as Href);
+      }
     }
-  }, [appleSignIn, setStep]);
+  }, [appleSignIn, setStep, isUpgradeMode]);
 
   // Step 1 — send OTP
   const handleSendOtp = useCallback(async () => {
@@ -115,14 +127,25 @@ export default function AuthOptionsScreen() {
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
       return;
     }
-    // Authenticated — proceed to onboarding
-    setStep(1);
-    router.push('/onboarding/region' as Href);
-  }, [otp, email, verifyOtp, setStep]);
+    if (isUpgradeMode) {
+      router.replace('/(tabs)/' as Href);
+    } else {
+      setStep(1);
+      router.push('/onboarding/region' as Href);
+    }
+  }, [otp, email, verifyOtp, setStep, isUpgradeMode]);
+
+  const navigateAfterAuth = useCallback(() => {
+    if (isUpgradeMode) {
+      router.replace('/(tabs)/' as Href);
+    } else {
+      setStep(1);
+      router.push('/onboarding/region' as Href);
+    }
+  }, [setStep, isUpgradeMode]);
 
   // Handle individual OTP digit input
   const handleOtpChange = useCallback((value: string, index: number) => {
-    // Accept only digits; take last character if somehow multiple pasted
     const digit = value.replace(/\D/g, '').slice(-1);
     const next = [...otp];
     next[index] = digit;
@@ -132,7 +155,6 @@ export default function AuthOptionsScreen() {
     }
     // Auto-submit when all 6 digits entered
     if (digit && index === 5 && next.every(d => d !== '')) {
-      // Trigger verify with the new complete array
       const token = next.join('');
       setError('');
       setLoading(true);
@@ -144,11 +166,10 @@ export default function AuthOptionsScreen() {
           setTimeout(() => otpRefs.current[0]?.focus(), 100);
           return;
         }
-        setStep(1);
-        router.push('/onboarding/region' as Href);
+        navigateAfterAuth();
       });
     }
-  }, [otp, email, verifyOtp, setStep]);
+  }, [otp, email, verifyOtp, navigateAfterAuth]);
 
   const handleOtpKeyPress = useCallback((e: any, index: number) => {
     if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {

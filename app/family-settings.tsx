@@ -16,6 +16,7 @@ import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
 import { Shadows, BorderRadius, Spacing } from '@/constants/theme';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import Card from '@/components/Card';
 import PrimaryButton from '@/components/PrimaryButton';
 import MealSlotEditor from '@/components/MealSlotEditor';
@@ -221,6 +222,8 @@ export default function FamilySettingsScreen() {
     updateMealSlots,
   } = useFamilySettings();
 
+  const { signOut, isAnonymous } = useAuth();
+
   const isAdmin = userSettings.is_admin;
   const adminName = familyMembers.find(m => m.is_admin)?.display_name ?? 'Admin';
 
@@ -270,12 +273,12 @@ export default function FamilySettingsScreen() {
   const handleSignOut = useCallback(() => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: () => {
-        console.log('[Settings] User signed out');
+      { text: 'Sign Out', style: 'destructive', onPress: async () => {
+        await signOut();
         router.replace('/onboarding/auth' as Href);
       }},
     ]);
-  }, []);
+  }, [signOut]);
 
   const handleDeleteAccount = useCallback(() => {
     if (deleteConfirmText !== 'DELETE') {
@@ -946,11 +949,27 @@ export default function FamilySettingsScreen() {
             />
           )}
 
-          <SettingRow
-            icon={<Lock size={18} color={Colors.primary} />}
-            label="Email"
-            value={userSettings.email || 'Sign in to add email'}
-          />
+          {isAnonymous ? (
+            <TouchableOpacity
+              style={styles.createAccountRow}
+              onPress={() => router.push('/onboarding/auth-options?mode=upgrade' as Href)}
+              testID="create-account-btn"
+              activeOpacity={0.7}
+            >
+              <Shield size={18} color={Colors.primary} strokeWidth={2} />
+              <View style={styles.createAccountText}>
+                <Text style={styles.createAccountLabel}>Create Account</Text>
+                <Text style={styles.createAccountSub}>Save your data & sign in across devices</Text>
+              </View>
+              <ChevronRight size={16} color={Colors.textSecondary} strokeWidth={2} />
+            </TouchableOpacity>
+          ) : (
+            <SettingRow
+              icon={<Lock size={18} color={Colors.primary} />}
+              label="Email"
+              value={userSettings.email || ''}
+            />
+          )}
 
           <TouchableOpacity style={styles.signOutRow} onPress={handleSignOut} testID="sign-out">
             <LogOut size={18} color={Colors.warning} strokeWidth={2} />
@@ -1397,6 +1416,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: Colors.primary,
     paddingVertical: 4,
+  },
+  createAccountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  createAccountText: {
+    flex: 1,
+  },
+  createAccountLabel: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+  createAccountSub: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    fontWeight: '400' as const,
+    color: Colors.textSecondary,
+    marginTop: 1,
   },
   signOutRow: {
     flexDirection: 'row',
