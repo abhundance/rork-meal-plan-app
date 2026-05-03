@@ -204,8 +204,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const supabase = getSupabase();
     try {
       await GoogleSignin.hasPlayServices();
-      const { raw: rawNonce, hashed: hashedNonce } = await generateNonce();
-      const response = await GoogleSignin.signIn({ nonce: hashedNonce });
+      const response = await GoogleSignin.signIn();
 
       if (!isSuccessResponse(response)) {
         devLog('[Auth] Google Sign-In cancelled by user');
@@ -222,7 +221,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
-        nonce: rawNonce,
       });
 
       if (error) {
