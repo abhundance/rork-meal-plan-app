@@ -1,7 +1,14 @@
+import * as Sentry from '@sentry/react-native';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+
+Sentry.init({
+  dsn: 'https://ac2ee366b36c8052f7608dcce8d9711d@o4511325828218880.ingest.us.sentry.io/4511325845716992',
+  enabled: !__DEV__,
+  tracesSampleRate: 1.0,
+});
 import * as Clipboard from "expo-clipboard";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -36,6 +43,7 @@ class ErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('[ErrorBoundary] Caught error:', error, errorInfo);
+    Sentry.captureException(error, { extra: { componentStack: errorInfo.componentStack } });
   }
 
   render() {
@@ -325,7 +333,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
     Nunito_600SemiBold,
@@ -365,3 +373,5 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
+export default Sentry.wrap(RootLayout);

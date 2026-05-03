@@ -42,6 +42,13 @@
       "expo-audio",
       "expo-apple-authentication",
       [
+        "@sentry/react-native/expo",
+        {
+          "organization": "abhundance",
+          "project": "react-native"
+        }
+      ],
+      [
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.260678473269-0cr9n3t23ctuleebjs33h51spql1jgog"
