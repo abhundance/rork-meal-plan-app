@@ -106,7 +106,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
       } catch (e) {
         console.error('[MealPlan] Error loading view pref:', e);
       }
-      return 'week';
+      return 'day';
     },
   });
 
