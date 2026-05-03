@@ -47,9 +47,12 @@ export default function InviteMemberScreen() {
   const familyName  = familySettings.family_name || 'Our Family';
   const inviterName = userSettings.display_name  || 'Someone';
 
-  // The deep-link the recipient taps — opens the join screen directly
-  const inviteLink = inviteCode ? `rork-app://join/${inviteCode}` : '';
-  // Human-friendly display version
+  // HTTPS share link — served by the Supabase Edge Function which redirects to the
+  // mealplan:// deep link. HTTPS is required so WhatsApp/iMessage render it as a
+  // tappable hyperlink (custom URL schemes are never rendered as links in messaging apps).
+  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+  const shareLink = inviteCode ? `${supabaseUrl}/functions/v1/join/${inviteCode}` : '';
+  // Human-friendly display version shown in the UI link box
   const displayLink = inviteCode ? `mealplan.app/join/${inviteCode}` : '';
 
   const loadInvite = useCallback(async (forceRefresh = false) => {
@@ -82,7 +85,7 @@ export default function InviteMemberScreen() {
 
   // ── Share handlers ────────────────────────────────────────────────────────
 
-  const shareMessage = `Join ${familyName}'s meal plan on the Meal Plan app!\n\nTap this link to join: ${inviteLink}\n\nThe invite expires in 7 days.`;
+  const shareMessage = `Join ${familyName}'s meal plan on the Meal Plan app!\n\nTap this link to join: ${shareLink}\n\nThe invite expires in 7 days.`;
 
   const handleNativeShare = useCallback(async () => {
     if (!inviteCode) return;
@@ -93,13 +96,13 @@ export default function InviteMemberScreen() {
       // so Android gets it either way.
       await Share.share(
         Platform.OS === 'ios'
-          ? { message: shareMessage, url: inviteLink }
+          ? { message: shareMessage, url: shareLink }
           : { message: shareMessage },
       );
     } catch {
       // user cancelled — do nothing
     }
-  }, [inviteCode, shareMessage, inviteLink]);
+  }, [inviteCode, shareMessage, shareLink]);
 
   const handleWhatsApp = useCallback(async () => {
     if (!inviteCode) return;
@@ -128,10 +131,10 @@ export default function InviteMemberScreen() {
 
   const handleCopy = useCallback(async () => {
     if (!inviteCode) return;
-    await Clipboard.setStringAsync(inviteLink);
+    await Clipboard.setStringAsync(shareLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [inviteCode, inviteLink]);
+  }, [inviteCode, shareLink]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 

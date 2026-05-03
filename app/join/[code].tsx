@@ -1,7 +1,7 @@
 /**
  * Join screen — opened when someone taps a family invite link.
  *
- * Deep link: rork-app://join/XXXXXXXX
+ * Deep link: mealplan://join/XXXXXXXX
  * Expo Router maps this to app/join/[code].tsx with params.code = 'XXXXXXXX'
  *
  * Flow:
