@@ -355,6 +355,7 @@ Items still pending before public launch:
 - [ ] Upgrade anonymous users to full auth via `linkIdentity()` (currently anonymous auth only)
 - [ ] Production error monitoring / crash reporting
 - [ ] App Store / Play Store submission prep
+- [ ] **Custom SMTP for auth emails (HARD launch blocker).** Supabase's built-in email service is capped at ~30 emails per hour per project (total across all users — not per user). Hits all auth flows: OTP, magic link, signup confirm, password reset. Any spike of signups during launch will silently fail (the app says "OTP sent" but no email arrives). Wire up Resend (recommended), Postmark, or SendGrid in Supabase → Project Settings → Auth → SMTP Settings. Resend free tier covers 3,000 emails/month, paid is ~$20/mo for 50k.
 
 ---
 
