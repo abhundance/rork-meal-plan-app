@@ -224,13 +224,19 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         return { error: 'Google sign-in failed — no ID token returned.', session: null };
       }
 
-      // Decoded nonce diagnostic — fires in TestFlight too (uses console.log, not
-      // devLog) so we can see the actual nonce claim if Supabase rejects again.
-      // Safe to leave on: it logs a hash, not a secret. Remove once stable.
+      // Decoded nonce diagnostic — fires in TestFlight (uses console.log, not
+      // devLog) AND embeds prefixes into any error returned to the UI, so we can
+      // diagnose nonce mismatches from a screenshot of the on-screen alert
+      // without needing Mac Console.app. Logs hash prefixes only — no secrets.
+      // Remove the in-error embedding once Google Sign-In is stable.
+      let tokenNonceClaim: string | undefined;
       try {
         const payload = JSON.parse(atob(idToken.split('.')[1]));
-        console.log('[Auth] Google ID token nonce claim:', payload.nonce, '| sha256(raw):', hashedNonce);
-      } catch {}
+        tokenNonceClaim = payload?.nonce;
+        console.log('[Auth] Google ID token nonce claim:', tokenNonceClaim, '| sha256(raw):', hashedNonce);
+      } catch (decodeErr) {
+        console.log('[Auth] JWT decode failed:', decodeErr);
+      }
 
       devLog('[Auth] Google ID token obtained, signing in with Supabase');
       const { data, error } = await supabase.auth.signInWithIdToken({
@@ -240,8 +246,12 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       });
 
       if (error) {
-        devLog('[Auth] Supabase Google sign-in error:', error.message);
-        return { error: error.message, session: null };
+        const diag =
+          ` [DIAG claim=${(tokenNonceClaim ?? 'NONE').slice(0, 16)}` +
+          ` expected=${hashedNonce.slice(0, 16)}` +
+          ` raw=${rawNonce.slice(0, 8)}]`;
+        devLog('[Auth] Supabase Google sign-in error:', error.message, diag);
+        return { error: error.message + diag, session: null };
       }
 
       devLog('[Auth] Google sign-in OK, user:', data.session?.user.id);
