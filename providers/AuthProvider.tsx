@@ -204,14 +204,13 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const supabase = getSupabase();
     try {
       await GoogleSignin.hasPlayServices();
-      const { raw: rawNonce, hashed: hashedNonce } = await generateNonce();
-      // Google's native iOS/Android SDK (via @react-native-google-signin) hashes
-      // the nonce internally before calling Google's auth servers. So we pass the
-      // RAW nonce here — the SDK will SHA-256 it, the token comes back with that
-      // hash in the `nonce` claim, and Supabase verifies SHA-256(rawNonce) against
-      // it. This is the OPPOSITE of Apple, which embeds the nonce verbatim and
-      // therefore wants the pre-hashed value. See lessons.md #12.
-      const response = await GoogleSignin.signIn({ nonce: rawNonce });
+      // Note: no client-side nonce. The Supabase project has "Skip nonce check"
+      // enabled for Google (Authentication → Providers → Google), which is the
+      // pattern Supabase officially recommends for native iOS Google Sign-In —
+      // the Google iOS SDK has format quirks that fight nonce verification.
+      // Apple Sign-In below still uses nonce verification (Apple's flow works
+      // correctly). See lessons.md #12 for the full history.
+      const response = await GoogleSignin.signIn();
 
       if (!isSuccessResponse(response)) {
         devLog('[Auth] Google Sign-In cancelled by user');
@@ -224,34 +223,15 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         return { error: 'Google sign-in failed — no ID token returned.', session: null };
       }
 
-      // Decoded nonce diagnostic — fires in TestFlight (uses console.log, not
-      // devLog) AND embeds prefixes into any error returned to the UI, so we can
-      // diagnose nonce mismatches from a screenshot of the on-screen alert
-      // without needing Mac Console.app. Logs hash prefixes only — no secrets.
-      // Remove the in-error embedding once Google Sign-In is stable.
-      let tokenNonceClaim: string | undefined;
-      try {
-        const payload = JSON.parse(atob(idToken.split('.')[1]));
-        tokenNonceClaim = payload?.nonce;
-        console.log('[Auth] Google ID token nonce claim:', tokenNonceClaim, '| sha256(raw):', hashedNonce);
-      } catch (decodeErr) {
-        console.log('[Auth] JWT decode failed:', decodeErr);
-      }
-
       devLog('[Auth] Google ID token obtained, signing in with Supabase');
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
-        nonce: rawNonce,
       });
 
       if (error) {
-        const diag =
-          ` [DIAG claim=${(tokenNonceClaim ?? 'NONE').slice(0, 16)}` +
-          ` expected=${hashedNonce.slice(0, 16)}` +
-          ` raw=${rawNonce.slice(0, 8)}]`;
-        devLog('[Auth] Supabase Google sign-in error:', error.message, diag);
-        return { error: error.message + diag, session: null };
+        devLog('[Auth] Supabase Google sign-in error:', error.message);
+        return { error: error.message, session: null };
       }
 
       devLog('[Auth] Google sign-in OK, user:', data.session?.user.id);
