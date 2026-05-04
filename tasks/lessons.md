@@ -132,23 +132,29 @@ const queryClient = new QueryClient({
 ### 11. No Unsplash in the App
 The app does not use Unsplash for any image functionality. AI-generated images are created via the image generation service and stored in Supabase Storage. Some legacy curated recipe data in the DB still has Unsplash URLs — these are leftover from the old Discover tab and are not actively used. The onboarding screens use static food photo URLs for decorative backgrounds (not an API integration).
 
-### 12. Google Sign-In Must Use the Same Nonce Pattern as Apple — Never Revert It
-**`@react-native-google-signin/google-signin` v13+ fully supports nonce.** The SDK does NOT silently drop the `nonce` parameter passed to `GoogleSignin.signIn({ nonce })`. It forwards it to the native iOS/Android Google SDKs, which embed it in the returned ID token's `nonce` claim. Supabase then verifies SHA-256(rawNonce) against that claim.
+### 12. Google and Apple Sign-In Need DIFFERENT Nonce Inputs — Don't Symmetrize Them
+**Apple wants the pre-hashed nonce. Google wants the raw nonce.** This is counterintuitive — the two providers look symmetric in `providers/AuthProvider.tsx`, but they are not. Getting it wrong produces two distinct symptoms, both reported as "nonce" errors by Supabase.
 
-**The only correct pattern in `providers/AuthProvider.tsx` `googleSignIn`** (mirrors `appleSignIn` in the same file):
+**Why the asymmetry:** Apple's SDK embeds the nonce parameter verbatim in the ID token's `nonce` claim. So you give it `SHA-256(raw)` and that's what comes back. Google's iOS/Android SDK (via `@react-native-google-signin/google-signin` v13+) hashes the nonce internally before sending it to Google's auth servers. So you give it `raw` and `SHA-256(raw)` is what comes back in the token. Either way, you pass the **raw** nonce to Supabase, which computes SHA-256 and compares.
+
+**Correct pattern in `providers/AuthProvider.tsx`:**
 ```ts
 const { raw: rawNonce, hashed: hashedNonce } = await generateNonce();
-const response = await GoogleSignin.signIn({ nonce: hashedNonce });
-// ...
-await supabase.auth.signInWithIdToken({
-  provider: 'google',
-  token: idToken,
-  nonce: rawNonce,
-});
+
+// Apple: pass HASHED to provider, RAW to Supabase
+await AppleAuthentication.signInAsync({ ..., nonce: hashedNonce });
+await supabase.auth.signInWithIdToken({ provider: 'apple', token, nonce: rawNonce });
+
+// Google: pass RAW to provider, RAW to Supabase
+await GoogleSignin.signIn({ nonce: rawNonce });
+await supabase.auth.signInWithIdToken({ provider: 'google', token, nonce: rawNonce });
 ```
 
-**Symptom of removing it:** Supabase rejects with `"Passed nonce and nonce in id_token should either both exist or not"`. This error means presence-mismatch — the token has a nonce claim but the client sent none (or vice versa). Both sides must agree.
+**Three error messages, three diagnoses:**
+1. **`"Passed nonce and nonce in id_token should either both exist or not"`** — presence mismatch. Code sent no nonce to Supabase but the token has one (or vice versa). Add the nonce to whichever side is missing it.
+2. **`"nonces mismatch"`** — both sides have a nonce but they're not equal. Almost always means you passed the *hashed* nonce to Google; the SDK then hashed it again, producing `SHA-256(SHA-256(raw))` in the token, which doesn't equal `SHA-256(raw)` that Supabase computes. **Switch Google to `rawNonce`.**
+3. Sign-in returns no token / cancelled — unrelated to nonce; check Google client IDs in `GoogleSignin.configure()` and the Supabase dashboard.
 
-**Why this lesson exists:** Two prior sessions removed the nonce from Google Sign-In based on the false assumption that "the SDK drops it." Both broke the flow. Before ever removing the nonce again, look at the dev-only `[Auth] Google ID token nonce claim:` log printed in `googleSignIn` — it decodes the JWT and shows whether the nonce is actually in the token. That log is evidence; the SDK-drop theory is not.
+**Why this lesson exists:** Three prior sessions got this wrong. Two removed the nonce from Google entirely based on the false assumption that "the SDK drops it." A third symmetrized Google with Apple (passing hashed to both), producing the "nonces mismatch" error. The correct asymmetric pattern above is verified working on `com.abhundance.mealplan` (TestFlight build 11+).
 
-**Do not remove the nonce flow from `googleSignIn` unless that log proves the SDK is dropping it on the current build.** If Supabase still errors with both nonces present and equal, the bug is in the Supabase Dashboard config (Authentication → Providers → Google → Authorized Client IDs / Skip nonce checks), not the code.
+**Diagnostic log:** `googleSignIn` includes a `console.log('[Auth] Google ID token nonce claim:', payload.nonce, '| sha256(raw):', hashedNonce)` that decodes the JWT and prints both values. This fires in TestFlight builds (uses `console.log`, not `devLog`). If they ever diverge again, this is your evidence — read it before changing the code.

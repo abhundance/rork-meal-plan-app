@@ -205,7 +205,13 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     try {
       await GoogleSignin.hasPlayServices();
       const { raw: rawNonce, hashed: hashedNonce } = await generateNonce();
-      const response = await GoogleSignin.signIn({ nonce: hashedNonce });
+      // Google's native iOS/Android SDK (via @react-native-google-signin) hashes
+      // the nonce internally before calling Google's auth servers. So we pass the
+      // RAW nonce here — the SDK will SHA-256 it, the token comes back with that
+      // hash in the `nonce` claim, and Supabase verifies SHA-256(rawNonce) against
+      // it. This is the OPPOSITE of Apple, which embeds the nonce verbatim and
+      // therefore wants the pre-hashed value. See lessons.md #12.
+      const response = await GoogleSignin.signIn({ nonce: rawNonce });
 
       if (!isSuccessResponse(response)) {
         devLog('[Auth] Google Sign-In cancelled by user');
@@ -218,15 +224,13 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         return { error: 'Google sign-in failed — no ID token returned.', session: null };
       }
 
-      // Confirms the nonce we sent to Google was actually embedded in the returned
-      // ID token. If this logs `nonce: undefined`, the SDK isn't forwarding it and
-      // Supabase will reject — see lessons.md.
-      if (__DEV__) {
-        try {
-          const payload = JSON.parse(atob(idToken.split('.')[1]));
-          devLog('[Auth] Google ID token nonce claim:', payload.nonce, '| expected:', hashedNonce);
-        } catch {}
-      }
+      // Decoded nonce diagnostic — fires in TestFlight too (uses console.log, not
+      // devLog) so we can see the actual nonce claim if Supabase rejects again.
+      // Safe to leave on: it logs a hash, not a secret. Remove once stable.
+      try {
+        const payload = JSON.parse(atob(idToken.split('.')[1]));
+        console.log('[Auth] Google ID token nonce claim:', payload.nonce, '| sha256(raw):', hashedNonce);
+      } catch {}
 
       devLog('[Auth] Google ID token obtained, signing in with Supabase');
       const { data, error } = await supabase.auth.signInWithIdToken({
