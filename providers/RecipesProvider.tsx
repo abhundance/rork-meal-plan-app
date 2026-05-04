@@ -28,7 +28,8 @@ import { backfillMealImages } from '@/services/imageGeneration';
 const RECIPES_KEY         = 'saved_recipes';
 const RECENT_SEARCHES_KEY = 'recipes_recent_searches';
 const PHASE4_CLEANUP_KEY  = 'phase4_cleanup_v1';
-const STARTER_SEEDED_KEY  = '@mealplan/starter_seeded_v1';
+// Per-user key so anon-user seeding never blocks a real-account seed
+function starterSeededKey(uid: string) { return `@mealplan/starter_seeded_v1_${uid}`; }
 
 // One-time migration from old key
 async function migrateFromLegacyKey() {
@@ -184,21 +185,29 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
   }, [userId, recipesLoaded]);
 
   // ── One-time starter recipe seed for brand-new users ─────────────────────
-  // Runs when the recipes query resolves empty. Copies the 20 curated starter
-  // recipes into the user's personal collection so the Recipes tab isn't blank.
-  // A persistent AsyncStorage flag prevents re-seeding on subsequent launches.
-  const starterSeededRef = useRef(false);
+  // Copies 20 curated starter recipes into the user's personal collection so
+  // the Recipes tab isn't blank on first launch.
+  //
+  // The ref stores the last userId that was handled this session — it resets
+  // automatically when userId changes (anon → Apple/Google), which is the key
+  // difference from a plain boolean ref: seeding runs independently for each
+  // distinct userId rather than being blocked by the anon-user run.
+  //
+  // The AsyncStorage flag is scoped per-userId so a different account on the
+  // same device never inherits another account's "already seeded" state.
+  const starterSeededForRef = useRef<string | null>(null);
   useEffect(() => {
-    if (starterSeededRef.current) return;
     if (!userId || !recipesQuery.isSuccess) return;
     if ((recipesQuery.data?.length ?? 0) > 0) return;
+    if (starterSeededForRef.current === userId) return; // already handled in this session
 
-    starterSeededRef.current = true;
+    starterSeededForRef.current = userId;
+    const seededKey = starterSeededKey(userId);
 
-    AsyncStorage.getItem(STARTER_SEEDED_KEY)
+    AsyncStorage.getItem(seededKey)
       .then(async (done) => {
         if (done) return;
-        await AsyncStorage.setItem(STARTER_SEEDED_KEY, 'done');
+        await AsyncStorage.setItem(seededKey, 'done');
 
         const supabase = getSupabase();
         const { data: curated, error } = await supabase
