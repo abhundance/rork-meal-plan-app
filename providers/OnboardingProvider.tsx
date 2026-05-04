@@ -143,6 +143,24 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     updateOnboarding({ enabled_slots: slots });
   }, [updateOnboarding]);
 
+  // ── Onboarding v2 — household composition setters ─────────────────────────
+  // household_size is kept in sync as adults + kids for back-compat with
+  // welcome.tsx (which reads default_serving_size from household_size).
+
+  const setHouseholdAdults = useCallback((adults: number) => {
+    const kids = dataRef.current.household_kids ?? 0;
+    updateOnboarding({ household_adults: adults, household_size: adults + kids });
+  }, [updateOnboarding]);
+
+  const setHouseholdKids = useCallback((kids: number) => {
+    const adults = dataRef.current.household_adults ?? 2;
+    updateOnboarding({ household_kids: kids, household_size: adults + kids });
+  }, [updateOnboarding]);
+
+  const setKidsAges = useCallback((ages: string[]) => {
+    updateOnboarding({ kids_ages: ages });
+  }, [updateOnboarding]);
+
   const setStarterMeals = useCallback((meals: StarterMealPick[]) => {
     updateOnboarding({ starter_meals: meals });
   }, [updateOnboarding]);
@@ -190,6 +208,10 @@ export const [OnboardingProvider, useOnboarding] = createContextHook(() => {
     setCookingTimePref,
     setPlanningStyle,
     setEnabledSlots,
+    // ── Onboarding v2 — household composition ───────────────────────────────
+    setHouseholdAdults,
+    setHouseholdKids,
+    setKidsAges,
     setStarterMeals,
     addStarterMeal,
     completeOnboarding,

@@ -114,6 +114,10 @@ export interface OnboardingData {
   planning_style?: 'familiar' | 'balanced' | 'adventurous';
   enabled_slots?: string[];       // slot_ids that are toggled on
   starter_meals?: StarterMealPick[]; // seeded into Favs on onboarding completion
+  // ── Onboarding v2 — household composition ─────────────────────────────────
+  household_adults?: number;      // adults count (default 2)
+  household_kids?: number;        // kids count (default 0)
+  kids_ages?: string[];           // age-range chips: 'under_2' | '3_5' | '6_10' | '11_15' | '16_plus'
 }
 
 export interface Ingredient {
