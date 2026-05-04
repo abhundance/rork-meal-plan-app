@@ -187,3 +187,24 @@ git stash && git pull && npx expo start --clear
 **Always verify the pull worked** by asking the user to run `git log --oneline -1` and confirming the hash matches the last pushed commit. If it doesn't match, the fix is not on their device — do not proceed as if it is.
 
 **Important:** `.git/index.lock` and `.git/config.lock` files may exist from previous failed git operations. If `git remote set-url` or `git commit` fails with "File exists", check and remove these lock files first. They may require `mcp__cowork__allow_cowork_file_delete` to remove.
+
+### 15. Google Sign-In Must Use the Same Nonce Pattern as Apple — Never Revert It
+**`@react-native-google-signin/google-signin` v13+ fully supports nonce.** The SDK does NOT silently drop the `nonce` parameter passed to `GoogleSignin.signIn({ nonce })`. It forwards it to the native iOS/Android Google SDKs, which embed it in the returned ID token's `nonce` claim. Supabase then verifies SHA-256(rawNonce) against that claim.
+
+**The only correct pattern in `providers/AuthProvider.tsx` `googleSignIn`** (mirrors `appleSignIn` in the same file):
+```ts
+const { raw: rawNonce, hashed: hashedNonce } = await generateNonce();
+const response = await GoogleSignin.signIn({ nonce: hashedNonce });
+// ...
+await supabase.auth.signInWithIdToken({
+  provider: 'google',
+  token: idToken,
+  nonce: rawNonce,
+});
+```
+
+**Symptom of removing it:** Supabase rejects with `"Passed nonce and nonce in id_token should either both exist or not"`. This error means presence-mismatch — the token has a nonce claim but the client sent none (or vice versa). Both sides must agree.
+
+**Why this lesson exists:** Two prior sessions removed the nonce from Google Sign-In based on the false assumption that "the SDK drops it." Both broke the flow. Before ever removing the nonce again, look at the dev-only `[Auth] Google ID token nonce claim:` log printed in `googleSignIn` — it decodes the JWT and shows whether the nonce is actually in the token. That log is evidence; the SDK-drop theory is not.
+
+**Do not remove the nonce flow from `googleSignIn` unless that log proves the SDK is dropping it on the current build.** If Supabase still errors with both nonces present and equal, the bug is in the Supabase Dashboard config (Authentication → Providers → Google → Authorized Client IDs / Skip nonce checks), not the code.

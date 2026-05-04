@@ -204,7 +204,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const supabase = getSupabase();
     try {
       await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
+      const { raw: rawNonce, hashed: hashedNonce } = await generateNonce();
+      const response = await GoogleSignin.signIn({ nonce: hashedNonce });
 
       if (!isSuccessResponse(response)) {
         devLog('[Auth] Google Sign-In cancelled by user');
@@ -217,10 +218,21 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         return { error: 'Google sign-in failed — no ID token returned.', session: null };
       }
 
+      // Confirms the nonce we sent to Google was actually embedded in the returned
+      // ID token. If this logs `nonce: undefined`, the SDK isn't forwarding it and
+      // Supabase will reject — see lessons.md.
+      if (__DEV__) {
+        try {
+          const payload = JSON.parse(atob(idToken.split('.')[1]));
+          devLog('[Auth] Google ID token nonce claim:', payload.nonce, '| expected:', hashedNonce);
+        } catch {}
+      }
+
       devLog('[Auth] Google ID token obtained, signing in with Supabase');
       const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
+        nonce: rawNonce,
       });
 
       if (error) {
