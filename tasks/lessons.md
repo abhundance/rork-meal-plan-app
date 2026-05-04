@@ -132,63 +132,7 @@ const queryClient = new QueryClient({
 ### 11. No Unsplash in the App
 The app does not use Unsplash for any image functionality. AI-generated images are created via the image generation service and stored in Supabase Storage. Some legacy curated recipe data in the DB still has Unsplash URLs — these are leftover from the old Discover tab and are not actively used. The onboarding screens use static food photo URLs for decorative backgrounds (not an API integration).
 
-### 12. Rork Metro Wrapper Caches Old Bundles — Must Remove for Local Expo
-**The `@rork-ai/toolkit-sdk` package includes a Metro transformer (`withRorkMetro()` in `metro.config.js`) that caches pre-compiled bundles.** When running locally with `npx expo start`, this wrapper silently serves stale cached code instead of reading updated source files from disk. Code changes appear on GitHub but never render on device — clearing Metro cache and `.expo` alone does NOT fix it.
-
-**When switching from Rork to local Expo development:**
-1. Remove the Rork Metro wrapper from `metro.config.js`:
-   ```js
-   // ✅ Correct — vanilla Expo Metro
-   const { getDefaultConfig } = require("expo/metro-config");
-   module.exports = getDefaultConfig(__dirname);
-
-   // ❌ Wrong — Rork wrapper caches old bundles
-   const { withRorkMetro } = require("@rork-ai/toolkit-sdk/metro");
-   module.exports = withRorkMetro(config);
-   ```
-2. Uninstall the Rork SDK: `npm uninstall @rork-ai/toolkit-sdk --legacy-peer-deps`
-3. Clean all caches: `rm -rf node_modules/.cache .expo`
-4. Reinstall: `npm install --legacy-peer-deps`
-5. Start fresh: `npx expo start --clear`
-
-**All 5 steps are required.** Skipping the uninstall or only clearing cache will NOT work — the SDK's metro-transformer hooks into the bundler even without `withRorkMetro()` in the config if the package is still installed.
-
-### 13. Pushing to GitHub from Cowork — Use git push, Not API
-**The Cowork sandbox blocks all HTTPS traffic to `api.github.com` via its proxy.** Python `requests`, `urllib`, `PyGithub`, `curl`, and Node.js `https` all fail with `403 Forbidden` or DNS resolution errors. Do NOT waste time trying API-based approaches.
-
-**What works:** Embed the PAT directly in the git remote URL, then use `git push`:
-```bash
-git remote set-url origin https://<PAT>@github.com/abhundance/rork-meal-plan-app.git
-git add <files>
-git commit -m "message"
-git push origin master:main   # ← ALWAYS push to main, not master
-```
-
-**CRITICAL: The user's repo default branch is `main`.** The Cowork sandbox local clone uses `master`. Always push with `master:main` refspec. Pushing to `master` only (without `:main`) creates a separate branch the user never pulls from — `git pull` will say "already up to date" even though the changes aren't there. When in doubt, run `git branch -a` to confirm branch names before pushing.
-
-**What does NOT work (all blocked by sandbox proxy):**
-- `curl` to api.github.com
-- Python `requests` / `urllib` / `PyGithub`
-- Node.js `https` / `fetch`
-- SOCKS proxy on any port
-- `gh` CLI (not installed)
-
-### 14. User's Machine Has Local Edits — Always Use `git stash && git pull`
-**Never tell the user to run `git pull` alone.** The user's machine often has local uncommitted changes to files (from Expo's hot-reload, linters, or previous edits). A plain `git pull` will abort with "Your local changes would be overwritten by merge" — confusing and frustrating for a non-technical user.
-
-**Always give the user this exact three-command sequence:**
-```bash
-git stash && git pull && npx expo start --clear
-```
-- `git stash` parks local changes safely before the pull
-- `git pull` can then merge cleanly
-- `npx expo start --clear` ensures Metro picks up the new code with a clean cache
-
-**Always verify the pull worked** by asking the user to run `git log --oneline -1` and confirming the hash matches the last pushed commit. If it doesn't match, the fix is not on their device — do not proceed as if it is.
-
-**Important:** `.git/index.lock` and `.git/config.lock` files may exist from previous failed git operations. If `git remote set-url` or `git commit` fails with "File exists", check and remove these lock files first. They may require `mcp__cowork__allow_cowork_file_delete` to remove.
-
-### 15. Google Sign-In Must Use the Same Nonce Pattern as Apple — Never Revert It
+### 12. Google Sign-In Must Use the Same Nonce Pattern as Apple — Never Revert It
 **`@react-native-google-signin/google-signin` v13+ fully supports nonce.** The SDK does NOT silently drop the `nonce` parameter passed to `GoogleSignin.signIn({ nonce })`. It forwards it to the native iOS/Android Google SDKs, which embed it in the returned ID token's `nonce` claim. Supabase then verifies SHA-256(rawNonce) against that claim.
 
 **The only correct pattern in `providers/AuthProvider.tsx` `googleSignIn`** (mirrors `appleSignIn` in the same file):

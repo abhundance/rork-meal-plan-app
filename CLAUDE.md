@@ -33,33 +33,15 @@
 
 ---
 
-## Git Workflow — Critical Rules
+## Git Workflow
 
-> ⚠️ The user is non-technical. All git complexity must be handled proactively by the AI. Never make the user debug git issues themselves.
+The repo's default branch is `main`. There is no `master` branch — push directly to `main`.
 
-### Pushing changes (from Cowork sandbox → GitHub)
-The Cowork sandbox checks out a `master` branch locally. The repo's default branch is `main`. **Always push with the full refspec:**
-```bash
-git remote set-url origin https://<PAT>@github.com/abhundance/rork-meal-plan-app.git
-git add <files>
-git commit -m "message"
-git push origin master:main   # ← NEVER just "master" — always "master:main"
-```
-Pushing to `master` only creates a hidden branch the user never sees. Their `git pull` will say "already up to date" even though nothing changed on their machine.
-
-### Telling the user to pull
-Never tell the user to run `git pull` alone — their machine often has local edits that block it. **Always give them this exact command:**
-```bash
-git stash && git pull && npx expo start --clear
-```
-`git stash` safely parks any local changes before pulling, so the merge never gets blocked.
-
-### Verifying the user has the right code
-Before declaring a fix done, ask the user to run:
-```bash
-git log --oneline -1
-```
-If the commit hash doesn't match what was just pushed, the fix isn't on their machine yet — do not proceed as if it is.
+**Standard flow per session:**
+1. Clone (or `git pull`) https://github.com/abhundance/rork-meal-plan-app at session start.
+2. Edit files locally with normal file edits.
+3. Stage specific files (`git add <files>`), commit with a descriptive message and the standard `Co-Authored-By: Claude` trailer.
+4. Push directly to `main` (`git push origin main`). No PR review process for this project.
 
 ---
 
@@ -281,19 +263,11 @@ Shadows.card / header / tabBar  — all use Colors.shadow (red-tinted)
 All code changes are made directly in the GitHub repository (`https://github.com/abhundance/rork-meal-plan-app`). The app runs locally via `npx expo start` and previews on device via Expo Go.
 
 **Standard flow:**
-1. Edit source files directly (via AI tools, local editor, or this agent)
-2. Commit and push to `master` on GitHub (use PAT embedded in remote URL — see Lesson 13)
-3. User runs `git pull` in their local `~/MealPlanApp` directory
-4. Expo Go hot-reloads the changes automatically
-
-**Pushing from Cowork sandbox:**
-```bash
-git remote set-url origin https://<PAT>@github.com/abhundance/rork-meal-plan-app.git
-git add <files> && git commit -m "message" && git push origin master
-```
-> ⚠️ The sandbox blocks all HTTPS API calls to GitHub. Only `git push` via embedded PAT works. See Lesson 13 in `tasks/lessons.md`.
-
-> ⚠️ If the user's local file doesn't update after `git pull`, use `git fetch origin && git checkout origin/master -- <file>` to force-overwrite.
+1. Clone or pull the repo to a working directory at session start.
+2. Edit source files directly.
+3. Commit and push to `main` on GitHub.
+4. User runs `git pull` in their local `~/MealPlanApp` directory.
+5. Expo Go hot-reloads the changes automatically.
 
 ---
 
