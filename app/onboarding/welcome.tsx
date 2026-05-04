@@ -1,28 +1,40 @@
 /**
- * Onboarding Screen 6 — Welcome / Completion
+ * Onboarding Screen 5 — Welcome / Completion (v2)
  *
- * Animated celebration screen. Syncs the three settings collected during
- * onboarding (household size, measurement units, enabled meal slots) into
- * FamilySettings, marks onboarding complete, and drops the user into the app.
+ * Celebration moment after the four data-collection screens. Strips the
+ * old "Your meal planner is ready" copy and inline icon — replaces with
+ * a tighter, on-brand layout matching the editorial flow:
  *
- * Terminal — no back gesture.
+ *   [4-dot progress · 04/04]
+ *   ────────────────────────
+ *               (centred)
+ *               🎉
+ *               You're set, [name].
+ *               Welcome to your kitchen.
+ *               [ Open my plan ]
+ *
+ * Sync sequence is preserved EXACTLY — this is the only place that
+ * pushes onboarding state into FamilySettings + Supabase. Any change
+ * here will break the rest of the app's understanding of family setup.
+ *
+ * Terminal — no back gesture (set in _layout.tsx).
  */
 import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Href } from 'expo-router';
-import { UtensilsCrossed } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { FontFamily } from '@/constants/typography';
-import { BorderRadius } from '@/constants/theme';
 import PrimaryButton from '@/components/PrimaryButton';
+import OnboardingProgress from '@/components/OnboardingProgress';
 import { useOnboarding } from '@/providers/OnboardingProvider';
 import { useFamilySettings } from '@/providers/FamilySettingsProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { getSupabase } from '@/services/supabase';
 import { MealSlot } from '@/types';
 
-// The 4 available slot definitions — order is canonical
+// The 4 available slot definitions — order is canonical and MUST match
+// the SLOTS list in rhythm.tsx and the legacy slots.tsx
 const SLOT_DEFINITIONS: MealSlot[] = [
   { slot_id: 'breakfast', name: 'Breakfast', order: 0 },
   { slot_id: 'lunch',     name: 'Lunch',     order: 1 },
@@ -36,23 +48,24 @@ export default function WelcomeScreen() {
   const { updateFamilySettings } = useFamilySettings();
   const { session } = useAuth();
 
-  const [isCommitting, setIsCommitting] = useState(false);
+  const [isCommitting, setIsCommitting] = useState<boolean>(false);
 
-  const logoScale    = useRef(new Animated.Value(0.3)).current;
-  const logoOpacity  = useRef(new Animated.Value(0)).current;
+  // ── Entrance animations ──────────────────────────────────────────
+  const emojiScale   = useRef(new Animated.Value(0.3)).current;
+  const emojiOpacity = useRef(new Animated.Value(0)).current;
   const textOpacity  = useRef(new Animated.Value(0)).current;
   const textTranslate = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
     Animated.sequence([
       Animated.parallel([
-        Animated.spring(logoScale, {
+        Animated.spring(emojiScale, {
           toValue: 1,
           useNativeDriver: true,
           speed: 8,
           bounciness: 12,
         }),
-        Animated.timing(logoOpacity, {
+        Animated.timing(emojiOpacity, {
           toValue: 1,
           duration: 400,
           useNativeDriver: true,
@@ -72,21 +85,18 @@ export default function WelcomeScreen() {
         }),
       ]),
     ]).start();
-  }, [logoScale, logoOpacity, textOpacity, textTranslate]);
+  }, [emojiScale, emojiOpacity, textOpacity, textTranslate]);
 
+  // ── Completion handler — sync sequence MUST stay in this order ──
   const handleGetStarted = () => {
     if (isCommitting) return;
     setIsCommitting(true);
 
-    // Build meal_slots from the enabled_slots the user chose in slots.tsx
     const enabledSlotIds = data.enabled_slots ?? ['breakfast', 'lunch', 'dinner'];
     const mealSlots: MealSlot[] = SLOT_DEFINITIONS
       .filter(slot => enabledSlotIds.includes(slot.slot_id))
       .map((slot, idx) => ({ ...slot, order: idx }));
 
-    // Sync collected settings into FamilySettings.
-    // family_name is not collected in this onboarding flow — default to 'My Family'
-    // so the app never renders a blank name anywhere.
     updateFamilySettings({
       family_name:          data.family_name || 'My Family',
       measurement_units:    data.measurement_units ?? 'metric',
@@ -94,7 +104,6 @@ export default function WelcomeScreen() {
       default_serving_size: data.household_size ?? 2,
     });
 
-    // Mark onboarding complete server-side for multi-device support
     const userId = session?.user?.id;
     if (userId) {
       getSupabase()
@@ -106,24 +115,31 @@ export default function WelcomeScreen() {
         });
     }
 
-    // Mark complete locally THEN navigate so the home screen's check sees the flag
     completeOnboarding();
     router.replace('/(tabs)' as Href);
   };
 
+  const familyName = data.family_name?.trim();
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 16 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
+      {/* ── Top bar: progress only (no back — terminal screen) ──────── */}
+      <View style={styles.topBar}>
+        <View style={styles.spacer} />
+        <OnboardingProgress total={4} current={4} />
+        <Text style={styles.counter}>04 / 04</Text>
+      </View>
+
+      {/* ── Celebration block (vertically centred) ──────────────────── */}
       <View style={styles.center}>
-        <Animated.View
+        <Animated.Text
           style={[
-            styles.logoWrap,
-            { transform: [{ scale: logoScale }], opacity: logoOpacity },
+            styles.emoji,
+            { transform: [{ scale: emojiScale }], opacity: emojiOpacity },
           ]}
         >
-          <View style={styles.logoCircle}>
-            <UtensilsCrossed size={48} color={Colors.primary} strokeWidth={2} />
-          </View>
-        </Animated.View>
+          🎉
+        </Animated.Text>
 
         <Animated.View
           style={[
@@ -131,24 +147,17 @@ export default function WelcomeScreen() {
             { opacity: textOpacity, transform: [{ translateY: textTranslate }] },
           ]}
         >
-          <Text style={styles.allSet}>🎉 You're all set!</Text>
-          {data.family_name ? (
-            <Text style={styles.headline}>
-              Welcome,{' '}
-              <Text style={styles.headlineAccent}>{data.family_name}!</Text>
-            </Text>
-          ) : (
-            <Text style={styles.headline}>Your meal planner is ready.</Text>
-          )}
-          <Text style={styles.subtitle}>
-            Start by adding your favourite meals, then plan your week — it takes minutes.
+          <Text style={styles.title}>
+            {familyName ? `You're set,\n${familyName}.` : `You're all set.`}
           </Text>
+          <Text style={styles.subtitle}>Welcome to your kitchen.</Text>
         </Animated.View>
       </View>
 
-      <View style={styles.footer}>
+      {/* ── CTA pinned to bottom ────────────────────────────────────── */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <PrimaryButton
-          label="Let's start planning"
+          label="Open my plan"
           onPress={handleGetStarted}
           disabled={isCommitting}
           testID="get-started-btn"
@@ -163,52 +172,48 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  spacer: {
+    width: 36,
+    height: 36,
+  },
+  counter: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: Colors.textSecondary,
+    letterSpacing: 2,
+  },
   center: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
   },
-  logoWrap: {
-    marginBottom: 32,
-  },
-  logoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 32,
-    backgroundColor: Colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+  emoji: {
+    fontSize: 56,
+    marginBottom: 16,
   },
   textBlock: {
-    alignItems: 'center',
-    width: '100%',
+    alignSelf: 'stretch',
   },
-  allSet: {
-    fontSize: 22,
+  title: {
     fontFamily: FontFamily.bold,
-    fontWeight: '700',
+    fontSize: 32,
+    lineHeight: 36,
+    letterSpacing: -1,
     color: Colors.text,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  headline: {
-    fontSize: 26,
-    fontFamily: FontFamily.bold,
-    fontWeight: '700',
-    color: Colors.text,
-    textAlign: 'center',
     marginBottom: 12,
   },
-  headlineAccent: {
-    color: Colors.primary,
-  },
   subtitle: {
-    fontSize: 15,
     fontFamily: FontFamily.regular,
+    fontSize: 15,
     color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
   },
   footer: {
     paddingHorizontal: 24,
