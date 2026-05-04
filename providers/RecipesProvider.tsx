@@ -168,7 +168,7 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
     backfillRanRef.current = true;
     console.log(`[Recipes] Backfilling images for ${recipesWithoutImages.length} recipes`);
 
-    backfillMealImages(userId, Math.min(recipesWithoutImages.length, 5), (recipeId, imageUrl) => {
+    backfillMealImages(userId, Math.min(recipesWithoutImages.length, 20), (recipeId, imageUrl) => {
       // Use functional update to avoid stale closure over mealsRef —
       // prevents race condition with concurrent manual image generation.
       setMeals((prev) => {
@@ -223,14 +223,25 @@ export const [RecipesProvider, useRecipes] = createContextHook(() => {
 
         console.log(`[Recipes] Seeding ${curated.length} starter recipes for new user`);
 
-        for (const row of curated) {
-          const recipe = rowToRecipe(row as Record<string, unknown>);
-          const personalCopy = { ...recipe, id: generateUUID(), source: 'discover' };
-          await upsertRecipeToSupabase(personalCopy, userId, supabase);
-        }
+        const personalCopies = curated.map((row) => ({
+          ...rowToRecipe(row as Record<string, unknown>),
+          id: generateUUID(),
+          source: 'discover' as const,
+        }));
 
-        queryClient.invalidateQueries({ queryKey: ['recipes', userId] });
-        console.log('[Recipes] Starter seed complete');
+        // Show recipes immediately — no waiting for DB writes
+        queryClient.setQueryData(['recipes', userId], personalCopies);
+        setMeals(personalCopies);
+
+        // Write to Supabase in parallel in the background
+        Promise.all(
+          personalCopies.map((copy) => upsertRecipeToSupabase(copy, userId, supabase))
+        )
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ['recipes', userId] });
+            console.log('[Recipes] Starter seed complete');
+          })
+          .catch((e) => console.error('[Recipes] Starter seed write error:', e));
       })
       .catch((e) => console.error('[Recipes] Starter seed error:', e));
   // eslint-disable-next-line react-hooks/exhaustive-deps
