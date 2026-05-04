@@ -27,7 +27,7 @@ export default function DietaryScreen() {
 
   const handleContinue = useCallback(() => {
     setFamilyDietary(selected);
-    router.push('/onboarding/slots' as Href);
+    router.push('/onboarding/rhythm' as Href);
   }, [selected, setFamilyDietary]);
 
   return (

@@ -68,7 +68,7 @@ export default function FamilyScreen() {
     setHouseholdAdults(adults);
     setHouseholdKids(kids);
     setKidsAges(Array.from(ages));
-    router.push('/onboarding/setup-units' as Href);
+    router.push('/onboarding/dietary' as Href);
   }, [name, adults, kids, ages, setFamilyName, setHouseholdAdults, setHouseholdKids, setKidsAges]);
 
   return (

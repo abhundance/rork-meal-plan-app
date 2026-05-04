@@ -5,9 +5,7 @@
  * subtitle / CTA section below. Anonymous auth has already fired in
  * AuthProvider on app launch — this screen does NOT authenticate.
  *
- * Navigates to /onboarding/setup (legacy path; will switch to
- * /onboarding/family in Stage 10 of the v2 redesign once the new
- * screens are wired into _layout.tsx).
+ * Navigates to /onboarding/family (Stage 10 cutover complete).
  */
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
@@ -49,7 +47,7 @@ export default function AuthScreen() {
         </View>
         <PrimaryButton
           label="Let's plan your week"
-          onPress={() => router.push('/onboarding/setup' as Href)}
+          onPress={() => router.push('/onboarding/family' as Href)}
           testID="lets-go-btn"
         />
         <View style={styles.afterCta} />

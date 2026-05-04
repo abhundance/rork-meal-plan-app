@@ -67,7 +67,7 @@ export default function RhythmScreen() {
     setEnabledSlots(ordered);
     setMeasurementUnits(units);
     setStep(3);
-    router.push('/onboarding/preview' as Href);
+    router.push('/onboarding/welcome' as Href);
   }, [enabled, units, setEnabledSlots, setMeasurementUnits, setStep]);
 
   return (
