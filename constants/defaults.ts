@@ -61,4 +61,8 @@ export const DEFAULT_ONBOARDING: OnboardingData = {
   planning_style: 'balanced',
   enabled_slots: ['breakfast', 'lunch', 'dinner'],
   starter_meals: [],
+  // ── Onboarding v2 — household composition ─────────────────────────────────
+  household_adults: 2,
+  household_kids: 0,
+  kids_ages: [],
 };

@@ -24,6 +24,7 @@ import { setPendingPlanSlot } from '@/services/pendingPlanSlot';
 import { CalendarDays } from 'lucide-react-native';
 import { generateUUID } from '@/utils/uuid';
 import { getSlotCategory, getMealCategoryByName } from '@/utils/slotCategory';
+import PlanTabCoachmarks from '@/components/PlanTabCoachmarks';
 
 // ─── Smart Fill — shared types & pure scoring functions ──────────────────────
 
@@ -806,6 +807,9 @@ export default function MealPlanScreen() {
           <Text style={styles.smartPlanToastText}>{smartPlanToast}</Text>
         </Animated.View>
       )}
+
+      {/* First-launch coachmark tour — self-gated by AsyncStorage */}
+      <PlanTabCoachmarks />
     </View>
   );
 }

@@ -2,6 +2,15 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import Colors from '@/constants/colors';
 
+/**
+ * Onboarding stack — v2 redesign
+ *
+ * 5-screen editorial flow: auth → family → dietary → rhythm → welcome.
+ * `auth` and `welcome` are terminal endpoints with no back gesture.
+ *
+ * `account` remains registered for the deferred anonymous → real-auth
+ * upgrade flow (reachable from Settings later); not in the active chain.
+ */
 export default function OnboardingLayout() {
   return (
     <Stack
@@ -12,53 +21,23 @@ export default function OnboardingLayout() {
         animation: 'slide_from_right',
       }}
     >
-      {/* Screen 1 — Launch Mosaic: no back gesture (nothing behind it) */}
+      {/* Screen 1 — Hero (edge-to-edge food image) */}
       <Stack.Screen name="auth" options={{ gestureEnabled: false }} />
 
-      {/* Screen 2 — Family Name */}
-      <Stack.Screen name="setup" />
+      {/* Screen 2 — Family (name + adults + kids + ages) */}
+      <Stack.Screen name="family" />
 
-      {/* Screen 3 — Household Size */}
-      <Stack.Screen name="setup-size" />
+      {/* Screen 3 — Dietary (pill grid) */}
+      <Stack.Screen name="dietary" />
 
-      {/* Screen 4 — Measurement Units */}
-      <Stack.Screen name="setup-units" />
+      {/* Screen 4 — Rhythm (slot toggles + units) */}
+      <Stack.Screen name="rhythm" />
 
-      {/* Screen 5 — Meal Slots: toggle breakfast/lunch/dinner/snacks */}
-      <Stack.Screen name="slots" />
-
-      {/* Screen 4 — Feature Preview: Plan / Recipes / Shopping */}
-      <Stack.Screen name="preview" />
-
-      {/* Screen 5 — Create Account: Google/Apple stubs + email OTP */}
-      <Stack.Screen name="account" />
-
-      {/* Screen 6 — Welcome: animated celebration, syncs settings, enters app */}
+      {/* Screen 5 — Welcome (celebration + Supabase sync, terminal) */}
       <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
 
-      {/* ── Legacy screens (kept for safe routing, not navigated to in new flow) ── */}
-      <Stack.Screen name="auth-options" options={{ animation: 'slide_from_bottom' }} />
-      <Stack.Screen name="region" />
-      <Stack.Screen name="family-name" />
-      <Stack.Screen name="household-size" />
-      <Stack.Screen name="cultural-restrictions" />
-      <Stack.Screen name="family-dietary" />
-      <Stack.Screen name="diet-preferences" />
-      <Stack.Screen name="household-type" />
-      <Stack.Screen name="personal-goal" />
-      <Stack.Screen name="cuisines" />
-      <Stack.Screen name="cooking-time" />
-      <Stack.Screen name="planning-style" />
-      <Stack.Screen name="configure-slots" />
-      <Stack.Screen name="breakfast-picks" />
-      <Stack.Screen name="lunch-dinner-picks" />
-      <Stack.Screen name="chapter-dietary" options={{ animation: 'fade', gestureEnabled: false }} />
-      <Stack.Screen name="chapter-style"   options={{ animation: 'fade', gestureEnabled: false }} />
-      <Stack.Screen name="chapter-plan"    options={{ animation: 'fade', gestureEnabled: false }} />
-      <Stack.Screen name="meal-slots" />
-      <Stack.Screen name="invite-members" />
-      <Stack.Screen name="personal-dietary" />
-      <Stack.Screen name="walkthrough" options={{ animation: 'fade' }} />
+      {/* Account upgrade — reachable from Settings (not in active flow) */}
+      <Stack.Screen name="account" />
     </Stack>
   );
 }

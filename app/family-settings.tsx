@@ -952,7 +952,7 @@ export default function FamilySettingsScreen() {
           {isAnonymous ? (
             <TouchableOpacity
               style={styles.createAccountRow}
-              onPress={() => router.push('/onboarding/auth-options?mode=upgrade' as Href)}
+              onPress={() => router.push('/onboarding/account?mode=upgrade' as Href)}
               testID="create-account-btn"
               activeOpacity={0.7}
             >
