@@ -14,7 +14,7 @@
 ## Platform & Build Tool
 
 - **Framework:** React Native + Expo Router + TypeScript
-- **Build tool:** Local Expo CLI (`npx expo start`). Previously used Rork, now fully migrated to local Expo development. The `@rork-ai/toolkit-sdk` dependency and `withRorkMetro()` wrapper have been removed — see Lesson 12 in `tasks/lessons.md`.
+- **Build tool:** Local Expo CLI (`npx expo start`). Each session begins by cloning (or pulling) the GitHub repo to a working location, editing files directly with normal file edits, and committing/pushing back to GitHub when done. There is no permanent local working copy — each session starts fresh from `origin/main`.
 - **Backend:** Supabase (Postgres + Row-Level Security + Edge Functions). Anonymous auth on first launch; email OTP for full auth.
 - **Local cache:** AsyncStorage (persists Supabase auth session; no longer the primary data store)
 - **State management:** React Context + TanStack Query
@@ -174,7 +174,7 @@ Full invite system for adding family members: `app/invite-member.tsx` (generate/
 
 ## Environment Variables
 
-### Client-side (in Rork's Environment Variables panel)
+### Client-side (`.env` file for local development, EAS Build secrets for production builds)
 
 | Variable | Purpose |
 |----------|---------|
@@ -312,7 +312,7 @@ git add <files> && git commit -m "message" && git push origin master
 
 These patterns were established through development and must be followed:
 
-1. **Lazy API key pattern** — Never assign `process.env.EXPO_PUBLIC_*` to a module-level `const`. Always wrap in a function called at use time. Expo/Metro's bundler caches module-level values and breaks env var reads.
+1. **Lazy API key pattern** — Never assign `process.env.EXPO_PUBLIC_*` to a module-level `const`. Always wrap in a function called at use time. Some bundlers (Metro included) cache module-level values, breaking env var reads when secrets change.
    ```ts
    // ✅ Correct
    function getApiKey() { return process.env.EXPO_PUBLIC_OPENAI_API_KEY ?? ''; }
